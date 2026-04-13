@@ -1,154 +1,162 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Sparkles, Zap, Clock, ArrowRight } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
-import { useSettings } from '../../context/SettingsContext';
+import React from 'react';
+import { ArrowRight, Sparkles, Waves, Leaf, Sun, Coffee, Music } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const LandingServices = () => {
-  const { settings } = useSettings();
-  const [services, setServices] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
-
-  const getImageUrl = (path: string | undefined) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    const cleanPath = path.replace(/^\.?\//, '');
-    return `${API_URL.replace('/api', '')}/${cleanPath}`;
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [servRes, catRes] = await Promise.all([
-          fetch(`${API_URL}/services`),
-          fetch(`${API_URL}/categories?type=service`)
-        ]);
-        
-        const servData = await servRes.json();
-        const catData = await catRes.json();
-        
-        if (Array.isArray(servData)) setServices(servData.filter(s => s.status === 'Active'));
-        if (Array.isArray(catData)) setCategories(catData.filter(c => c.isActive !== false));
-      } catch (error) {
-        console.error('Error fetching landing services:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const rituals = [
+    {
+      icon: Waves,
+      title: 'Ayurvedic Massage',
+      desc: 'Synchronized four-hand oil massage to balance the three doshas.',
+      price: '$180',
+      duration: '90 MIN',
+      image: 'https://images.unsplash.com/photo-1544161515-436cead10a73?auto=format&fit=crop&q=80'
+    },
+    {
+      icon: Music,
+      title: 'Sound Healing',
+      desc: 'Tibetan singing bowls and planetary gongs for deep cellular vibration.',
+      price: '$120',
+      duration: '60 MIN',
+      image: 'https://images.unsplash.com/photo-1620121692029-d088224efc74?auto=format&fit=crop&q=80'
+    },
+    {
+      icon: Leaf,
+      title: 'Floral Facials',
+      desc: 'Fresh extraction of seasonal blooms for a luminous, natural glow.',
+      price: '$150',
+      duration: '75 MIN',
+      image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80'
+    },
+    {
+      icon: Sun,
+      title: 'Himalayan Salt Sauna',
+      desc: 'Dry heat detox within a chamber of prehistoric crystal salt.',
+      price: '$85',
+      duration: '45 MIN',
+      image: 'https://images.unsplash.com/photo-1554441584-6997033a384b?auto=format&fit=crop&q=80'
+    },
+    {
+      icon: Coffee,
+      title: 'Espresso Body Scrub',
+      desc: 'Artisanal coffee beans mixed with raw honey for skin revitalization.',
+      price: '$110',
+      duration: '50 MIN',
+      image: 'https://images.unsplash.com/photo-1620121692029-d088224efc74?auto=format&fit=crop&q=80'
+    },
+    {
+      icon: Sparkles,
+      title: 'Gold Dust Ritual',
+      desc: 'Signature 24k gold leaf application for divine skin radiance.',
+      price: '$250',
+      duration: '120 MIN',
+      image: 'https://images.unsplash.com/photo-1544161515-436cead10a73?auto=format&fit=crop&q=80'
+    }
+  ];
 
   return (
-    <div className="pt-24 lg:pt-40 pb-24 lg:pb-32 min-h-screen">
-      <section className="container mx-auto px-6 mb-20 lg:mb-32 text-center">
-        <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-3 px-6 py-2.5 bg-zen-sand/5 border border-zen-sand/10 rounded-full text-zen-sand text-[11px] font-black uppercase tracking-[0.4em] mb-10 shadow-inner"
-          >
-            <Sparkles size={14} />
-            Celestial Offering
-        </motion.div>
-        <h1 className="text-5xl lg:text-7xl font-serif font-black text-zen-brown tracking-tighter mb-8 leading-tight">
-          Signature <span className="text-zen-sand italic">Rituals</span>
-        </h1>
-        <p className="text-[15px] lg:text-[17px] text-zen-brown/50 font-medium max-w-2xl mx-auto leading-relaxed">
-          Discover a curated registry of master-tier rituals, designed to synchronize your earthly state with absolute serenity.
-        </p>
+    <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
+      {/* Header Spacer */}
+      <div className="h-40" />
+
+      {/* Hero Section */}
+      <section className="relative px-6 lg:px-24 mb-32 pt-20 overflow-hidden">
+        {/* Decorative Background Ritual Image */}
+        <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 blur-sm -z-10 rotate-12 translate-x-12 translate-y-12">
+           <img 
+             src="/Users/aedenteka/.gemini/antigravity/brain/329d471d-25fd-4c6d-b9b1-3933ada8f167/zen_spa_servces_hero_1776076465472.png" 
+             alt="Ritual elements" 
+             className="w-full h-full object-cover rounded-[5rem]"
+           />
+        </div>
+        
+        <div className="max-w-7xl mx-auto flex flex-col items-center text-center space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+          <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-[#4A2C40]/60">
+            <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
+            Sacred Rituals
+            <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
+          </div>
+          <h1 className="text-6xl lg:text-8xl font-serif font-bold leading-[0.9]">
+            The Path to <br />
+            <span className="italic">Renewal</span>
+          </h1>
+          <p className="max-w-2xl text-lg text-[#32172A]/60 leading-relaxed font-sans mt-4">
+            Our services are not mere appointments; they are passages. Each treatment is tailored 
+            to your immediate state of being, using rare ingredients and mindful techniques.
+          </p>
+        </div>
       </section>
 
       {/* Services Grid */}
-      <section className="container mx-auto px-6">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-40">
-            <div className="w-12 h-12 border-4 border-zen-sand border-t-transparent rounded-full animate-spin mb-6" />
-            <p className="font-serif italic text-zen-brown/40 text-lg">Synchronizing registries...</p>
-          </div>
-        ) : (
-          <>
-            {categories.map((cat) => {
-              const catServices = services.filter(s => 
-                (typeof s.category === 'string' && s.category === cat.name) || 
-                (s.category?._id === cat._id) ||
-                (s.category === cat._id)
-              );
-              
-              if (catServices.length === 0) return null;
-
-              return (
-                <div key={cat._id} className="mb-24 last:mb-0">
-                  <div className="flex items-center gap-8 mb-16">
-                      <h2 className="text-3xl lg:text-5xl font-serif text-zen-brown tracking-tighter whitespace-nowrap">{cat.name}</h2>
-                      <div className="h-px w-full bg-gradient-to-r from-zen-sand/30 to-transparent" />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-12 lg:gap-16">
-                      {catServices.map((service) => (
-                        <motion.div
-                          key={service._id}
-                          initial={{ opacity: 0, y: 30 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true }}
-                          whileHover={{ y: -12 }}
-                          className="glass rounded-[3.5rem] overflow-hidden border-white shadow-3xl shadow-zen-brown/10 group flex flex-col h-full bg-white/60"
-                        >
-                          <div className="relative h-72 overflow-hidden bg-zen-sand/10">
-                              {service.image ? (
-                                <img src={getImageUrl(service.image)} alt={service.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                              ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center opacity-20 bg-gradient-to-br from-zen-sand/20 to-zen-leaf/20">
-                                  <Sparkles size={100} className="text-zen-sand mb-4" />
-                                  <p className="text-[10px] uppercase font-black tracking-widest text-zen-brown">Awaiting Image</p>
-                                </div>
-                              )}
-                              <div className="absolute top-8 right-8">
-                                <div className="glass px-6 py-3 rounded-2xl text-zen-sand text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl border-white/60">
-                                    {settings?.general?.currencySymbol || 'QR'} {service.price}
-                                </div>
-                              </div>
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </div>
-
-                          <div className="p-10 lg:p-12 flex-1 flex flex-col justify-between">
-                              <div>
-                                <div className="flex items-center gap-3 text-[10px] font-black text-zen-sand uppercase tracking-[0.4em] mb-6">
-                                  <Clock size={12} className="shrink-0" />
-                                  {service.duration} Minutes of Peace
-                                </div>
-                                <h3 className="text-2xl lg:text-3xl font-serif text-zen-brown mb-6 tracking-tight group-hover:text-zen-sand transition-colors leading-tight">{service.name}</h3>
-                                <p className="text-[15px] text-zen-brown/50 leading-relaxed font-medium mb-10 line-clamp-3">
-                                  {service.description || `Embark on a signature ritual designed to restore your celestial resonance. A master-tier experience crafted for the discerning soul.`}
-                                </p>
-                              </div>
-
-                              <NavLink 
-                                to="/contact" 
-                                className="w-full py-5 bg-zen-brown text-white text-[11px] font-black uppercase tracking-[0.3em] rounded-2xl flex items-center justify-center gap-3 group-hover:bg-zen-sand group-hover:shadow-2xl shadow-zen-sand/20 transition-all mt-auto"
-                              >
-                                Reserve Ritual
-                                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                              </NavLink>
-                          </div>
-                        </motion.div>
-                      ))}
-                  </div>
+      <section className="px-6 lg:px-24 pb-32">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-12">
+          {rituals.map((ritual, i) => (
+            <div 
+              key={i} 
+              className="group relative bg-white rounded-[3rem] overflow-hidden border border-[#32172A]/5 hover:shadow-2xl transition-all duration-700"
+              style={{ animationDelay: `${i * 100}ms` }}
+            >
+              <div className="aspect-[4/5] overflow-hidden relative">
+                <img 
+                  src={ritual.image} 
+                  alt={ritual.title} 
+                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#32172A]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                
+                {/* Floating Price/Duration */}
+                <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
+                   <div className="px-4 py-1.5 backdrop-blur-3xl bg-white/80 rounded-full text-xs font-bold tracking-widest text-[#4A2C40]">
+                     {ritual.duration}
+                   </div>
+                   <div className="px-4 py-1.5 backdrop-blur-3xl bg-[#32172A]/80 rounded-full text-xs font-bold tracking-widest text-white">
+                     {ritual.price}
+                   </div>
                 </div>
-              );
-            })}
-
-            {(services.length === 0 || categories.length === 0) && (
-              <div className="flex flex-col items-center justify-center py-40 glass rounded-[4rem] text-center border-dashed border-zen-sand/20">
-                <div className="w-20 h-20 rounded-full bg-zen-sand/5 flex items-center justify-center text-zen-sand/20 mb-8 border border-dashed border-zen-sand/20">
-                    <Sparkles size={40} />
-                </div>
-                <p className="font-serif italic text-2xl text-zen-brown/40">The registry is currently aligning...</p>
               </div>
-            )}
-          </>
-        )}
+
+              <div className="p-10 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#4A2C40]/5 rounded-xl flex items-center justify-center text-[#4A2C40]">
+                    <ritual.icon size={20} />
+                  </div>
+                  <h3 className="text-2xl font-serif font-bold">{ritual.title}</h3>
+                </div>
+                <p className="text-[#32172A]/60 text-sm leading-relaxed">
+                  {ritual.desc}
+                </p>
+                
+                <div className="pt-4">
+                  <Link 
+                    to="/contact" 
+                    className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#4A2C40] hover:translate-x-2 transition-transform"
+                  >
+                    Select Ritual
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Full Width CTA */}
+      <section className="px-6 lg:px-24 pb-32">
+        <div className="max-w-7xl mx-auto bg-[#4A2C40] rounded-[5rem] overflow-hidden relative p-12 lg:p-24 text-center">
+           <div className="absolute top-0 right-0 w-[40%] h-full bg-white/5 skew-x-12 -z-0" />
+           <div className="relative z-10 space-y-8">
+              <h2 className="text-4xl lg:text-6xl font-serif font-bold text-white max-w-2xl mx-auto leading-tight">
+                Not sure which path to <span className="italic">choose?</span>
+              </h2>
+              <p className="text-[#E5BAD4]/60 text-lg max-w-xl mx-auto">
+                Consult with our Equilibrium Master for a personalized wellness blueprint designed around your specific goals.
+              </p>
+              <button className="px-12 py-5 bg-[#FAF9F6] text-[#32172A] rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-xl">
+                Request Consultation
+              </button>
+           </div>
+        </div>
       </section>
     </div>
   );

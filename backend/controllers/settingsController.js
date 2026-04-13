@@ -1,5 +1,6 @@
 const Settings = require('../models/Settings');
 const { deleteFile } = require('../middleware/uploadMiddleware');
+const { sendNotification } = require('../utils/firebase');
 
 // @desc    Get all settings
 // @route   GET /api/settings
@@ -103,11 +104,19 @@ exports.sendTestNotification = async (req, res) => {
       return res.status(400).json({ message: 'Push notifications are disabled' });
     }
 
-    console.log(`Sending test push notification to token: ${settings.notifications.fcmToken || 'No token set'}`);
+    if (!settings.notifications.fcmToken) {
+      return res.status(400).json({ message: 'No target FCM token set in notifications config' });
+    }
+
+    await sendNotification(
+      settings.notifications.fcmToken,
+      'Zen Spa Test',
+      'The cosmic alignment is complete. Push notifications are active.',
+      { type: 'test' }
+    );
     
-    // In a real app, you'd use admin.messaging().send() here
-    res.json({ message: 'Notification sent successfully (Simulated)' });
+    res.json({ message: 'Notification delivered to the destination device.' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: `FCM Error: ${error.message}` });
   }
 };

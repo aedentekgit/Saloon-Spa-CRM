@@ -1,101 +1,106 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { Sparkles, Instagram, Facebook, Twitter, Mail, Phone, MapPin } from 'lucide-react';
+import { NavLink, Link } from 'react-router-dom';
+import { Sparkles, Instagram, Facebook, Twitter, MapPin, Phone, Mail, ArrowUpRight } from 'lucide-react';
 
 const PublicFooter = () => {
   return (
-    <footer className="relative pt-12 pb-12 overflow-hidden">
-      {/* Decorative Orbs */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-zen-sand/5 blur-[120px] rounded-full -z-10" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-zen-leaf/5 blur-[120px] rounded-full -z-10" />
-
-      <div className="container mx-auto px-6">
-        <div className="glass rounded-[3rem] p-10 lg:p-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-8 border-white/40 shadow-2xl">
+    <footer className="bg-[#1A1816] text-[#FAF9F6] pt-32 pb-16 relative overflow-hidden">
+      {/* Decorative Blur */}
+      <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-[#4A2C40]/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2" />
+      
+      <div className="container mx-auto px-6 lg:px-24 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-20 mb-32">
           
-          {/* Brand Info */}
-          <div className="space-y-6">
-            <NavLink to="/" className="flex items-center gap-2 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zen-sand to-zen-leaf flex items-center justify-center text-white shadow-lg group-hover:rotate-12 transition-transform duration-500">
-                <Sparkles size={20} />
-              </div>
-              <span className="font-serif text-2xl font-black text-zen-brown tracking-tighter">ZEN<span className="text-zen-sand">SPA</span></span>
-            </NavLink>
-            <p className="text-[13px] text-zen-brown/50 font-medium leading-relaxed max-w-xs">
-              A sanctuary of tranquility dedicated to the harmony of body, mind, and spirit. Rediscover yourself in our architecture of peace.
-            </p>
-            <div className="flex items-center gap-4">
-              {[Instagram, Facebook, Twitter].map((Icon, i) => (
-                <button key={i} className="w-9 h-9 rounded-xl glass-dark flex items-center justify-center text-zen-brown/40 hover:text-zen-sand hover:scale-110 transition-all duration-300">
-                  <Icon size={16} />
-                </button>
-              ))}
-            </div>
+          {/* Brand Column */}
+          <div className="lg:col-span-4 space-y-10">
+             <NavLink to="/" className="flex items-center gap-4 group">
+                <div className="w-12 h-12 rounded-full bg-[#4A2C40]/20 flex items-center justify-center text-[#E5BAD4] border border-white/5 group-hover:bg-[#4A2C40] transition-all duration-500 shadow-lg">
+                  <Sparkles size={20} />
+                </div>
+                <span className="font-serif text-3xl font-bold tracking-tighter uppercase whitespace-nowrap">Zen<span className="opacity-40 font-normal italic">Spa</span></span>
+             </NavLink>
+             <p className="text-lg text-white/40 font-light leading-relaxed max-w-sm">
+                A meticulously curated environment designed for profound stillness and physical restoration.
+             </p>
+             <div className="flex items-center gap-6">
+                {[Instagram, Facebook, Twitter].map((Icon, i) => (
+                  <button key={i} className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/5 transition-all duration-500">
+                    <Icon size={18} />
+                  </button>
+                ))}
+             </div>
           </div>
 
-          {/* Navigation */}
-          <div>
-            <h5 className="text-[10px] font-black text-zen-brown uppercase tracking-[0.4em] mb-8">Navigation</h5>
-            <div className="flex flex-col gap-4">
-              {['Home', 'About', 'Services', 'Our Team', 'Contact'].map((item) => (
+          {/* Site Links */}
+          <div className="lg:col-span-2 space-y-8">
+            <h5 className="text-[10px] font-bold text-[#E5BAD4] uppercase tracking-[0.4em]">Sitemap</h5>
+            <div className="flex flex-col gap-5">
+              {[
+                { name: 'Home', path: '/' },
+                { name: 'About', path: '/about' },
+                { name: 'Services', path: '/landing-services' },
+                { name: 'Our Team', path: '/team' },
+                { name: 'Contact', path: '/contact' }
+              ].map((link) => (
                 <NavLink 
-                  key={item} 
-                  to={item === 'Services' ? '/landing-services' : item === 'Our Team' ? '/team' : `/${item.toLowerCase().replace(' ', '')}`} 
-                  className="text-[13px] font-medium text-zen-brown/40 hover:text-zen-sand transition-colors"
+                  key={link.name} 
+                  to={link.path} 
+                  className="text-[12px] font-medium text-white/40 hover:text-white transition-all flex items-center group"
                 >
-                  {item}
+                  <div className="w-0 group-hover:w-4 h-[1px] bg-[#E5BAD4] transition-all duration-300 mr-0 group-hover:mr-3" />
+                  {link.name}
                 </NavLink>
               ))}
             </div>
           </div>
 
-          {/* Contact Details */}
-          <div>
-            <h5 className="text-[10px] font-black text-zen-brown uppercase tracking-[0.4em] mb-8">Locale</h5>
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="w-9 h-9 rounded-xl bg-zen-sand/5 flex items-center justify-center text-zen-sand shrink-0">
-                  <MapPin size={16} />
-                </div>
-                <p className="text-[13px] text-zen-brown/60 font-medium leading-[1.8]">
-                  123 Lotus Avenue, Celestial Gardens<br />Doha, Qatar
-                </p>
+          {/* Locale & Contact */}
+          <div className="lg:col-span-3 space-y-8">
+            <h5 className="text-[10px] font-bold text-[#E5BAD4] uppercase tracking-[0.4em]">The Sanctuary</h5>
+            <div className="space-y-8">
+              <div className="space-y-2">
+                 <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Address</p>
+                 <p className="text-sm text-white/50 leading-relaxed max-w-[200px]">
+                    12 Lotus Path, Equilibrium Valley, Doha, Qatar
+                 </p>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="w-9 h-9 rounded-xl bg-zen-sand/5 flex items-center justify-center text-zen-sand shrink-0">
-                  <Phone size={16} />
-                </div>
-                <p className="text-[13px] text-zen-brown/60 font-black">+974 4455 6677</p>
+              <div className="space-y-2">
+                 <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Inquiries</p>
+                 <p className="text-sm text-white/50">peace@zenspa.qa</p>
+                 <p className="text-sm text-white/50">+974 4455 6677</p>
               </div>
             </div>
           </div>
 
-          {/* Newsletter / CTA */}
-          <div>
-            <h5 className="text-[10px] font-black text-zen-brown uppercase tracking-[0.4em] mb-8">Registry</h5>
-            <div className="space-y-4">
-              <p className="text-[13px] text-zen-brown/40 font-medium leading-relaxed">
-                Celestial updates and exclusive retreat offers.
-              </p>
-              <div className="relative group">
-                <input 
-                  type="email" 
-                  placeholder="Oracle Email"
-                  className="w-full h-12 bg-zen-sand/5 border border-zen-sand/10 rounded-xl px-5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-zen-sand/20 transition-all placeholder:text-zen-brown/20"
-                />
-                <button className="absolute right-1 top-1 bottom-1 w-10 h-10 bg-zen-sand text-white rounded-lg flex items-center justify-center hover:bg-zen-brown transition-all">
-                  <Mail size={16} />
-                </button>
-              </div>
+          {/* Membership CTA */}
+          <div className="lg:col-span-3 space-y-8">
+            <h5 className="text-[10px] font-bold text-[#E5BAD4] uppercase tracking-[0.4em]">Membership</h5>
+            <div className="space-y-8 rounded-[3rem] bg-white/5 p-8 border border-white/10 hover:border-white/20 transition-all group">
+               <p className="text-sm text-white/50 leading-relaxed">
+                  Join our inner circle for exclusive access to seasonal ceremonies and personalized blueprints.
+               </p>
+               <Link 
+                 to="/contact" 
+                 className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.3em] text-[#E5BAD4] group-hover:text-white transition-colors"
+               >
+                  Inquire Now
+                  <ArrowUpRight size={16} />
+               </Link>
             </div>
           </div>
         </div>
 
-        {/* Legal Bits */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-4 text-[9px] font-black uppercase tracking-[0.2em] text-zen-brown/20 border-t border-zen-brown/5 pt-8">
-          <span>&copy; 2026 ZEN SPA SANCTUARY. All Rights Reserved.</span>
-          <div className="flex items-center gap-8">
-            <button className="hover:text-zen-sand transition-colors">Privacy Paradigm</button>
-            <button className="hover:text-zen-sand transition-colors">Terms of Tranquility</button>
+        {/* Bottom Bar */}
+        <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-8 text-[10px] font-bold uppercase tracking-[0.3em] text-white/20">
+          <div className="flex flex-col md:flex-row items-center gap-12">
+             <span>&copy; 2026 ZEN SPA GLOBAL SANCTUARIES</span>
+             <div className="flex items-center gap-8">
+                <button className="hover:text-white transition-colors">Privacy Privacy</button>
+                <button className="hover:text-white transition-colors">Legal Terms</button>
+             </div>
+          </div>
+          <div className="italic font-serif normal-case text-lg text-white/10">
+             The Art of Profound Balance
           </div>
         </div>
       </div>

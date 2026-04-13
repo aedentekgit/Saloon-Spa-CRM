@@ -351,13 +351,8 @@ const Admins = () => {
              <ZenInput label="Digital Mail Hub" icon={Mail} value={formData.email} onChange={(e: any) => setFormData({...formData, email: e.target.value})} />
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="relative">
-                   <ZenInput label={`Security Key ${editingAdmin ? '(Optional)' : ''}`} icon={Lock} type={showPassword ? "text" : "password"} value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} />
-                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 bottom-3 text-zen-brown/20 hover:text-zen-brown transition-colors">
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                   </button>
-                </div>
-                {!editingAdmin && <ZenInput label="Confirm Security Key" icon={Lock} type={showPassword ? "text" : "password"} value={formData.confirmPassword} onChange={(e: any) => setFormData({...formData, confirmPassword: e.target.value})} />}
+                <ZenInput label={`Security Key ${editingAdmin ? '(Optional)' : ''}`} icon={Lock} type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} />
+                {!editingAdmin && <ZenInput label="Confirm Security Key" icon={Lock} type="password" value={formData.confirmPassword} onChange={(e: any) => setFormData({...formData, confirmPassword: e.target.value})} />}
              </div>
 
              <ZenDropdown 

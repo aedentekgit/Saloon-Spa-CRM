@@ -4,7 +4,7 @@ export const ZenButton = ({ children, variant = 'primary', className = '', ...pr
   const base = "flex items-center justify-center gap-3 py-3.5 px-8 rounded-2xl font-bold transition-all duration-300 text-xs uppercase tracking-widest";
   const variants: any = {
     primary: "bg-zen-brown text-zen-cream hover:bg-black hover:shadow-2xl",
-    secondary: "bg-zen-cream text-zen-brown hover:bg-zen-sand/30",
+    secondary: "bg-zen-stone text-zen-brown hover:bg-zen-sand/10 hover:shadow-lg",
     outline: "bg-white text-zen-brown border border-zen-brown/5 hover:bg-zen-brown hover:text-white shadow-sm"
   };
 

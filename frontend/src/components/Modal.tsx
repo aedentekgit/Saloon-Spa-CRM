@@ -63,12 +63,12 @@ export const Modal: React.FC<ModalProps> = ({
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
 
             {!hideHeader && (
-              <div className="flex items-center justify-between px-10 py-8 border-b border-zen-brown/5 shrink-0 bg-white/50 backdrop-blur-md relative z-10">
+              <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-8 border-b border-zen-brown/5 shrink-0 bg-white/50 backdrop-blur-md relative z-10">
                 <div className="flex items-center gap-3">
                    <div className="p-2 bg-zen-cream/40 rounded-xl text-zen-sand">
                       <Sparkles size={16} />
                    </div>
-                   <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">{title}</h3>
+                   <h3 className="text-xl sm:text-2xl font-serif font-bold text-zen-brown tracking-tight">{title}</h3>
                 </div>
                 <button 
                   onClick={onClose}
@@ -84,7 +84,7 @@ export const Modal: React.FC<ModalProps> = ({
             </div>
 
             {footer && (
-              <div className="px-10 py-8 border-t border-zen-brown/5 bg-white/50 backdrop-blur-md shrink-0 relative z-10">
+              <div className="px-6 sm:px-10 py-6 sm:py-8 border-t border-zen-brown/5 bg-white/50 backdrop-blur-md shrink-0 relative z-10">
                 {footer}
               </div>
             )}

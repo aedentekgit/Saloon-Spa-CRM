@@ -19,7 +19,7 @@ exports.createMembershipPlan = async (req, res) => {
 // @access  Private
 exports.getMembershipPlans = async (req, res) => {
   try {
-    const plans = await MembershipPlan.find({ isActive: true });
+    const plans = await MembershipPlan.find({ isActive: true }).populate('applicableServices');
     res.json(plans);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -31,7 +31,7 @@ exports.getMembershipPlans = async (req, res) => {
 // @access  Private/Admin
 exports.updateMembershipPlan = async (req, res) => {
   try {
-    const plan = await MembershipPlan.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const plan = await MembershipPlan.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
     res.json(plan);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -44,7 +44,7 @@ exports.updateMembershipPlan = async (req, res) => {
 exports.deleteMembershipPlan = async (req, res) => {
   try {
     // Instead of deleting, just deactivate
-    const plan = await MembershipPlan.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
+    const plan = await MembershipPlan.findByIdAndUpdate(req.params.id, { isActive: false }, { returnDocument: 'after' });
     res.json({ message: 'Plan deactivated' });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -159,9 +159,6 @@ exports.redeemMembershipSession = async (req, res) => {
   }
 };
 
-// @desc    Get all memberships (Registry)
-// @route   GET /api/memberships/client/all
-// @access  Private
 exports.getAllMemberships = async (req, res) => {
   try {
     let query = {};
@@ -175,8 +172,13 @@ exports.getAllMemberships = async (req, res) => {
 
     const memberships = await Membership.find(query)
       .populate('client')
-      .populate('plan')
+      .populate({
+        path: 'plan',
+        populate: { path: 'applicableServices' }
+      })
       .populate('branch')
+      .populate('usageHistory.service')
+      .populate('usageHistory.branch')
       .sort({ createdAt: -1 });
     res.json(memberships);
   } catch (error) {

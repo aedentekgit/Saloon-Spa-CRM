@@ -15,7 +15,7 @@ const Navbar = ({
 }) => {
   const { user } = useAuth();
   const location = useLocation();
-  const isDashboard = location.pathname === '/dashboard' || location.pathname === '/';
+  const shouldShowBranchInNavbar = ['/dashboard', '/', '/billing'].includes(location.pathname);
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -56,7 +56,7 @@ const Navbar = ({
       </div>
 
       <div className="flex items-center space-x-2 sm:space-x-4 ml-4">
-        {isDashboard && (
+        {shouldShowBranchInNavbar && (
           <div className="hidden sm:block mr-2 scale-90 origin-right">
             <BranchSelector />
           </div>

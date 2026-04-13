@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Calendar, Sparkles, Eye, EyeOff } from 'lucide-react';
 import dayjs from 'dayjs';
 
 interface DropdownProps {
@@ -63,14 +63,22 @@ export const ZenDropdown = ({
       {isOpen && createPortal(
         <div 
           ref={listRef}
-          className="fixed bg-white rounded-[2rem] shadow-[-10px_20px_60px_-15px_rgba(74,55,40,0.15)] border border-zen-brown/5 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 z-[99999]"
-          style={{
+          className={`fixed bg-white shadow-[-10px_20px_60px_-15px_rgba(74,55,40,0.15)] border border-zen-brown/5 animate-in fade-in slide-in-from-top-2 duration-300 z-[99999] overflow-y-auto
+            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[2.5rem] max-h-[70vh]' : 'rounded-[2rem] max-h-60'}
+          `}
+          style={window.innerWidth >= 640 ? {
             width: dropdownRef.current?.getBoundingClientRect().width,
             left: dropdownRef.current?.getBoundingClientRect().left,
             top: (dropdownRef.current?.getBoundingClientRect().bottom || 0) + 8
-          }}
+          } : {}}
         >
-          <div className="max-h-60 overflow-y-auto scrollbar-hide">
+          <div className="py-2">
+            {window.innerWidth < 640 && (
+              <div className="px-8 pt-6 pb-2 border-b border-zen-brown/5 mb-2">
+                <p className="text-[10px] font-black text-zen-brown/20 uppercase tracking-[0.3em]">{label || 'Select'}</p>
+                <h3 className="text-lg font-serif font-bold text-zen-brown mt-1">Registry Selection</h3>
+              </div>
+            )}
             {options.map((opt) => (
               <div 
                 key={opt}
@@ -92,24 +100,137 @@ export const ZenDropdown = ({
   );
 };
 
-export const ZenInput = ({ label, icon: Icon, prefix, variant = 'light', ...props }: any) => (
-  <div className={`space-y-2 group ${props.containerClassName || ''}`}>
-    <label className={`text-[9px] font-bold uppercase tracking-widest ml-1 ${variant === 'dark' ? 'text-white/40' : 'text-zen-brown/30'}`}>{label}</label>
-    <div className="relative flex items-center">
-      {Icon && <Icon className={`absolute left-0 bottom-3 ${variant === 'dark' ? 'text-white/20' : 'text-zen-brown/10'}`} size={16} />}
-      {prefix && (
-        <span className={`absolute ${Icon ? 'left-7' : 'left-1'} bottom-3 text-sm font-bold border-r border-zen-brown/10 pr-2 mr-2 whitespace-nowrap ${variant === 'dark' ? 'text-white/60' : 'text-zen-brown/40'}`}>
-          {prefix}
-        </span>
+export const ZenAutocomplete = ({ 
+  label, options, value, onChange, placeholder, icon: Icon, className = "", 
+  subtextKey = 'subtext', disabled
+}: any) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Synchronize search term with external value if needed
+  useEffect(() => {
+    if (value) {
+      const selected = options.find((o: any) => o.id === value || o.name === value);
+      if (selected) setSearchTerm(selected.name);
+    } else {
+      setSearchTerm('');
+    }
+  }, [value, options]);
+
+  const filteredOptions = useMemo(() => {
+    if (!searchTerm || value === searchTerm) return options.slice(0, 10);
+    const term = searchTerm.toLowerCase();
+    return options.filter((opt: any) => 
+      opt.name.toLowerCase().includes(term) || 
+      (opt[subtextKey] && opt[subtextKey].toLowerCase().includes(term))
+    ).slice(0, 15);
+  }, [options, searchTerm, value, subtextKey]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node) &&
+          listRef.current && !listRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className={`space-y-1 relative group ${className} ${disabled ? 'opacity-40 pointer-events-none' : ''}`} ref={containerRef}>
+      <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>
+      <div className="w-full pb-3 bg-transparent border-b border-zen-brown/10 flex items-center justify-between group-focus-within:border-zen-brown transition-all">
+        <div className="flex items-center gap-3 flex-1">
+          {Icon && <Icon size={16} className="text-zen-brown/20 group-focus-within:text-zen-brown" />}
+          <input 
+            type="text"
+            className="w-full bg-transparent outline-none font-serif text-lg text-zen-brown placeholder:text-zen-brown/20"
+            placeholder={placeholder || `Search ${label}...`}
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setIsOpen(true);
+              if (!e.target.value) onChange('');
+            }}
+            onFocus={() => setIsOpen(true)}
+          />
+        </div>
+      </div>
+
+      {isOpen && filteredOptions.length > 0 && createPortal(
+        <div 
+          ref={listRef}
+          className={`fixed bg-white/95 backdrop-blur-xl shadow-[-20px_40px_80px_-20px_rgba(74,55,40,0.15)] border border-zen-brown/5 animate-in fade-in slide-in-from-top-2 duration-500 z-[99999] overflow-y-auto
+            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[3rem] max-h-[60vh]' : 'rounded-[2.5rem] max-h-[320px]'}
+          `}
+          style={window.innerWidth >= 640 ? {
+            width: containerRef.current?.getBoundingClientRect().width,
+            left: containerRef.current?.getBoundingClientRect().left,
+            top: (containerRef.current?.getBoundingClientRect().bottom || 0) + 8
+          } : {}}
+        >
+          <div className="py-4 px-2">
+            {filteredOptions.map((opt: any) => (
+              <div 
+                key={opt.id || opt.name}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(opt.id || opt.name);
+                  setSearchTerm(opt.name);
+                  setIsOpen(false);
+                }}
+                className="px-6 py-4 rounded-[1.8rem] transition-all cursor-pointer hover:bg-zen-cream group/item flex flex-col"
+              >
+                <span className="text-sm font-serif font-black text-zen-brown group-hover/item:text-zen-sand transition-colors">{opt.name}</span>
+                {opt[subtextKey] && (
+                  <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0.5">{opt[subtextKey]}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body
       )}
-      <input 
-        {...props}
-        className={`w-full pb-2 ${Icon ? 'pl-7' : 'pl-1'} bg-transparent border-b border-zen-brown/10 outline-none transition-all font-medium text-sm sm:text-base placeholder:text-zen-brown/30 ${prefix ? (Icon ? 'pl-16' : 'pl-12') : ''} ${variant === 'dark' ? 'text-white focus:border-white/40' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''}`}
-        style={prefix ? { paddingLeft: Icon ? `calc(1.75rem + ${prefix.length * 0.6}rem + 1rem)` : `calc(0.25rem + ${prefix.length * 0.6}rem + 1rem)` } : {}}
-      />
     </div>
-  </div>
-);
+  );
+};
+
+export const ZenInput = ({ label, icon: Icon, prefix, variant = 'light', type, ...props }: any) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === 'password';
+  
+  return (
+    <div className={`space-y-2 group ${props.containerClassName || ''}`}>
+      <label className={`text-[9px] font-bold uppercase tracking-widest ml-1 ${variant === 'dark' ? 'text-white/40' : 'text-zen-brown/30'}`}>{label}</label>
+      <div className="relative flex items-center">
+        {Icon && <Icon className={`absolute left-0 bottom-3 transition-colors ${variant === 'dark' ? 'text-white/20' : 'text-zen-brown/10'} group-focus-within:text-zen-brown`} size={16} />}
+        {prefix && (
+          <span className={`absolute ${Icon ? 'left-7' : 'left-1'} bottom-3 text-sm font-bold border-r border-zen-brown/10 pr-2 mr-2 whitespace-nowrap ${variant === 'dark' ? 'text-white/60' : 'text-zen-brown/40'}`}>
+            {prefix}
+          </span>
+        )}
+        <input 
+          {...props}
+          type={isPassword ? (showPassword ? 'text' : 'password') : type}
+          className={`w-full pb-2 ${Icon ? 'pl-7' : 'pl-1'} bg-transparent border-b border-zen-brown/10 outline-none transition-all font-medium text-sm sm:text-base placeholder:text-zen-brown/30 ${prefix ? (Icon ? 'pl-16' : 'pl-12') : ''} ${variant === 'dark' ? 'text-white focus:border-white/40' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''} ${isPassword ? 'pr-8' : ''}`}
+          style={prefix ? { paddingLeft: Icon ? `calc(1.75rem + ${prefix.length * 0.6}rem + 1rem)` : `calc(0.25rem + ${prefix.length * 0.6}rem + 1rem)` } : {}}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-0 bottom-2 p-1 text-zen-brown/20 hover:text-zen-brown transition-all hover:scale-110 active:scale-90"
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 interface DatePickerProps {
   label: string;
@@ -189,14 +310,16 @@ export const ZenDatePicker = ({ label, value, onChange, className = "", icon: Ic
       {isOpen && createPortal(
         <div 
           ref={calendarRef}
-          className="fixed bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-[-20px_40px_80px_-20px_rgba(74,55,40,0.2)] border border-white/50 animate-in zoom-in-95 fade-in duration-300 z-[99999] min-w-[320px]"
-          style={{
-            left: containerRef.current?.getBoundingClientRect().left,
+          className={`fixed bg-white/95 backdrop-blur-xl shadow-[-20px_40px_80px_-20px_rgba(74,55,40,0.2)] border border-white/50 animate-in zoom-in-95 fade-in duration-300 z-[99999] min-w-[320px]
+            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[3rem] p-8' : 'rounded-[2.5rem] p-6'}
+          `}
+          style={window.innerWidth >= 640 ? {
+            left: Math.min(window.innerWidth - 350, containerRef.current?.getBoundingClientRect().left || 0),
             top: (containerRef.current?.getBoundingClientRect().bottom || 0) + 12
-          }}
+          } : {}}
         >
           {/* Calendar Header */}
-          <div className="flex items-center justify-between mb-6 px-1">
+          <div className="flex items-center justify-between mb-8 px-1">
             <button type="button" onClick={() => setViewDate(viewDate.subtract(1, 'month'))} className="p-2 hover:bg-zen-cream rounded-full transition-colors text-zen-brown/40 hover:text-zen-brown">
               <ChevronLeft size={18} />
             </button>
@@ -262,3 +385,96 @@ export const ZenTextarea = ({ label, ...props }: any) => (
     />
   </div>
 );
+
+export const ZenMonthPicker = ({ label, value, onChange, className = "" }: any) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node) &&
+          dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const months = useMemo(() => {
+    const res = [];
+    let curr = dayjs().startOf('month');
+    for (let i = 0; i < 12; i++) {
+      res.push({
+        label: curr.format('MMMM YYYY'),
+        value: curr.format('YYYY-MM')
+      });
+      curr = curr.subtract(1, 'month');
+    }
+    return res;
+  }, []);
+
+  const selectedMonth = months.find(m => m.value === value) || months[0];
+
+  return (
+    <div className={`relative group ${className}`} ref={containerRef}>
+      <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] block mb-4">{label}</label>
+      
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between cursor-pointer group/trigger"
+      >
+        <div className="flex items-center gap-5">
+          <div className="w-10 h-10 rounded-2xl bg-zen-cream/30 flex items-center justify-center text-zen-brown/30 group-hover/trigger:text-zen-brown transition-all duration-500">
+            <Calendar size={18} strokeWidth={1.5} />
+          </div>
+          <span className="text-2xl font-serif font-bold text-zen-brown tracking-tight">
+            {selectedMonth.label}
+          </span>
+        </div>
+        <ChevronDown 
+          size={20} 
+          className={`text-zen-brown/20 transition-transform duration-700 ease-in-out ${isOpen ? 'rotate-180 text-zen-brown' : ''}`} 
+        />
+      </div>
+
+      <div className="h-px w-full bg-zen-brown/5 mt-6 mb-2" />
+
+      {isOpen && createPortal(
+        <div 
+          ref={dropdownRef}
+          className={`fixed bg-white/95 backdrop-blur-2xl shadow-[-20px_40px_80px_-20px_rgba(74,55,40,0.15)] border border-white/50 overflow-hidden animate-in zoom-in-95 fade-in duration-500 z-[99999] p-4 min-w-[280px]
+            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[3rem]' : 'rounded-[2.5rem]'}
+          `}
+          style={window.innerWidth >= 640 ? {
+            left: Math.min(window.innerWidth - 300, containerRef.current?.getBoundingClientRect().left || 0),
+            top: (containerRef.current?.getBoundingClientRect().bottom || 0) + 12
+          } : {}}
+        >
+          <div className="max-h-[320px] overflow-y-auto scrollbar-hide space-y-1">
+            {months.map((m) => (
+              <div 
+                key={m.value}
+                onClick={() => {
+                  onChange(m.value);
+                  setIsOpen(false);
+                }}
+                className={`px-8 py-5 rounded-[1.8rem] text-sm font-serif transition-all duration-300 cursor-pointer flex items-center justify-between group/item
+                  ${value === m.value 
+                    ? 'bg-zen-brown text-white shadow-xl scale-[1.02]' 
+                    : 'text-zen-brown/40 hover:bg-zen-cream/40 hover:text-zen-brown hover:translate-x-1'
+                  }
+                `}
+              >
+                <span className={`font-bold ${value === m.value ? 'text-white' : ''}`}>{m.label}</span>
+                {value === m.value && <Sparkles size={14} className="text-white/40 animate-pulse" />}
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};

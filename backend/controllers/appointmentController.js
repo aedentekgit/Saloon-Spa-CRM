@@ -32,10 +32,6 @@ const getAppointments = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// @desc    Create an appointment
-// @route   POST /api/appointments
-// @access  Private
 const createAppointment = async (req, res) => {
   try {
     const appointmentData = {
@@ -49,7 +45,58 @@ const createAppointment = async (req, res) => {
       return res.status(400).json({ message: 'Branch assignment required' });
     }
 
+    // Auto-resolve clientId if missing but client (name) is present
+    if (!appointmentData.clientId && appointmentData.client) {
+      const Client = require('../models/Client');
+      const foundClient = await Client.findOne({ name: appointmentData.client });
+      if (foundClient) {
+        appointmentData.clientId = foundClient._id;
+      }
+    }
+
     const appointment = await Appointment.create(appointmentData);
+
+    // Membership Integration: Automatically deduct sessions if applicable
+    if (appointment.clientId) {
+      const Membership = require('../models/Membership');
+      const Service = require('../models/Service');
+      
+      // Find the service to check its ID if needed
+      const serviceObj = await Service.findOne({ name: appointment.service });
+      const serviceId = appointment.serviceId || serviceObj?._id;
+
+      if (serviceId) {
+        let activeMembership;
+        if (req.body.membershipId) {
+          activeMembership = await Membership.findById(req.body.membershipId).populate('plan');
+        } else {
+          activeMembership = await Membership.findOne({
+            client: appointment.clientId,
+            status: 'Active',
+            remainingSessions: { $gt: 0 }
+          }).populate('plan');
+        }
+
+        if (activeMembership) {
+          // Check if this service is covered by the plan
+          const isApplicable = activeMembership.plan.applicableServices.some(
+            id => id.toString() === serviceId.toString()
+          );
+
+          if (isApplicable) {
+            activeMembership.remainingSessions -= 1;
+            activeMembership.usageHistory.push({
+              service: serviceId,
+              appointment: appointment._id,
+              branch: appointment.branch,
+              usedAt: new Date()
+            });
+            await activeMembership.save();
+          }
+        }
+      }
+    }
+
     res.status(201).json(appointment);
   } catch (error) {
     res.status(400).json({ message: error.message });

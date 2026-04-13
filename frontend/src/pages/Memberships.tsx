@@ -14,7 +14,9 @@ import {
   CheckCircle2, 
   AlertCircle, 
   BarChart3,
-  ShieldCheck
+  ShieldCheck,
+  History,
+  MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
@@ -48,6 +50,8 @@ const Memberships = () => {
     const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
     const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
     const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [selectedHistory, setSelectedHistory] = useState<any>(null);
     const [editingPlan, setEditingPlan] = useState<any>(null);
     const [editingEnrollmentId, setEditingEnrollmentId] = useState<string | null>(null);
     
@@ -413,9 +417,29 @@ const Memberships = () => {
                                  </div>
                                  
                                  <h4 className="text-2xl font-serif font-black text-zen-brown mb-2 group-hover:text-zen-sand transition-colors duration-500">{plan.name}</h4>
-                                 <div className="flex items-baseline gap-2 mb-8">
+                                 <div className="flex items-baseline gap-2 mb-6">
                                     <span className="text-4xl font-black tracking-tighter text-zen-brown">QR {plan.price}</span>
                                     <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.2em]">Asset Investment</span>
+                                 </div>
+
+                                 {/* Applicable Services List */}
+                                 <div className="mb-8">
+                                    <p className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.3em] mb-3 px-1">Covered Rituals</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                       {(plan.applicableServices || []).slice(0, 3).map((s: any) => (
+                                          <span key={s._id} className="px-2 py-1 bg-zen-brown/5 rounded-lg text-[8px] text-zen-brown/60 font-bold border border-zen-brown/5 shadow-sm">
+                                             {s.name}
+                                          </span>
+                                       ))}
+                                       {(plan.applicableServices || []).length > 3 && (
+                                          <span className="px-2 py-1 bg-zen-sand/10 rounded-lg text-[8px] text-zen-sand font-bold border border-zen-sand/10">
+                                             +{(plan.applicableServices || []).length - 3} More
+                                          </span>
+                                       )}
+                                       {(plan.applicableServices || []).length === 0 && (
+                                          <span className="text-[8px] text-zen-brown/20 italic font-serif">Universal Sanctuary Coverage</span>
+                                       )}
+                                    </div>
                                  </div>
                               </div>
                               
@@ -566,6 +590,10 @@ const Memberships = () => {
                                      </td>
                                      <td className="px-6 py-6">
                                         <div className="flex items-center justify-center gap-2">
+                                           <ZenIconButton icon={History} onClick={() => {
+                                              setSelectedHistory(m);
+                                              setIsHistoryModalOpen(true);
+                                           }} />
                                            <ZenIconButton icon={Edit3} onClick={() => {
                                               setEditingEnrollmentId(m._id);
                                               setEnrollData({
@@ -609,6 +637,10 @@ const Memberships = () => {
                                          </div>
                                       </div>
                                       <div className="flex gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
+                                         <ZenIconButton icon={History} onClick={() => {
+                                               setSelectedHistory(m);
+                                               setIsHistoryModalOpen(true);
+                                            }} />
                                          <ZenIconButton icon={Edit3} onClick={() => {
                                                setEditingEnrollmentId(m._id);
                                                setEnrollData({
@@ -843,6 +875,65 @@ const Memberships = () => {
                <ZenButton type="submit" className="flex-[2]">Redeem Sacred Essence</ZenButton>
             </div>
          </form>
+      </Modal>
+
+      {/* Usage History Modal */}
+      <Modal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} title="Services Taken Registry" hideHeader maxWidth="max-w-4xl" >
+         <div className="p-10 space-y-10">
+            <div className="flex items-center justify-between">
+               <div className="flex items-center gap-6">
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
+                     <History size={24} />
+                  </div>
+                  <div>
+                     <h2 className="text-2xl font-serif font-bold text-zen-brown">Services Taken Registry</h2>
+                     <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-1">Detailed redemption records</p>
+                  </div>
+               </div>
+               <div className="text-right">
+                  <h3 className="font-serif text-lg font-bold text-zen-brown">{selectedHistory?.client?.name}</h3>
+                  <ZenBadge variant="sand" className="mt-1">{selectedHistory?.plan?.name}</ZenBadge>
+               </div>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] border border-zen-brown/5 overflow-hidden shadow-sm">
+               <table className="w-full text-left">
+                  <thead className="bg-zen-cream/10 border-b border-zen-brown/5">
+                     <tr>
+                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">S No</th>
+                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Date</th>
+                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Branch</th>
+                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Ritual (Massage)</th>
+                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Slot</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zen-brown/5">
+                     {selectedHistory?.usageHistory?.length > 0 ? selectedHistory.usageHistory.map((usage: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-zen-cream/5 transition-colors duration-300">
+                           <td className="px-8 py-5 text-[11px] font-serif font-bold text-zen-brown/40">{(idx + 1).toString().padStart(2, '0')}</td>
+                           <td className="px-8 py-5 text-[11px] font-bold text-zen-brown">{new Date(usage.usedAt).toLocaleDateString()}</td>
+                           <td className="px-8 py-5 text-[11px] font-bold text-zen-brown">
+                              <div className="flex items-center gap-2">
+                                 <MapPin size={10} className="text-zen-sand" />
+                                 {usage.branch?.name || 'Sanctuary'}
+                              </div>
+                           </td>
+                           <td className="px-8 py-5 text-[11px] font-bold text-zen-brown">{usage.service?.name || usage.serviceId}</td>
+                           <td className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase">{new Date(usage.usedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                        </tr>
+                     )) : (
+                        <tr>
+                           <td colSpan={5} className="px-8 py-12 text-center text-sm font-serif italic text-zen-brown/30">No redemption history found for this enrollment</td>
+                        </tr>
+                     )}
+                  </tbody>
+               </table>
+            </div>
+
+            <div className="flex justify-center pt-4">
+               <ZenButton variant="secondary" onClick={() => setIsHistoryModalOpen(false)} className="px-12">Close Registry</ZenButton>
+            </div>
+         </div>
       </Modal>
 
       <ConfirmDialog

@@ -1,4 +1,6 @@
 const Client = require('../models/Client');
+const Membership = require('../models/Membership');
+const Appointment = require('../models/Appointment');
 const path = require('path');
 const { deleteFile } = require('../middleware/uploadMiddleware');
 
@@ -20,9 +22,49 @@ exports.getClients = async (req, res) => {
       }
     }
 
-    const clients = await Client.find(query).populate('branch').sort({ createdAt: -1 });
-    res.json(clients);
+    const clients = await Client.find(query).populate('branch').sort({ createdAt: -1 }).lean();
+    
+    // Fetch all memberships for these clients
+    const clientIds = clients.map(c => c._id);
+    const memberships = await Membership.find({ 
+      client: { $in: clientIds }
+    })
+    .populate({
+      path: 'plan',
+      populate: { path: 'applicableServices', select: 'name' }
+    })
+    .populate('usageHistory.service')
+    .populate('usageHistory.branch')
+    .sort({ createdAt: -1 })
+    .lean();
+
+    // Fetch all appointments for these clients (Search by both clientId and name string for legacy/fallback support)
+    const appointments = await Appointment.find({ 
+      $or: [
+        { clientId: { $in: clientIds } },
+        { client: { $in: clients.map(c => c.name) } }
+      ]
+    }).populate('branch').sort({ date: -1, time: -1 }).lean();
+
+    // Map everything to clients
+    const clientsWithData = clients.map(client => {
+      const clientMemberships = memberships.filter(m => m.client?.toString() === client._id.toString());
+      const clientAppointments = appointments.filter(a => 
+        a.clientId?.toString() === client._id.toString() || 
+        (a.client === client.name && !a.clientId) // Only match by name if clientId is not present
+      );
+      
+      return {
+        ...client,
+        membership: clientMemberships.find(m => m.status === 'Active') || clientMemberships[0] || null,
+        memberships: clientMemberships,
+        appointments: clientAppointments
+      };
+    });
+
+    res.json(clientsWithData);
   } catch (error) {
+    console.error('Error in getClients:', error);
     res.status(500).json({ message: error.message });
   }
 };

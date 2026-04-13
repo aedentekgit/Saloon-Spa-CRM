@@ -64,6 +64,11 @@ interface SettingsData {
   };
   notifications: {
     pushEnabled: boolean;
+    fcmToken?: string;
+    firebaseProjectId?: string;
+    firebaseClientEmail?: string;
+    firebasePrivateKey?: string;
+    firebaseServiceAccount?: string;
   };
   smtp?: {
     host: string;
@@ -517,6 +522,62 @@ const Settings = () => {
                                        <motion.div layout className="w-6 h-6 rounded-full bg-white shadow-2xl" animate={{ x: settings.notifications.pushEnabled ? 32 : 0 }} />
                                     </button>
                                  </div>
+                                 {settings.notifications.pushEnabled && (
+                                    <motion.div 
+                                       initial={{ opacity: 0, height: 0 }}
+                                       animate={{ opacity: 1, height: 'auto' }}
+                                       className="space-y-6 pt-4"
+                                    >
+                                       <ZenInput 
+                                          label="Project ID" 
+                                          darkMode 
+                                          value={settings.notifications.firebaseProjectId || ''}
+                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseProjectId: e.target.value}} : null)}
+                                       />
+                                       <ZenInput 
+                                          label="Client Email" 
+                                          darkMode 
+                                          value={settings.notifications.firebaseClientEmail || ''}
+                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseClientEmail: e.target.value}} : null)}
+                                       />
+                                       <ZenTextarea 
+                                          label="Private Key" 
+                                          darkMode 
+                                          placeholder="-----BEGIN PRIVATE KEY-----..."
+                                          value={settings.notifications.firebasePrivateKey || ''}
+                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebasePrivateKey: e.target.value}} : null)}
+                                       />
+                                       <div className="pt-6 border-t border-white/5">
+                                          <ZenInput 
+                                             label="Test Target Token" 
+                                             darkMode 
+                                             placeholder="Device FCM Token"
+                                             value={settings.notifications.fcmToken || ''}
+                                             onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, fcmToken: e.target.value}} : null)}
+                                          />
+                                          <button
+                                             type="button"
+                                             onClick={async () => {
+                                                try {
+                                                   const res = await fetch(`${API_URL}/settings/test-notification`, {
+                                                      method: 'POST',
+                                                      headers: { 'Authorization': `Bearer ${user?.token}` }
+                                                   });
+                                                   const data = await res.json();
+                                                   if (res.ok) notify('success', 'Signal Sent', data.message);
+                                                   else notify('error', 'Signal Failed', data.message);
+                                                } catch (e) {
+                                                   notify('error', 'Network Error', 'Could not reach cosmic relay.');
+                                                }
+                                             }}
+                                             className="mt-4 w-full py-4 bg-zen-sand/20 hover:bg-zen-sand/30 text-zen-sand rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all"
+                                          >
+                                             Transmit Test Signal
+                                          </button>
+                                       </div>
+                                    </motion.div>
+                                 )}
+
                                  <div className="p-10 bg-white/5 rounded-[3rem] border border-white/10 flex items-center justify-between cursor-pointer hover:bg-white/10 transition-all duration-500 group/item">
                                     <div className="flex items-center gap-8">
                                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-zen-sand">
@@ -528,8 +589,9 @@ const Settings = () => {
                                  </div>
                               </div>
                               <div className="flex flex-col h-full">
-                                 <div className="flex-1 bg-white/5 rounded-[3rem] border border-white/10 p-12 flex items-center justify-center relative overflow-hidden">
-                                    <Activity size={80} className="text-white/5 animate-pulse relative z-10" />
+                                 <div className="flex-1 bg-white/5 rounded-[3rem] border border-white/10 p-12 flex flex-col items-center justify-center relative overflow-hidden text-center">
+                                    <Activity size={80} className="text-white/5 animate-pulse relative z-10 mb-6" />
+                                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.4em] relative z-10">Relay Status: {settings.notifications.pushEnabled ? 'Awaited' : 'Standby'}</p>
                                     <div className="absolute inset-0 bg-gradient-to-br from-zen-sand/5 to-transparent opacity-50" />
                                  </div>
                                  <ZenButton onClick={() => handleSave('notifications')} className="mt-10 w-full py-6 bg-white text-zen-brown hover:bg-zen-cream rounded-[1.5rem] font-bold text-lg shadow-2xl">

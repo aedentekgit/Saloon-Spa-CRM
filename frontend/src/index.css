@@ -1,9 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&family=Hind:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Italiana&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Hind", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Rajdhani", sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Italiana", serif;
   
   /* Deep Lavender & Dark Theme Palette */
   --color-zen-cream: #F5F5FA; /* Clean Light Background */

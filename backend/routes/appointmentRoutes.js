@@ -9,7 +9,7 @@ const {
 const { protect } = require('../middleware/authMiddleware');
 
 router.route('/')
-  .get(getAppointments)
+  .get(protect, getAppointments)
   .post(protect, createAppointment);
 
 router.route('/:id')

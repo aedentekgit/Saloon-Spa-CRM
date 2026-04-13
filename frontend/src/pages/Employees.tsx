@@ -660,8 +660,8 @@ const Employees = () => {
                  <div className="grid grid-cols-2 gap-x-16 gap-y-10 animate-in fade-in duration-500 py-12">
                      <ZenInput label="Email Port" icon={Mail} value={formData.email} onChange={(e: any) => setFormData({...formData, email: e.target.value})} />
                      <ZenInput label="Contact Line" icon={Phone} prefix={settings?.general?.dialingCode} value={formData.phone} onChange={(e: any) => setFormData({...formData, phone: e.target.value})} />
-                     <ZenInput label={`Security Key ${editingEmp ? '(Optional)' : ''}`} icon={Lock} type={showPassword ? "text" : "password"} value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} />
-                     <ZenInput label="Confirm Key" icon={Lock} type={showPassword ? "text" : "password"} value={formData.confirmPassword} onChange={(e: any) => setFormData({...formData, confirmPassword: e.target.value})} />
+                     <ZenInput label={`Security Key ${editingEmp ? '(Optional)' : ''}`} icon={Lock} type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} />
+                     <ZenInput label="Confirm Key" icon={Lock} type="password" value={formData.confirmPassword} onChange={(e: any) => setFormData({...formData, confirmPassword: e.target.value})} />
                      <ZenDropdown label="Branch Node" options={['None', ...branches.filter(b => b.isActive).map(b => b.name)]} value={branches.find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: branches.filter(b => b.isActive).find(b => b.name === val)?._id || ''})} />
                      <ZenDropdown label="Operational Status" options={['Active', 'Deactive']} value={formData.status === 'Inactive' ? 'Deactive' : formData.status} onChange={(val) => setFormData({...formData, status: val === 'Deactive' ? 'Inactive' : val})} />
                      <div className="col-span-2">

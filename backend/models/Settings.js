@@ -26,7 +26,11 @@ const settingsSchema = new mongoose.Schema({
   },
   notifications: {
     pushEnabled: { type: Boolean, default: false },
-    fcmToken: { type: String, default: '' }
+    fcmToken: { type: String, default: '' },
+    firebaseProjectId: { type: String, default: '' },
+    firebaseClientEmail: { type: String, default: '' },
+    firebasePrivateKey: { type: String, default: '' },
+    firebaseServiceAccount: { type: String, default: '' } // For raw JSON if needed
   },
   billing: {
     gstEnabled: { type: Boolean, default: false }

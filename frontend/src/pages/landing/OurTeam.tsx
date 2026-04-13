@@ -1,124 +1,127 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Sparkles, Instagram, Linkedin, Twitter, Star } from 'lucide-react';
+import React from 'react';
+import { Award, Star, Heart, Instagram, Linkedin, Twitter } from 'lucide-react';
 
 const OurTeam = () => {
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
-
-  const getImageUrl = (path: string | undefined) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    const cleanPath = path.replace(/^\.?\//, '');
-    return `${API_URL.replace('/api', '')}/${cleanPath}`;
-  };
-
-  useEffect(() => {
-    const fetchTeam = async () => {
-      try {
-        const response = await fetch(`${API_URL}/employees`);
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setEmployees(data.filter(e => e.status === 'Active' && e.role !== 'Admin'));
-        }
-      } catch (error) {
-        console.error('Error fetching team:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTeam();
-  }, []);
+  const practitioners = [
+    {
+      name: 'Dr. Aarav Sharma',
+      role: 'Master of Ayurveda',
+      specialty: 'Marma Point Therapy & Detoxification',
+      image: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80',
+      bio: 'With over 20 years of experience in traditional Hindu medicine, Dr. Sharma brings ancestral wisdom to every modern ritual.'
+    },
+    {
+      name: 'Elena Vora',
+      role: 'Head of Aesthetics',
+      specialty: 'Facial Sculpting & Dermal Vitality',
+      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80',
+      bio: 'Elena views skin as a living canvas. Her proprietary "Gold Dust" ritual has been featured in leading global wellness journals.'
+    },
+    {
+      name: 'Julian Thorne',
+      role: 'Sound Healing Specialist',
+      specialty: 'Vibrational Therapy & Somatic Release',
+      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80',
+      bio: 'Julian uses sound as a surgical tool for the spirit. His sessions combine Gregorian chants with modern frequency modulations.'
+    },
+    {
+      name: 'Sophia Chen',
+      role: 'Horticulture & Aromatics Lead',
+      specialty: 'Botanical Infusion & Essential Blending',
+      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80',
+      bio: 'Sophia manages our private sanctuary gardens, ensuring that every botanical used in our treatments is harvested at peak potency.'
+    }
+  ];
 
   return (
-    <div className="pt-24 lg:pt-40 pb-24 lg:pb-32 min-h-screen">
-      <section className="container mx-auto px-6 mb-20 lg:mb-32 text-center">
-        <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-3 px-6 py-2.5 bg-zen-sand/5 border border-zen-sand/10 rounded-full text-zen-sand text-[11px] font-black uppercase tracking-[0.4em] mb-10 shadow-inner"
-          >
-            <Sparkles size={14} />
-            Temple Guardians
-        </motion.div>
-        <h1 className="text-5xl lg:text-7xl font-serif font-black text-zen-brown tracking-tighter mb-8 leading-tight">
-          Master <span className="text-zen-sand italic">Artisans</span>
-        </h1>
-        <p className="text-[15px] lg:text-[17px] text-zen-brown/50 font-medium max-w-2xl mx-auto leading-relaxed">
-          The curators of your sanctuary. Our artisans are meticulously selected for their expertise in ancient rituals and contemporary wellness.
-        </p>
+    <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
+      {/* Header Spacer */}
+      <div className="h-40" />
+
+      {/* Hero Section */}
+      <section className="px-6 lg:px-24 mb-32">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-end">
+          <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
+             <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-[#4A2C40]/60">
+                <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
+                The Hands of Healing
+             </div>
+             <h1 className="text-6xl lg:text-9xl font-serif font-bold leading-[0.8] tracking-tighter">
+                Masters of <br />
+                <span className="italic">Equilibrium</span>
+             </h1>
+          </div>
+          <div className="pb-4 animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">
+             <p className="text-xl text-[#32172A]/70 leading-relaxed font-sans max-w-md">
+                Meet the artisans of peace. Our practitioners are not just trained; they are chosen for their profound connection to the art of renewal.
+             </p>
+          </div>
+        </div>
       </section>
 
-      {/* Team Grid */}
-      <section className="container mx-auto px-6">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-40">
-            <div className="w-12 h-12 border-4 border-zen-sand border-t-transparent rounded-full animate-spin mb-6" />
-            <p className="font-serif italic text-zen-brown/40 text-lg">Awakening guardians...</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12 lg:gap-16">
-               {employees.map((staff, i) => (
-                 <motion.div
-                   key={staff._id}
-                   initial={{ opacity: 0, y: 30 }}
-                   whileInView={{ opacity: 1, y: 0 }}
-                   viewport={{ once: true }}
-                   transition={{ delay: i * 0.1 }}
-                   className="group text-center"
-                 >
-                    <div className="relative aspect-[4/5] rounded-[3.5rem] overflow-hidden mb-10 shadow-3xl transition-all duration-700 group-hover:shadow-zen-sand/20 group-hover:-translate-y-4 bg-zen-sand/5">
-                       {staff.profilePic ? (
-                         <img src={getImageUrl(staff.profilePic)} alt={staff.name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                       ) : (
-                         <div className="w-full h-full bg-gradient-to-br from-zen-sand/10 to-zen-leaf/10 flex flex-col items-center justify-center">
-                           <Sparkles size={80} className="text-zen-sand opacity-20 mb-4" />
-                           <p className="text-[9px] uppercase font-black tracking-widest text-zen-brown opacity-20">Sanctuary Profile</p>
-                         </div>
-                       )}
-                       
-                       {/* Overlay Socials */}
-                       <div className="absolute inset-0 bg-gradient-to-t from-zen-brown/90 via-zen-brown/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-10">
-                          <div className="flex items-center justify-center gap-6">
-                             {['Instagram', 'Linkedin', 'Twitter'].map((IconName, j) => (
-                               <button key={j} className="text-white/60 hover:text-zen-sand hover:scale-125 transition-all text-[11px] font-black uppercase tracking-widest">
-                                 {IconName}
-                               </button>
-                             ))}
-                          </div>
-                       </div>
-
-                       {/* Specialty Tag */}
-                       <div className="absolute top-8 right-8">
-                          <div className="glass px-5 py-2.5 rounded-2xl text-zen-brown text-[10px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-2 border-white/60">
-                             <Star size={12} className="text-zen-sand fill-zen-sand" />
-                             Master Tier
-                          </div>
+      {/* Practitioners Grid */}
+      <section className="px-6 lg:px-24 pb-32">
+         <div className="max-w-7xl mx-auto space-y-24">
+            {practitioners.map((staff, i) => (
+              <div 
+                key={i} 
+                className={`flex flex-col lg:flex-row gap-16 items-center ${i % 2 !== 0 ? 'lg:flex-row-reverse' : ''}`}
+              >
+                 <div className="flex-1 w-full animate-in fade-in zoom-in duration-1000">
+                    <div className="aspect-[4/5] rounded-[5rem] overflow-hidden shadow-2xl relative group">
+                       <img 
+                          src={staff.image} 
+                          alt={staff.name} 
+                          className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-all duration-1000 group-hover:scale-105"
+                       />
+                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-6">
+                           {[Instagram, Linkedin, Twitter].map((Social, idx) => (
+                             <a key={idx} href="#" className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white hover:text-[#32172A] transition-all">
+                               <Social size={20} />
+                             </a>
+                           ))}
                        </div>
                     </div>
-
-                    <div className="space-y-3">
-                       <h3 className="text-2xl lg:text-3xl font-serif text-zen-brown tracking-tighter group-hover:text-zen-sand transition-colors">{staff.name}</h3>
-                       <p className="text-[11px] font-black text-zen-sand uppercase tracking-[0.5em]">{staff.role}</p>
-                       <div className="mt-8 h-px w-20 bg-zen-sand/20 mx-auto group-hover:w-32 transition-all duration-700" />
-                    </div>
-                 </motion.div>
-               ))}
-            </div>
-
-            {employees.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-40 glass rounded-[4rem] text-center border-dashed border-zen-sand/20">
-                 <div className="w-20 h-20 rounded-full bg-zen-sand/5 flex items-center justify-center text-zen-sand/20 mb-8 border border-dashed border-zen-sand/20">
-                    <Sparkles size={40} />
                  </div>
-                 <p className="font-serif italic text-2xl text-zen-brown/40">The Artisans are currently meditating...</p>
+
+                 <div className="flex-1 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                    <div className="space-y-4">
+                       <h2 className="text-5xl lg:text-6xl font-serif font-bold">{staff.name}</h2>
+                       <div className="flex items-center gap-4">
+                          <span className="px-4 py-1.5 bg-[#4A2C40]/5 rounded-full text-xs font-bold tracking-widest text-[#4A2C40] uppercase">
+                            {staff.role}
+                          </span>
+                       </div>
+                    </div>
+
+                    <div className="p-10 border border-[#32172A]/5 bg-white rounded-[3rem] shadow-sm space-y-6">
+                       <div className="flex items-center gap-3 text-[#4A2C40]">
+                          <Award size={20} />
+                          <span className="text-sm font-bold tracking-widest uppercase">{staff.specialty}</span>
+                       </div>
+                       <p className="text-[#32172A]/60 leading-relaxed italic text-lg">
+                         "{staff.bio}"
+                       </p>
+                       <div className="flex gap-1">
+                          {[1,2,3,4,5].map(s => <Star key={s} size={14} className="fill-[#4A2C40] text-[#4A2C40]" />)}
+                       </div>
+                    </div>
+                 </div>
               </div>
-            )}
-          </>
-        )}
+            ))}
+         </div>
+      </section>
+
+      {/* Philosophy Join CTA */}
+      <section className="px-6 lg:px-24 pb-32">
+         <div className="max-w-4xl mx-auto text-center space-y-12">
+            <div className="w-20 h-[1px] bg-[#32172A]/20 mx-auto" />
+            <h2 className="text-4xl font-serif font-bold italic text-[#4A2C40]/80">"Healing is not about fixing. It's about remembering who you were before the world got in the way."</h2>
+            <div className="flex items-center justify-center gap-6">
+               <Heart className="text-[#4A2C40]" size={32} />
+               <p className="text-sm font-bold uppercase tracking-[0.3em]">Built with Intention</p>
+            </div>
+         </div>
       </section>
     </div>
   );

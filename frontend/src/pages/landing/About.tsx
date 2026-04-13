@@ -1,81 +1,112 @@
 import React from 'react';
-import { motion } from 'motion/react';
-import { Sparkles, Heart, Sun, Leaf, Globe, ShieldCheck } from 'lucide-react';
+import { History, Heart, Sparkles, MapPin } from 'lucide-react';
 
 const About = () => {
   return (
-    <div className="pt-20 lg:pt-32 pb-24 lg:pb-40">
-      {/* Header Section */}
-      <section className="container mx-auto px-6 mb-24 lg:mb-40 text-center">
-        <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-2 px-6 py-2 bg-zen-sand/5 border border-zen-sand/10 rounded-full text-zen-sand text-[10px] font-black uppercase tracking-[0.3em] mb-10 shadow-inner"
-          >
-            <Sun size={14} />
-            Our Philosophy
-        </motion.div>
-        <h1 className="text-5xl lg:text-7xl font-serif font-black text-zen-brown tracking-tighter mb-8 leading-tight">
-          A Legacy of <span className="text-zen-sand text-glow">Peace</span> and Precision
-        </h1>
-        <p className="text-lg lg:text-xl text-zen-brown/50 font-medium max-w-3xl mx-auto leading-relaxed">
-          The Zen Spa was born from a simple vision: to create a temporal rift where time slows down and the spirit can finally catch up with the body.
-        </p>
-      </section>
+    <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
+      {/* Header Spacer */}
+      <div className="h-32" />
 
-      {/* Story Sections */}
-      <section className="container mx-auto px-6 space-y-24 lg:space-y-40">
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-24">
-          <div className="w-full lg:w-1/2 rounded-[4rem] bg-gradient-to-br from-zen-sand/10 to-zen-leaf/10 border border-zen-sand/10 aspect-video flex items-center justify-center p-8 lg:p-12 relative overflow-hidden group">
-            <Sparkles size={160} className="text-zen-sand opacity-5 group-hover:scale-110 transition-transform duration-1000" />
-            <div className="absolute inset-0 bg-white/20 transition-all group-hover:bg-white/0" />
-            <div className="relative glass p-10 rounded-[2.5rem] border-white/60 shadow-2xl text-center">
-              <span className="text-6xl font-serif font-black text-zen-sand">10+</span>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zen-brown mt-2">Years of Sanctuary</p>
+      {/* Hero Content */}
+      <section className="px-6 lg:px-24 mb-32">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-center">
+          <div className="space-y-12 animate-in fade-in slide-in-from-left-8 duration-1000">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-[#4A2C40]/60">
+                <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
+                The Zen Heritage
+              </div>
+              <h1 className="text-6xl lg:text-8xl font-serif font-bold leading-tight">
+                Our Story of <br />
+                <span className="italic">Mindfulness</span>
+              </h1>
+            </div>
+
+            <div className="space-y-6 text-lg text-[#32172A]/70 leading-relaxed max-w-xl">
+              <p>
+                Founded in 2024, Zen Sanctuary was born from a simple yet profound vision: to create a physical manifestion of inner peace. We believe that true luxury is found in the moments between, when the world fades and clarity emerges.
+              </p>
+              <p>
+                Drawing from centuries-old eastern traditions and refined with modern neuro-science, our methods go beyond surface treatment. We study the architecture of the soul, ensuring that every guest leaves not just refreshed, but redefined.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-8 pt-6">
+              <div className="space-y-2">
+                <span className="text-4xl font-serif font-bold text-[#4A2C40]">12+</span>
+                <p className="text-[10px] uppercase font-bold tracking-widest text-[#32172A]/40">Master Therapists</p>
+              </div>
+              <div className="space-y-2">
+                <span className="text-4xl font-serif font-bold text-[#4A2C40]">24k</span>
+                <p className="text-[10px] uppercase font-bold tracking-widest text-[#32172A]/40">Souls Restored</p>
+              </div>
             </div>
           </div>
-          <div className="w-full lg:w-1/2 space-y-8">
-            <h2 className="text-3xl lg:text-5xl font-serif text-zen-brown tracking-tight leading-tight">
-              Crafting Immersion Beyond the <span className="italic font-normal">Standard</span>.
-            </h2>
-            <p className="text-sm lg:text-base text-zen-brown/50 font-medium leading-relaxed">
-              We don't just provide treatments; we engineer environments. Every aspect of our spa, from the precise frequency of the ambient music to the golden ratio applied to our architecture, is designed to induce a state of deep meditative resonance.
-            </p>
-            <div className="grid grid-cols-2 gap-8">
-                <div className="space-y-2">
-                    <p className="text-[11px] font-black text-zen-sand uppercase tracking-widest">Natural Essence</p>
-                    <p className="text-sm text-zen-brown/40 font-medium leading-relaxed">Only the purest biological elements touch your skin.</p>
-                </div>
-                <div className="space-y-2">
-                    <p className="text-[11px] font-black text-zen-sand uppercase tracking-widest">Sonic Balance</p>
-                    <p className="text-sm text-zen-brown/40 font-medium leading-relaxed">Curated soundscapes to align your internal rhythms.</p>
-                </div>
+
+          <div className="relative animate-in fade-in slide-in-from-right-8 duration-1000">
+            <div className="aspect-square rounded-[5rem] overflow-hidden shadow-2xl relative z-10">
+              <img 
+                src="/Users/aedenteka/.gemini/antigravity/brain/329d471d-25fd-4c6d-b9b1-3933ada8f167/zen_spa_heritage_about_1776076447215.png" 
+                alt="Zen environment" 
+                className="w-full h-full object-cover grayscale-[0.3]"
+              />
             </div>
+            {/* Soft decorative circles */}
+            <div className="absolute -top-12 -right-12 w-64 h-64 bg-[#E5BAD4]/20 rounded-full blur-3xl -z-0" />
+            <div className="absolute -bottom-12 -left-12 w-80 h-80 bg-[#4A2C40]/5 rounded-full blur-3xl -z-0" />
           </div>
         </div>
+      </section>
 
-        {/* Values Section */}
-        <div className="glass rounded-[4rem] p-12 lg:p-24 border-white shadow-3xl bg-gradient-to-br from-white/90 to-zen-sand/5">
-          <h2 className="text-3xl lg:text-5xl font-serif text-zen-brown tracking-tight leading-tight text-center mb-16 lg:mb-24">
-            The Pillars of <span className="text-zen-sand italic">Tranquility</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-16">
-            {[
-              { icon: Heart, title: 'Kindness', desc: 'Empathy is the foundation of every touch.' },
-              { icon: Leaf, title: 'Nature', desc: 'Sourcing organic purity from the celestial Earth.' },
-              { icon: Globe, title: 'Culture', desc: 'Merging global rituals with local heritage.' },
-              { icon: ShieldCheck, title: 'Quality', desc: 'Excellence in every micro-interaction.' }
-            ].map((value, i) => (
-              <div key={i} className="flex flex-col items-center text-center space-y-6 group">
-                <div className="w-16 h-16 rounded-2xl glass-dark flex items-center justify-center text-zen-sand group-hover:bg-zen-sand group-hover:text-white transition-all duration-500 shadow-xl group-hover:scale-110 group-hover:-rotate-6">
-                  <value.icon size={24} />
-                </div>
-                <div>
-                  <h4 className="text-xl font-serif text-zen-brown mb-2">{value.title}</h4>
-                  <p className="text-xs text-zen-brown/40 leading-relaxed font-medium">{value.desc}</p>
-                </div>
+      {/* Philosophy Carousel-like Display */}
+      <section className="bg-[#32172A] text-[#FAF9F6] py-32 px-6 lg:px-24 rounded-t-[5rem]">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-3 gap-16">
+            <div className="space-y-8">
+              <div className="p-4 bg-white/5 w-fit rounded-2xl border border-white/10">
+                <History className="text-[#E5BAD4]" size={32} />
               </div>
-            ))}
+              <h3 className="text-3xl font-serif font-bold leading-tight">Ancestral Healing</h3>
+              <p className="text-white/60 leading-relaxed">
+                We preserve the sanctity of traditional ayurvedic and herbal practices, sourcing rare botanicals directly from sustainable mountain gardens.
+              </p>
+            </div>
+
+            <div className="space-y-8">
+              <div className="p-4 bg-white/5 w-fit rounded-2xl border border-white/10">
+                <Sparkles className="text-[#E5BAD4]" size={32} />
+              </div>
+              <h3 className="text-3xl font-serif font-bold leading-tight">Modern Luxury</h3>
+              <p className="text-white/60 leading-relaxed">
+                Silence is our greatest luxury. Every room is acoustically tuned and equipped with ambient light cycles to match your circadian rhythm.
+              </p>
+            </div>
+
+            <div className="space-y-8">
+              <div className="p-4 bg-white/5 w-fit rounded-2xl border border-white/10">
+                <Heart className="text-[#E5BAD4]" size={32} />
+              </div>
+              <h3 className="text-3xl font-serif font-bold leading-tight">Radical Empathy</h3>
+              <p className="text-white/60 leading-relaxed">
+                Our staff is trained not just in service, but in the art of anticipation. We aim to understand your needs before you have to voice them.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-32 pt-32 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-12">
+            <div className="flex items-center gap-6">
+              <div className="w-24 h-24 rounded-full border border-white/20 p-2 overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80" alt="Founder" className="w-full h-full object-cover rounded-full" />
+              </div>
+              <div>
+                <p className="font-serif font-bold text-xl">Elena Vora</p>
+                <p className="text-sm text-white/40 uppercase tracking-widest">Master of Equilibrium & Founder</p>
+              </div>
+            </div>
+            
+            <div className="max-w-md text-right md:text-left italic text-2xl text-white/80 leading-snug">
+              "We don't sell treatments. We provide the container for transformation to occur."
+            </div>
           </div>
         </div>
       </section>
