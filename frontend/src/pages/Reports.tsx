@@ -50,46 +50,11 @@ interface Appointment {
   service: string;
 }
 
+import { useData } from '../context/DataContext';
+
 const Reports = () => {
   const { user } = useAuth();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const [invRes, expRes, serRes, appRes] = await Promise.all([
-        fetch(`${API_URL}/invoices`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
-        fetch(`${API_URL}/expenses`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
-        fetch(`${API_URL}/services`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
-        fetch(`${API_URL}/appointments`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
-      ]);
-      
-      const [invData, expData, serData, appData] = await Promise.all([
-        invRes.json(),
-        expRes.json(),
-        serRes.json(),
-        appRes.json()
-      ]);
-
-      if (Array.isArray(invData)) setInvoices(invData);
-      if (Array.isArray(expData)) setExpenses(expData);
-      if (Array.isArray(serData)) setServices(serData);
-      if (Array.isArray(appData)) setAppointments(appData);
-    } catch (error) {
-      notify('error', 'Insight Failure', 'Failed to synchronize analytical sanctuary records');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { invoices, expenses, services, appointments, loading } = useData();
 
   const totalIncome = useMemo(() => invoices.reduce((acc, inv) => acc + (inv.total || 0), 0), [invoices]);
   const totalExpenses = useMemo(() => expenses.reduce((acc, exp) => acc + (exp.amount || 0), 0), [expenses]);

@@ -60,13 +60,16 @@ interface Invoice {
   paymentMode: string;
 }
 
+import { useData } from '../context/DataContext';
+
 const Billing = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
+  const { invoices, clients: rawClients, services: rawServices, refreshData } = useData();
   
+  const clients = useMemo(() => rawClients.filter((c: any) => c.status === 'Active'), [rawClients]);
+  const services = useMemo(() => rawServices.filter((s: any) => s.status === 'Active'), [rawServices]);
+
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
   const [discount, setDiscount] = useState(0);
@@ -78,7 +81,7 @@ const Billing = () => {
     { mode: 'UPI', amount: 0 },
     { mode: 'GPay', amount: 0 }
   ]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
   const [gstRates, setGstRates] = useState<any[]>([]);
   const [selectedGSTRate, setSelectedGSTRate] = useState<any>(null);
@@ -86,7 +89,6 @@ const Billing = () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
-    fetchData();
     fetchGSTRates();
   }, []);
 
@@ -101,30 +103,6 @@ const Billing = () => {
         else if (data.length > 0) setSelectedGSTRate(data[0]);
       }
     } catch (e) {}
-  };
-
-  const fetchData = async () => {
-    try {
-      const [invRes, cliRes, serRes] = await Promise.all([
-        fetch(`${API_URL}/invoices`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
-        fetch(`${API_URL}/clients`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
-        fetch(`${API_URL}/services`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
-      ]);
-      
-      const [invData, cliData, serData] = await Promise.all([
-        invRes.json(),
-        cliRes.json(),
-        serRes.json()
-      ]);
-
-      if (Array.isArray(invData)) setInvoices(invData);
-      if (Array.isArray(cliData)) setClients(cliData.filter((c: any) => c.status === 'Active'));
-      if (Array.isArray(serData)) setServices(serData.filter((s: any) => s.status === 'Active'));
-    } catch (error) {
-      notify('error', 'Sync Failure', 'Failed to retrieve financial sanctuary records');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const subtotal = useMemo(() => {
@@ -275,7 +253,7 @@ const Billing = () => {
         setDiscount(0);
         setPayments(payments.map(p => ({ ...p, amount: 0 })));
         setPaymentMode('Card');
-        fetchData();
+        refreshData();
       }
     } catch (error) {
       notify('error', 'Transaction Error', 'Failed to conclude the financial sequence.');

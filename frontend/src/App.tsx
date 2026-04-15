@@ -53,18 +53,18 @@ import LandingRooms from './pages/landing/LandingRooms';
 import OurTeam from './pages/landing/OurTeam';
 import Contact from './pages/landing/Contact';
 
+import { ZenLoadingBarrier } from './components/zen/ZenLoading';
+import { useData } from './context/DataContext';
+
 const Layout = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { loading: dataLoading } = useData();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
-  if (loading) {
-    return (
-      <div className="h-screen bg-zen-cream flex items-center justify-center font-sans">
-        <div className="w-12 h-12 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+  if (authLoading || dataLoading) {
+    return <ZenLoadingBarrier />;
   }
 
   // Protected route logic

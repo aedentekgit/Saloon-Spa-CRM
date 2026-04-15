@@ -7,16 +7,17 @@ import {
   inventory as initialInventory, 
   rooms as initialRooms 
 } from '../data/mockData';
+import { useAuth } from './AuthContext';
 
-export interface Client { id: number; name: string; phone: string; dob?: string; anniversary?: string; notes?: string; preferences?: string; totalSpending: number; visits: number; }
-export interface Employee { id: number; name: string; role: string; phone: string; dept: string; commission: number; services: string[]; attendance: number; earnings: number; }
-export interface Service { id: number; name: string; duration: number; price: number; staff: string[]; image?: string; }
-export interface Appointment { id: number; client: string; service: string; employee: string; room: string; time: string; duration: number; status: string; date: string; }
-export interface InventoryItem { id: number; name: string; category: string; stock: number; vendor: string; lowStock: number; }
-export interface Room { id: number; name: string; type: string; status: string; timer: string; }
-export interface Invoice { id: number; clientName: string; items: Service[]; subtotal: number; gst: number; discount: number; total: number; paymentMode: string; date: string; invoiceNumber: string; }
-export interface Expense { id: number; title: string; category: string; amount: number; date: string; }
-export interface AttendanceRecord { id: number; date: string; checkIn: string; checkOut: string; status: string; employeeName: string; }
+export interface Client { id?: number; _id?: string; name: string; phone: string; dob?: string; anniversary?: string; notes?: string; preferences?: string; totalSpending: number; visits: number; status?: string; }
+export interface Employee { id?: number; _id?: string; name: string; role: string; phone: string; dept: string; commission: number; services: string[]; attendance: number; earnings: number; status?: string; }
+export interface Service { id?: number; _id?: string; name: string; duration: number; price: number; staff: string[]; image?: string; status?: string; commissionValue?: number; commissionType?: string; }
+export interface Appointment { id?: number; _id?: string; client: string; service: string; employee: string; room: string; time: string; duration: number; status: string; date: string; branch?: string; }
+export interface InventoryItem { id?: number; _id?: string; name: string; category: string; stock: number; vendor: string; lowStock: number; }
+export interface Room { id?: number; _id?: string; name: string; type: string; status: string; timer?: string; branch?: string; }
+export interface Invoice { id?: number; _id?: string; clientName: string; items: any[]; subtotal: number; gst: number; discount: number; total: number; paymentMode: string; date: string; invoiceNumber: string; branch?: string; }
+export interface Expense { id?: number; _id?: string; title: string; category: string; amount: number; date: string; branch?: string; }
+export interface AttendanceRecord { id?: number; _id?: string; date: string; checkIn: string; checkOut: string; status: string; employeeName: string; }
 
 interface DataContextType {
   clients: Client[];
@@ -28,23 +29,25 @@ interface DataContextType {
   invoices: Invoice[];
   expenses: Expense[];
   attendance: AttendanceRecord[];
+  refreshData: () => Promise<void>;
+  loading: boolean;
   addClient: (client: Partial<Client>) => void;
-  updateClient: (id: number, client: Partial<Client>) => void;
-  deleteClient: (id: number) => void;
+  updateClient: (id: string | number, client: Partial<Client>) => void;
+  deleteClient: (id: string | number) => void;
   addAppointment: (appointment: Partial<Appointment>) => void;
-  updateAppointment: (id: number, appointment: Partial<Appointment>) => void;
-  deleteAppointment: (id: number) => void;
-  updateRoom: (id: number, status: string) => void;
+  updateAppointment: (id: string | number, appointment: Partial<Appointment>) => void;
+  deleteAppointment: (id: string | number) => void;
+  updateRoom: (id: string | number, status: string) => void;
   addInventoryItem: (item: Partial<InventoryItem>) => void;
-  updateInventoryItem: (id: number, updated: Partial<InventoryItem>) => void;
-  deleteInventoryItem: (id: number) => void;
-  adjustStock: (id: number, amount: number) => void;
+  updateInventoryItem: (id: string | number, updated: Partial<InventoryItem>) => void;
+  deleteInventoryItem: (id: string | number) => void;
+  adjustStock: (id: string | number, amount: number) => void;
   addEmployee: (employee: Partial<Employee>) => void;
-  updateEmployee: (id: number, employee: Partial<Employee>) => void;
-  deleteEmployee: (id: number) => void;
+  updateEmployee: (id: string | number, employee: Partial<Employee>) => void;
+  deleteEmployee: (id: string | number) => void;
   addService: (service: Partial<Service>) => void;
-  updateService: (id: number, service: Partial<Service>) => void;
-  deleteService: (id: number) => void;
+  updateService: (id: string | number, service: Partial<Service>) => void;
+  deleteService: (id: string | number) => void;
   addInvoice: (invoice: Partial<Invoice>) => void;
   addExpense: (expense: Partial<Expense>) => void;
   markAttendance: (record: Partial<AttendanceRecord>) => void;
@@ -53,6 +56,10 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
   const [clients, setClients] = useState<Client[]>(() => {
     const saved = localStorage.getItem('zen_clients');
     return saved ? JSON.parse(saved) : initialClients;
@@ -94,10 +101,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('zen_expenses');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, title: 'Massage Oils Purchase', category: 'Inventory', amount: 450, date: '2026-03-15' },
-      { id: 2, title: 'Electricity Bill', category: 'Utilities', amount: 1280, date: '2026-03-12' },
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => {
@@ -105,7 +109,47 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Persistence
+  // Global Sync Logic
+  const refreshData = async () => {
+    if (!user?.token) return;
+    
+    try {
+      const headers = { 'Authorization': `Bearer ${user.token}` };
+      const [invRes, expRes, cliRes, empRes, serRes, appRes, invenRes] = await Promise.all([
+        fetch(`${API_URL}/invoices`, { headers }),
+        fetch(`${API_URL}/expenses`, { headers }),
+        fetch(`${API_URL}/clients`, { headers }),
+        fetch(`${API_URL}/employees`, { headers }),
+        fetch(`${API_URL}/services`, { headers }),
+        fetch(`${API_URL}/appointments`, { headers }),
+        fetch(`${API_URL}/inventory`, { headers })
+      ]);
+
+      const [invData, expData, cliData, empData, serData, appData, invenData] = await Promise.all([
+        invRes.json(), expRes.json(), cliRes.json(), empRes.json(), serRes.json(), appRes.json(), invenRes.json()
+      ]);
+
+      if (Array.isArray(invData)) setInvoices(invData);
+      if (Array.isArray(expData)) setExpenses(expData);
+      if (Array.isArray(cliData)) setClients(cliData);
+      if (Array.isArray(empData)) setEmployees(empData);
+      if (Array.isArray(serData)) setServices(serData);
+      if (Array.isArray(appData)) setAppointments(appData);
+      if (Array.isArray(invenData)) setInventory(invenData);
+    } catch (error) {
+      console.error('Core Synchronization Failure:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.token) {
+      refreshData();
+    }
+  }, [user?.token]);
+
+  // Persistence (Cache for instant initial load)
   useEffect(() => localStorage.setItem('zen_clients', JSON.stringify(clients)), [clients]);
   useEffect(() => localStorage.setItem('zen_employees', JSON.stringify(employees)), [employees]);
   useEffect(() => localStorage.setItem('zen_services', JSON.stringify(services)), [services]);
@@ -121,38 +165,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setClients(prev => [...prev, { ...client, id: Date.now(), totalSpending: 0, visits: 0 } as Client]);
   };
 
-  const updateClient = (id: number, updatedClient: Partial<Client>) => {
-    setClients(prev => prev.map(c => c.id === id ? { ...c, ...updatedClient } : c));
+  const updateClient = (id: string | number, updatedClient: Partial<Client>) => {
+    setClients(prev => prev.map(c => (c.id === id || c._id === id) ? { ...c, ...updatedClient } : c));
   };
 
-  const deleteClient = (id: number) => {
-    setClients(prev => prev.filter(c => c.id !== id));
+  const deleteClient = (id: string | number) => {
+    setClients(prev => prev.filter(c => c.id !== id && c._id !== id));
   };
 
   // Appointment Actions
   const addAppointment = (appointment: Partial<Appointment>) => {
     setAppointments(prev => [...prev, { ...appointment, id: Date.now() } as Appointment]);
-    const client = clients.find(c => c.name === appointment.client);
-    if (client) {
-      const service = services.find(s => s.name === appointment.service);
-      updateClient(client.id, { 
-        visits: (client.visits || 0) + 1,
-        totalSpending: (client.totalSpending || 0) + (service ? service.price : 0)
-      });
-    }
   };
 
-  const updateAppointment = (id: number, updated: Partial<Appointment>) => {
-    setAppointments(prev => prev.map(a => a.id === id ? { ...a, ...updated } : a));
+  const updateAppointment = (id: string | number, updated: Partial<Appointment>) => {
+    setAppointments(prev => prev.map(a => (a.id === id || a._id === id) ? { ...a, ...updated } : a));
   };
 
-  const deleteAppointment = (id: number) => {
-    setAppointments(prev => prev.filter(a => a.id !== id));
+  const deleteAppointment = (id: string | number) => {
+    setAppointments(prev => prev.filter(a => a.id !== id && a._id !== id));
   };
 
   // Room Actions
-  const updateRoom = (id: number, status: string) => {
-    setRooms(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+  const updateRoom = (id: string | number, status: string) => {
+    setRooms(prev => prev.map(r => (r.id === id || r._id === id) ? { ...r, status } : r));
   };
 
   // Inventory Actions
@@ -160,16 +196,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setInventory(prev => [...prev, { ...item, id: Date.now() } as InventoryItem]);
   };
 
-  const updateInventoryItem = (id: number, updated: Partial<InventoryItem>) => {
-    setInventory(prev => prev.map(i => i.id === id ? { ...i, ...updated } : i));
+  const updateInventoryItem = (id: string | number, updated: Partial<InventoryItem>) => {
+    setInventory(prev => prev.map(i => (i.id === id || i._id === id) ? { ...i, ...updated } : i));
   };
 
-  const deleteInventoryItem = (id: number) => {
-    setInventory(prev => prev.filter(i => i.id !== id));
+  const deleteInventoryItem = (id: string | number) => {
+    setInventory(prev => prev.filter(i => i.id !== id && i._id !== id));
   };
 
-  const adjustStock = (id: number, amount: number) => {
-    setInventory(prev => prev.map(i => i.id === id ? { ...i, stock: Math.max(0, i.stock + amount) } : i));
+  const adjustStock = (id: string | number, amount: number) => {
+    setInventory(prev => prev.map(i => (i.id === id || i._id === id) ? { ...i, stock: Math.max(0, i.stock + amount) } : i));
   };
 
   // Employee Actions
@@ -177,12 +213,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setEmployees(prev => [...prev, { ...employee, id: Date.now() } as Employee]);
   };
 
-  const updateEmployee = (id: number, updated: Partial<Employee>) => {
-    setEmployees(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e));
+  const updateEmployee = (id: string | number, updated: Partial<Employee>) => {
+    setEmployees(prev => prev.map(e => (e.id === id || e._id === id) ? { ...e, ...updated } : e));
   };
 
-  const deleteEmployee = (id: number) => {
-    setEmployees(prev => prev.filter(e => e.id !== id));
+  const deleteEmployee = (id: string | number) => {
+    setEmployees(prev => prev.filter(e => e.id !== id && e._id !== id));
   };
 
   // Service Actions
@@ -190,20 +226,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setServices(prev => [...prev, { ...service, id: Date.now() } as Service]);
   };
 
-  const updateService = (id: number, updated: Partial<Service>) => {
-    setServices(prev => prev.map(s => s.id === id ? { ...s, ...updated } : s));
+  const updateService = (id: string | number, updated: Partial<Service>) => {
+    setServices(prev => prev.map(s => (s.id === id || s._id === id) ? { ...s, ...updated } : s));
   };
 
-  const deleteService = (id: number) => {
-    setServices(prev => prev.filter(s => s.id !== id));
+  const deleteService = (id: string | number) => {
+    setServices(prev => prev.filter(s => s.id !== id && s._id !== id));
   };
 
   const addInvoice = (invoice: Partial<Invoice>) => {
-    setInvoices(prev => [{ ...invoice, id: Date.now() } as Invoice, ...prev]);
+    setInvoices(prev => [{ ...invoice, _id: Date.now().toString() }, ...prev] as Invoice[]);
   };
 
   const addExpense = (expense: Partial<Expense>) => {
-    setExpenses(prev => [{ ...expense, id: Date.now() } as Expense, ...prev]);
+    setExpenses(prev => [{ ...expense, _id: Date.now().toString() }, ...prev] as Expense[]);
   };
 
   const markAttendance = (record: Partial<AttendanceRecord>) => {
@@ -218,7 +254,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{ 
-      clients, employees, services, appointments, inventory, rooms, invoices, expenses, attendance,
+      clients, employees, services, appointments, inventory, rooms, invoices, expenses, attendance, refreshData, loading,
       addClient, updateClient, deleteClient,
       addAppointment, updateAppointment, deleteAppointment,
       updateRoom, addInventoryItem, updateInventoryItem, deleteInventoryItem, adjustStock,
