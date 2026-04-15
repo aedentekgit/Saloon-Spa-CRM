@@ -28,7 +28,7 @@ const Contact = () => {
       return;
     }
     setIsSubmitted(true);
-    setTimeout(() => setIsSubmitted(false), 5000);
+    setTimeout(() => setIsSubmitted(false), 5001);
   };
 
   return (

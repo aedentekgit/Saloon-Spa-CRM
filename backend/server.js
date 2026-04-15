@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./config/db');
+const mongoose = require('mongoose');
 const path = require('path');
 const paginationMiddleware = require('./middleware/paginationMiddleware');
 
@@ -103,7 +104,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Catch-all route to serve the frontend index.html
-app.get('*', (req, res) => {
+app.get('*splat', (req, res) => {
   const indexPath = path.join(frontendPath, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {

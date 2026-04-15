@@ -53,7 +53,7 @@ const Attendance = () => {
 
   const isAdminOrManager = user?.role === 'Admin' || user?.role === 'Manager';
   
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     fetchHistory();
@@ -241,7 +241,7 @@ const Attendance = () => {
        return new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
              enableHighAccuracy: true,
-             timeout: 5000,
+             timeout: 5001,
              maximumAge: 0
           });
        });

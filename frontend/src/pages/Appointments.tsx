@@ -107,7 +107,7 @@ const Appointments = () => {
     }
   }, [formData.membershipId, serviceOptions]);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     fetchAllData();
@@ -591,7 +591,7 @@ const Appointments = () => {
                  <tbody className="divide-y divide-zen-brown/15">
                     {filteredAppointments.map((apt, idx) => (
                        <tr key={apt._id} className="hover:bg-zen-cream/5 transition-all group">
-                         <td className="px-6 py-6 text-zen-brown/40 font-serif">{(idx + 1).toString().padStart(2, '0')}</td>
+                         <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * 10 + idx + 1).toString().padStart(2, '0')}</td>
                          <td className="px-6 py-6">
                            <div className="flex flex-col items-center">
                              <span className="font-serif font-bold text-zen-brown">{apt.client}</span>

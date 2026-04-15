@@ -347,11 +347,6 @@ const Clients = () => {
                            <p className="text-[10px] lg:text-[11px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">
                              {client.membership ? client.membership.plan.name : 'Member'}
                            </p>
-                           {client.branch && (
-                              <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 rounded-md">
-                                 {client.branch.name}
-                              </span>
-                           )}
                         </div>
                     </div>
 
@@ -376,20 +371,27 @@ const Clients = () => {
               </div>
 
               <div className="relative z-10 pt-4 border-t border-zen-brown/15">
-                     <div className="flex items-center gap-2">
-                         <button 
-                           onClick={() => toggleClientStatus(client)}
-                           className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 ${client.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-sm' : 'bg-red-50 text-red-400 border-red-100'}`}
-                         >
-                            <span className="text-[9px] font-bold uppercase tracking-widest">{client.status}</span>
-                         </button>
-                         {client.membership ? (
-                           <ZenBadge variant="sand">
-                             {client.membership.remainingSessions}/{client.membership.totalSessions} Sessions
-                           </ZenBadge>
-                         ) : (
-                           <ZenBadge variant="leaf">{client.visits} Visits</ZenBadge>
-                         )}
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => toggleClientStatus(client)}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 ${client.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-sm' : 'bg-red-50 text-red-400 border-red-100'}`}
+                            >
+                               <span className="text-[9px] font-bold uppercase tracking-widest">{client.status}</span>
+                            </button>
+                            {client.membership ? (
+                              <ZenBadge variant="sand">
+                                {client.membership.remainingSessions}/{client.membership.totalSessions} Sessions
+                              </ZenBadge>
+                            ) : (
+                              <ZenBadge variant="leaf">{client.visits} Visits</ZenBadge>
+                            )}
+                        </div>
+                        {client.branch && (
+                           <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 rounded-md">
+                              {client.branch.name}
+                           </span>
+                        )}
                      </div>
               </div>
             </div>
@@ -414,7 +416,7 @@ const Clients = () => {
               {filteredClients.map((client, index) => (
                 <tr key={client._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <span className="font-serif text-base lg:text-lg text-zen-brown/40">{(index + 1).toString().padStart(2, '0')}</span>
+                    <span className="font-serif text-base lg:text-lg text-zen-brown/40">{((page - 1) * 10 + index + 1).toString().padStart(2, '0')}</span>
                   </td>
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex justify-center">
@@ -604,7 +606,7 @@ const Clients = () => {
                                  <tbody className="divide-y divide-zen-brown/15">
                                     {selectedMembershipHistory.usageHistory?.length > 0 ? selectedMembershipHistory.usageHistory.map((usage: any, idx: number) => (
                                        <tr key={idx} className="group hover:bg-white transition-all duration-300">
-                                          <td className="px-8 py-6 text-sm font-bold text-zen-brown/20">{idx + 1}</td>
+                                          <td className="px-8 py-6 text-sm font-bold text-zen-brown/20">{(idx + 1)}</td>
                                           <td className="px-8 py-6">
                                              <div className="flex flex-col">
                                                 <span className="text-sm font-serif font-bold text-zen-brown">{dayjs(usage.usedAt).format('MMM DD, YYYY')}</span>
@@ -740,7 +742,7 @@ const Clients = () => {
                                   ?.filter((a: any) => dayjs(a.date).format('YYYY-MM') === historyMonth)
                                   ?.map((apt: any, index: number) => (
                                     <tr key={apt._id} className="group hover:bg-white transition-all duration-300">
-                                      <td className="px-8 py-6 text-sm font-bold text-zen-brown/20">{index + 1}</td>
+                                      <td className="px-8 py-6 text-sm font-bold text-zen-brown/20">{(index + 1)}</td>
                                       <td className="px-8 py-6">
                                         <div className="flex flex-col">
                                           <span className="text-sm font-serif font-bold text-zen-brown">{dayjs(apt.date).format('MMM DD, YYYY')}</span>

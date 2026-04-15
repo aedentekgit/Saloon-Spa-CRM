@@ -69,7 +69,7 @@ const Inventory = () => {
     branch: ''
   });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     fetchInventory();
@@ -366,7 +366,7 @@ const Inventory = () => {
                      {filteredInventory.map((item, index) => (
                         <tr key={item._id} className="group hover:bg-zen-cream/5 transition-all duration-500">
                            <td className="px-10 py-8">
-                              <span className="font-serif text-xl text-zen-brown/40">{(index + 1).toString().padStart(2, '0')}</span>
+                              <span className="font-serif text-xl text-zen-brown/40">{((page - 1) * 10 + index + 1).toString().padStart(2, '0')}</span>
                            </td>
                            <td className="px-10 py-8">
                               <div className="flex justify-center">

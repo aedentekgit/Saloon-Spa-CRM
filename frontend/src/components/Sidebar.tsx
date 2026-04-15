@@ -48,7 +48,7 @@ const Sidebar = ({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
   const logoUrl = settings?.general?.logo 
     ? (settings.general.logo.startsWith('http') ? settings.general.logo : `${API_URL.split('/api')[0]}/${settings.general.logo.replace(/^\.?\//, '')}`)
     : null;
@@ -73,6 +73,7 @@ const Sidebar = ({
     { name: 'Payroll', icon: TrendingUp, path: '/payroll', permission: 'finance' },
     { name: 'Leave', icon: CalendarDays, path: '/leave', permission: 'leave' },
     { name: 'Finance', icon: Wallet, path: '/finance', permission: 'finance' },
+    { name: 'Transactions', icon: Receipt, path: '/transactions', permission: 'finance' },
     { name: 'Inventory', icon: Package, path: '/inventory', permission: 'inventory' },
     { name: 'WhatsApp', icon: MessageSquare, path: '/whatsapp', permission: 'whatsapp' },
     { name: 'Reports', icon: BarChart3, path: '/reports', permission: 'reports' },

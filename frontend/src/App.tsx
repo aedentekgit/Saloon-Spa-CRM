@@ -42,6 +42,7 @@ import RoomCategories from './pages/RoomCategories';
 import ServiceCategories from './pages/ServiceCategories';
 import Payroll from './pages/Payroll';
 import Shifts from './pages/Shifts';
+import Transactions from './pages/Transactions';
 
 // Pages - Landing (Public)
 import PublicLayout from './components/landing/PublicLayout';
@@ -159,6 +160,7 @@ const AppRoutes = () => {
       <Route path="/admins" element={<Layout><Admins /></Layout>} />
       <Route path="/payroll" element={<Layout><Payroll /></Layout>} />
       <Route path="/shifts" element={<Layout><Shifts /></Layout>} />
+      <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

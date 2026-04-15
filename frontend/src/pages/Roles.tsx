@@ -64,7 +64,7 @@ const Roles = () => {
     status: 'Active' as 'Active' | 'Inactive'
   });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     fetchRoles();
@@ -287,7 +287,7 @@ const Roles = () => {
                     {filteredRoles.map((role, index) => (
                        <tr key={role._id} className="group hover:bg-white transition-all duration-500">
                           <td className="px-10 py-8">
-                             <span className="font-serif text-lg text-zen-brown/60 font-bold">{(index + 1).toString().padStart(2, '0')}</span>
+                             <span className="font-serif text-lg text-zen-brown/60 font-bold">{((page - 1) * 10 + index + 1).toString().padStart(2, '0')}</span>
                           </td>
                           <td className="px-10 py-8">
                              <div className="flex items-center gap-4">

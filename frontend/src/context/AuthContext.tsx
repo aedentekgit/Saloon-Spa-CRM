@@ -24,9 +24,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Safely access Vite environment variables
 const getApiUrl = () => {
   try {
-    return (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api';
+    return (import.meta as any).env?.VITE_API_URL || 'http://localhost:5001/api';
   } catch (e) {
-    return 'http://localhost:5000/api';
+    return 'http://localhost:5001/api';
   }
 };
 

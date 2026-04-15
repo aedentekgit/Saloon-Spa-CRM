@@ -46,7 +46,7 @@ const Branches = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   const [confirmState, setConfirmState] = useState<{
     isOpen: boolean;
@@ -342,7 +342,7 @@ const Branches = () => {
               {filteredBranches.map((branch, index) => (
                 <tr key={branch._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <span className="font-serif text-base lg:text-lg text-zen-brown/40">{(index + 1).toString().padStart(2, '0')}</span>
+                    <span className="font-serif text-base lg:text-lg text-zen-brown/40">{((page - 1) * 10 + index + 1).toString().padStart(2, '0')}</span>
                   </td>
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex justify-center">

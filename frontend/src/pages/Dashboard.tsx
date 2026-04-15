@@ -116,15 +116,15 @@ const AdminDashboard = () => {
       className="space-y-10 pb-20"
     >
       {/* Dynamic Luminous Cards */}
-      <div className="flex overflow-x-auto pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+      <div className="flex overflow-x-auto pt-10 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
         {cards.map((card, i) => (
           <motion.div
             key={card.title}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.1 }}
-            whileHover={{ y: -10 }}
-            className="flex-shrink-0 w-[280px] sm:w-[320px] lg:w-auto bg-white p-10 rounded-[2.5rem] border border-zen-brown/15 shadow-[0_25px_60px_-15px_rgba(74,55,40,0.08)] group relative overflow-hidden"
+            whileHover={{ y: -18, zIndex: 50 }}
+            className="flex-shrink-0 w-[280px] sm:w-[320px] lg:w-auto bg-white p-10 rounded-[2.5rem] border border-zen-brown/15 shadow-[0_25px_60px_-15px_rgba(74,55,40,0.08)] group relative"
           >
             {/* Ambient Back Glow */}
             <div className={`absolute -right-10 -bottom-10 w-32 h-32 ${card.bg} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700`} />
@@ -160,10 +160,10 @@ const AdminDashboard = () => {
              </div>
               <div className="flex gap-4">
                 <div className="flex items-center gap-2 px-4 py-2 bg-zen-sand/5 rounded-full border border-zen-sand/10">
-                   <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Revenue</span>
+                   <span className="text-[10px] font-bold text-zen-brown/70 uppercase tracking-widest">Revenue</span>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/5 rounded-full border border-emerald-500/10">
-                   <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Expenses</span>
+                   <span className="text-[10px] font-bold text-zen-brown/70 uppercase tracking-widest">Expenses</span>
                 </div>
               </div>
           </header>
@@ -182,10 +182,15 @@ const AdminDashboard = () => {
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#4A3728', opacity: 0.3, fontSize: 11, fontWeight: 700 }} 
+                  tick={{ fill: '#4A3728', opacity: 0.6, fontSize: 11, fontWeight: 700 }} 
                   dy={20}
                 />
-                <YAxis hide />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#4A3728', opacity: 0.5, fontSize: 10, fontWeight: 700 }}
+                  tickFormatter={(val) => `${settings?.general.currencySymbol || 'QR'} ${val >= 1000 ? val/1000 + 'k' : val}`}
+                />
                 <Tooltip
                   cursor={{ stroke: 'rgba(74,55,40,0.05)', strokeWidth: 2 }}
                   contentStyle={{ 
@@ -273,13 +278,6 @@ const AdminDashboard = () => {
              </div>
           </section>
 
-          <div className="bg-white p-12 rounded-[4.5rem] shadow-2xl shadow-zen-brown/10 border border-zen-brown/15 flex flex-col items-center justify-center text-center group">
-             <div className="w-24 h-24 bg-zen-sand/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-700">
-                <Zap size={32} className="text-zen-sand" />
-             </div>
-             <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.4em] mb-3">Operational Efficiency</p>
-             <h4 className="text-4xl font-serif font-bold text-zen-brown tracking-tighter">84.2%</h4>
-          </div>
         </div>
       </div>
     </motion.div>
@@ -307,12 +305,12 @@ const EmployeeDashboard = () => {
 
   return (
     <div className="space-y-12 pb-20">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-10 overflow-visible">
         {cards.map((card) => (
           <motion.div 
             key={card.title} 
-            whileHover={{ y: -10 }}
-            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 group transition-all duration-500"
+            whileHover={{ y: -18, zIndex: 50 }}
+            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 group transition-all duration-500 relative"
           >
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
               <card.icon size={26} />
@@ -426,12 +424,12 @@ const ClientDashboard = () => {
 
   return (
     <div className="space-y-12 pb-20">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-10 overflow-visible">
         {cards.map((card) => (
           <motion.div 
             key={card.title} 
-            whileHover={{ y: -10 }}
-            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 group transition-all duration-500"
+            whileHover={{ y: -18, zIndex: 50 }}
+            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 group transition-all duration-500 relative"
           >
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
               <card.icon size={26} />

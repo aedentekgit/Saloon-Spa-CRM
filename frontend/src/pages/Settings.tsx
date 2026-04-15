@@ -93,7 +93,7 @@ const Settings = () => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection>('foundations');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     fetchSettings();

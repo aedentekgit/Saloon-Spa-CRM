@@ -68,7 +68,7 @@ const Finance = () => {
     date: dayjs().format('YYYY-MM-DD')
   });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     fetchData();

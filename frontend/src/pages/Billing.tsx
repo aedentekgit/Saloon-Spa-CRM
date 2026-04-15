@@ -83,7 +83,7 @@ const Billing = () => {
   const [gstRates, setGstRates] = useState<any[]>([]);
   const [selectedGSTRate, setSelectedGSTRate] = useState<any>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     fetchData();
@@ -480,7 +480,9 @@ const Billing = () => {
         <div className="flex flex-col h-full">
            <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 flex flex-col h-full">
               <h3 className="text-xl font-serif font-bold text-zen-brown mb-8 flex items-center gap-3">
-                 <Receipt size={20} className="text-zen-sand" />
+                 <div className="w-8 h-8 rounded-xl bg-zen-sand/10 flex items-center justify-center text-[10px] font-bold text-zen-sand border border-zen-sand/20 shadow-sm shrink-0">
+                    {settings?.general.currencySymbol || 'QR'}
+                 </div>
                  Engagement Mode
               </h3>
               

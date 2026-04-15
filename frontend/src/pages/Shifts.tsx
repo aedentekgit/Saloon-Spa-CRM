@@ -59,7 +59,7 @@ const Shifts = () => {
     type: 'danger'
   });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     localStorage.setItem('zen_shift_view', viewMode);
@@ -302,7 +302,7 @@ const Shifts = () => {
               <tbody className="divide-y divide-zen-brown/15">
                  {filteredShifts.map((shift, idx) => (
                     <tr key={shift._id} className={`hover:bg-zen-cream/5 transition-all group ${shift.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}>
-                       <td className="px-8 py-8 text-zen-brown/40 font-serif">{(idx + 1).toString().padStart(2, '0')}</td>
+                       <td className="px-8 py-8 text-zen-brown/40 font-serif">{((page - 1) * 10 + idx + 1).toString().padStart(2, '0')}</td>
                        <td className="px-8 py-8">
                           <div className="flex items-center justify-center gap-4">
                              <div className="w-10 h-10 rounded-xl bg-zen-cream/50 flex items-center justify-center text-zen-brown shadow-inner">

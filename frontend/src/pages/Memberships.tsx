@@ -30,7 +30,7 @@ import { ZenInput, ZenDropdown, ZenTextarea, ZenDatePicker } from '../components
 import { Modal } from '../components/Modal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 const Memberships = () => {
     const { user } = useAuth();
@@ -571,7 +571,7 @@ const Memberships = () => {
                              <tbody className="divide-y divide-zen-brown/15">
                                 {filteredMemberships.map((m, index) => (
                                   <tr key={m._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
-                                     <td className="px-6 py-6 text-zen-brown/40 font-serif">{(index + 1).toString().padStart(2, '0')}</td>
+                                     <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * 10 + index + 1).toString().padStart(2, '0')}</td>
                                      <td className="px-6 py-6">
                                         <div className="flex flex-col items-center">
                                            <span className="font-serif font-bold text-zen-brown">{m.client?.name}</span>

@@ -29,7 +29,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
   const [loading, setLoading] = useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   const fetchBranches = async () => {
     if (!user) {
