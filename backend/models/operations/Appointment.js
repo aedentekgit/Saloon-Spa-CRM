@@ -53,4 +53,13 @@ const appointmentSchema = mongoose.Schema({
   timestamps: true
 });
 
+// Index for fast branch and date lookups (Crucial for Daily Calendars)
+appointmentSchema.index({ branch: 1, date: -1 });
+
+// Index for client history tracking
+appointmentSchema.index({ clientId: 1 });
+
+// Index for employee schedule tracking
+appointmentSchema.index({ employeeId: 1 });
+
 module.exports = mongoose.model('Appointment', appointmentSchema);

@@ -46,30 +46,44 @@ exports.getDashboardStats = async (req, res) => {
     // 5. Inventory Stats
     const lowStockItems = await Inventory.countDocuments({ ...matchQuery, $expr: { $lte: ['$stock', '$lowStock'] } });
 
-    // 6. 7-Day Trend (Revenue & Expenses)
+    // 6. 7-Day Trend Optimized: Single aggregation for revenue and expenses
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0,0,0,0);
+
+    const revenueTrend = await Invoice.aggregate([
+      { $match: { ...matchQuery, createdAt: { $gte: sevenDaysAgo } } },
+      { $group: { 
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, 
+          total: { $sum: '$total' } 
+      }},
+      { $sort: { _id: 1 } }
+    ]);
+
+    const expenseTrend = await Expense.aggregate([
+      { $match: { ...matchQuery, createdAt: { $gte: sevenDaysAgo } } },
+      { $group: { 
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, 
+          total: { $sum: '$amount' } 
+      }},
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Format trend data for frontend
     const trendData = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      d.setHours(0, 0, 0, 0);
-      const nextD = new Date(d);
-      nextD.setDate(nextD.getDate() + 1);
-
-      const dayRevenueResult = await Invoice.aggregate([
-        { $match: { ...matchQuery, date: d.toISOString().split('T')[0] } },
-        { $group: { _id: null, total: { $sum: '$total' } } }
-      ]);
-      
-      const dayExpenseResult = await Expense.aggregate([
-        { $match: { ...matchQuery, date: d.toISOString().split('T')[0] } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]);
-
+      const dateStr = d.toISOString().split('T')[0];
       const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      
+      const dayRevenue = revenueTrend.find(r => r._id === dateStr)?.total || 0;
+      const dayExpense = expenseTrend.find(e => e._id === dateStr)?.total || 0;
+
       trendData.push({
         name: dayName,
-        revenue: dayRevenueResult[0]?.total || 0,
-        expenses: dayExpenseResult[0]?.total || 0
+        revenue: dayRevenue,
+        expenses: dayExpense
       });
     }
 

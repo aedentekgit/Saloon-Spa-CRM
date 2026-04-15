@@ -53,4 +53,7 @@ const attendanceSchema = mongoose.Schema({
   timestamps: true
 });
 
+// Index for fast staff-specific attendance history and daily lookups
+attendanceSchema.index({ user: 1, date: -1 });
+
 module.exports = mongoose.model('Attendance', attendanceSchema);

@@ -49,4 +49,13 @@ inventorySchema.virtual('status').get(function() {
   return this.stock <= this.lowStock ? 'Low Stock' : 'High Stock';
 });
 
+// Index for fast branch-specific filtering
+inventorySchema.index({ branch: 1 });
+
+// Compound index for search optimization
+inventorySchema.index({ name: 'text', category: 'text' });
+
+// Index for stock monitoring performance
+inventorySchema.index({ stock: 1, lowStock: 1 });
+
 module.exports = mongoose.model('Inventory', inventorySchema);

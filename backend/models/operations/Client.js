@@ -44,4 +44,10 @@ clientSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// Index for fast branch-specific filtering
+clientSchema.index({ branch: 1 });
+
+// Text index for unified name and phone searching
+clientSchema.index({ name: 'text', phone: 'text' });
+
 module.exports = mongoose.model('Client', clientSchema);

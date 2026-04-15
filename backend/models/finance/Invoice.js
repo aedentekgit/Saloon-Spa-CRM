@@ -61,4 +61,10 @@ const invoiceSchema = mongoose.Schema({
   timestamps: true
 });
 
+// Index for fast branch-specific financial reports
+invoiceSchema.index({ branch: 1, date: -1 });
+
+// Index for quick transaction lookups
+invoiceSchema.index({ invoiceNumber: 1 });
+
 module.exports = mongoose.model('Invoice', invoiceSchema);
