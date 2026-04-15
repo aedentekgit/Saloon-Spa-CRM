@@ -11,7 +11,7 @@ export const ZenPagination: React.FC<ZenPaginationProps> = ({ currentPage, total
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 sm:px-10 py-6 border-t border-zen-brown/15 bg-white/50 backdrop-blur-sm rounded-b-[2rem] sm:rounded-b-[3.5rem] mt-10">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 sm:px-10 py-3 border-t border-zen-brown/10 bg-white/50 backdrop-blur-sm rounded-b-[2rem] sm:rounded-b-[3rem] mt-2">
       <div className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.3em]">
         Registry Position <span className="text-zen-brown ml-2">{currentPage} / {totalPages}</span>
       </div>

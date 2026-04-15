@@ -59,7 +59,7 @@ export const ZenPageLayout = ({
           </div>
         )}
 
-        <div className="flex items-center gap-3 sm:gap-4 self-end md:self-auto">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full md:w-auto justify-end md:justify-start">
           {!hideBranchSelector && (
             <div className="shrink-0">
               <BranchSelector />
@@ -97,7 +97,7 @@ export const ZenPageLayout = ({
         </div>
       </div>
 
-      <main className="pb-20">
+      <main className="pb-8">
         {children}
       </main>
 

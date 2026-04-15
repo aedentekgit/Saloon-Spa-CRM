@@ -127,48 +127,48 @@ const Payroll = () => {
       addButtonIcon={<Download size={18} />}
     >
       <div className="flex overflow-x-auto pb-8 gap-6 md:grid md:grid-cols-3 md:gap-8 mb-12 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
-        <div className="flex-shrink-0 w-[300px] md:w-auto bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
+        <div className="flex-shrink-0 w-[280px] sm:w-auto bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
            <div className="w-16 h-16 rounded-2xl bg-zen-brown text-white flex items-center justify-center shadow-lg"><Wallet2 size={32} /></div>
            <div>
               <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Total Monthly Disbursement</p>
-              <h4 className="text-3xl font-serif font-bold text-zen-brown">{settings?.general.currencySymbol} {stats.total.toLocaleString()}</h4>
+              <h4 className="text-2xl sm:text-3xl font-serif font-bold text-zen-brown">{settings?.general.currencySymbol} {stats.total.toLocaleString()}</h4>
            </div>
         </div>
-        <div className="flex-shrink-0 w-[300px] md:w-auto bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
+        <div className="flex-shrink-0 w-[280px] sm:w-auto bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
            <div className="w-16 h-16 rounded-2xl bg-red-400 text-white flex items-center justify-center shadow-lg"><Zap size={32} /></div>
            <div>
               <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Overtime Premiums</p>
-              <h4 className="text-3xl font-serif font-bold text-zen-brown">{settings?.general.currencySymbol} {stats.ot.toLocaleString()}</h4>
+              <h4 className="text-2xl sm:text-3xl font-serif font-bold text-zen-brown">{settings?.general.currencySymbol} {stats.ot.toLocaleString()}</h4>
            </div>
         </div>
-        <div className="flex-shrink-0 w-[300px] md:w-auto bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
+        <div className="flex-shrink-0 w-[280px] sm:w-auto bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
            <div className="w-16 h-16 rounded-2xl bg-zen-leaf text-white flex items-center justify-center shadow-lg"><Clock size={32} /></div>
            <div>
               <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Accumulated Labor Hours</p>
-              <h4 className="text-3xl font-serif font-bold text-zen-brown">{stats.hours.toLocaleString()} hrs</h4>
+              <h4 className="text-2xl sm:text-3xl font-serif font-bold text-zen-brown">{stats.hours.toLocaleString()} hrs</h4>
            </div>
         </div>
       </div>
 
-      <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-2xl">
-         <div className="px-10 py-10 border-b border-zen-brown/15 flex justify-between items-center bg-white/40">
-            <div className="flex items-center gap-10">
+      <div className="bg-white/60 backdrop-blur-sm rounded-[2rem] sm:rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-2xl">
+         <div className="p-6 sm:p-10 border-b border-zen-brown/15 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white/40">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-10 w-full md:w-auto">
                <div>
-                  <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Financial Ledger</h3>
-                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-2">{dayjs(selectedMonth).format('MMMM YYYY')} Disbursement Records</p>
+                  <h3 className="text-xl sm:text-2xl font-serif font-bold text-zen-brown tracking-tight">Financial Ledger</h3>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1 sm:mt-2">{dayjs(selectedMonth).format('MMMM YYYY')} Disbursement Records</p>
                </div>
                
-               <div className="flex bg-zen-cream/30 p-1.5 rounded-2xl border border-zen-brown/15">
+               <div className="flex bg-zen-cream/30 p-1 rounded-xl sm:rounded-2xl border border-zen-brown/15 w-full sm:w-auto">
                   <input 
                     type="month" 
                     value={selectedMonth} 
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="bg-transparent border-none outline-none font-serif text-sm text-zen-brown px-4 py-2"
+                    className="bg-transparent border-none outline-none font-serif text-sm text-zen-brown px-4 py-2 w-full"
                   />
                </div>
             </div>
             
-            <div className="flex gap-4">
+            <div className="flex gap-3 sm:gap-4 self-end md:self-auto">
                <ZenIconButton icon={Filter} />
                <ZenIconButton icon={Download} />
             </div>

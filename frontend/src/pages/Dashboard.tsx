@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import dayjs from 'dayjs';
 import {
   TrendingUp,
   Users,
@@ -94,15 +95,25 @@ const AdminDashboard = () => {
     { title: 'Total Clients', value: activeClients.length.toLocaleString(), trend: '+4.2%', icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-50' },
   ];
 
-  const revenueData = [
-    { name: 'Mon', revenue: 4000, expenses: 2400 },
-    { name: 'Tue', revenue: 3000, expenses: 1398 },
-    { name: 'Wed', revenue: 2000, expenses: 9800 },
-    { name: 'Thu', revenue: 2780, expenses: 3908 },
-    { name: 'Fri', revenue: 1890, expenses: 4800 },
-    { name: 'Sat', revenue: 2390, expenses: 3800 },
-    { name: 'Sun', revenue: totalRevenue / 10, expenses: totalExpenses / 10 },
-  ];
+  const revenueData = useMemo(() => {
+    const data = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = dayjs().subtract(i, 'day');
+      const dateStr = date.format('YYYY-MM-DD');
+      const dayName = date.format('ddd');
+      
+      const dayRevenue = filteredData.invoices
+        .filter(inv => inv.date === dateStr || dayjs(inv.createdAt).format('YYYY-MM-DD') === dateStr)
+        .reduce((acc, inv) => acc + (inv.total || 0), 0);
+        
+      const dayExpenses = filteredData.expenses
+        .filter(exp => (exp.date && dayjs(exp.date).format('YYYY-MM-DD') === dateStr) || dayjs(exp.createdAt).format('YYYY-MM-DD') === dateStr)
+        .reduce((acc, exp) => acc + (exp.amount || 0), 0);
+        
+      data.push({ name: dayName, revenue: dayRevenue, expenses: dayExpenses });
+    }
+    return data;
+  }, [filteredData.invoices, filteredData.expenses]);
 
   const today = new Date().toISOString().split('T')[0];
   const lowStockCount = filteredData.inventory.filter(i => i.stock <= i.lowStock).length;

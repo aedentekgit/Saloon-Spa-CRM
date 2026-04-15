@@ -103,14 +103,32 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'API is running...', database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected' });
 });
 
-// Catch-all route to serve the frontend index.html
-app.get('*splat', (req, res) => {
-  const indexPath = path.join(frontendPath, 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.status(404).send('Frontend build not found. Please run build script.');
-    }
-  });
+// Final Catch-all fallback (Pure API focus)
+app.use((req, res) => {
+  // If request is for an API route that doesn't exist
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ success: false, message: 'API Endpoint not found' });
+  }
+
+  // Otherwise, show the clean API Sanctuary Status Page
+  res.send(`
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+      body { margin: 0; padding: 0; background: #fdfaf7; color: #4a3728; font-family: 'Playfair Display', serif; }
+      .container { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+      h1 { font-size: 3rem; margin-bottom: 0.5rem; font-weight: 700; }
+      .tag { text-transform: uppercase; letter-spacing: 0.3em; font-size: 0.8rem; font-weight: 800; opacity: 0.5; }
+      .status { margin-top: 2rem; padding: 1rem 2rem; border: 1px solid rgba(74, 55, 40, 0.1); border-radius: 1rem; background: white; box-shadow: 0 10px 30px rgba(74, 55, 40, 0.05); }
+      .status p { margin: 0; font-style: italic; }
+    </style>
+    <div class="container">
+      <h1>Zen CRM Sanctuary</h1>
+      <p class="tag">API Portal is Active & Secure</p>
+      <div class="status">
+        <p>Status: Handshaking with Hostinger Frontend...</p>
+      </div>
+    </div>
+  `);
 });
 
 const PORT = process.env.PORT || 5000;
