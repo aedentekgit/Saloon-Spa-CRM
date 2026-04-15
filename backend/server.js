@@ -71,6 +71,10 @@ app.use(paginationMiddleware);
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve Frontend in Production
+const frontendPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(frontendPath));
+
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/settings', settingsRoutes);
@@ -93,9 +97,19 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/shifts', shiftRoutes);
 app.use('/api/gst', require('./routes/gstRoutes'));
 
-// Root route
-app.get('/', (req, res) => {
-  res.send('API is running...');
+// Root route / Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'API is running...', database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected' });
+});
+
+// Catch-all route to serve the frontend index.html
+app.get('*', (req, res) => {
+  const indexPath = path.join(frontendPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(404).send('Frontend build not found. Please run build script.');
+    }
+  });
 });
 
 const PORT = process.env.PORT || 5000;

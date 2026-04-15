@@ -16,6 +16,7 @@ interface ZenLayoutProps {
   hideAddButton?: boolean;
   hideSearch?: boolean;
   hideBranchSelector?: boolean;
+  hideViewToggle?: boolean;
 }
 
 export const ZenPageLayout = ({
@@ -30,7 +31,8 @@ export const ZenPageLayout = ({
   addButtonIcon = <Plus size={18} />,
   hideAddButton = false,
   hideSearch = false,
-  hideBranchSelector = false
+  hideBranchSelector = false,
+  hideViewToggle = false
 }: ZenLayoutProps) => {
 
   return (
@@ -64,7 +66,7 @@ export const ZenPageLayout = ({
             </div>
           )}
 
-          {onViewModeChange && (
+          {!hideViewToggle && onViewModeChange && (
             <div className="flex bg-white/60 backdrop-blur-md p-1 rounded-xl sm:rounded-2xl border border-zen-brown/15 shadow-md">
               <button 
                 onClick={() => onViewModeChange('grid')}

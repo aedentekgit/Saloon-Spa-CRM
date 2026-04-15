@@ -512,6 +512,7 @@ const Dashboard = () => {
       hideSearch 
       hideAddButton
       hideBranchSelector={true}
+      hideViewToggle={true}
     >
       <div className="mt-4">
         {user?.role === 'Admin' && <AdminDashboard />}
