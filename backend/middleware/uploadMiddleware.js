@@ -3,7 +3,7 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const path = require('path');
 const fs = require('fs');
-const Settings = require('../models/Settings');
+const Settings = require('../models/core/Settings');
 
 // Helper to get active settings
 const getActiveSettings = async () => {

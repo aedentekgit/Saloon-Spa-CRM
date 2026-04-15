@@ -1,7 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const User = require('./models/User');
-const Role = require('./models/Role');
+const User = require('./models/core/User');
+const Role = require('./models/human-resources/Role');
 
 const roles = [
   {

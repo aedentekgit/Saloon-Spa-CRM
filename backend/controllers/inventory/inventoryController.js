@@ -1,0 +1,173 @@
+const Inventory = require('../../models/inventory/Inventory');
+const { deleteFile } = require('../../middleware/uploadMiddleware');
+const { paginateModelQuery } = require('../../utils/pagination');
+
+// @desc    Get all inventory items
+// @route   GET /api/inventory
+// @access  Private
+const getInventory = async (req, res) => {
+  try {
+    let query = {};
+    const { search, branch } = req.query;
+
+    // Admin can see everything or filter by branch
+    // Managers/Staff can only see their own branch
+    if (req.user.role === 'Admin') {
+      if (branch && branch !== 'all') {
+        query.branch = branch;
+      }
+    } else {
+      if (req.user.branch) {
+        query.branch = req.user.branch;
+      } else {
+        query.branch = null; 
+      }
+    }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } },
+        { vendor: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const { data, pagination } = await paginateModelQuery(Inventory, query, req, {
+      populate: { path: 'branch', select: 'name' },
+      sort: { name: 1 }
+    });
+
+    // Fetch metrics for the filtered view
+    const totalItems = await Inventory.countDocuments(query);
+    const lowStockItems = await Inventory.countDocuments({ ...query, $expr: { $lte: ['$stock', '$lowStock'] } });
+    const categories = await Inventory.distinct('category', query);
+
+    res.json(pagination ? { 
+      data, 
+      pagination,
+      metrics: {
+        totalItems,
+        lowStockCount: lowStockItems,
+        categoryCount: categories.length
+      }
+    } : { data, metrics: { totalItems, lowStockCount: lowStockItems, categoryCount: categories.length } });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Create new inventory item
+// @route   POST /api/inventory
+// @access  Private/Manager
+const createInventoryItem = async (req, res) => {
+  const { name, category, stock, lowStock, vendor, branch, unit } = req.body;
+  
+  // IDOR Check
+  const assignedBranch = branch || req.user.branch;
+  if (req.user.role !== 'Admin' && assignedBranch?.toString() !== req.user.branch?.toString()) {
+    return res.status(403).json({ message: 'Access Denied: Cannot create inventory for another branch.' });
+  }
+
+  let image = '';
+  if (req.file) {
+    image = req.file.path || req.file.url || `/uploads/${req.file.filename}`;
+  }
+
+  try {
+    const item = await Inventory.create({
+      user: req.user._id,
+      name,
+      category,
+      stock,
+      lowStock,
+      vendor,
+      unit,
+      branch: assignedBranch || null,
+      image
+    });
+
+    res.status(201).json(item);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// @desc    Update inventory item
+// @route   PUT /api/inventory/:id
+// @access  Private/Manager
+const updateInventoryItem = async (req, res) => {
+  try {
+    const item = await Inventory.findById(req.params.id);
+
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    // IDOR Check
+    const isBranchStaff = req.user.branch && item.branch?.toString() === req.user.branch.toString();
+    const isAdmin = req.user.role === 'Admin';
+
+    if (!isAdmin && !isBranchStaff) {
+      return res.status(403).json({ message: 'Access Denied: You do not have permission to update this inventory item.' });
+    }
+
+    item.name = req.body.name || item.name;
+    item.category = req.body.category || item.category;
+    item.stock = req.body.stock !== undefined ? req.body.stock : item.stock;
+    item.lowStock = req.body.lowStock !== undefined ? req.body.lowStock : item.lowStock;
+    item.vendor = req.body.vendor || item.vendor;
+    item.unit = req.body.unit || item.unit;
+    
+    if (isAdmin && req.body.branch) {
+      item.branch = req.body.branch;
+    }
+
+    if (req.file) {
+      if (item.image) {
+        await deleteFile(item.image);
+      }
+      item.image = req.file.path || req.file.url || `/uploads/${req.file.filename}`;
+    }
+
+    const updatedItem = await item.save();
+    res.json(updatedItem);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Delete inventory item
+// @route   DELETE /api/inventory/:id
+// @access  Private/Manager
+const deleteInventoryItem = async (req, res) => {
+  try {
+    const item = await Inventory.findById(req.params.id);
+
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    // IDOR Check
+    const isBranchStaff = req.user.branch && item.branch?.toString() === req.user.branch.toString();
+    const isAdmin = req.user.role === 'Admin';
+
+    if (!isAdmin && !isBranchStaff) {
+      return res.status(403).json({ message: 'Access Denied' });
+    }
+
+    if (item.image) {
+      await deleteFile(item.image);
+    }
+    await item.deleteOne();
+    res.json({ message: 'Item removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  getInventory,
+  createInventoryItem,
+  updateInventoryItem,
+  deleteInventoryItem
+};

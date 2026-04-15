@@ -235,7 +235,7 @@
   animation: bounce-slow 3s infinite;
 }
 
-/* Global Tabular Theme Styles */
+/* Global Tabular Theme Styles - Standardized Professional Look */
 @layer base {
   table {
     @apply w-full border-collapse overflow-hidden;
@@ -248,28 +248,38 @@
   table thead th {
     background-color: var(--zen-primary) !important;
     color: var(--zen-contrast-text) !important;
-    @apply py-4 px-8 text-[10px] font-bold uppercase tracking-[0.3em] font-sans;
+    @apply py-5 px-8 text-[11px] font-extrabold uppercase tracking-[0.25em] font-sans text-center;
     border: none !important;
   }
 
   /* Extreme Sacred Geometry - Rounded Header Corners */
   table thead tr th:first-child {
-    @apply rounded-none px-8;
+    @apply rounded-none px-10 text-center;
   }
 
   table thead tr th:last-child {
-    @apply rounded-none px-8;
+    @apply rounded-none px-10 text-center;
   }
 
   table tbody tr {
-    @apply border-b border-black/5 last:border-none transition-all duration-300;
+    @apply border-b border-black/[0.03] last:border-none transition-all duration-300;
   }
 
   table tbody td {
-    @apply py-6 px-10 text-sm text-black/70;
+    @apply py-5 px-10 text-[14px] text-zen-brown/70 font-medium align-middle text-center transition-all;
+  }
+
+  /* Utility for standardized primary identity within cells */
+  .zen-table-primary {
+    @apply font-serif text-[16px] font-black text-zen-brown tracking-tight leading-tight;
+  }
+
+  /* Utility for standardized metadata within cells */
+  .zen-table-meta {
+    @apply text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0.5 block;
   }
 
   table tbody tr:hover {
-    @apply bg-black/[0.02];
+    @apply bg-black/[0.015] translate-x-1;
   }
 }

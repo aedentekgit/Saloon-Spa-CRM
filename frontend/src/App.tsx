@@ -8,41 +8,42 @@ import { DataProvider } from './context/DataContext';
 import { SettingsProvider } from './context/SettingsContext';
 
 // Components
-import Sidebar from './components/Sidebar';
-import Navbar from './components/Navbar';
-import MobileFooter from './components/MobileFooter';
-import { NotificationContainer } from './components/ZenNotification';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import ScrollToTop from './components/ScrollToTop';
+import Sidebar from './components/layout/Sidebar';
+import Navbar from './components/layout/Navbar';
+import MobileFooter from './components/layout/MobileFooter';
+import { NotificationContainer } from './components/shared/ZenNotification';
+import { ErrorBoundary } from './components/shared/ErrorBoundary';
+import ScrollToTop from './components/shared/ScrollToTop';
 
 // Pages
 // Pages - Administrative
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import Clients from './pages/Clients';
-import Appointments from './pages/Appointments';
-import Rooms from './pages/Rooms';
-import Employees from './pages/Employees';
-import Attendance from './pages/Attendance';
-import Leave from './pages/Leave';
-import Services from './pages/Services';
-import Memberships from './pages/Memberships';
-import Billing from './pages/Billing';
-import Finance from './pages/Finance';
-import Inventory from './pages/Inventory';
-import GST from './pages/GST';
-import WhatsApp from './pages/WhatsApp';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
-import Roles from './pages/Roles';
-import Branches from './pages/Branches';
-import Admins from './pages/Admins';
-import RoomCategories from './pages/RoomCategories';
-import ServiceCategories from './pages/ServiceCategories';
-import Payroll from './pages/Payroll';
-import Shifts from './pages/Shifts';
-import Transactions from './pages/Transactions';
+import Login from './pages/auth/Login';
+import Signup from './pages/auth/Signup';
+import Dashboard from './pages/dashboard/Dashboard';
+import Clients from './pages/resources/Clients';
+import Appointments from './pages/operations/Appointments';
+import Rooms from './pages/resources/Rooms';
+import Employees from './pages/resources/Employees';
+import Attendance from './pages/operations/Attendance';
+import Leave from './pages/operations/Leave';
+import Services from './pages/resources/Services';
+import Memberships from './pages/resources/Memberships';
+import Billing from './pages/operations/Billing';
+import Finance from './pages/operations/Finance';
+import Inventory from './pages/resources/Inventory';
+import GST from './pages/operations/GST';
+import WhatsApp from './pages/config/WhatsApp';
+import Reports from './pages/dashboard/Reports';
+import Settings from './pages/config/Settings';
+import Roles from './pages/config/Roles';
+import Branches from './pages/config/Branches';
+import Admins from './pages/config/Admins';
+import RoomCategories from './pages/config/RoomCategories';
+import ServiceCategories from './pages/config/ServiceCategories';
+import Payroll from './pages/operations/Payroll';
+import Shifts from './pages/config/Shifts';
+import Transactions from './pages/operations/Transactions';
+import Categories from './pages/config/Categories';
 
 // Pages - Landing (Public)
 import PublicLayout from './components/landing/PublicLayout';

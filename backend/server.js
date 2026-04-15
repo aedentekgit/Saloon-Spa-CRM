@@ -1,4 +1,5 @@
 require('dotenv').config();
+console.log('Zen CRM Sanctuary: Orchestration layer initiating...');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -10,23 +11,23 @@ const path = require('path');
 const paginationMiddleware = require('./middleware/paginationMiddleware');
 
 // Route files
-const userRoutes = require('./routes/userRoutes');
-const settingsRoutes = require('./routes/settingsRoutes');
-const roleRoutes = require('./routes/roleRoutes');
-const employeeRoutes = require('./routes/employeeRoutes');
-const clientRoutes = require('./routes/clientRoutes');
-const serviceRoutes = require('./routes/serviceRoutes');
-const roomRoutes = require('./routes/roomRoutes');
-const appointmentRoutes = require('./routes/appointmentRoutes');
-const attendanceRoutes = require('./routes/attendanceRoutes');
-const leaveRoutes = require('./routes/leaveRoutes');
-const invoiceRoutes = require('./routes/invoiceRoutes');
-const expenseRoutes = require('./routes/expenseRoutes');
-const inventoryRoutes = require('./routes/inventoryRoutes');
-const whatsAppRoutes = require('./routes/whatsAppRoutes');
-const branchRoutes = require('./routes/branchRoutes');
-const categoryRoutes = require('./routes/categoryRoutes');
-const shiftRoutes = require('./routes/shiftRoutes');
+const userRoutes = require('./routes/core/userRoutes');
+const settingsRoutes = require('./routes/core/settingsRoutes');
+const roleRoutes = require('./routes/human-resources/roleRoutes');
+const employeeRoutes = require('./routes/human-resources/employeeRoutes');
+const clientRoutes = require('./routes/operations/clientRoutes');
+const serviceRoutes = require('./routes/operations/serviceRoutes');
+const roomRoutes = require('./routes/operations/roomRoutes');
+const appointmentRoutes = require('./routes/operations/appointmentRoutes');
+const attendanceRoutes = require('./routes/human-resources/attendanceRoutes');
+const leaveRoutes = require('./routes/human-resources/leaveRoutes');
+const invoiceRoutes = require('./routes/finance/invoiceRoutes');
+const expenseRoutes = require('./routes/finance/expenseRoutes');
+const inventoryRoutes = require('./routes/inventory/inventoryRoutes');
+const whatsAppRoutes = require('./routes/operations/whatsAppRoutes');
+const branchRoutes = require('./routes/operations/branchRoutes');
+const categoryRoutes = require('./routes/operations/categoryRoutes');
+const shiftRoutes = require('./routes/human-resources/shiftRoutes');
 
 // Connect to database
 connectDB();
@@ -80,7 +81,7 @@ app.use(express.static(frontendPath));
 app.use('/api/users', userRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/roles', roleRoutes);
-app.use('/api/admins', require('./routes/adminRoutes'));
+app.use('/api/admins', require('./routes/core/adminRoutes'));
 app.use('/api/employees', employeeRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/services', serviceRoutes);
@@ -93,16 +94,18 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/whatsapp', whatsAppRoutes);
 app.use('/api/branches', branchRoutes);
-app.use('/api/memberships', require('./routes/membershipRoutes'));
+app.use('/api/memberships', require('./routes/operations/membershipRoutes'));
 app.use('/api/categories', categoryRoutes);
 app.use('/api/shifts', shiftRoutes);
-app.use('/api/gst', require('./routes/gstRoutes'));
+app.use('/api/gst', require('./routes/finance/gstRoutes'));
+app.use('/api/stats', require('./routes/finance/statsRoutes'));
+app.use('/api/payroll', require('./routes/finance/payrollRoutes'));
 
 // Fallback legacy routes (Handles cases where /api prefix is missing in Frontend URL)
 app.use('/users', userRoutes);
 app.use('/settings', settingsRoutes);
 app.use('/roles', roleRoutes);
-app.use('/admins', require('./routes/adminRoutes'));
+app.use('/admins', require('./routes/core/adminRoutes'));
 app.use('/employees', employeeRoutes);
 app.use('/clients', clientRoutes);
 app.use('/services', serviceRoutes);
@@ -115,10 +118,10 @@ app.use('/expenses', expenseRoutes);
 app.use('/inventory', inventoryRoutes);
 app.use('/whatsapp', whatsAppRoutes);
 app.use('/branches', branchRoutes);
-app.use('/memberships', require('./routes/membershipRoutes'));
+app.use('/memberships', require('./routes/operations/membershipRoutes'));
 app.use('/categories', categoryRoutes);
 app.use('/shifts', shiftRoutes);
-app.use('/gst', require('./routes/gstRoutes'));
+app.use('/gst', require('./routes/finance/gstRoutes'));
 
 // Root route / Health check
 app.get('/api/health', (req, res) => {

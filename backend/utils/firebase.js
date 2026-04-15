@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const Settings = require('../models/Settings');
+const Settings = require('../models/core/Settings');
 
 let firebaseApp = null;
 

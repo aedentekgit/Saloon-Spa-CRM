@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const Settings = require('../models/Settings');
+const Settings = require('../models/core/Settings');
 
 const sendEmail = async (options) => {
   // Fetch settings from database
