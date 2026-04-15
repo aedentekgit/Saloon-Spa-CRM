@@ -13,8 +13,10 @@ import {
   Sparkles,
   Search,
   ChevronRight,
-  Crown
+  Crown,
+  Split
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { ZenPageLayout } from '../components/zen/ZenLayout';
 import { ZenBadge, ZenButton, ZenIconButton } from '../components/zen/ZenButtons';
@@ -70,6 +72,12 @@ const Billing = () => {
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState('Fixed');
   const [paymentMode, setPaymentMode] = useState('Card');
+  const [payments, setPayments] = useState<any[]>([
+    { mode: 'Cash', amount: 0 },
+    { mode: 'Card', amount: 0 },
+    { mode: 'UPI', amount: 0 },
+    { mode: 'GPay', amount: 0 }
+  ]);
   const [loading, setLoading] = useState(true);
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
   const [gstRates, setGstRates] = useState<any[]>([]);
@@ -205,6 +213,14 @@ const Billing = () => {
       return;
     }
 
+    if (paymentMode === 'Split') {
+      const splitTotal = payments.reduce((acc, p) => acc + p.amount, 0);
+      if (Math.abs(splitTotal - total) > 0.01) {
+        notify('error', 'Balance Mismatch', `Split total (${splitTotal}) must match final total (${total})`);
+        return;
+      }
+    }
+
     const nextNumber = `INV-${dayjs().year()}-${String(invoices.length + 1).padStart(3, '0')}`;
     
     const newInvoice = {
@@ -217,6 +233,7 @@ const Billing = () => {
       discount,
       total,
       paymentMode,
+      payments: paymentMode === 'Split' ? payments.filter(p => p.amount > 0) : [{ mode: paymentMode, amount: total }],
       date: dayjs().format('YYYY-MM-DD')
     };
 
@@ -256,6 +273,8 @@ const Billing = () => {
         setSelectedClient(null);
         setInvoiceItems([]);
         setDiscount(0);
+        setPayments(payments.map(p => ({ ...p, amount: 0 })));
+        setPaymentMode('Card');
         fetchData();
       }
     } catch (error) {
@@ -269,10 +288,11 @@ const Billing = () => {
       hideSearch
       hideAddButton
       hideBranchSelector
+      onViewModeChange={null as any}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 space-y-8">
-           <div className="bg-white rounded-[3rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/10 overflow-hidden group">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-stretch">
+        <div className="lg:col-span-2 flex flex-col h-full">
+           <div className="bg-white rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 overflow-hidden group flex flex-col h-full">
               <div className="p-10 bg-zen-brown text-white flex flex-col sm:flex-row justify-between items-start gap-8 relative overflow-hidden">
                  <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-125 transition-transform duration-1000">
                     <Zap size={150} />
@@ -349,7 +369,7 @@ const Billing = () => {
                        <tbody>
                           {invoiceItems.map((item) => (
                              <tr key={item.uniqueId} className="group hover:bg-zen-cream/30 transition-all duration-500 rounded-2xl">
-                                <td className="px-6 py-5 bg-zen-cream/10 rounded-l-2xl border-y border-l border-zen-brown/5 group-hover:bg-white">
+                                <td className="px-6 py-5 bg-zen-cream/10 rounded-l-2xl border-y border-l border-zen-brown/15 group-hover:bg-white">
                                    <div className="flex items-center gap-3">
                                       {item.isRedeem && (
                                          <div className="w-8 h-8 rounded-full bg-zen-sand/20 flex items-center justify-center text-zen-sand shrink-0 animate-in zoom-in duration-300">
@@ -364,14 +384,14 @@ const Billing = () => {
                                       </div>
                                    </div>
                                 </td>
-                                <td className="px-6 py-5 bg-zen-cream/10 border-y border-zen-brown/5 group-hover:bg-white text-right font-serif text-lg font-bold">
+                                <td className="px-6 py-5 bg-zen-cream/10 border-y border-zen-brown/15 group-hover:bg-white text-right font-serif text-lg font-bold">
                                    {item.isRedeem ? (
                                       <span className="text-zen-leaf italic">Redeemed</span>
                                    ) : (
                                       <span className="text-zen-brown">{settings?.general.currencySymbol || 'QR'} {item.price?.toLocaleString()}</span>
                                    )}
                                 </td>
-                                <td className="px-6 py-5 bg-zen-cream/10 rounded-r-2xl border-y border-r border-zen-brown/5 group-hover:bg-white text-right">
+                                <td className="px-6 py-5 bg-zen-cream/10 rounded-r-2xl border-y border-r border-zen-brown/15 group-hover:bg-white text-right">
                                    <div className="flex items-center justify-end gap-2">
                                       {activeMembership && activeMembership.totalSessions > 0 && (
                                          <ZenIconButton 
@@ -401,7 +421,7 @@ const Billing = () => {
                     </table>
                  </div>
 
-                 <div className="space-y-4 pt-10 border-t border-zen-brown/5">
+                 <div className="space-y-4 pt-10 border-t border-zen-brown/15">
                     <div className="flex justify-between items-center px-6">
                        <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-left">Internal Subtotal</span>
                        <span className="font-serif text-lg font-bold text-zen-brown">{settings?.general.currencySymbol || 'QR'} {subtotal.toLocaleString()}</span>
@@ -438,7 +458,7 @@ const Billing = () => {
                           {discountType === 'Percentage' && <span className="text-[10px] font-bold text-zen-leaf uppercase tracking-widest">(-{settings?.general.currencySymbol || 'QR'} {discountAmount.toLocaleString()})</span>}
                           <input 
                             type="number" 
-                            className="w-32 bg-zen-cream/30 border-b border-zen-brown/10 p-2 text-right text-lg font-serif font-bold text-zen-brown outline-none focus:border-zen-brown transition-all"
+                            className="w-32 bg-zen-cream/30 border-b border-zen-brown/25 p-2 text-right text-lg font-serif font-bold text-zen-brown outline-none focus:border-zen-brown transition-all"
                             value={discount}
                             onChange={(e) => setDiscount(parseInt(e.target.value) || 0)}
                           />
@@ -457,8 +477,8 @@ const Billing = () => {
            </div>
         </div>
 
-        <div className="space-y-10">
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5">
+        <div className="flex flex-col h-full">
+           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 flex flex-col h-full">
               <h3 className="text-xl font-serif font-bold text-zen-brown mb-8 flex items-center gap-3">
                  <Receipt size={20} className="text-zen-sand" />
                  Engagement Mode
@@ -469,20 +489,55 @@ const Billing = () => {
                     { name: 'Cash', icon: Wallet },
                     { name: 'Card', icon: CreditCard },
                     { name: 'UPI', icon: Smartphone },
-                    { name: 'GPay', icon: Smartphone }
+                    { name: 'GPay', icon: Smartphone },
+                    { name: 'Split', icon: Split }
                  ].map((mode) => (
                     <button
                       key={mode.name}
-                      onClick={() => setPaymentMode(mode.name)}
+                      onClick={() => setPaymentMode(paymentMode === mode.name ? 'Card' : mode.name)}
                       className={`group p-8 rounded-[2rem] border transition-all duration-500 flex flex-col items-center gap-4 ${paymentMode === mode.name 
                         ? 'bg-zen-brown text-white border-zen-brown shadow-2xl shadow-zen-brown/20' 
-                        : 'bg-white text-zen-brown/40 border-zen-brown/5 hover:border-zen-sand hover:bg-zen-cream/10'}`}
+                        : 'bg-white text-zen-brown/40 border-zen-brown/15 hover:border-zen-sand hover:bg-zen-cream/10'}`}
                     >
                        <mode.icon size={28} className={paymentMode === mode.name ? 'text-white' : 'text-zen-sand/60 group-hover:text-zen-sand'} strokeWidth={1.5} />
                        <span className="text-[10px] font-bold uppercase tracking-[0.3em]">{mode.name}</span>
                     </button>
                  ))}
               </div>
+
+              {paymentMode === 'Split' && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="mt-8 p-8 bg-zen-cream/30 rounded-[2.5rem] border border-zen-brown/15 space-y-6"
+                >
+                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mb-4">Allocate Split Balance</p>
+                  {payments.map((p, idx) => (
+                    <div key={p.mode} className="flex items-center justify-between gap-4">
+                      <span className="text-sm font-bold text-zen-brown/60 w-16">{p.mode}</span>
+                      <div className="flex-1 relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zen-brown/20">{settings?.general.currencySymbol || 'QR'}</span>
+                        <input 
+                          type="number"
+                          className="w-full bg-white/60 border border-zen-brown/15 rounded-xl py-3 pl-12 pr-4 text-right font-serif font-bold text-zen-brown outline-none focus:border-zen-brown transition-all"
+                          value={p.amount || ''}
+                          onChange={(e) => {
+                            const newPayments = [...payments];
+                            newPayments[idx].amount = parseFloat(e.target.value) || 0;
+                            setPayments(newPayments);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-4 border-t border-zen-brown/15 flex justify-between items-center italic">
+                    <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Total Allocated</span>
+                    <span className={`font-serif font-bold ${Math.abs(payments.reduce((acc, p) => acc + p.amount, 0) - total) < 0.01 ? 'text-zen-leaf' : 'text-red-400'}`}>
+                      {settings?.general.currencySymbol || 'QR'} {payments.reduce((acc, p) => acc + p.amount, 0).toLocaleString()}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
 
               <ZenButton 
                 className="w-full py-5 rounded-[2rem] mt-10 text-lg shadow-2xl shadow-emerald-500/10" 
@@ -493,37 +548,6 @@ const Billing = () => {
               </ZenButton>
            </div>
 
-           <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/5 overflow-hidden shadow-2xl shadow-zen-brown/5 flex flex-col h-[500px]">
-              <div className="p-8 border-b border-zen-brown/5 bg-white/40">
-                 <h3 className="text-lg font-serif font-bold text-zen-brown">Financial Registry</h3>
-                 <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-1">Archived Invoices</p>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4">
-                 {invoices.map((inv) => (
-                    <div key={inv._id} className="group p-5 bg-white hover:bg-zen-cream/30 border border-zen-brown/5 rounded-[1.8rem] transition-all duration-500 cursor-pointer">
-                       <div className="flex justify-between items-start mb-4">
-                          <div className="min-w-0">
-                             <p className="text-sm font-bold text-zen-brown truncate tracking-tight">{inv.clientName}</p>
-                             <p className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-[.2em] mt-1">{inv.invoiceNumber}</p>
-                          </div>
-                          <span className="text-[9px] font-bold text-zen-leaf bg-zen-leaf/10 px-3 py-1 rounded-full uppercase tracking-widest">{inv.paymentMode}</span>
-                       </div>
-                       
-                       <div className="flex justify-between items-end">
-                          <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">{dayjs(inv.date).format('MMM DD, YYYY')}</p>
-                          <p className="text-xl font-serif font-bold text-zen-brown">{settings?.general.currencySymbol || 'QR'} {inv.total?.toLocaleString()}</p>
-                       </div>
-                    </div>
-                 ))}
-                 {invoices.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center opacity-20">
-                       <Receipt size={60} strokeWidth={0.5} />
-                       <p className="text-sm italic font-serif mt-4">Registry is empty</p>
-                    </div>
-                 )}
-              </div>
-           </div>
         </div>
       </div>
     </ZenPageLayout>

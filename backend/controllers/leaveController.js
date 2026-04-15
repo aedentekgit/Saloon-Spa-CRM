@@ -1,4 +1,5 @@
 const Leave = require('../models/Leave');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get leave requests
 // @route   GET /api/leaves
@@ -14,8 +15,10 @@ const getLeaves = async (req, res) => {
       query.branch = req.user.branch._id || req.user.branch;
     }
     // Admin: no filter
-    const leaves = await Leave.find(query).sort({ createdAt: -1 });
-    res.json(leaves);
+    const { data, pagination } = await paginateModelQuery(Leave, query, req, {
+      sort: { createdAt: -1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

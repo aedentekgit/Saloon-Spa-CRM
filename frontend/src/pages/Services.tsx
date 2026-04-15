@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { ZenPageLayout } from '../components/zen/ZenLayout';
+import { ZenPagination } from '../components/zen/ZenPagination';
 import { 
   Plus, Edit2, Trash2, Clock, Coins, Sparkles, X, 
   Upload, Camera, Search, User, Info, FileText, MapPin, Zap
@@ -45,6 +46,8 @@ const Services = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_services_view') as 'grid' | 'table') || 'grid';
@@ -84,12 +87,16 @@ const Services = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await fetch(`${API_URL}/services`, {
+      const response = await fetch(`${API_URL}/services?page=${page}&limit=10`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) {
+      if (data.data) {
+        setServices(data.data);
+        setTotalPages(data.pagination.pages);
+      } else if (Array.isArray(data)) {
         setServices(data);
+        setTotalPages(1);
       }
     } catch (error) {
       notify('error', 'Error', 'Failed to load services');
@@ -100,7 +107,7 @@ const Services = () => {
 
   useEffect(() => {
     fetchServices();
-  }, []);
+  }, [page]);
 
   const filteredServices = useMemo(() => {
     let filtered = services;
@@ -273,7 +280,7 @@ const Services = () => {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
           {filteredServices.map((service) => (
-            <div key={service._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2">
+            <div key={service._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2">
               <div className="h-40 sm:h-48 relative overflow-hidden">
                 {service.image ? (
                   <img 
@@ -309,7 +316,7 @@ const Services = () => {
                         <span>{service.duration} min</span>
                       </div>
                     </div>
-                    <div className="flex flex-col border-l border-zen-brown/5 pl-8">
+                    <div className="flex flex-col border-l border-zen-brown/15 pl-8">
                       <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">Price</span>
                       <div className="flex items-center gap-2 text-zen-brown font-bold text-sm">
                         <Coins size={16} className="text-zen-brown/20" />
@@ -334,11 +341,11 @@ const Services = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">S NO</th>
+              <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
+                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center whitespace-nowrap">S NO</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Visual</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Branch</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Service Name</th>
@@ -348,7 +355,7 @@ const Services = () => {
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zen-brown/5">
+            <tbody className="divide-y divide-zen-brown/15">
               {filteredServices.map((service, index) => (
                 <tr key={service._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
@@ -408,6 +415,8 @@ const Services = () => {
         </div>
       )}
 
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
@@ -417,7 +426,7 @@ const Services = () => {
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-[90vh] sm:h-[85vh] w-full relative">
           
-          <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/5 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
+          <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-4 sm:gap-8 flex-1">
                 <div className="relative w-24 sm:w-32 h-24 sm:h-32 group cursor-pointer shrink-0">
                    <div className="w-full h-full rounded-3xl ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-2xl relative">
@@ -510,7 +519,7 @@ const Services = () => {
                </div>
 
                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-10 p-8 bg-zen-sand/5 rounded-[2.5rem] border border-zen-sand/10">
-                   <div className="md:col-span-2 pb-2 border-b border-zen-brown/5 flex items-center justify-between">
+                   <div className="md:col-span-2 pb-2 border-b border-zen-brown/15 flex items-center justify-between">
                       <p className="text-[10px] font-bold text-zen-brown uppercase tracking-widest flex items-center gap-2">
                          <Zap size={12} className="text-zen-sand" /> Commission Flow Configuration
                       </p>
@@ -534,7 +543,7 @@ const Services = () => {
             </div>
           </div>
 
-          <div className="px-6 sm:px-12 py-6 sm:py-10 border-t border-zen-brown/5 bg-white/95 backdrop-blur-sm sticky bottom-0 z-[60] flex flex-col sm:flex-row gap-4 sm:gap-6">
+          <div className="px-6 sm:px-12 py-6 sm:py-10 border-t border-zen-brown/15 bg-white/95 backdrop-blur-sm sticky bottom-0 z-[60] flex flex-col sm:flex-row gap-4 sm:gap-6">
              <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="order-2 sm:order-1 flex-1 text-lg">Discard</ZenButton>
              <ZenButton type="submit" className="order-1 sm:order-2 flex-[2] text-lg">
                 <span>{editingService ? 'Finalize Masterpiece' : 'Establish Offering'}</span>

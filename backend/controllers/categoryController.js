@@ -1,4 +1,5 @@
 const Category = require('../models/Category');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all categories
 // @route   GET /api/categories
@@ -7,8 +8,10 @@ const getCategories = async (req, res) => {
   try {
     const { type } = req.query;
     const filter = type ? { type } : {};
-    const categories = await Category.find(filter).sort({ name: 1 });
-    res.json(categories);
+    const { data, pagination } = await paginateModelQuery(Category, filter, req, {
+      sort: { name: 1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

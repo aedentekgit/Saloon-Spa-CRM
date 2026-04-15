@@ -1,4 +1,5 @@
 const Shift = require('../models/Shift');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all shifts
 // @route   GET /api/shifts
@@ -12,8 +13,11 @@ const getShifts = async (req, res) => {
       query.branch = branch;
     }
 
-    const shifts = await Shift.find(query).populate('branch');
-    res.json(shifts);
+    const { data, pagination } = await paginateModelQuery(Shift, query, req, {
+      populate: 'branch',
+      sort: { createdAt: -1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

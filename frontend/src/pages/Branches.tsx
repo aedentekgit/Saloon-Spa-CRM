@@ -12,6 +12,7 @@ import { notify } from '../components/ZenNotification';
 import { ZenIconButton, ZenBadge, ZenButton } from '../components/zen/ZenButtons';
 import { ZenInput, ZenDropdown } from '../components/zen/ZenInputs';
 import { ZenPageLayout } from '../components/zen/ZenLayout';
+import { ZenPagination } from '../components/zen/ZenPagination';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 
@@ -42,6 +43,8 @@ const Branches = () => {
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
 
@@ -69,7 +72,7 @@ const Branches = () => {
 
   useEffect(() => {
     fetchBranches();
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     localStorage.setItem('zen_branches_view', viewMode);
@@ -77,11 +80,17 @@ const Branches = () => {
 
   const fetchBranches = async () => {
     try {
-      const response = await fetch(`${API_URL}/branches`, {
+      const response = await fetch(`${API_URL}/branches?page=${page}&limit=10`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      setBranches(data);
+      if (data.data) {
+        setBranches(data.data);
+        setTotalPages(data.pagination.pages);
+      } else if (Array.isArray(data)) {
+        setBranches(data);
+        setTotalPages(1);
+      }
     } catch (error) {
       notify('error', 'Sync Error', 'Failed to synchronize branch directory.');
     } finally {
@@ -257,7 +266,7 @@ const Branches = () => {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
           {filteredBranches.map((branch) => (
-            <div key={branch._id} className="group relative bg-white rounded-[2rem] p-5 lg:p-6 shadow-2xl shadow-zen-brown/5 border border-zen-brown/5 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+            <div key={branch._id} className="group relative bg-white rounded-[2rem] p-5 lg:p-6 shadow-2xl shadow-zen-brown/15 border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
 
                <div className="relative z-10">
@@ -286,22 +295,22 @@ const Branches = () => {
                  </div>
 
                  <div className="flex flex-col gap-2 mb-4">
-                     <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/5 group/contact hover:bg-white hover:shadow-lg transition-all">
-                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/5 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Phone size={14} /></div>
+                     <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
+                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Phone size={14} /></div>
                         <span className="text-xs text-zen-brown/70 italic font-medium">{branch.contactNumber}</span>
                      </div>
-                     <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/5 group/contact hover:bg-white hover:shadow-lg transition-all">
-                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/5 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Mail size={14} /></div>
+                     <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
+                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Mail size={14} /></div>
                         <span className="text-xs text-zen-brown/70 italic font-medium truncate">{branch.email}</span>
                      </div>
-                     <div className="flex items-start gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/5 group/contact hover:bg-white hover:shadow-lg transition-all">
-                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/5 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors shrink-0"><MapPin size={14} /></div>
+                     <div className="flex items-start gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
+                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors shrink-0"><MapPin size={14} /></div>
                         <span className="text-xs text-zen-brown/70 italic font-medium leading-relaxed">{branch.address}</span>
                      </div>
                  </div>
                </div>
 
-                <div className="relative z-10 pt-4 border-t border-zen-brown/5">
+                <div className="relative z-10 pt-4 border-t border-zen-brown/15">
                        <div className="flex items-center gap-2">
                           <button 
                             onClick={() => toggleBranchStatus(branch)}
@@ -317,10 +326,10 @@ const Branches = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] shadow-2xl shadow-zen-brown/5 border border-zen-brown/5 overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] shadow-2xl shadow-zen-brown/15 border border-zen-brown/15 overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
+              <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">S.No</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Visual</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Designation</th>
@@ -329,7 +338,7 @@ const Branches = () => {
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Operations</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zen-brown/5">
+            <tbody className="divide-y divide-zen-brown/15">
               {filteredBranches.map((branch, index) => (
                 <tr key={branch._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
@@ -382,16 +391,18 @@ const Branches = () => {
         </div>
       )}
 
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         hideHeader 
         maxWidth="max-w-4xl"
-        title={editingBranch ? "Refine Location" : "New Presence"}
+        title={editingBranch ? "Refine Location" : "New Presence"}      
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-auto w-full relative">
           
-          <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/5 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
+          <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-4 sm:gap-8 flex-1">
                 <div className="relative w-24 sm:w-32 h-24 sm:h-32 group cursor-pointer shrink-0">
                    <div className="w-full h-full rounded-[2rem] ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-2xl relative">
@@ -452,8 +463,8 @@ const Branches = () => {
                    <ZenInput label="Physical Address" icon={MapPin} placeholder="Enter physical address..." value={formData.address} onChange={(e: any) => setFormData({...formData, address: e.target.value})} />
                 </div>
 
-                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-6 p-6 bg-zen-cream/20 rounded-[2rem] border border-zen-brown/5">
-                   <div className="sm:col-span-3 pb-2 border-b border-zen-brown/5">
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-6 p-6 bg-zen-cream/20 rounded-[2rem] border border-zen-brown/15">
+                   <div className="sm:col-span-3 pb-2 border-b border-zen-brown/15">
                       <p className="text-[10px] font-bold text-zen-brown uppercase tracking-widest flex items-center gap-2">
                          <Globe size={12} /> Geofencing Credentials
                       </p>
@@ -476,7 +487,7 @@ const Branches = () => {
              </div>
           </div>
 
-          <div className="px-6 sm:px-12 py-6 sm:py-10 border-t border-zen-brown/5 bg-white/95 backdrop-blur-sm sticky bottom-0 z-[60] flex flex-col sm:flex-row gap-4 sm:gap-6">
+          <div className="px-6 sm:px-12 py-6 sm:py-10 border-t border-zen-brown/15 bg-white/95 backdrop-blur-sm sticky bottom-0 z-[60] flex flex-col sm:flex-row gap-4 sm:gap-6">
              <ZenButton variant="secondary" onClick={() => setIsModalOpen(false)} className="order-2 sm:order-1 flex-1 text-lg">Discard</ZenButton>
              <ZenButton type="submit" className="order-1 sm:order-2 flex-[2] text-lg">
                 <span>{editingBranch ? 'Finalize Refinement' : 'Establish Presence'}</span>

@@ -10,6 +10,7 @@ import { useSettings } from '../context/SettingsContext';
 import { Modal } from '../components/Modal';
 import { notify } from '../components/ZenNotification';
 import { ZenPageLayout } from '../components/zen/ZenLayout';
+import { ZenPagination } from '../components/zen/ZenPagination';
 import { ZenDropdown, ZenInput } from '../components/zen/ZenInputs';
 import { ZenIconButton, ZenBadge, ZenButton } from '../components/zen/ZenButtons';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -33,6 +34,8 @@ const Admins = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_admin_view') as 'grid' | 'table') || 'grid';
   });
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
@@ -71,20 +74,30 @@ const Admins = () => {
 
 
   useEffect(() => {
-    fetchAdmins();
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem('zen_admin_view', viewMode);
   }, [viewMode]);
 
+  useEffect(() => {
+    fetchAdmins();
+  }, [page]);
+
   const fetchAdmins = async () => {
     try {
-      const response = await fetch(`${API_URL}/admins`, {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/admins?page=${page}&limit=10`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      setAdmins(data);
+      if (data.data) {
+        setAdmins(data.data);
+        setTotalPages(data.pagination?.pages || 1);
+      } else if (Array.isArray(data)) {
+        setAdmins(data);
+        setTotalPages(1);
+      } else {
+        setAdmins([]);
+        setTotalPages(1);
+      }
     } catch (error) {
       notify('error', 'Error', 'Failed to load administrative collective');
     } finally {
@@ -218,7 +231,7 @@ const Admins = () => {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
           {filteredAdmins.map((admin) => (
-            <div key={admin._id} className={`group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/5 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${admin.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
+            <div key={admin._id} className={`group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${admin.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
 
               <div className="relative z-10">
@@ -242,14 +255,14 @@ const Admins = () => {
                 </div>
 
                 <div className="flex flex-col gap-3 mb-8">
-                   <div className="flex items-center gap-4 p-4 bg-zen-cream/10 rounded-[1.5rem] border border-zen-brown/5 group/contact hover:bg-white hover:shadow-lg transition-all">
-                      <div className="w-10 h-10 rounded-xl bg-white border border-zen-brown/5 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Mail size={16} /></div>
+                   <div className="flex items-center gap-4 p-4 bg-zen-cream/10 rounded-[1.5rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
+                      <div className="w-10 h-10 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Mail size={16} /></div>
                       <span className="text-sm text-zen-brown/70 truncate italic font-medium">{admin.email}</span>
                    </div>
                 </div>
               </div>
 
-              <div className="relative z-10 pt-6 border-t border-zen-brown/5">
+              <div className="relative z-10 pt-6 border-t border-zen-brown/15">
                  <div className="flex items-center justify-between">
                     <button 
                       onClick={() => toggleStatus(admin)}
@@ -268,11 +281,11 @@ const Admins = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">S NO</th>
+              <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
+                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center whitespace-nowrap">S NO</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Identity</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Email Hub</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Authority</th>
@@ -280,7 +293,7 @@ const Admins = () => {
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-left">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zen-brown/5">
+            <tbody className="divide-y divide-zen-brown/15">
               {filteredAdmins.map((admin, index) => (
                 <tr key={admin._id} className={`hover:bg-zen-cream/5 transition-all duration-500 group ${admin.status === 'Inactive' ? 'opacity-50 grayscale' : ''}`}>
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
@@ -323,6 +336,8 @@ const Admins = () => {
         </div>
       )}
 
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
@@ -332,7 +347,7 @@ const Admins = () => {
       >
         <form onSubmit={handleSubmit} className="flex flex-col w-full relative">
           
-          <div className="flex items-center justify-between px-10 py-10 border-b border-zen-brown/5">
+          <div className="flex items-center justify-between px-10 py-10 border-b border-zen-brown/15">
              <div className="flex items-center gap-8 flex-1">
                 <div className="w-20 h-20 rounded-full border-4 border-zen-cream bg-zen-cream flex items-center justify-center shadow-xl text-zen-brown/10">
                    <UserCircle size={40} strokeWidth={1} />
@@ -363,7 +378,7 @@ const Admins = () => {
              />
           </div>
 
-          <div className="px-10 py-10 border-t border-zen-brown/5 bg-gray-50/50 flex gap-4">
+          <div className="px-10 py-10 border-t border-zen-brown/15 bg-gray-50/50 flex gap-4">
              <ZenButton variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Discard</ZenButton>
              <ZenButton type="submit" className="flex-[2]">
                 <span>{editingAdmin ? 'Update Record' : 'Establish Authority'}</span>

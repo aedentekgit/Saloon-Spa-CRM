@@ -134,7 +134,7 @@ const GST = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-1 space-y-8">
            {/* Global Toggle Card */}
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5 relative overflow-hidden group">
+           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-1000">
                  <Percent size={120} />
               </div>
@@ -143,7 +143,7 @@ const GST = () => {
                  <h3 className="text-xl font-serif font-bold text-zen-brown mb-2 tracking-tight">Global Mastery</h3>
                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mb-8">Universal Taxation Authority</p>
                  
-                 <div className="flex items-center justify-between p-6 bg-zen-cream/30 rounded-[2rem] border border-zen-brown/5 transition-all">
+                 <div className="flex items-center justify-between p-6 bg-zen-cream/30 rounded-[2rem] border border-zen-brown/15 transition-all">
                     <div>
                        <span className="text-sm font-bold text-zen-brown tracking-tight">Tax Application</span>
                        <p className="text-[9px] text-zen-brown/40 uppercase tracking-widest mt-1">
@@ -159,7 +159,7 @@ const GST = () => {
                     </button>
                  </div>
 
-                 <div className="mt-8 p-6 bg-white rounded-[2rem] border border-zen-brown/5 flex gap-4">
+                 <div className="mt-8 p-6 bg-white rounded-[2rem] border border-zen-brown/15 flex gap-4">
                     <div className="w-10 h-10 rounded-2xl bg-zen-sand/10 flex items-center justify-center shrink-0">
                        <Info size={18} className="text-zen-sand" />
                     </div>
@@ -184,8 +184,8 @@ const GST = () => {
         </div>
 
         <div className="lg:col-span-2">
-           <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/5 overflow-hidden shadow-2xl shadow-zen-brown/5 h-full flex flex-col">
-              <div className="px-10 py-10 border-b border-zen-brown/5 flex justify-between items-center bg-white/40">
+           <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15 h-full flex flex-col">
+              <div className="px-10 py-10 border-b border-zen-brown/15 flex justify-between items-center bg-white/40">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Sequence Registry</h3>
                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Available Taxation Models</p>
@@ -196,7 +196,7 @@ const GST = () => {
                  {rates.map((rate) => (
                     <div 
                       key={rate._id} 
-                      className={`group flex items-center justify-between p-8 rounded-[2.5rem] border transition-all duration-500 hover:shadow-xl ${rate.isActive ? 'bg-white border-zen-sand shadow-lg' : 'bg-white/40 border-zen-brown/5 hover:bg-white'}`}
+                      className={`group flex items-center justify-between p-8 rounded-[2.5rem] border transition-all duration-500 hover:shadow-xl ${rate.isActive ? 'bg-white border-zen-sand shadow-lg' : 'bg-white/40 border-zen-brown/15 hover:bg-white'}`}
                     >
                        <div className="flex items-center gap-8">
                           <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all duration-500 ${rate.isActive ? 'bg-zen-sand text-white' : 'bg-zen-brown/5 text-zen-brown/20'}`}>

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation, Link } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, Sparkles, User, ArrowUpRight } from 'lucide-react';
 
 const PublicNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,108 +19,142 @@ const PublicNavbar = () => {
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
     { name: 'Services', path: '/landing-services' },
+    { name: 'Rooms', path: '/landing-rooms' },
     { name: 'Team', path: '/team' },
     { name: 'Contact', path: '/contact' },
   ];
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-1000 ${scrolled ? 'py-4' : 'py-8'}`}>
-      <div className={`container mx-auto px-6 lg:px-24 transition-all duration-1000`}>
-        <div className={`
-          flex items-center justify-between p-4 px-8 rounded-full transition-all duration-1000
-          ${scrolled ? 'bg-white/40 backdrop-blur-3xl border border-white/50 shadow-2xl' : 'bg-transparent border border-transparent'}
-        `}>
+    <nav
+      className={`fixed top-0 left-0 right-0 z-[100] border-b border-[#32172A]/10 transition-all duration-500 ${
+        scrolled ? 'bg-[#FAF9F6]/95 backdrop-blur-2xl shadow-[0_10px_30px_rgba(50,23,42,0.05)]' : 'bg-[#FAF9F6]/90 backdrop-blur-xl'
+      }`}
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-20 items-center">
           {/* Logo */}
-          <NavLink to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-full bg-[#32172A] flex items-center justify-center text-[#FAF9F6] shadow-lg group-hover:scale-110 transition-transform duration-500">
+          <NavLink to="/" className="flex items-center gap-3 group shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#32172A] text-[#FAF9F6] shadow-lg transition-transform duration-500 group-hover:scale-110">
               <Sparkles size={18} />
             </div>
-            <span className="font-serif text-2xl font-bold text-[#32172A] tracking-tighter uppercase hidden sm:block">Zen<span className="font-normal opacity-50 italic">Spa</span></span>
+            <span className="hidden sm:block font-serif text-lg font-bold tracking-[0.2em] uppercase text-[#32172A]">
+              ZenSpa
+            </span>
           </NavLink>
 
-          {/* Desktop Nav */}
-          <div className="hidden lg:flex items-center gap-10">
-            {navLinks.map((link) => (
-              <NavLink
-                key={link.path}
-                to={link.path}
-                className={({ isActive }) => `
-                  text-[10px] font-bold uppercase tracking-[0.4em] transition-all duration-500 relative py-1
-                  ${isActive ? 'text-[#32172A]' : 'text-[#32172A]/40 hover:text-[#4A2C40]'}
-                `}
-              >
-                {link.name}
-                {location.pathname === link.path && (
-                  <motion.div layoutId="nav-underline" className="absolute -bottom-1 left-0 right-0 h-[2px] bg-[#32172A]" />
-                )}
-              </NavLink>
-            ))}
+          {/* Nav Links — centred in remaining space */}
+          <div className="hidden lg:flex flex-1 items-center justify-center">
+            <div className="flex items-center gap-10 xl:gap-16">
+              {navLinks.map((link) => (
+                <NavLink
+                  key={link.path}
+                  to={link.path}
+                  className={({ isActive }) => `
+                    relative text-[10px] font-semibold uppercase tracking-[0.42em] transition-colors
+                    ${isActive ? 'text-[#32172A]' : 'text-[#A79CA4] hover:text-[#32172A]'}
+                  `}
+                >
+                  {({ isActive }) => (
+                    <span className="relative inline-block py-2">
+                      {link.name}
+                      {isActive && (
+                        <motion.span
+                          layoutId="nav-underline"
+                          className="absolute -bottom-0.5 left-1/2 h-[2px] w-12 -translate-x-1/2 bg-[#32172A]"
+                        />
+                      )}
+                    </span>
+                  )}
+                </NavLink>
+              ))}
+            </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="hidden lg:flex items-center gap-6">
-            <Link 
-              to="/login" 
-              className="px-6 py-2.5 backdrop-blur-3xl bg-[#32172A]/5 border border-[#32172A]/10 text-[10px] font-bold uppercase tracking-widest text-[#32172A] rounded-full hover:bg-[#32172A] hover:text-[#FAF9F6] transition-all flex items-center gap-2"
+          {/* CTA Buttons */}
+          <div className="hidden lg:flex items-center gap-3 ml-auto shrink-0">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 rounded-full border border-[#32172A]/10 bg-white/50 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#32172A] transition-colors hover:bg-white"
             >
               <User size={14} />
-              Portal Access
+              Portal
             </Link>
-            
             <Link
               to="/contact"
-              className="px-8 py-2.5 bg-[#32172A] text-[#FAF9F6] text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-black transition-all flex items-center gap-2 shadow-lg shadow-[#32172A]/20"
+              className="inline-flex items-center gap-2 rounded-full bg-[#32172A] px-6 py-2.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#FAF9F6] transition-colors hover:bg-black"
             >
-               Book Now
-               <ArrowUpRight size={14} />
+              Book Now
+              <ArrowUpRight size={14} />
             </Link>
           </div>
 
-          {/* Mobile Menu Toggle */}
-          <button onClick={() => setIsOpen(!isOpen)} className="lg:hidden p-3 bg-white/20 backdrop-blur-md rounded-full text-[#32172A] border border-white/50">
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="lg:hidden ml-auto rounded-full border border-[#32172A]/10 bg-white/70 p-3 text-[#32172A] backdrop-blur-md"
+            aria-label="Toggle navigation menu"
+          >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
-            className="fixed inset-x-6 top-24 z-[101] overflow-hidden lg:hidden"
+            className="fixed inset-x-4 top-20 z-[101] overflow-hidden lg:hidden sm:inset-x-6"
           >
-            <div className="bg-white/80 backdrop-blur-3xl border border-white/50 rounded-[3rem] shadow-2xl p-10 flex flex-col gap-6">
-              {navLinks.map((link) => (
-                <NavLink
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setIsOpen(false)}
-                  className={({ isActive }) => `
-                    text-3xl font-serif text-center py-2 transition-all
-                    ${isActive ? 'text-[#32172A] italic' : 'text-[#32172A]/30'}
-                  `}
-                >
-                  {link.name}
+            <div className="rounded-[2.5rem] border border-[#32172A]/10 bg-[#FAF9F6]/95 p-6 shadow-2xl backdrop-blur-2xl">
+              <div className="flex items-center justify-between pb-5">
+                <NavLink to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#32172A] text-[#FAF9F6]">
+                    <Sparkles size={18} />
+                  </div>
+                  <span className="font-serif text-lg font-bold tracking-[0.2em] uppercase text-[#32172A]">ZenSpa</span>
                 </NavLink>
-              ))}
-              <div className="pt-8 flex flex-col gap-4">
-                 <Link 
-                   to="/login" 
-                   onClick={() => setIsOpen(false)}
-                   className="w-full py-5 bg-[#32172A]/5 text-[#32172A] text-[10px] font-bold uppercase tracking-widest text-center rounded-2xl"
-                 >
-                   Staff Login
-                 </Link>
-                 <Link 
-                   to="/contact" 
-                   onClick={() => setIsOpen(false)}
-                   className="w-full py-5 bg-[#32172A] text-white text-[10px] font-bold uppercase tracking-widest text-center rounded-2xl shadow-xl shadow-[#32172A]/20"
-                 >
-                   Reserve Entry
-                 </Link>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-full border border-[#32172A]/10 p-2 text-[#32172A]"
+                  aria-label="Close navigation menu"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {navLinks.map((link) => (
+                  <NavLink
+                    key={link.path}
+                    to={link.path}
+                    onClick={() => setIsOpen(false)}
+                    className={({ isActive }) => `
+                      rounded-2xl px-4 py-4 text-left text-lg font-semibold uppercase tracking-[0.28em] transition-colors
+                      ${isActive ? 'bg-[#32172A]/5 text-[#32172A]' : 'text-[#32172A]/60'}
+                    `}
+                  >
+                    {link.name}
+                  </NavLink>
+                ))}
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <Link
+                  to="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-2xl border border-[#32172A]/10 bg-white px-4 py-4 text-center text-[10px] font-bold uppercase tracking-[0.24em] text-[#32172A]"
+                >
+                  Portal
+                </Link>
+                <Link
+                  to="/contact"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-2xl bg-[#32172A] px-4 py-4 text-center text-[10px] font-bold uppercase tracking-[0.24em] text-white"
+                >
+                  Book Now
+                </Link>
               </div>
             </div>
           </motion.div>

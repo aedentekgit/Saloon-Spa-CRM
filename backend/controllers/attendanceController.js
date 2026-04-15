@@ -2,6 +2,7 @@ const Attendance = require('../models/Attendance');
 const Employee = require('../models/Employee');
 const User = require('../models/User');
 const Branch = require('../models/Branch');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // Haversine formula to calculate distance between two coordinates in meters
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -68,8 +69,10 @@ const getAttendance = async (req, res) => {
       }
     }
 
-    const history = await Attendance.find(query).sort({ createdAt: -1 });
-    res.json(history);
+    const { data, pagination } = await paginateModelQuery(Attendance, query, req, {
+      sort: { createdAt: -1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

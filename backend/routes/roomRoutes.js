@@ -10,7 +10,7 @@ const { protect, manager } = require('../middleware/authMiddleware');
 const { upload } = require('../middleware/uploadMiddleware');
 
 router.route('/')
-  .get(protect, getRooms)
+  .get(getRooms)
   .post(protect, manager, upload.fields([{ name: 'image', maxCount: 1 }]), createRoom);
 
 router.route('/:id')

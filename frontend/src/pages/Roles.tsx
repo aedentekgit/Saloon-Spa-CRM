@@ -3,7 +3,6 @@ import {
   Shield, 
   Trash2, 
   Plus, 
-  X, 
   Edit, 
   Lock,
   Sparkles,
@@ -11,9 +10,10 @@ import {
   CheckCircle2,
   Circle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { ZenPageLayout } from '../components/zen/ZenLayout';
+import { ZenPagination } from '../components/zen/ZenPagination';
 import { ZenBadge, ZenButton, ZenIconButton } from '../components/zen/ZenButtons';
 import { ZenInput, ZenTextarea, ZenDropdown } from '../components/zen/ZenInputs';
 import { notify } from '../components/ZenNotification';
@@ -55,6 +55,8 @@ const Roles = () => {
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -66,15 +68,25 @@ const Roles = () => {
 
   useEffect(() => {
     fetchRoles();
-  }, []);
+  }, [page]);
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch(`${API_URL}/roles`, {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/roles?page=${page}&limit=10`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) setRoles(data);
+      if (data.data) {
+        setRoles(data.data);
+        setTotalPages(data.pagination?.pages || 1);
+      } else if (Array.isArray(data)) {
+        setRoles(data);
+        setTotalPages(1);
+      } else {
+        setRoles([]);
+        setTotalPages(1);
+      }
     } catch (error) {
       notify('error', 'Sync Failure', 'Failed to synchronize authority records');
     } finally {
@@ -114,6 +126,14 @@ const Roles = () => {
         ? prev.permissions.filter(p => p !== permId)
         : [...prev.permissions, permId]
     }));
+  };
+
+  const toggleAllPermissions = () => {
+    if (formData.permissions.length === ALL_PAGES.length) {
+      setFormData(prev => ({ ...prev, permissions: [] }));
+    } else {
+      setFormData(prev => ({ ...prev, permissions: ALL_PAGES.map(p => p.id) }));
+    }
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -192,7 +212,7 @@ const Roles = () => {
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {filteredRoles.map(role => (
-            <div key={role._id} className={`group relative bg-white rounded-[2rem] p-6 lg:p-8 shadow-2xl shadow-zen-brown/5 border border-zen-brown/5 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${role.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
+            <div key={role._id} className={`group relative bg-white rounded-[2rem] p-6 lg:p-8 shadow-2xl shadow-zen-brown/15 border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${role.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
               
 
@@ -227,14 +247,14 @@ const Roles = () => {
                      <ZenBadge key={perm} variant="sand" className="px-3 py-1.5 bg-zen-cream/30 border-none text-[9px]">{ALL_PAGES.find(p => p.id === perm)?.name || perm}</ZenBadge>
                    ))}
                    {role.permissions.length > 6 && (
-                     <span className="px-3 py-1.5 bg-zen-brown/5 text-zen-brown/30 text-[9px] font-bold rounded-lg border border-zen-brown/5">
+                     <span className="px-3 py-1.5 bg-zen-brown/5 text-zen-brown/30 text-[9px] font-bold rounded-lg border border-zen-brown/15">
                        + {role.permissions.length - 6} more
                      </span>
                    )}
                  </div>
               </div>
               
-               <div className="relative z-10 mt-8 pt-6 border-t border-zen-brown/5">
+               <div className="relative z-10 mt-8 pt-6 border-t border-zen-brown/15">
                   <div className="flex items-center justify-between">
                      <button 
                        onClick={() => toggleStatus(role)}
@@ -251,19 +271,19 @@ const Roles = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] shadow-2xl shadow-zen-brown/5 border border-zen-brown/5 overflow-hidden">
+        <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] shadow-2xl shadow-zen-brown/15 border border-zen-brown/15 overflow-hidden">
            <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-separate border-spacing-0">
                  <thead>
                     <tr className="bg-zen-cream/10">
-                       <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">S NO</th>
+                       <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] whitespace-nowrap">S NO</th>
                        <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Authority Mandate</th>
                        <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Sector Summary</th>
                        <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Status</th>
                        <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-right">Ritual Actions</th>
                     </tr>
                  </thead>
-                 <tbody className="divide-y divide-zen-brown/5">
+                 <tbody className="divide-y divide-zen-brown/15">
                     {filteredRoles.map((role, index) => (
                        <tr key={role._id} className="group hover:bg-white transition-all duration-500">
                           <td className="px-10 py-8">
@@ -285,7 +305,7 @@ const Roles = () => {
                                 <ZenBadge variant="sand" className="bg-zen-cream/30 border-none">{role.permissions.length} Sectors</ZenBadge>
                                 <div className="flex -space-x-2">
                                    {role.permissions.slice(0, 3).map((p, i) => (
-                                      <div key={i} className="w-6 h-6 rounded-full bg-white border border-zen-brown/5 flex items-center justify-center shadow-sm" title={ALL_PAGES.find(pg => pg.id === p)?.name}>
+                                      <div key={i} className="w-6 h-6 rounded-full bg-white border border-zen-brown/15 flex items-center justify-center shadow-sm" title={ALL_PAGES.find(pg => pg.id === p)?.name}>
                                          <Lock size={10} className="text-zen-brown/20" />
                                       </div>
                                    ))}
@@ -327,46 +347,37 @@ const Roles = () => {
           </div>
       )}
 
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         maxWidth="max-w-4xl"
-        hideHeader
         title={editingRole ? 'Refine Authority' : 'Establish Authority'}
+        subtitle="Foundational Access Calibration"
+        headerIcon={Shield}
         footer={
-            <div className="flex gap-6 px-10 py-10 border-t border-zen-brown/5 bg-white/95 sticky bottom-0">
-               <ZenButton 
-                 variant="outline" 
-                 className="flex-1 py-5 rounded-[2rem] bg-white border-zen-brown/5"
-                 onClick={() => setIsModalOpen(false)}
-               >
-                  Discard
-               </ZenButton>
-               <ZenButton 
-                 onClick={() => handleSubmit()}
-                 className="flex-[2] py-5 rounded-[2rem] shadow-2xl shadow-zen-leaf/20 bg-zen-leaf"
-               >
-                  {editingRole ? 'Archive Refinement' : 'Commit Authority'}
-               </ZenButton>
-            </div>
+          <div className="flex w-full gap-6">
+            <ZenButton 
+              type="button"
+              variant="outline"
+              className="flex-1 py-5 rounded-[2rem]"
+              onClick={() => setIsModalOpen(false)}
+            >
+              Discard
+            </ZenButton>
+            <ZenButton 
+              type="submit"
+              form="role-modal-form"
+              className="flex-[2] py-5 rounded-[2rem] shadow-2xl shadow-zen-brown/20"
+            >
+              {editingRole ? 'Archive Refinement' : 'Commit Authority'}
+            </ZenButton>
+          </div>
         }
       >
-        <div className="flex items-center justify-between px-10 py-10 border-b border-zen-brown/5 sticky top-0 bg-white/95 backdrop-blur-sm z-50">
-           <div className="flex items-center gap-8 flex-1">
-              <div className="w-20 h-20 rounded-full border-4 border-zen-cream bg-zen-cream flex items-center justify-center shadow-xl text-zen-brown/10 shrink-0">
-                 <Shield size={32} strokeWidth={1} />
-              </div>
-
-              <div className="flex-1">
-                 <h2 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">{editingRole ? 'Refine Authority' : 'Establish Authority'}</h2>
-                 <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.4em] mt-2">Foundational Access Calibration</p>
-              </div>
-           </div>
-           <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} />
-        </div>
-
-        <div className="px-10 py-12 space-y-12 h-[calc(90vh-200px)] overflow-y-auto scrollbar-none">
-           <div className="space-y-8">
+        <form id="role-modal-form" onSubmit={handleSubmit} className="px-6 sm:px-10 py-8 sm:py-12 space-y-12">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 animate-in fade-in duration-500">
               <ZenInput 
                 label="Authority Mandate"
                 required
@@ -389,9 +400,23 @@ const Roles = () => {
                     <h3 className="text-xl font-serif font-bold text-zen-brown tracking-tight">Access Sectors</h3>
                     <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[.3em] mt-1">Foundational Permission Calibration</p>
                  </div>
-                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-zen-brown/30 uppercase mr-2 tracking-widest">Selected</span>
-                    <ZenBadge variant="leaf" className="px-4 py-1.5 shadow-lg shadow-zen-leaf/10">{formData.permissions.length}</ZenBadge>
+                 <div className="flex items-center gap-6">
+                    <button
+                      type="button"
+                      onClick={toggleAllPermissions}
+                      className="group flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-zen-brown/5 hover:bg-zen-sand hover:text-white transition-all duration-500 active:scale-95 border border-zen-brown/15"
+                    >
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${formData.permissions.length === ALL_PAGES.length ? 'bg-white border-white' : 'border-zen-sand'}`}>
+                        {formData.permissions.length === ALL_PAGES.length && <CheckCircle2 size={12} className="text-zen-sand" />}
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                        {formData.permissions.length === ALL_PAGES.length ? 'Rescind All' : 'Select All'}
+                      </span>
+                    </button>
+                    <div className="flex items-center gap-2 border-l border-zen-brown/25 pl-6">
+                       <span className="text-[10px] font-bold text-zen-brown/30 uppercase mr-2 tracking-widest">Selected</span>
+                       <ZenBadge variant="leaf" className="px-4 py-1.5 shadow-lg shadow-zen-leaf/10">{formData.permissions.length}</ZenBadge>
+                    </div>
                  </div>
               </div>
               
@@ -406,12 +431,12 @@ const Roles = () => {
                       className={`flex items-center justify-between p-6 rounded-[2rem] border transition-all duration-700 relative overflow-hidden group/btn ${
                         isActive 
                           ? 'bg-zen-leaf text-white border-zen-leaf shadow-2xl shadow-zen-leaf/20' 
-                          : 'bg-white text-zen-brown/60 border-zen-brown/5 hover:border-zen-leaf/40 hover:bg-zen-cream'
+                          : 'bg-white text-zen-brown/60 border-zen-brown/15 hover:border-zen-leaf/40 hover:bg-zen-cream'
                       }`}
                     >
                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                       <div className="flex items-center gap-4 relative z-10">
-                         <div className={`w-12 h-12 rounded-full transition-all duration-700 flex items-center justify-center relative ${isActive ? 'bg-white/20 text-white shadow-inner' : 'bg-zen-cream text-zen-brown/20 border border-zen-brown/5'}`}>
+                         <div className={`w-12 h-12 rounded-full transition-all duration-700 flex items-center justify-center relative ${isActive ? 'bg-white/20 text-white shadow-inner' : 'bg-zen-cream text-zen-brown/20 border border-zen-brown/15'}`}>
                             {isActive ? (
                                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
                                   <CheckCircle2 size={24} />
@@ -437,7 +462,7 @@ const Roles = () => {
                 })}
               </div>
            </div>
-        </div>
+        </form>
       </Modal>
 
       <ConfirmDialog

@@ -1,4 +1,5 @@
 const Expense = require('../models/Expense');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all expenses
 // @route   GET /api/expenses
@@ -20,8 +21,10 @@ const getExpenses = async (req, res) => {
       query.user = req.user._id;
     }
 
-    const expenses = await Expense.find(query).sort({ createdAt: -1 });
-    res.json(expenses);
+    const { data, pagination } = await paginateModelQuery(Expense, query, req, {
+      sort: { createdAt: -1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

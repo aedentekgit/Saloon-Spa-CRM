@@ -1,12 +1,18 @@
 const User = require('../models/User');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all admins
 // @route   GET /api/admins
 // @access  Private/Admin
 exports.getAdmins = async (req, res) => {
   try {
-    const admins = await User.find({ role: { $in: ['Admin', 'Manager'] } }).populate('branch').sort({ createdAt: -1 });
-    res.json(admins);
+    const { data, pagination } = await paginateModelQuery(
+      User,
+      { role: { $in: ['Admin', 'Manager'] } },
+      req,
+      { populate: 'branch', sort: { createdAt: -1 } }
+    );
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

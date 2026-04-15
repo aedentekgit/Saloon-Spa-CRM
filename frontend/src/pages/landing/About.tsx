@@ -4,11 +4,8 @@ import { History, Heart, Sparkles, MapPin } from 'lucide-react';
 const About = () => {
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
-      {/* Header Spacer */}
-      <div className="h-32" />
-
       {/* Hero Content */}
-      <section className="px-6 lg:px-24 mb-32">
+      <section className="px-6 lg:px-24 mb-16">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-center">
           <div className="space-y-12 animate-in fade-in slide-in-from-left-8 duration-1000">
             <div className="space-y-6">
@@ -46,8 +43,8 @@ const About = () => {
           <div className="relative animate-in fade-in slide-in-from-right-8 duration-1000">
             <div className="aspect-square rounded-[5rem] overflow-hidden shadow-2xl relative z-10">
               <img 
-                src="/Users/aedenteka/.gemini/antigravity/brain/329d471d-25fd-4c6d-b9b1-3933ada8f167/zen_spa_heritage_about_1776076447215.png" 
-                alt="Zen environment" 
+                src="/images/about_hero.png" 
+                alt="Zen Sanctuary – luxurious spa treatment room with herbal botanicals and candlelight" 
                 className="w-full h-full object-cover grayscale-[0.3]"
               />
             </div>
@@ -95,8 +92,8 @@ const About = () => {
 
           <div className="mt-32 pt-32 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-12">
             <div className="flex items-center gap-6">
-              <div className="w-24 h-24 rounded-full border border-white/20 p-2 overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80" alt="Founder" className="w-full h-full object-cover rounded-full" />
+              <div className="w-24 h-24 rounded-full border border-white/40 p-2 overflow-hidden">
+                <img src="/images/about_founder.png" alt="Elena Vora – Master of Equilibrium & Founder" className="w-full h-full object-cover rounded-full" />
               </div>
               <div>
                 <p className="font-serif font-bold text-xl">Elena Vora</p>

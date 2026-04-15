@@ -10,10 +10,12 @@ import { Modal } from '../components/Modal';
 import { notify } from '../components/ZenNotification';
 import { ZenIconButton, ZenBadge, ZenButton } from '../components/zen/ZenButtons';
 import { ZenInput, ZenDropdown } from '../components/zen/ZenInputs';
+import { ZenPagination } from '../components/zen/ZenPagination';
 import { ZenPageLayout } from '../components/zen/ZenLayout';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useBranches } from '../context/BranchContext';
 import { useCategories } from '../context/CategoryContext';
+import { resolveRoomImageMeta } from '../utils/roomImage';
 
 interface Branch {
   _id: string;
@@ -47,6 +49,8 @@ const Rooms = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [roomImageFile, setRoomImageFile] = useState<File | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -81,28 +85,35 @@ const Rooms = () => {
   };
 
   useEffect(() => {
-    fetchRooms();
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem('zen_rooms_view', viewMode);
   }, [viewMode]);
 
+  useEffect(() => {
+    fetchRooms();
+  }, [selectedBranch, page]);
+
   const fetchRooms = async () => {
     try {
-      const response = await fetch(`${API_URL}/rooms`, {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/rooms?page=${page}&limit=10`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) {
+      if (data.data) {
+        setRooms(data.data);
+        setTotalPages(data.pagination?.pages || 1);
+      } else if (Array.isArray(data)) {
         setRooms(data);
+        setTotalPages(1);
       } else {
         notify('error', 'Error', data.message || 'Failed to retrieve sanctuaries');
         setRooms([]);
+        setTotalPages(1);
       }
     } catch (error) {
       notify('error', 'Sync Error', 'Failed to synchronize sanctuary records.');
       setRooms([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -227,12 +238,15 @@ const Rooms = () => {
   }, [rooms, searchTerm, selectedBranch]);
 
 
-  const getImageUrl = (path: string | undefined) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    const cleanPath = path.replace(/^\.?\//, '');
-    return `${API_URL.replace('/api', '')}/${cleanPath}`;
-  };
+  const roomImageBaseUrl = API_URL.replace('/api', '');
+  const getDisplayImage = (room: Room) => resolveRoomImageMeta(room, roomImageBaseUrl);
+  const previewRoom = editingRoom || (formData.name ? {
+    name: formData.name,
+    type: formData.type,
+    branch: branches.find(branch => branch._id === formData.branch),
+    image: ''
+  } : null);
+  const previewRoomImage = previewRoom ? resolveRoomImageMeta(previewRoom as Room, roomImageBaseUrl) : null;
 
   return (
     <ZenPageLayout
@@ -252,19 +266,17 @@ const Rooms = () => {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
           {filteredRooms.map((room) => (
-            <div key={room._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/5 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+            <div key={room._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
 
                <div className="relative z-10">
                  <div className="flex items-center gap-4 lg:gap-6 mb-4 lg:mb-6">
                     <div className="relative w-16 lg:w-20 h-16 lg:h-20 rounded-2xl overflow-hidden border-4 border-zen-cream bg-zen-cream flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700 shadow-xl">
-                       {room.image ? (
-                          <img src={getImageUrl(room.image)} alt={room.name} className="w-full h-full object-cover" />
-                       ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif text-2xl uppercase">
-                            {room.name.charAt(0)}
-                          </div>
-                       )}
+                       <img 
+                         src={getDisplayImage(room)} 
+                         alt={room.name} 
+                         className="w-full h-full object-cover"
+                       />
                     </div>
                     
                     <div className="min-w-0 flex-1">
@@ -287,18 +299,18 @@ const Rooms = () => {
                  </div>
 
                  <div className="flex flex-col gap-2 mb-4">
-                     <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/5 group/contact hover:bg-white hover:shadow-lg transition-all">
-                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/5 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Building2 size={14} /></div>
+                     <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
+                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Building2 size={14} /></div>
                         <span className="text-xs text-zen-brown/70 italic font-medium">{room.branch?.name || 'Central Hub'}</span>
                      </div>
-                     <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/5 group/contact hover:bg-white hover:shadow-lg transition-all">
-                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/5 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Sparkles size={14} /></div>
+                     <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
+                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Sparkles size={14} /></div>
                         <span className="text-xs text-zen-brown/70 italic font-medium truncate">{room.type} Suite</span>
                      </div>
                  </div>
                </div>
 
-               <div className="relative z-10 pt-4 border-t border-zen-brown/5">
+               <div className="relative z-10 pt-4 border-t border-zen-brown/15">
                       <div className="flex items-center gap-2">
                          <ZenBadge variant={
                             room.status === 'Free' ? 'leaf' :
@@ -313,35 +325,39 @@ const Rooms = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/5 transition-all duration-700 hover:-translate-y-2 overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white/80 backdrop-blur-xl px-6 py-6 lg:px-8 lg:py-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 transition-all duration-700 hover:-translate-y-2 overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">S NO</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Photo</th>
+              <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
+                <th className="pl-3 pr-4 lg:pl-4 lg:pr-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center whitespace-nowrap">S NO</th>
+                <th className="pl-3 pr-4 lg:pl-4 lg:pr-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center whitespace-nowrap">Photo</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Room Name</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Branch</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Category</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Cleaning</th>
-                <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Status</th>
-                <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Resonance</th>
-                <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Ritual Actions</th>
+                <th className="px-4 lg:px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Status</th>
+                <th className="px-4 lg:px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Resonance</th>
+                <th className="pr-6 pl-4 lg:pr-8 lg:pl-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Ritual Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zen-brown/5">
-              {filteredRooms.map((room, index) => (
+            <tbody className="divide-y divide-zen-brown/15">
+              {filteredRooms.map((room, index) => {
+                const roomImage = getDisplayImage(room);
+
+                return (
                 <tr key={room._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                  <td className="pl-3 pr-4 lg:pl-4 lg:pr-6 py-4 lg:py-6">
                     <span className="font-serif text-base lg:text-lg text-zen-brown/40">{(index + 1).toString().padStart(2, '0')}</span>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <div className="flex justify-center">
-                      <div className="w-10 lg:w-12 h-10 lg:h-12 rounded-xl overflow-hidden bg-zen-cream border-2 border-white shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
-                        {room.image ? (
-                          <img src={getImageUrl(room.image)} className="w-full h-full object-cover" />
-                        ) : (
-                          <DoorOpen className="text-zen-brown/20" size={16} />
-                        )}
+                  <td className="pl-3 pr-4 lg:pl-4 lg:pr-6 py-4 lg:py-6">
+                    <div className="flex justify-start">
+                      <div className="w-14 lg:w-16 h-14 lg:h-16 rounded-2xl overflow-hidden bg-zen-cream border-2 border-white shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
+                        <img 
+                          src={roomImage.src} 
+                          alt={room.name} 
+                          className="w-full h-full object-cover"
+                          style={{ objectPosition: roomImage.objectPosition }}
+                        />
                       </div>
                     </div>
                   </td>
@@ -371,8 +387,8 @@ const Rooms = () => {
                   <td className="px-10 py-8 text-center">
                     <ZenBadge variant={room.isActive ? 'leaf' : 'sand'}>{room.isActive ? 'Active' : 'Inactive'}</ZenBadge>
                   </td>
-                  <td className="px-10 py-8 text-right">
-                    <div className="flex items-center justify-center gap-3 transition-all duration-500">
+                  <td className="pr-6 pl-4 lg:pr-8 lg:pl-6 py-8 text-right">
+                    <div className="flex items-center justify-end gap-3 transition-all duration-500">
                        <ZenIconButton 
                           icon={Sparkles} 
                           variant={room.isActive ? 'leaf' : 'sand'} 
@@ -384,11 +400,14 @@ const Rooms = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
 
       {/* Modal - Consistent with Zen Aesthetics and Clients page */}
       <Modal 
@@ -400,14 +419,15 @@ const Rooms = () => {
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-auto w-full relative">
           
-          <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/5 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
+          <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-4 sm:gap-8 flex-1">
                 <div className="relative w-24 sm:w-32 h-24 sm:h-32 group cursor-pointer shrink-0">
                    <div className="w-full h-full rounded-[2rem] ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-2xl relative">
-                      {(roomImageFile || (editingRoom && editingRoom.image)) ? (
+                      {(roomImageFile || previewRoomImage) ? (
                         <img 
-                          src={roomImageFile ? URL.createObjectURL(roomImageFile) : getImageUrl(editingRoom?.image)} 
+                          src={roomImageFile ? URL.createObjectURL(roomImageFile) : previewRoomImage?.src} 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                          style={roomImageFile ? undefined : { objectPosition: previewRoomImage?.objectPosition }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif text-5xl uppercase tracking-tighter">
@@ -479,14 +499,14 @@ const Rooms = () => {
                  />
 
                 <div className="md:col-span-1">
-                   <div className="p-8 bg-zen-cream/30 rounded-[2rem] border border-zen-brown/5 border-dashed">
+                   <div className="p-8 bg-zen-cream/30 rounded-[2rem] border border-zen-brown/15 border-dashed">
                       <p className="text-[10px] text-zen-brown/40 font-bold uppercase tracking-widest text-center leading-relaxed">Room status and visual identity are unified within the sanctuary network.</p>
                    </div>
                 </div>
              </div>
           </div>
 
-          <div className="px-6 sm:px-12 py-6 sm:py-10 border-t border-zen-brown/5 bg-white/95 backdrop-blur-sm sticky bottom-0 z-[60] flex flex-col sm:flex-row gap-4 sm:gap-6">
+          <div className="px-6 sm:px-12 py-6 sm:py-10 border-t border-zen-brown/15 bg-white/95 backdrop-blur-sm sticky bottom-0 z-[60] flex flex-col sm:flex-row gap-4 sm:gap-6">
              <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="order-2 sm:order-1 flex-1 text-lg">Discard</ZenButton>
              <ZenButton type="submit" className="order-1 sm:order-2 flex-[2] text-lg">
                 <span>{editingRoom ? 'Finalize Refinement' : 'Establish Space'}</span>

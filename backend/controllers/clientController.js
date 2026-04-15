@@ -3,6 +3,7 @@ const Membership = require('../models/Membership');
 const Appointment = require('../models/Appointment');
 const path = require('path');
 const { deleteFile } = require('../middleware/uploadMiddleware');
+const { getPaginationOptions, buildPaginationMeta } = require('../utils/pagination');
 
 // @desc    Get all clients
 // @route   GET /api/clients
@@ -22,7 +23,10 @@ exports.getClients = async (req, res) => {
       }
     }
 
-    const clients = await Client.find(query).populate('branch').sort({ createdAt: -1 }).lean();
+    const { paginate, page, limit, skip } = getPaginationOptions(req);
+    const clientsQuery = Client.find(query).populate('branch').sort({ createdAt: -1 }).lean();
+    const total = paginate ? await Client.countDocuments(query) : null;
+    const clients = paginate ? await clientsQuery.skip(skip).limit(limit) : await clientsQuery;
     
     // Fetch all memberships for these clients
     const clientIds = clients.map(c => c._id);
@@ -62,7 +66,10 @@ exports.getClients = async (req, res) => {
       };
     });
 
-    res.json(clientsWithData);
+    res.json(paginate ? {
+      data: clientsWithData,
+      pagination: buildPaginationMeta(total || 0, page, limit)
+    } : clientsWithData);
   } catch (error) {
     console.error('Error in getClients:', error);
     res.status(500).json({ message: error.message });

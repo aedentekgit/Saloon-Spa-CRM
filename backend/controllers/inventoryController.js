@@ -1,5 +1,6 @@
 const Inventory = require('../models/Inventory');
 const { deleteFile } = require('../middleware/uploadMiddleware');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all inventory items
 // @route   GET /api/inventory
@@ -15,8 +16,11 @@ const getInventory = async (req, res) => {
         query.branch = null; 
       }
     }
-    const inventory = await Inventory.find(query).populate('branch', 'name').sort({ name: 1 });
-    res.json(inventory);
+    const { data, pagination } = await paginateModelQuery(Inventory, query, req, {
+      populate: { path: 'branch', select: 'name' },
+      sort: { name: 1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

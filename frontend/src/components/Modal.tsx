@@ -11,6 +11,8 @@ interface ModalProps {
   footer?: React.ReactNode;
   maxWidth?: string;
   hideHeader?: boolean;
+  subtitle?: React.ReactNode;
+  headerIcon?: React.ElementType;
 }
 
 export const Modal: React.FC<ModalProps> = ({ 
@@ -20,7 +22,9 @@ export const Modal: React.FC<ModalProps> = ({
   children, 
   footer,
   maxWidth = 'max-w-lg',
-  hideHeader = false 
+  hideHeader = false,
+  subtitle,
+  headerIcon: HeaderIcon = Sparkles
 }) => {
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -57,18 +61,25 @@ export const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className={`relative w-full ${maxWidth} bg-white/95 backdrop-blur-2xl rounded-[3rem] shadow-[-10px_20px_60px_-15px_rgba(74,55,40,0.15)] overflow-hidden border border-white flex flex-col max-h-[90vh]`}
+            className={`relative w-full ${maxWidth} bg-white/95 backdrop-blur-2xl rounded-[1.5rem] sm:rounded-[3rem] shadow-[-10px_20px_60px_-15px_rgba(74,55,40,0.15)] overflow-hidden border border-white flex flex-col max-h-[95vh] sm:max-h-[90vh]`}
           >
             {/* Glossy Top Edge */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
 
             {!hideHeader && (
-              <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-8 border-b border-zen-brown/5 shrink-0 bg-white/50 backdrop-blur-md relative z-10">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between px-5 sm:px-10 py-5 sm:py-8 border-b border-zen-brown/15 shrink-0 bg-white/50 backdrop-blur-md relative z-10">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                    <div className="p-2 bg-zen-cream/40 rounded-xl text-zen-sand">
-                      <Sparkles size={16} />
+                      <HeaderIcon size={16} />
                    </div>
-                   <h3 className="text-xl sm:text-2xl font-serif font-bold text-zen-brown tracking-tight">{title}</h3>
+                   <div className="min-w-0">
+                      <h3 className="text-xl sm:text-2xl font-serif font-bold text-zen-brown tracking-tight truncate">{title}</h3>
+                      {subtitle && (
+                        <p className="mt-1 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] truncate">
+                          {subtitle}
+                        </p>
+                      )}
+                   </div>
                 </div>
                 <button 
                   onClick={onClose}
@@ -84,7 +95,7 @@ export const Modal: React.FC<ModalProps> = ({
             </div>
 
             {footer && (
-              <div className="px-6 sm:px-10 py-6 sm:py-8 border-t border-zen-brown/5 bg-white/50 backdrop-blur-md shrink-0 relative z-10">
+              <div className="px-5 sm:px-10 py-5 sm:py-8 border-t border-zen-brown/15 bg-white/50 backdrop-blur-md shrink-0 relative z-10">
                 {footer}
               </div>
             )}

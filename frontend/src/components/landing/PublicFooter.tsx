@@ -75,7 +75,7 @@ const PublicFooter = () => {
           {/* Membership CTA */}
           <div className="lg:col-span-3 space-y-8">
             <h5 className="text-[10px] font-bold text-[#E5BAD4] uppercase tracking-[0.4em]">Membership</h5>
-            <div className="space-y-8 rounded-[3rem] bg-white/5 p-8 border border-white/10 hover:border-white/20 transition-all group">
+            <div className="space-y-8 rounded-[3rem] bg-white/5 p-8 border border-white/10 hover:border-white/40 transition-all group">
                <p className="text-sm text-white/50 leading-relaxed">
                   Join our inner circle for exclusive access to seasonal ceremonies and personalized blueprints.
                </p>

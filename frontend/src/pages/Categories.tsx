@@ -103,19 +103,19 @@ const Categories = () => {
       onAddClick={() => handleOpenModal()}
       addButtonIcon={<Plus size={18} />}
     >
-      <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/5 overflow-hidden shadow-2xl shadow-zen-brown/5">
+      <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-separate border-spacing-0">
             <thead>
               <tr className="bg-zen-cream/10">
-                <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">S NO</th>
+                <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] whitespace-nowrap">S NO</th>
                 <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Identity</th>
                 <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Resonance Type</th>
                 <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Soulful Essence</th>
                 <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-right">Ritual Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zen-brown/5">
+            <tbody className="divide-y divide-zen-brown/15">
               {filteredCategories.map((cat, index) => (
                 <tr key={cat._id} className="hover:bg-white transition-all duration-500">
                   <td className="px-10 py-8">

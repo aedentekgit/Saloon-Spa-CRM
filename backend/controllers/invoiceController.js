@@ -1,4 +1,5 @@
 const Invoice = require('../models/Invoice');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all invoices
 // @route   GET /api/invoices
@@ -20,8 +21,10 @@ const getInvoices = async (req, res) => {
       query.user = req.user._id; 
     }
 
-    const invoices = await Invoice.find(query).sort({ createdAt: -1 });
-    res.json(invoices);
+    const { data, pagination } = await paginateModelQuery(Invoice, query, req, {
+      sort: { createdAt: -1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -40,6 +43,7 @@ const createInvoice = async (req, res) => {
     discount, 
     total, 
     paymentMode, 
+    payments,
     date,
     branch 
   } = req.body;
@@ -55,6 +59,7 @@ const createInvoice = async (req, res) => {
       discount,
       total,
       paymentMode,
+      payments,
       date,
       branch: branch || req.user.branch || undefined
     });

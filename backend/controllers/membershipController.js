@@ -1,6 +1,7 @@
 const MembershipPlan = require('../models/MembershipPlan');
 const Membership = require('../models/Membership');
 const Client = require('../models/Client');
+const { getPaginationOptions, buildPaginationMeta } = require('../utils/pagination');
 
 // @desc    Create a new membership plan
 // @route   POST /api/memberships/plans
@@ -19,8 +20,11 @@ exports.createMembershipPlan = async (req, res) => {
 // @access  Private
 exports.getMembershipPlans = async (req, res) => {
   try {
-    const plans = await MembershipPlan.find({ isActive: true }).populate('applicableServices');
-    res.json(plans);
+    const { paginate, page, limit, skip } = getPaginationOptions(req);
+    const plansQuery = MembershipPlan.find({ isActive: true }).populate('applicableServices').sort({ createdAt: -1 });
+    const total = paginate ? await MembershipPlan.countDocuments({ isActive: true }) : null;
+    const plans = paginate ? await plansQuery.skip(skip).limit(limit) : await plansQuery;
+    res.json(paginate ? { data: plans, pagination: buildPaginationMeta(total || 0, page, limit) } : plans);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -101,11 +105,14 @@ exports.getClientMemberships = async (req, res) => {
       return res.status(403).json({ message: 'Access Denied: You can only view your own memberships.' });
     }
 
-    const memberships = await Membership.find({ client: req.params.clientId })
+    const { paginate, page, limit, skip } = getPaginationOptions(req);
+    const membershipsQuery = Membership.find({ client: req.params.clientId })
       .populate('plan')
       .populate('branch')
       .sort({ createdAt: -1 });
-    res.json(memberships);
+    const total = paginate ? await Membership.countDocuments({ client: req.params.clientId }) : null;
+    const memberships = paginate ? await membershipsQuery.skip(skip).limit(limit) : await membershipsQuery;
+    res.json(paginate ? { data: memberships, pagination: buildPaginationMeta(total || 0, page, limit) } : memberships);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -170,7 +177,8 @@ exports.getAllMemberships = async (req, res) => {
       }
     }
 
-    const memberships = await Membership.find(query)
+    const { paginate, page, limit, skip } = getPaginationOptions(req);
+    const membershipsQuery = Membership.find(query)
       .populate('client')
       .populate({
         path: 'plan',
@@ -180,7 +188,9 @@ exports.getAllMemberships = async (req, res) => {
       .populate('usageHistory.service')
       .populate('usageHistory.branch')
       .sort({ createdAt: -1 });
-    res.json(memberships);
+    const total = paginate ? await Membership.countDocuments(query) : null;
+    const memberships = paginate ? await membershipsQuery.skip(skip).limit(limit) : await membershipsQuery;
+    res.json(paginate ? { data: memberships, pagination: buildPaginationMeta(total || 0, page, limit) } : memberships);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

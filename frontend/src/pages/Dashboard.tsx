@@ -116,7 +116,7 @@ const AdminDashboard = () => {
       className="space-y-10 pb-20"
     >
       {/* Dynamic Luminous Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="flex overflow-x-auto pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
         {cards.map((card, i) => (
           <motion.div
             key={card.title}
@@ -124,7 +124,7 @@ const AdminDashboard = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.1 }}
             whileHover={{ y: -10 }}
-            className="bg-white p-10 rounded-[4rem] border border-zen-brown/5 shadow-[0_25px_60px_-15px_rgba(74,55,40,0.08)] group relative overflow-hidden"
+            className="flex-shrink-0 w-[280px] sm:w-[320px] lg:w-auto bg-white p-10 rounded-[2.5rem] border border-zen-brown/15 shadow-[0_25px_60px_-15px_rgba(74,55,40,0.08)] group relative overflow-hidden"
           >
             {/* Ambient Back Glow */}
             <div className={`absolute -right-10 -bottom-10 w-32 h-32 ${card.bg} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700`} />
@@ -148,7 +148,7 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Immersive Analytics Deck */}
-        <div className="lg:col-span-8 bg-white p-12 rounded-[4.5rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/10 relative overflow-hidden">
+        <div className="lg:col-span-8 bg-white p-12 rounded-[3.2rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
              <Activity size={180} className="text-zen-sand" />
           </div>
@@ -222,7 +222,7 @@ const AdminDashboard = () => {
 
         {/* Vital Stats Dashboard */}
         <div className="lg:col-span-4 space-y-10">
-          <section className="bg-zen-brown p-12 rounded-[4.5rem] text-white shadow-2xl shadow-zen-brown/20 relative overflow-hidden group">
+          <section className="bg-zen-brown p-12 rounded-[3.2rem] text-white shadow-2xl shadow-zen-brown/20 relative overflow-hidden group">
              <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-125 transition-transform duration-1000">
                 <Target size={150} />
              </div>
@@ -231,7 +231,7 @@ const AdminDashboard = () => {
                 <h3 className="text-2xl font-serif font-bold mb-10 tracking-tight">Vital Status</h3>
                 
                 <div className="space-y-6">
-                   <div className="p-8 bg-white/5 backdrop-blur-md rounded-[3rem] border border-white/5 flex items-center justify-between hover:bg-white/10 transition-all duration-500">
+                   <div className="p-8 bg-white/5 backdrop-blur-md rounded-[2.2rem] border border-white/5 flex items-center justify-between hover:bg-white/10 transition-all duration-500">
                       <div className="flex items-center gap-5">
                          <div className="p-4 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20">
                             <AlertTriangle size={20} />
@@ -273,7 +273,7 @@ const AdminDashboard = () => {
              </div>
           </section>
 
-          <div className="bg-white p-12 rounded-[4.5rem] shadow-2xl shadow-zen-brown/10 border border-zen-brown/5 flex flex-col items-center justify-center text-center group">
+          <div className="bg-white p-12 rounded-[4.5rem] shadow-2xl shadow-zen-brown/10 border border-zen-brown/15 flex flex-col items-center justify-center text-center group">
              <div className="w-24 h-24 bg-zen-sand/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-700">
                 <Zap size={32} className="text-zen-sand" />
              </div>
@@ -312,7 +312,7 @@ const EmployeeDashboard = () => {
           <motion.div 
             key={card.title} 
             whileHover={{ y: -10 }}
-            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/10 group transition-all duration-500"
+            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 group transition-all duration-500"
           >
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
               <card.icon size={26} />
@@ -323,7 +323,7 @@ const EmployeeDashboard = () => {
         ))}
       </div>
 
-      <div className="bg-white p-12 rounded-[4rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/10">
+      <div className="bg-white p-12 rounded-[4rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10">
         <div className="flex items-center justify-between mb-12">
           <div>
             <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Today's Sacred Schedule</h3>
@@ -337,7 +337,7 @@ const EmployeeDashboard = () => {
         <div className="space-y-6">
           {myAppointments.length > 0 ? (
             myAppointments.map((apt) => (
-              <div key={apt._id || apt.id} className="flex items-center justify-between p-8 bg-white/50 rounded-[3rem] border border-transparent hover:border-zen-brown/5 hover:bg-white hover:shadow-2xl hover:shadow-zen-brown/5 transition-all duration-700 group">
+              <div key={apt._id || apt.id} className="flex items-center justify-between p-8 bg-white/50 rounded-[3rem] border border-transparent hover:border-zen-brown/15 hover:bg-white hover:shadow-2xl hover:shadow-zen-brown/15 transition-all duration-700 group">
                 <div className="flex items-center gap-10">
                   <div className="w-20 h-20 bg-zen-cream rounded-[2rem] flex flex-col items-center justify-center border border-white shadow-sm group-hover:bg-zen-brown group-hover:text-white transition-all duration-700">
                     <span className="text-[10px] font-bold uppercase opacity-30 tracking-widest mb-1">Ritual</span>
@@ -392,7 +392,7 @@ const ManagerDashboard = () => {
     <div className="space-y-10 pb-20">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {cards.map((card) => (
-          <div key={card.title} className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/10 group transition-all duration-500">
+          <div key={card.title} className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 group transition-all duration-500">
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
               <card.icon size={26} />
             </div>
@@ -431,7 +431,7 @@ const ClientDashboard = () => {
           <motion.div 
             key={card.title} 
             whileHover={{ y: -10 }}
-            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/10 group transition-all duration-500"
+            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 group transition-all duration-500"
           >
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
               <card.icon size={26} />
@@ -443,7 +443,7 @@ const ClientDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div className="lg:col-span-8 bg-white/60 backdrop-blur-xl rounded-[4rem] p-12 border border-white shadow-2xl shadow-zen-brown/5">
+        <div className="lg:col-span-8 bg-white/60 backdrop-blur-xl rounded-[4rem] p-12 border border-white shadow-2xl shadow-zen-brown/15">
           <header className="mb-12">
             <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Your Relaxation Journey</h3>
             <p className="text-xs font-bold text-zen-brown/20 uppercase tracking-[0.4em] mt-2">Personalized Sanctuary History</p>
@@ -452,7 +452,7 @@ const ClientDashboard = () => {
           <div className="space-y-6">
             {myAppointments.length > 0 ? (
               myAppointments.map((apt) => (
-                <div key={apt.id} className="flex items-center justify-between p-8 bg-white/40 rounded-[3.5rem] border border-transparent hover:border-zen-brown/5 hover:bg-white hover:shadow-2xl transition-all duration-700 group">
+                <div key={apt.id} className="flex items-center justify-between p-8 bg-white/40 rounded-[3.5rem] border border-transparent hover:border-zen-brown/15 hover:bg-white hover:shadow-2xl transition-all duration-700 group">
                   <div className="flex items-center gap-8">
                     <div className="w-16 h-16 bg-zen-cream rounded-[2rem] flex items-center justify-center border border-white text-zen-sand group-hover:bg-zen-sand group-hover:text-white transition-all duration-700">
                       <Calendar size={28} />
@@ -464,7 +464,7 @@ const ClientDashboard = () => {
                   </div>
                   <div className={`px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                     apt.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' : 
-                    'bg-zen-brown/5 text-zen-brown/30 border border-zen-brown/5'
+                    'bg-zen-brown/5 text-zen-brown/30 border border-zen-brown/15'
                   }`}>
                     {apt.status}
                   </div>

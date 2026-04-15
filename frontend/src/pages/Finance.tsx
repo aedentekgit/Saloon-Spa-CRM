@@ -164,8 +164,8 @@ const Finance = () => {
       onAddClick={() => setIsModalOpen(true)}
       addButtonIcon={<Plus size={18} />}
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/5 hover:shadow-emerald-500/5 transition-all duration-700 group hover:-translate-y-2">
+      <div className="flex overflow-x-auto pb-8 gap-6 md:grid md:grid-cols-3 md:gap-8 mb-12 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
+        <div className="flex-shrink-0 w-[300px] md:w-auto bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 hover:shadow-emerald-500/5 transition-all duration-700 group hover:-translate-y-2">
            <div className="flex justify-between items-start mb-6">
               <div className="p-5 bg-emerald-50 text-emerald-600 rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500 border border-white shadow-sm">
                  <TrendingUp size={28} />
@@ -179,7 +179,7 @@ const Finance = () => {
            <h3 className="text-3xl font-serif font-bold text-zen-brown mt-2">{settings?.general.currencySymbol || 'QR'} {totalIncome.toLocaleString()}</h3>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/5 hover:shadow-red-500/5 transition-all duration-700 group hover:-translate-y-2">
+        <div className="flex-shrink-0 w-[300px] md:w-auto bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 hover:shadow-red-500/5 transition-all duration-700 group hover:-translate-y-2">
            <div className="flex justify-between items-start mb-6">
               <div className="p-5 bg-red-50 text-red-600 rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500 border border-white shadow-sm">
                  <TrendingDown size={28} />
@@ -193,7 +193,7 @@ const Finance = () => {
            <h3 className="text-3xl font-serif font-bold text-zen-brown mt-2">{settings?.general.currencySymbol || 'QR'} {totalExpenses.toLocaleString()}</h3>
         </div>
 
-        <div className="bg-zen-brown p-10 rounded-[3.5rem] shadow-2xl shadow-zen-brown/20 relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
+        <div className="flex-shrink-0 w-[300px] md:w-auto bg-zen-brown p-10 rounded-[3.5rem] shadow-2xl shadow-zen-brown/20 relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-1000">
               <Sparkles size={120} />
            </div>
@@ -211,7 +211,7 @@ const Finance = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <div className="bg-white/70 backdrop-blur-xl p-12 rounded-[4rem] border border-white shadow-2xl shadow-zen-brown/5">
+        <div className="bg-white/70 backdrop-blur-xl p-12 rounded-[4rem] border border-white shadow-2xl shadow-zen-brown/15">
            <div className="flex items-center justify-between mb-10">
               <div>
                  <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Financial Resonance</h3>
@@ -260,8 +260,8 @@ const Finance = () => {
            </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/5 flex flex-col h-full min-h-[500px]">
-           <div className="px-10 py-10 border-b border-zen-brown/5 flex justify-between items-center bg-white/40 sticky top-0 z-10">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/15 flex flex-col h-full min-h-[500px]">
+           <div className="px-10 py-10 border-b border-zen-brown/15 flex justify-between items-center bg-white/40 sticky top-0 z-10">
               <div>
                  <h3 className="text-2xl font-serif font-black text-zen-brown tracking-tight">Sacred Sequence</h3>
                  <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Combined Transaction Registry</p>
@@ -312,7 +312,7 @@ const Finance = () => {
               ) : (
                  <div className="space-y-6">
                     {expenses.map((exp) => (
-                       <div key={exp._id} className="group flex items-center justify-between p-8 bg-white/60 hover:bg-white/90 border border-zen-brown/5 rounded-[2.5rem] transition-all duration-500 shadow-sm hover:shadow-xl">
+                       <div key={exp._id} className="group flex items-center justify-between p-8 bg-white/60 hover:bg-white/90 border border-zen-brown/15 rounded-[2.5rem] transition-all duration-500 shadow-sm hover:shadow-xl">
                           <div className="flex items-center gap-8">
                              <div className="w-16 h-16 bg-red-50 rounded-[1.5rem] flex items-center justify-center text-red-400 group-hover:scale-110 transition-transform duration-500">
                                 <TrendingDown size={28} />

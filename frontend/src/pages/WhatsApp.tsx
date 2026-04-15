@@ -136,7 +136,7 @@ const WhatsApp = () => {
     >
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
         <div className="lg:col-span-3 space-y-10">
-           <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5">
+           <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
               <div className="flex items-center justify-between mb-8">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Ritual Templates</h3>
@@ -152,7 +152,7 @@ const WhatsApp = () => {
                       onClick={() => handleSelectTemplate(tpl)}
                       className={`group p-8 rounded-[2.5rem] border transition-all duration-500 cursor-pointer relative overflow-hidden ${selectedTemplate?.id === tpl.id 
                         ? 'bg-zen-brown text-white border-zen-brown shadow-2xl shadow-zen-brown/20' 
-                        : 'bg-white text-zen-brown border border-zen-brown/5 hover:bg-zen-cream hover:border-zen-sand'}`}
+                        : 'bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-cream hover:border-zen-sand'}`}
                     >
                        {selectedTemplate?.id === tpl.id && (
                           <div className="absolute top-0 right-0 p-6 opacity-10">
@@ -172,7 +172,7 @@ const WhatsApp = () => {
               </div>
            </div>
 
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5">
+           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
               <div className="flex items-center justify-between mb-10">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Campaign Terminal</h3>
@@ -196,7 +196,7 @@ const WhatsApp = () => {
                    onChange={(e: any) => setMessage(e.target.value)}
                  />
 
-                 <div className="flex items-center justify-between p-6 bg-zen-cream/10 rounded-[2rem] border border-zen-brown/5">
+                 <div className="flex items-center justify-between p-6 bg-zen-cream/10 rounded-[2rem] border border-zen-brown/15">
                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em]">* Personalize with [Name] placeholder</p>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-zen-leaf uppercase tracking-widest">
                        <Zap size={14} />
@@ -211,7 +211,7 @@ const WhatsApp = () => {
                  >
                     {isSending ? (
                        <div className="flex items-center gap-4">
-                          <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+                          <div className="w-6 h-6 border-4 border-white/40 border-t-white rounded-full animate-spin"></div>
                           <span>Resonating...</span>
                        </div>
                     ) : (
@@ -255,8 +255,8 @@ const WhatsApp = () => {
               </div>
            </div>
 
-           <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/5 overflow-hidden shadow-2xl shadow-zen-brown/5 flex flex-col h-[600px]">
-              <div className="p-8 border-b border-zen-brown/5 bg-white/40 flex justify-between items-center">
+           <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15 flex flex-col h-[600px]">
+              <div className="p-8 border-b border-zen-brown/15 bg-white/40 flex justify-between items-center">
                  <div>
                     <h3 className="text-lg font-serif font-bold text-zen-brown">Sequence History</h3>
                     <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-1">Archived Campaigns</p>
@@ -266,7 +266,7 @@ const WhatsApp = () => {
               
               <div className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-4">
                  {campaigns.map((cam) => (
-                    <div key={cam._id} className="group p-6 bg-white hover:bg-zen-cream/30 border border-zen-brown/5 rounded-[2.5rem] transition-all duration-500">
+                    <div key={cam._id} className="group p-6 bg-white hover:bg-zen-cream/30 border border-zen-brown/15 rounded-[2.5rem] transition-all duration-500">
                        <div className="flex justify-between items-start mb-4">
                           <div>
                              <p className="text-sm font-serif font-bold text-zen-brown tracking-tight">{cam.templateName}</p>
@@ -275,7 +275,7 @@ const WhatsApp = () => {
                           <ZenBadge variant="leaf" className="bg-emerald-50 text-emerald-600 border-none shadow-none">{cam.status}</ZenBadge>
                        </div>
                        
-                       <div className="flex justify-between items-end border-t border-zen-brown/5 pt-4">
+                       <div className="flex justify-between items-end border-t border-zen-brown/15 pt-4">
                           <div className="flex items-center gap-2">
                              <Users size={12} className="text-zen-sand" />
                              <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">{cam.sentCount} Ambassadors</span>

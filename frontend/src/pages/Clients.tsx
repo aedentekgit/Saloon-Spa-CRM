@@ -16,6 +16,7 @@ import { notify } from '../components/ZenNotification';
 
 // Global Zen Components
 import { ZenPageLayout } from '../components/zen/ZenLayout';
+import { ZenPagination } from '../components/zen/ZenPagination';
 import { ZenDropdown, ZenInput, ZenTextarea, ZenDatePicker, ZenMonthPicker } from '../components/zen/ZenInputs';
 import { ZenIconButton, ZenBadge, ZenButton } from '../components/zen/ZenButtons';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -63,6 +64,8 @@ const Clients = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_clients_view') as 'grid' | 'table') || 'grid';
@@ -123,7 +126,7 @@ const Clients = () => {
   const fetchClients = async () => {
     try {
       console.log('Fetching clients from:', `${API_URL}/clients`);
-      const response = await fetch(`${API_URL}/clients`, {
+      const response = await fetch(`${API_URL}/clients?page=${page}&limit=10`, {
         headers: { 
           'Authorization': `Bearer ${user?.token}`,
           'Accept': 'application/json'
@@ -137,9 +140,12 @@ const Clients = () => {
       }
 
       const data = await response.json();
-      console.log('Clients loaded successfully:', data.length);
-      if (Array.isArray(data)) {
+      if (data.data) {
+        setClients(data.data);
+        setTotalPages(data.pagination.pages);
+      } else if (Array.isArray(data)) {
         setClients(data);
+        setTotalPages(1);
       }
     } catch (error: any) {
       console.error('Error in fetchClients:', error);
@@ -151,7 +157,7 @@ const Clients = () => {
 
   useEffect(() => {
     fetchClients();
-  }, []);
+  }, [page]);
 
   const filteredClients = useMemo(() => {
     let filtered = clients;
@@ -320,7 +326,7 @@ const Clients = () => {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-10">
           {filteredClients.map((client) => (
-            <div key={client._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/5 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+            <div key={client._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
 
               <div className="relative z-10">
@@ -356,20 +362,20 @@ const Clients = () => {
                 </div>
 
                 <div className="flex flex-col gap-2 mb-4">
-                    <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/5 group/contact hover:bg-white hover:shadow-lg transition-all">
-                       <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/5 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Phone size={14} /></div>
+                    <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
+                       <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Phone size={14} /></div>
                        <span className="text-xs text-zen-brown/70 italic font-medium">{client.phone}</span>
                     </div>
                     {client.email && (
-                      <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/5 group/contact hover:bg-white hover:shadow-lg transition-all">
-                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/5 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Mail size={14} /></div>
+                      <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
+                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Mail size={14} /></div>
                         <span className="text-xs text-zen-brown/70 italic font-medium truncate">{client.email}</span>
                       </div>
                     )}
                 </div>
               </div>
 
-              <div className="relative z-10 pt-4 border-t border-zen-brown/5">
+              <div className="relative z-10 pt-4 border-t border-zen-brown/15">
                      <div className="flex items-center gap-2">
                          <button 
                            onClick={() => toggleClientStatus(client)}
@@ -390,10 +396,10 @@ const Clients = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
+              <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">S.No</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Portrait</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Client</th>
@@ -404,7 +410,7 @@ const Clients = () => {
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zen-brown/5">
+            <tbody className="divide-y divide-zen-brown/15">
               {filteredClients.map((client, index) => (
                 <tr key={client._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
@@ -474,6 +480,8 @@ const Clients = () => {
         </div>
       )}
 
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
@@ -483,7 +491,7 @@ const Clients = () => {
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-[90vh] sm:h-[85vh] w-full relative">
           
-          <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/5 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
+          <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-4 sm:gap-8 flex-1">
                 <div className="relative w-24 sm:w-32 h-24 sm:h-32 group cursor-pointer shrink-0">
                    <div className="w-full h-full rounded-full ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-2xl relative">
@@ -521,7 +529,7 @@ const Clients = () => {
              <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} className="self-start mt-2" />
           </div>
 
-          <div className="flex items-center gap-8 px-12 border-b border-zen-brown/5 bg-white/50 backdrop-blur-sm z-50">
+          <div className="flex items-center gap-8 px-12 border-b border-zen-brown/15 bg-white/50 backdrop-blur-sm z-50">
              <button 
                type="button"
                onClick={() => setActiveTab('matrix')}
@@ -582,18 +590,18 @@ const Clients = () => {
                               </ZenBadge>
                            </div>
 
-                           <div className="bg-white/50 rounded-[2.5rem] border border-zen-brown/5 overflow-hidden shadow-sm">
+                           <div className="bg-white/50 rounded-[2.5rem] border border-zen-brown/15 overflow-hidden shadow-sm">
                               <table className="w-full text-left">
                                  <thead>
-                                    <tr className="border-b border-zen-brown/5 bg-zen-cream/30">
-                                       <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">S No</th>
+                                    <tr className="border-b border-zen-brown/15 bg-zen-cream/30">
+                                       <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em] whitespace-nowrap">S No</th>
                                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">Date</th>
                                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">Branch</th>
                                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">Ritual (Massage)</th>
                                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">Slot</th>
                                     </tr>
                                  </thead>
-                                 <tbody className="divide-y divide-zen-brown/5">
+                                 <tbody className="divide-y divide-zen-brown/15">
                                     {selectedMembershipHistory.usageHistory?.length > 0 ? selectedMembershipHistory.usageHistory.map((usage: any, idx: number) => (
                                        <tr key={idx} className="group hover:bg-white transition-all duration-300">
                                           <td className="px-8 py-6 text-sm font-bold text-zen-brown/20">{idx + 1}</td>
@@ -685,7 +693,7 @@ const Clients = () => {
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center py-20 text-zen-brown/20 space-y-4">
-                           <div className="w-20 h-20 rounded-full border-2 border-dashed border-zen-brown/10 flex items-center justify-center">
+                           <div className="w-20 h-20 rounded-full border-2 border-dashed border-zen-brown/25 flex items-center justify-center">
                               <Sparkles size={32} strokeWidth={1} />
                            </div>
                            <p className="text-sm font-serif italic text-center">This soul has not yet embarked on a membership journey</p>
@@ -700,7 +708,7 @@ const Clients = () => {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-8"
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-zen-cream/30 p-8 rounded-[3rem] border border-zen-brown/5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-zen-cream/30 p-8 rounded-[3rem] border border-zen-brown/15">
                         <div className="space-y-1">
                            <h4 className="font-serif text-xl text-zen-brown">Chronological Registry</h4>
                            <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Select month to filter sessions</p>
@@ -714,20 +722,20 @@ const Clients = () => {
                          </div>
                       </div>
 
-                      <div className="bg-white/50 rounded-[2.5rem] border border-zen-brown/5 overflow-hidden">
+                      <div className="bg-white/50 rounded-[2.5rem] border border-zen-brown/15 overflow-hidden">
                         {(editingClient?.appointments?.filter((a: any) => dayjs(a.date).format('YYYY-MM') === historyMonth)?.length || 0) > 0 ? (
                           <div className="overflow-x-auto">
                             <table className="w-full text-left">
                               <thead>
-                                <tr className="border-b border-zen-brown/5 bg-zen-cream/30">
-                                  <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">S No</th>
+                                <tr className="border-b border-zen-brown/15 bg-zen-cream/30">
+                                  <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em] whitespace-nowrap">S No</th>
                                   <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">Date</th>
                                   <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">Branch</th>
                                   <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">Massage</th>
                                   <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">Slot</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-zen-brown/5">
+                              <tbody className="divide-y divide-zen-brown/15">
                                 {editingClient?.appointments
                                   ?.filter((a: any) => dayjs(a.date).format('YYYY-MM') === historyMonth)
                                   ?.map((apt: any, index: number) => (
@@ -763,7 +771,7 @@ const Clients = () => {
                           </div>
                         ) : (
                           <div className="flex flex-col items-center justify-center py-24 text-zen-brown/20 space-y-4">
-                             <div className="w-20 h-20 rounded-full border-2 border-dashed border-zen-brown/10 flex items-center justify-center">
+                             <div className="w-20 h-20 rounded-full border-2 border-dashed border-zen-brown/25 flex items-center justify-center">
                                 <Calendar size={32} strokeWidth={1} />
                              </div>
                              <p className="text-sm font-serif italic text-center">No sessions discovered for this sanctuary period</p>
@@ -828,7 +836,7 @@ const Clients = () => {
                 </AnimatePresence>
           </div>
 
-          <div className="px-6 sm:px-12 py-6 sm:py-10 border-t border-zen-brown/5 bg-white/95 backdrop-blur-sm sticky bottom-0 z-[60] flex flex-col sm:flex-row gap-4 sm:gap-6">
+          <div className="px-6 sm:px-12 py-6 sm:py-10 border-t border-zen-brown/15 bg-white/95 backdrop-blur-sm sticky bottom-0 z-[60] flex flex-col sm:flex-row gap-4 sm:gap-6">
              <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="order-2 sm:order-1 flex-1 text-lg">Discard</ZenButton>
              <ZenButton type="submit" className="order-1 sm:order-2 flex-[2] text-lg">
                 <span>{editingClient ? 'Finalize Profile' : 'Invite to Registry'}</span>
@@ -852,6 +860,5 @@ const Clients = () => {
 };
 
 export default Clients;
-
 
 

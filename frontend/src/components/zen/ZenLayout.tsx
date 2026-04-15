@@ -1,5 +1,7 @@
 import React from 'react';
-import { Search, LayoutGrid, List, ChevronDown } from 'lucide-react';
+import { Search, LayoutGrid, List, Plus } from 'lucide-react';
+import { BranchSelector } from './BranchSelector';
+import { ZenButton } from './ZenButtons';
 
 interface ZenLayoutProps {
   children: React.ReactNode;
@@ -16,8 +18,6 @@ interface ZenLayoutProps {
   hideBranchSelector?: boolean;
 }
 
-import { BranchSelector } from './BranchSelector';
-
 export const ZenPageLayout = ({
   children,
   title,
@@ -27,7 +27,7 @@ export const ZenPageLayout = ({
   onViewModeChange = () => {},
   addButtonLabel,
   onAddClick,
-  addButtonIcon,
+  addButtonIcon = <Plus size={18} />,
   hideAddButton = false,
   hideSearch = false,
   hideBranchSelector = false
@@ -36,59 +36,66 @@ export const ZenPageLayout = ({
   return (
     <div className="page-container min-h-screen p-4 sm:p-6 lg:p-10 animate-in fade-in duration-1000">
       
-      {/* Global Zen Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6 mb-8 lg:mb-12">
-        <div className="flex items-center gap-4 flex-1 w-full max-w-xl">
-          {!hideSearch && (
-            <div className="relative flex-1 group">
-               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-brown transition-colors" size={18} />
-               <input 
-                 type="text"
-                 placeholder="Search registry..."
-                 className="w-full pl-12 pr-6 py-3.5 bg-white/80 backdrop-blur-sm rounded-2xl border border-zen-brown/5 shadow-inner outline-none focus:ring-4 focus:ring-zen-brown/5 transition-all font-serif italic text-zen-brown/60 text-sm"
-                 value={searchTerm}
-                 onChange={(e) => onSearchChange(e.target.value)}
-               />
+
+
+      {/* Search and Action Bar */}
+      <div className="mb-8 lg:mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        {!hideSearch && (
+          <div className="flex-1 max-w-2xl w-full">
+            <div className="relative group">
+              <input 
+                type="text" 
+                placeholder={`Search ${title}...`}
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="w-full bg-white/60 backdrop-blur-md px-6 sm:px-8 py-4 sm:py-5 rounded-2xl sm:rounded-[2rem] border border-zen-brown/15 shadow-xl shadow-zen-brown/15 focus:bg-white focus:border-zen-brown/35 focus:ring-4 focus:ring-zen-brown/5 outline-none transition-all duration-500 font-serif text-base sm:text-lg text-zen-brown placeholder:text-zen-brown/20"
+              />
+              <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-500 group-focus-within:scale-110">
+                <Search className="text-zen-brown/10 group-focus-within:text-zen-brown/30" size={20} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 sm:gap-4 self-end md:self-auto">
+          {!hideBranchSelector && (
+            <div className="shrink-0">
+              <BranchSelector />
             </div>
           )}
-        </div>
-        
-        <div className="flex items-center justify-between lg:justify-end gap-3 w-full lg:w-auto">
-          {/* Branch Selector */}
-          {!hideBranchSelector && (
-             <BranchSelector />
-          )}
 
-          {!hideSearch && (
-            <div className="bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-zen-brown/5 flex shadow-sm">
+          {onViewModeChange && (
+            <div className="flex bg-white/60 backdrop-blur-md p-1 rounded-xl sm:rounded-2xl border border-zen-brown/15 shadow-md">
               <button 
-                onClick={() => onViewModeChange('grid')} 
-                className={`p-2 rounded-xl transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-xl' : 'text-zen-brown/30 hover:text-zen-brown'}`}
+                onClick={() => onViewModeChange('grid')}
+                className={`p-2.5 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown'}`}
               >
                 <LayoutGrid size={18} />
               </button>
               <button 
-                onClick={() => onViewModeChange('table')} 
-                className={`p-2 rounded-xl transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-xl' : 'text-zen-brown/30 hover:text-zen-brown'}`}
+                onClick={() => onViewModeChange('table')}
+                className={`p-2.5 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown'}`}
               >
                 <List size={18} />
               </button>
             </div>
           )}
-          {!hideAddButton && onAddClick && (
+
+          {!hideAddButton && addButtonLabel && onAddClick && (
             <button 
-              onClick={onAddClick} 
-              className="flex-1 lg:flex-none flex items-center justify-center space-x-3 bg-zen-brown text-zen-cream px-6 lg:px-8 py-3.5 rounded-2xl font-bold hover:shadow-2xl hover:bg-black transition-all duration-300 text-xs uppercase tracking-widest"
+              onClick={onAddClick}
+              className="!rounded-xl sm:!rounded-2xl !py-4 sm:!py-5 px-6 sm:px-8 shadow-xl shadow-zen-brown/10 flex items-center justify-center gap-3 active:scale-95 group transition-all duration-500 bg-zen-brown text-white font-bold text-xs sm:text-sm uppercase tracking-widest min-w-fit"
             >
-              {addButtonIcon}
-              <span className="whitespace-nowrap">{addButtonLabel}</span>
+              <span className="hidden xs:inline">{addButtonLabel}</span>
+              <div className="group-hover:rotate-90 transition-transform duration-500">
+                {addButtonIcon}
+              </div>
             </button>
           )}
         </div>
       </div>
 
-
-      <main>
+      <main className="pb-20">
         {children}
       </main>
 

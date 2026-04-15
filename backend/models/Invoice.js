@@ -40,9 +40,15 @@ const invoiceSchema = mongoose.Schema({
   },
   paymentMode: {
     type: String,
-    enum: ['Cash', 'Card', 'UPI', 'GPay'],
+    enum: ['Cash', 'Card', 'UPI', 'GPay', 'Split'],
     default: 'Card'
   },
+  payments: [
+    {
+      mode: { type: String, enum: ['Cash', 'Card', 'UPI', 'GPay'] },
+      amount: Number
+    }
+  ],
   date: {
     type: String,
     required: true

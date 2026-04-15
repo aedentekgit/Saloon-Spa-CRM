@@ -1,6 +1,7 @@
 const Employee = require('../models/Employee');
 const path = require('path');
 const { deleteFile } = require('../middleware/uploadMiddleware');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all employees
 // @route   GET /api/employees
@@ -10,23 +11,29 @@ exports.getEmployees = async (req, res) => {
     let query = {};
     
     // IDOR Prevention
-    if (req.user.role === 'Admin') {
-      // Global Admin sees all
-    } else if (req.user.role === 'Manager') {
-      // Manager sees their branch
-      if (req.user.branch) {
-        query.branch = req.user.branch;
+    if (req.user) {
+      if (req.user.role === 'Admin') {
+        // Global Admin sees all
+      } else if (req.user.role === 'Manager') {
+        // Manager sees their branch
+        if (req.user.branch) {
+          query.branch = req.user.branch;
+        }
+      } else if (req.user.role === 'Employee') {
+        if (req.user.branch) {
+          query.branch = req.user.branch;
+        }
       }
-    } else if (req.user.role === 'Employee') {
-      // Employee should only see their own profile or fellow branch employees?
-      // Usually employees see the directory.
-      if (req.user.branch) {
-        query.branch = req.user.branch;
-      }
+    } else {
+        // Public access - usually show all active
+        query.status = 'Active';
     }
 
-    const employees = await Employee.find(query).populate('branch').sort({ createdAt: -1 });
-    res.json(employees);
+    const { data, pagination } = await paginateModelQuery(Employee, query, req, {
+      populate: 'branch',
+      sort: { createdAt: -1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -1,12 +1,15 @@
 const WhatsAppCampaign = require('../models/WhatsAppCampaign');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all campaigns
 // @route   GET /api/whatsapp
 // @access  Private
 const getCampaigns = async (req, res) => {
   try {
-    const campaigns = await WhatsAppCampaign.find({}).sort({ createdAt: -1 });
-    res.json(campaigns);
+    const { data, pagination } = await paginateModelQuery(WhatsAppCampaign, {}, req, {
+      sort: { createdAt: -1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

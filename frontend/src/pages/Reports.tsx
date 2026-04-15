@@ -137,7 +137,7 @@ const Reports = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-10">
-        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5 group">
+        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 group">
            <div className="flex items-center justify-between mb-10">
               <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight flex items-center gap-4">
                  <Activity size={24} className="text-zen-sand" />
@@ -175,7 +175,7 @@ const Reports = () => {
            </div>
         </div>
 
-        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5">
+        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
            <div className="flex items-center justify-between mb-10">
               <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight flex items-center gap-4">
                  <PieIcon size={24} className="text-zen-sand" />
@@ -213,7 +213,7 @@ const Reports = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5">
+        <div className="lg:col-span-2 bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
            <div className="flex items-center justify-between mb-10">
               <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight flex items-center gap-4">
                  <BarChart3 size={24} className="text-zen-sand" />

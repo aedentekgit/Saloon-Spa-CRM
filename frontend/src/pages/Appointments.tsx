@@ -8,8 +8,9 @@ import { Modal } from '../components/Modal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { notify } from '../components/ZenNotification';
 import { ZenPageLayout } from '../components/zen/ZenLayout';
-import { ZenIconButton, ZenBadge, ZenButton } from '../components/zen/ZenButtons';
-import { ZenInput, ZenDropdown, ZenDatePicker, ZenAutocomplete } from '../components/zen/ZenInputs';
+import { ZenPagination } from '../components/zen/ZenPagination';
+import { ZenButton, ZenBadge, ZenIconButton } from '../components/zen/ZenButtons';
+import { ZenAutocomplete, ZenDatePicker, ZenDropdown } from '../components/zen/ZenInputs';
 import { useBranches } from '../context/BranchContext';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -32,6 +33,8 @@ const Appointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [aptToDelete, setAptToDelete] = useState<string | null>(null);
@@ -107,20 +110,41 @@ const Appointments = () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
 
   useEffect(() => {
-    fetchData();
+    fetchAllData();
   }, []);
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [page]);
 
   useEffect(() => {
     localStorage.setItem('zen_appointment_view', viewMode);
   }, [viewMode]);
 
-  const fetchData = async () => {
+  const fetchAppointments = async () => {
+    try {
+      const authHeader = { 'Authorization': `Bearer ${user?.token}` };
+      const res = await fetch(`${API_URL}/appointments?page=${page}&limit=10`, { headers: authHeader });
+      const data = await res.json();
+      if (data.data) {
+        setAppointments(data.data);
+        setTotalPages(data.pagination.pages);
+      } else if (Array.isArray(data)) {
+        setAppointments(data);
+        setTotalPages(1);
+      }
+    } catch (error) {
+       console.error('Appointments fetch error:', error);
+    }
+  };
+
+  const fetchAllData = async () => {
     setLoading(true);
     try {
       const authHeader = { 'Authorization': `Bearer ${user?.token}` };
       
       const [aptRes, clientRes, serviceRes, staffRes, shiftRes, roomRes, presenceRes] = await Promise.all([
-        fetch(`${API_URL}/appointments`, { headers: authHeader }),
+        fetch(`${API_URL}/appointments?page=${page}&limit=10`, { headers: authHeader }),
         fetch(`${API_URL}/clients`, { headers: authHeader }),
         fetch(`${API_URL}/services`, { headers: authHeader }),
         fetch(`${API_URL}/employees`, { headers: authHeader }),
@@ -129,11 +153,17 @@ const Appointments = () => {
         fetch(`${API_URL}/attendance`, { headers: authHeader })
       ]);
 
-      const [apts, clients, services, staff, shifts, rooms, presence] = await Promise.all([
+      const [aptsData, clients, services, staff, shifts, rooms, presence] = await Promise.all([
         aptRes.json(), clientRes.json(), serviceRes.json(), staffRes.json(), shiftRes.json(), roomRes.json(), presenceRes.json()
       ]);
 
-      if (Array.isArray(apts)) setAppointments(apts);
+      if (aptsData.data) {
+        setAppointments(aptsData.data);
+        setTotalPages(aptsData.pagination.pages);
+      } else if (Array.isArray(aptsData)) {
+        setAppointments(aptsData);
+        setTotalPages(1);
+      }
       if (Array.isArray(clients)) setRawClients(clients);
       if (Array.isArray(services)) setRawServices(services);
       if (Array.isArray(staff)) setRawStaff(staff);
@@ -146,6 +176,10 @@ const Appointments = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchData = async () => {
+    await fetchAllData();
   };
 
   const filteredAppointments = useMemo(() => {
@@ -393,140 +427,147 @@ const Appointments = () => {
       <div className="flex flex-col lg:flex-row gap-10">
         <div className="flex-1 space-y-8">
            {/* Calendar Controls - Now visible in both Grid and Table view */}
-           <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/5 flex flex-col sm:flex-row items-center justify-between gap-6 animate-in slide-in-from-top duration-700">
-              <div className="flex items-center gap-6">
-                 <div className="flex items-center gap-1 bg-zen-cream/30 p-1.5 rounded-full">
-                    <ZenIconButton icon={ChevronLeft} onClick={handlePrev} className="scale-90" />
-                    <ZenIconButton icon={ChevronRight} onClick={handleNext} className="scale-90" />
-                 </div>
-                 <h2 className="text-xl font-serif font-bold text-zen-brown tracking-tight min-w-[200px] text-center">{getDateDisplay()}</h2>
-              </div>
-              <div className="flex bg-zen-cream/30 rounded-[2rem] p-1.5 w-full sm:w-auto border border-zen-brown/5">
-                 {(['Day', 'Week', 'Month'] as const).map(type => (
-                    <button 
-                      key={type}
-                      onClick={() => setViewType(type)}
-                      className={`flex-1 sm:flex-none px-8 py-3 transition-all duration-500 text-[10px] font-black uppercase tracking-widest rounded-3xl ${
-                        viewType === type ? 'bg-white text-zen-brown shadow-xl scale-105' : 'text-zen-brown/30 hover:text-zen-brown'
-                      }`}
-                    >
-                      {type}
-                    </button>
-                 ))}
-              </div>
-           </div>
+            <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2rem] sm:rounded-[3.5rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/15 flex flex-col xl:flex-row items-center justify-between gap-6 animate-in slide-in-from-top duration-700">
+               <div className="flex flex-col sm:flex-row items-center gap-6 w-full xl:w-auto">
+                  <div className="flex items-center gap-3 bg-zen-cream/30 p-2 rounded-full w-full sm:w-auto justify-between sm:justify-start">
+                     <ZenIconButton icon={ChevronLeft} onClick={handlePrev} className="!w-10 !h-10" />
+                     <h2 className="text-lg font-serif font-bold text-zen-brown tracking-tight sm:min-w-[150px] text-center px-4">{getDateDisplay()}</h2>
+                     <ZenIconButton icon={ChevronRight} onClick={handleNext} className="!w-10 !h-10" />
+                  </div>
+               </div>
+               <div className="flex bg-zen-cream/30 rounded-2xl sm:rounded-[2rem] p-1.5 w-full xl:w-auto border border-zen-brown/25">
+                  {(['Day', 'Week', 'Month'] as const).map(type => (
+                     <button 
+                       key={type}
+                       onClick={() => setViewType(type)}
+                       className={`flex-1 sm:flex-none px-6 sm:px-8 py-3 transition-all duration-500 text-[10px] font-black uppercase tracking-widest rounded-xl sm:rounded-3xl ${
+                         viewType === type ? 'bg-white text-zen-brown shadow-xl scale-105' : 'text-zen-brown/30 hover:text-zen-brown'
+                       }`}
+                     >
+                       {type}
+                     </button>
+                  ))}
+               </div>
+            </div>
 
            {viewMode === 'grid' ? (
              <>
 
                {/* Calendar View Area */}
-               <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/5 min-h-[500px]">
+               <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-zen-brown/25 overflow-hidden shadow-2xl shadow-zen-brown/15 min-h-[500px]">
                   {loading ? (
                      <div className="flex flex-col items-center justify-center h-[500px]">
                         <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
                      </div>
                   ) : viewType === 'Month' ? (
-                     <div className="p-8 overflow-x-auto">
-                        <div className="min-w-[700px]">
+                     <div className="p-4 sm:p-8 overflow-x-auto custom-scrollbar">
+                        <div className="min-w-[600px] lg:min-w-full">
                            <div className="grid grid-cols-7 mb-6">
-                              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                                 <div key={i} className="text-center text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em]">{day}</div>
+                              {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day, i) => (
+                                 <div key={i} className="text-center text-[9px] font-bold text-zen-brown/20 uppercase tracking-[0.4em]">{day}</div>
                               ))}
                            </div>
-                           <div className="grid grid-cols-7 gap-3">
+                           <div className="grid grid-cols-7 gap-1 sm:gap-3">
                               {(() => {
-                                const startOfMonth = selectedDate.startOf('month');
-                                const endOfMonth = selectedDate.endOf('month');
-                                const startDay = startOfMonth.day();
-                                const totalDays = endOfMonth.date();
-                                const days = [];
+                                 const startOfMonth = selectedDate.startOf('month');
+                                 const endOfMonth = selectedDate.endOf('month');
+                                 const startDay = startOfMonth.day();
+                                 const totalDays = endOfMonth.date();
+                                 const days = [];
 
-                                for (let i = 0; i < startDay; i++) days.push(<div key={`empty-${i}`} className="bg-zen-cream/5 min-h-[100px] rounded-[1.5rem] opacity-20" />);
+                                 for (let i = 0; i < startDay; i++) days.push(<div key={`empty-${i}`} className="bg-zen-cream/5 min-h-[60px] sm:min-h-[100px] rounded-xl sm:rounded-[1.5rem] opacity-20" />);
 
-                                for (let d = 1; d <= totalDays; d++) {
-                                   const dateStr = startOfMonth.date(d).format('YYYY-MM-DD');
-                                   const dayAppointments = appointments.filter(a => a.date === dateStr);
-                                   const isToday = dayjs().isSame(startOfMonth.date(d), 'day');
+                                 for (let d = 1; d <= totalDays; d++) {
+                                    const dateStr = startOfMonth.date(d).format('YYYY-MM-DD');
+                                    const dayAppointments = appointments.filter(a => a.date === dateStr);
+                                    const isToday = dayjs().isSame(startOfMonth.date(d), 'day');
 
-                                   days.push(
-                                      <div 
-                                        key={d} 
-                                        className={`relative min-h-[100px] p-4 rounded-[1.5rem] transition-all duration-500 cursor-pointer group hover:bg-white hover:shadow-2xl hover:-translate-y-1 ${isToday ? 'bg-zen-brown text-white shadow-xl' : 'bg-white/60 border border-zen-brown/5'}`}
-                                        onClick={() => {
-                                           setSelectedDate(startOfMonth.date(d));
-                                           setViewType('Day');
-                                        }}
-                                      >
-                                        <div className="flex justify-between items-start mb-2">
-                                           <span className="text-sm font-bold opacity-80">{d}</span>
-                                           {dayAppointments.length > 0 && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isToday ? 'bg-white/20' : 'bg-zen-brown/5 text-zen-brown/40'}`}>{dayAppointments.length}</span>}
-                                        </div>
-                                        <div className="space-y-1">
-                                           {dayAppointments.slice(0, 2).map(a => (
-                                              <div key={a._id} className={`text-[8px] p-1 rounded-lg truncate font-bold ${isToday ? 'bg-white/10' : 'bg-zen-leaf/10 text-zen-brown'}`}>{a.client}</div>
-                                           ))}
-                                        </div>
-                                      </div>
-                                   );
-                                }
-                                return days;
+                                    days.push(
+                                       <div 
+                                         key={d} 
+                                         className={`relative min-h-[60px] sm:min-h-[100px] p-2 sm:p-4 rounded-xl sm:rounded-[1.5rem] transition-all duration-500 cursor-pointer group hover:bg-white hover:shadow-2xl hover:-translate-y-1 ${isToday ? 'bg-zen-brown text-white shadow-xl' : 'bg-white/60 border border-zen-brown/15'}`}
+                                         onClick={() => {
+                                            setSelectedDate(startOfMonth.date(d));
+                                            setViewType('Day');
+                                         }}
+                                       >
+                                         <div className="flex justify-between items-start mb-1 sm:mb-2">
+                                            <span className="text-[10px] sm:text-sm font-bold opacity-80">{d}</span>
+                                            {dayAppointments.length > 0 && <span className={`text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isToday ? 'bg-white/20' : 'bg-zen-brown/5 text-zen-brown/40'}`}>{dayAppointments.length}</span>}
+                                         </div>
+                                         <div className="hidden sm:block space-y-1">
+                                            {dayAppointments.slice(0, 2).map(a => (
+                                               <div key={a._id} className={`text-[7px] p-1 rounded-lg truncate font-bold ${isToday ? 'bg-white/10' : 'bg-zen-leaf/10 text-zen-brown'}`}>{a.client}</div>
+                                            ))}
+                                         </div>
+                                         {dayAppointments.length > 0 && (
+                                            <div className="sm:hidden absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-0.5">
+                                               {dayAppointments.slice(0, 3).map((_, i) => (
+                                                  <div key={i} className={`w-1 h-1 rounded-full ${isToday ? 'bg-white' : 'bg-zen-sand'}`} />
+                                               ))}
+                                            </div>
+                                         )}
+                                       </div>
+                                    );
+                                 }
+                                 return days;
                               })()}
                            </div>
                         </div>
                      </div>
                   ) : (
-                     <div className="p-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8 lg:gap-10 animate-in fade-in zoom-in duration-1000">
+                     <div className="p-4 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 animate-in fade-in zoom-in duration-1000 pb-20 sm:pb-8">
                         {filteredAppointments.map((apt) => (
-                           <div key={apt._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3rem] p-8 shadow-2xl shadow-zen-brown/5 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[220px]">
+                           <div key={apt._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-8 shadow-2xl shadow-zen-brown/15 border border-zen-brown/25 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
                               <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                               
                               <div className="relative z-10">
-                                 <div className="flex items-center justify-between mb-6">
-                                    <div className="flex items-center gap-4">
-                                       <div className="w-14 h-14 rounded-full bg-zen-cream border-2 border-white shadow-lg flex flex-col items-center justify-center shrink-0 group-hover:bg-zen-brown group-hover:text-white transition-colors duration-500">
-                                          <p className="text-[8px] font-bold uppercase tracking-widest leading-none mb-1 opacity-50">Time</p>
-                                          <p className="text-sm font-serif font-bold leading-none">{apt.time || '--:--'}</p>
+                                  <div className="flex items-center justify-between mb-4 sm:mb-6">
+                                    <div className="flex items-center gap-3 sm:gap-4">
+                                       <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-zen-cream border-2 border-white shadow-lg flex flex-col items-center justify-center shrink-0 group-hover:bg-zen-brown group-hover:text-white transition-all duration-500">
+                                          <p className="text-[7px] sm:text-[8px] font-bold uppercase tracking-widest opacity-40 mb-0.5">Time</p>
+                                          <p className="text-[10px] sm:text-xs font-serif font-black">{apt.time || '--:--'}</p>
                                        </div>
-                                       <div>
-                                          <h3 className="text-xl font-serif font-bold text-zen-brown tracking-tight leading-tight group-hover:translate-x-1 transition-transform duration-500">{apt.client}</h3>
-                                          <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-1 italic">{apt.employee}</p>
+                                       <div className="min-w-0">
+                                          <h3 className="text-lg sm:text-xl font-serif font-bold text-zen-brown tracking-tight leading-none group-hover:translate-x-1 transition-transform duration-500 truncate">{apt.client}</h3>
+                                          <p className="text-[9px] sm:text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em] mt-1.5 italic truncate">{apt.employee}</p>
                                        </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(apt)} />
+                                    <div className="flex gap-1.5 sm:gap-2 shrink-0">
+                                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(apt)} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
                                        <ZenIconButton icon={Trash2} variant="danger" onClick={() => {
                                           setAptToDelete(apt._id);
                                           setIsConfirmOpen(true);
-                                       }} />
+                                       }} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
                                     </div>
                                  </div>
 
                                  <div className="flex flex-wrap gap-2 mb-4">
-                                    <div className="px-4 py-2 bg-zen-leaf/5 border border-zen-leaf/10 rounded-2xl flex items-center gap-2 group-hover:bg-zen-leaf/10 transition-colors duration-500">
-                                       <Sparkles size={14} className="text-zen-leaf" />
-                                       <span className="text-xs font-serif font-medium text-zen-brown/70">{apt.service}</span>
+                                    <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-zen-leaf/5 border border-zen-leaf/10 rounded-xl sm:rounded-2xl flex items-center gap-2 group-hover:bg-zen-leaf/10 transition-colors duration-500">
+                                       <Sparkles size={12} className="text-zen-leaf" />
+                                       <span className="text-[10px] sm:text-xs font-serif font-medium text-zen-brown/70">{apt.service}</span>
                                     </div>
                                     {apt.room && (
-                                       <div className="px-4 py-2 bg-indigo-50/50 border border-indigo-100 rounded-2xl flex items-center gap-2 group-hover:bg-indigo-50 transition-colors duration-500">
-                                          <MapPin size={14} className="text-indigo-400" />
-                                          <span className="text-xs font-serif font-medium text-zen-brown/70">{apt.room}</span>
+                                       <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-50/50 border border-indigo-100 rounded-xl sm:rounded-2xl flex items-center gap-2 group-hover:bg-indigo-50 transition-colors duration-500">
+                                          <MapPin size={12} className="text-indigo-400" />
+                                          <span className="text-[10px] sm:text-xs font-serif font-medium text-zen-brown/70">{apt.room}</span>
                                        </div>
                                     )}
                                  </div>
                               </div>
 
-                              <div className="relative z-10 pt-4 mt-auto border-t border-zen-brown/5 flex items-center justify-between">
-                                 <p className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-[0.4em]">Sequence Registry ID: {apt._id.slice(-6).toUpperCase()}</p>
-                                 <span className="text-[9px] font-bold text-zen-leaf/40 uppercase tracking-widest">{dayjs(apt.date).format('MMM DD')}</span>
+                              <div className="relative z-10 pt-4 mt-auto border-t border-zen-brown/15 flex items-center justify-between">
+                                 <p className="text-[8px] font-bold text-zen-brown/10 uppercase tracking-[0.3em]">ID: {apt._id.slice(-6).toUpperCase()}</p>
+                                 <span className="text-[8px] sm:text-[9px] font-bold text-zen-leaf/40 uppercase tracking-widest">{dayjs(apt.date).format('MMM DD')}</span>
                               </div>
                            </div>
                         ))}
                         {filteredAppointments.length === 0 && (
-                           <div className="col-span-full flex flex-col items-center justify-center min-h-[400px] text-zen-brown/20 space-y-4">
-                              <div className="w-20 h-20 rounded-full border-2 border-dashed border-zen-brown/10 flex items-center justify-center">
-                                 <Calendar size={32} strokeWidth={1} />
+                           <div className="col-span-full flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px] text-zen-brown/20 space-y-4">
+                              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-dashed border-zen-brown/25 flex items-center justify-center">
+                                 <Calendar size={28} strokeWidth={1} />
                               </div>
-                              <p className="text-sm font-serif italic">No sessions found for this sequence</p>
+                              <p className="text-xs sm:text-sm font-serif italic text-center px-10">The registry is currently silent for this timeframe</p>
                            </div>
                         )}
                      </div>
@@ -535,11 +576,11 @@ const Appointments = () => {
              </>
            ) : (
              /* Table View Area */
-             <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden overflow-x-auto">
+             <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-zen-brown/25 overflow-hidden overflow-x-auto">
                <table className="w-full text-center border-collapse min-w-[800px]">
                  <thead>
-                   <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
-                     <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">S NO</th>
+                   <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
+                     <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
                      <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Identity</th>
                      <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Ritual</th>
                      <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Sanctuary</th>
@@ -547,7 +588,7 @@ const Appointments = () => {
                      <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Actions</th>
                    </tr>
                  </thead>
-                 <tbody className="divide-y divide-zen-brown/5">
+                 <tbody className="divide-y divide-zen-brown/15">
                     {filteredAppointments.map((apt, idx) => (
                        <tr key={apt._id} className="hover:bg-zen-cream/5 transition-all group">
                          <td className="px-6 py-6 text-zen-brown/40 font-serif">{(idx + 1).toString().padStart(2, '0')}</td>
@@ -593,10 +634,10 @@ const Appointments = () => {
 
         {/* Sidebar */}
         <div className="w-full lg:w-96 space-y-10">
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/5 transition-all duration-700 hover:-translate-y-2">
+           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3.5rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/15 transition-all duration-700 hover:-translate-y-2">
               <h3 className="text-2xl font-serif font-bold text-zen-brown mb-10 tracking-tight">Daily Insight</h3>
               <div className="space-y-8">
-                 <div className="bg-zen-cream/30 p-8 rounded-[2.5rem] border border-zen-brown/5 group hover:bg-white transition-all duration-500">
+                 <div className="bg-zen-cream/30 p-8 rounded-[2.5rem] border border-zen-brown/25 group hover:bg-white transition-all duration-500">
                     <p className="text-[10px] font-black text-zen-brown/20 uppercase tracking-[0.4em] mb-3">Booked Energy</p>
                     <p className="text-4xl font-serif font-bold text-zen-brown tracking-tighter">{filteredAppointments.filter(a => a.date && dayjs(a.date).isSame(dayjs(), 'day')).length}</p>
                     <p className="text-[9px] font-bold text-zen-brown/30 uppercase mt-2">Active Sequences</p>
@@ -626,10 +667,12 @@ const Appointments = () => {
         </div>
       </div>
 
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+
       {/* Appointment Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} hideHeader maxWidth="max-w-4xl">
          <form onSubmit={handleSubmit} className="flex flex-col relative">
-            <div className="px-10 py-10 border-b border-zen-brown/5 flex justify-between items-center">
+            <div className="px-10 py-10 border-b border-zen-brown/15 flex justify-between items-center">
                <div>
                   <h2 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">{editingApt ? 'Edit Appointment' : 'New Appointment'}</h2>
                   <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.4em] mt-2">Appointment Details</p>
@@ -649,7 +692,7 @@ const Appointments = () => {
                      }} 
                    />
                 ) : (
-                   <div className="bg-zen-cream/5 p-6 rounded-[2.5rem] border border-dashed border-zen-brown/10 flex flex-col justify-center">
+                   <div className="bg-zen-cream/5 p-6 rounded-[2.5rem] border border-dashed border-zen-brown/25 flex flex-col justify-center">
                       <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">Assigned Sanctuary</p>
                       <p className="text-sm font-serif font-bold text-zen-brown">{branches.find(b => b._id === formData.branch)?.name || 'Central Haven'}</p>
                    </div>
@@ -685,7 +728,7 @@ const Appointments = () => {
                      }}
                    />
                 ) : formData.client && formData.bookingType === 'Membership' && activeMemberships.length === 0 ? (
-                   <div className="bg-zen-cream/5 p-6 rounded-[2.5rem] border border-dashed border-zen-brown/10 flex flex-col justify-center">
+                   <div className="bg-zen-cream/5 p-6 rounded-[2.5rem] border border-dashed border-zen-brown/25 flex flex-col justify-center">
                       <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">Membership Benefit</p>
                       <p className="text-sm font-serif font-bold text-zen-brown">No active memberships found</p>
                    </div>
@@ -715,30 +758,33 @@ const Appointments = () => {
                      </div>
                   </div>
                   
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                  <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 gap-3 sm:gap-4">
                      {availableSlots.map((slot) => (
                         <button
                            key={slot.time}
                            type="button"
                            disabled={slot.isBooked}
                            onClick={() => setFormData({...formData, time: slot.time})}
-                           className={`py-3 px-1 rounded-2xl text-[10px] font-bold transition-all duration-300 border ${
+                           className={`py-3 px-1 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black transition-all duration-300 border ${
                               formData.time === slot.time 
                                  ? 'bg-zen-brown text-white border-zen-brown shadow-lg scale-105' 
                                  : slot.isBooked 
-                                    ? 'bg-zen-cream/10 text-zen-brown/10 border-zen-brown/5 cursor-not-allowed line-through' 
-                                    : 'bg-white text-zen-brown/60 border-zen-brown/10 hover:border-zen-brown hover:text-zen-brown'
+                                     ? 'bg-zen-cream/10 text-zen-brown/10 border-zen-brown/15 cursor-not-allowed line-through' 
+                                     : 'bg-white text-zen-brown/60 border-zen-brown/25 hover:border-zen-brown hover:text-zen-brown'
                            }`}
                         >
                            {slot.display}
                         </button>
                      ))}
                      {availableSlots.length === 0 && (
-                        <div className="col-span-full py-6 bg-zen-cream/5 rounded-[2rem] border border-dashed border-zen-brown/10 flex items-center justify-center">
-                           <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest text-center px-6">
+                        <div className="col-span-full py-8 bg-zen-cream/5 rounded-[2rem] border border-dashed border-zen-brown/25 flex flex-col items-center justify-center gap-3">
+                           <div className="w-10 h-10 rounded-full bg-zen-brown/5 flex items-center justify-center text-zen-brown/10">
+                              <Calendar size={18} />
+                           </div>
+                           <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest text-center px-10 leading-relaxed">
                               {(!formData.employee || formData.employee === 'None' || !formData.room || formData.room === 'None') 
-                                 ? 'Select a therapist and room to view availability' 
-                                 : 'No available sequences for this criteria'}
+                                 ? 'Initiate selection of specialist & sanctuary to reveal flow' 
+                                 : 'No sequences available for this temporal node'}
                            </p>
                         </div>
                      )}
@@ -746,7 +792,7 @@ const Appointments = () => {
                </div>
             </div>
 
-            <div className="px-10 py-10 border-t border-zen-brown/5 bg-zen-cream/10 flex gap-6">
+            <div className="px-10 py-10 border-t border-zen-brown/15 bg-zen-cream/10 flex gap-6">
                <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Discard</ZenButton>
                <ZenButton type="submit" className="flex-[2]">
                   <span>{editingApt ? 'Save Changes' : 'Confirm Appointment'}</span>

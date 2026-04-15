@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./config/db');
 const path = require('path');
+const paginationMiddleware = require('./middleware/paginationMiddleware');
 
 // Route files
 const userRoutes = require('./routes/userRoutes');
@@ -65,6 +66,7 @@ app.use('/api/users/forgotpassword', authLimiter);
 
 app.use(express.json({ limit: '10kb' })); // Limit body size to prevent DOS
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
+app.use(paginationMiddleware);
 
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

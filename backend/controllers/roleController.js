@@ -1,12 +1,13 @@
 const Role = require('../models/Role');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all roles
 // @route   GET /api/roles
 // @access  Private/Admin
 exports.getRoles = async (req, res) => {
   try {
-    const roles = await Role.find();
-    res.json(roles);
+    const { data, pagination } = await paginateModelQuery(Role, {}, req);
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

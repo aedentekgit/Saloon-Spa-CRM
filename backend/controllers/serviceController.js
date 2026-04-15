@@ -1,13 +1,16 @@
 const Service = require('../models/Service');
 const { deleteFile } = require('../middleware/uploadMiddleware');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all services
 // @route   GET /api/services
 // @access  Private/Public
 const getServices = async (req, res) => {
   try {
-    const services = await Service.find({}).populate('branch', 'name');
-    res.json(services);
+    const { data, pagination } = await paginateModelQuery(Service, {}, req, {
+      populate: { path: 'branch', select: 'name' }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

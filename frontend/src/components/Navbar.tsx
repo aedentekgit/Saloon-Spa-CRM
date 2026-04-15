@@ -25,9 +25,9 @@ const Navbar = ({
   };
 
   return (
-    <header className="h-16 flex items-center justify-between px-4 sm:px-10 sticky top-0 z-40 backdrop-blur-md bg-white/40 border-b border-zen-brown/5">
+    <header className="h-16 flex items-center justify-between px-4 sm:px-10 sticky top-0 z-40 backdrop-blur-md bg-white/40 border-b border-zen-brown/15">
       <div className="flex items-center gap-6 flex-1">
-        {/* Toggle Button - Visible for both Mobile and Desktop */}
+        {/* Toggle Button - Visible for Desktop ONLY on Mobile it is hidden as we have footer */}
         <button 
           onClick={() => {
             if (window.innerWidth < 1024) {
@@ -36,14 +36,11 @@ const Navbar = ({
               setIsCollapsed(!isCollapsed);
             }
           }}
-          className="p-2 -ml-2 text-zen-brown hover:bg-zen-brown/5 rounded-xl transition-all active:scale-95 group"
+          className="p-2 -ml-2 text-zen-brown hover:bg-zen-brown/5 rounded-xl transition-all active:scale-95 group hidden lg:block"
           aria-label="Toggle Menu"
         >
-          <div className="hidden lg:block transition-transform duration-300 group-hover:scale-110">
+          <div className="transition-transform duration-300 group-hover:scale-110">
             {isCollapsed ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
-          </div>
-          <div className="lg:hidden">
-            <Menu size={24} />
           </div>
         </button>
 
@@ -66,7 +63,7 @@ const Navbar = ({
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-zen-cream"></span>
         </button>
         
-        <div className="flex items-center space-x-3 sm:border-l sm:border-zen-brown/10 sm:pl-4">
+        <div className="flex items-center space-x-3 sm:border-l sm:border-zen-brown/25 sm:pl-4">
           <div className="text-right hidden md:block">
             <p className="text-sm font-bold text-zen-brown truncate max-w-[120px]">{user?.name}</p>
             <p className="text-[10px] uppercase font-bold text-zen-brown/40 tracking-wider font-sans">{user?.role}</p>

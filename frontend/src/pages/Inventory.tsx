@@ -21,6 +21,7 @@ import { useSettings } from '../context/SettingsContext';
 import { useBranches } from '../context/BranchContext';
 import { useCategories } from '../context/CategoryContext';
 import { ZenPageLayout } from '../components/zen/ZenLayout';
+import { ZenPagination } from '../components/zen/ZenPagination';
 import { ZenBadge, ZenButton, ZenIconButton } from '../components/zen/ZenButtons';
 import { ZenInput, ZenDropdown } from '../components/zen/ZenInputs';
 import { Modal } from '../components/Modal';
@@ -46,6 +47,8 @@ const Inventory = () => {
 
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
@@ -70,7 +73,7 @@ const Inventory = () => {
 
   useEffect(() => {
     fetchInventory();
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     localStorage.setItem('zen_inventory_view', viewMode);
@@ -78,11 +81,17 @@ const Inventory = () => {
 
   const fetchInventory = async () => {
     try {
-      const response = await fetch(`${API_URL}/inventory`, {
+      const response = await fetch(`${API_URL}/inventory?page=${page}&limit=10`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) setInventory(data);
+      if (data.data) {
+        setInventory(data.data);
+        setTotalPages(data.pagination.pages);
+      } else if (Array.isArray(data)) {
+        setInventory(data);
+        setTotalPages(1);
+      }
     } catch (error) {
       notify('error', 'Sync Failure', 'Failed to synchronize material sanctuary records');
     } finally {
@@ -233,7 +242,7 @@ const Inventory = () => {
       addButtonIcon={<Plus size={18} />}
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/5 group transition-all duration-700 hover:-translate-y-2">
+        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 group transition-all duration-700 hover:-translate-y-2">
            <div className="flex justify-between items-start mb-6">
               <div className="p-5 bg-zen-cream/50 text-zen-brown rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
                  <Boxes size={28} />
@@ -243,7 +252,7 @@ const Inventory = () => {
            <h3 className="text-3xl font-serif font-bold text-zen-brown mt-2">{inventory.length} <span className="text-lg font-sans opacity-20">Items</span></h3>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/5 group transition-all duration-700 hover:-translate-y-2">
+        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 group transition-all duration-700 hover:-translate-y-2">
            <div className="flex justify-between items-start mb-6">
               <div className="p-5 bg-orange-50 text-orange-600 rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
                  <AlertTriangle size={28} />
@@ -253,7 +262,7 @@ const Inventory = () => {
            <h3 className="text-3xl font-serif font-bold text-orange-600 mt-2">{lowStockCount} <span className="text-lg font-sans opacity-40">Alerts</span></h3>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/5 group transition-all duration-700 hover:-translate-y-2">
+        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 group transition-all duration-700 hover:-translate-y-2">
            <div className="flex justify-between items-start mb-6">
               <div className="p-5 bg-zen-leaf/10 text-zen-leaf rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
                  <Truck size={28} />
@@ -284,7 +293,7 @@ const Inventory = () => {
       {viewMode === 'grid' ? (
          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
             {filteredInventory.map((item) => (
-               <div key={item._id} className="group relative bg-white/90 backdrop-blur-2xl rounded-[4rem] p-10 border border-white shadow-2xl shadow-zen-brown/5 flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-3">
+               <div key={item._id} className="group relative bg-white/90 backdrop-blur-2xl rounded-[4rem] p-10 border border-white shadow-2xl shadow-zen-brown/15 flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-3">
                   {/* Background Glow */}
                   <div className={`absolute -right-10 -bottom-10 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000 ${
                      item.stock <= item.lowStock ? 'bg-red-500/10' : 'bg-zen-sand/10'
@@ -309,7 +318,7 @@ const Inventory = () => {
                         <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.3em] mt-1">{item.category} Registry</p>
                      </div>
 
-                     <div className="flex items-center justify-between bg-zen-cream/10 p-5 rounded-[2rem] border border-zen-brown/5">
+                     <div className="flex items-center justify-between bg-zen-cream/10 p-5 rounded-[2rem] border border-zen-brown/15">
                         <div className="flex flex-col">
                            <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest">Available</span>
                            <span className={`text-2xl font-serif font-black ${item.stock <= item.lowStock ? 'text-red-500' : 'text-zen-brown'}`}>{item.stock}</span>
@@ -321,7 +330,7 @@ const Inventory = () => {
                      </div>
                   </div>
 
-                  <div className="mt-8 pt-8 border-t border-zen-brown/5 flex items-center justify-between">
+                  <div className="mt-8 pt-8 border-t border-zen-brown/15 flex items-center justify-between">
                      <div className="flex flex-col gap-0.5">
                         <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest leading-none">Vendor</span>
                         <span className="text-xs font-black text-zen-brown/60 uppercase">{item.vendor || 'Private Label'}</span>
@@ -340,11 +349,11 @@ const Inventory = () => {
             )}
          </div>
       ) : (
-         <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/5 animate-in fade-in slide-in-from-bottom-4 duration-700">
+         <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/15 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="overflow-x-auto custom-scrollbar">
                <table className="w-full text-center border-collapse min-w-[1000px]">
                   <thead>
-                     <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
+                     <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
                         <th className="px-10 py-8 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Identity</th>
                         <th className="px-10 py-8 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Visual</th>
                         <th className="px-10 py-8 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Resonance Name</th>
@@ -353,7 +362,7 @@ const Inventory = () => {
                         <th className="px-10 py-8 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em] text-right">Sanctuary Controls</th>
                      </tr>
                   </thead>
-                  <tbody className="divide-y divide-zen-brown/5">
+                  <tbody className="divide-y divide-zen-brown/15">
                      {filteredInventory.map((item, index) => (
                         <tr key={item._id} className="group hover:bg-zen-cream/5 transition-all duration-500">
                            <td className="px-10 py-8">
@@ -414,6 +423,8 @@ const Inventory = () => {
             </div>
          </div>
       )}
+
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal 
         isOpen={isModalOpen} 
@@ -487,20 +498,20 @@ const Inventory = () => {
               />
            </div>
 
-           <div className="space-y-4 bg-zen-cream/10 p-6 rounded-3xl border border-zen-brown/5">
+           <div className="space-y-4 bg-zen-cream/10 p-6 rounded-3xl border border-zen-brown/15">
               <div className="flex items-center justify-between">
                 <div>
                   <label className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">Asset Management</label>
                   <h4 className="text-sm font-serif font-bold text-zen-brown mt-0.5">Physical Representation</h4>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-zen-brown/5">
+                <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-zen-brown/15">
                   <Upload size={10} className="text-zen-brown/40" />
                   <span className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest">{settings?.upload.provider === 'cloudinary' ? 'Aether Sync' : 'Local Disk'}</span>
                 </div>
               </div>
               
               <div className="flex items-center gap-4">
-                <label htmlFor="inventory-image-footer" className="flex-1 h-12 bg-white border border-zen-brown/10 rounded-xl flex items-center justify-center gap-3 cursor-pointer hover:bg-zen-brown hover:text-white hover:border-zen-brown transition-all group/btn shadow-sm">
+                <label htmlFor="inventory-image-footer" className="flex-1 h-12 bg-white border border-zen-brown/25 rounded-xl flex items-center justify-center gap-3 cursor-pointer hover:bg-zen-brown hover:text-white hover:border-zen-brown transition-all group/btn shadow-sm">
                    <Camera size={16} className="text-zen-brown/30 group-hover/btn:text-white transition-colors" />
                    <span className="text-[10px] font-bold uppercase tracking-widest">Update Visual</span>
                 </label>

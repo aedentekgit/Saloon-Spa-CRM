@@ -1,5 +1,6 @@
 const Branch = require('../models/Branch');
 const { deleteFile } = require('../middleware/uploadMiddleware');
+const { paginateModelQuery } = require('../utils/pagination');
 
 
 // @desc    Get all branches
@@ -7,8 +8,8 @@ const { deleteFile } = require('../middleware/uploadMiddleware');
 // @access  Private
 const getBranches = async (req, res) => {
   try {
-    const branches = await Branch.find({});
-    res.json(branches);
+    const { data, pagination } = await paginateModelQuery(Branch, {}, req);
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -24,6 +24,7 @@ import { notify } from '../components/ZenNotification';
 
 // Zen Components
 import { ZenPageLayout } from '../components/zen/ZenLayout';
+import { ZenPagination } from '../components/zen/ZenPagination';
 import { ZenButton, ZenIconButton, ZenBadge } from '../components/zen/ZenButtons';
 import { ZenInput, ZenDropdown, ZenTextarea, ZenDatePicker } from '../components/zen/ZenInputs';
 import { Modal } from '../components/Modal';
@@ -45,6 +46,8 @@ const Memberships = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
         return (localStorage.getItem('zen_membership_view') as 'grid' | 'table') || 'table';
     });
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     // Modals
     const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
@@ -109,7 +112,7 @@ const Memberships = () => {
           const headers = { 'Authorization': `Bearer ${user?.token}` };
           const [plansRes, enrollRes, servicesRes, branchRes, clientsRes, statsRes] = await Promise.all([
              fetch(`${API_URL}/memberships/plans`, { headers }),
-             fetch(`${API_URL}/memberships/client/all`, { headers }),
+             fetch(`${API_URL}/memberships/client/all?page=${page}&limit=10`, { headers }),
              fetch(`${API_URL}/services`, { headers }),
              fetch(`${API_URL}/branches`, { headers }),
              fetch(`${API_URL}/clients`, { headers }),
@@ -127,8 +130,9 @@ const Memberships = () => {
 
           setPlans(Array.isArray(plansData) ? plansData : (plansData?.data || []));
           setMemberships(Array.isArray(membershipsData) ? membershipsData : (membershipsData?.data || []));
+          setTotalPages(membershipsData?.pagination?.pages || 1);
           setServices(Array.isArray(servicesData) ? servicesData : (servicesData?.data || []));
-          setBranches(Array.isArray(branchesData) ? branchesData : (branchesData?.data || []));
+          setBranches(Array.isArray(branchesData) ? branchesData : (branchesData?.data ?? branchesData?.branches ?? []));
           setClients(Array.isArray(clientsData) ? clientsData : (clientsData?.data || []));
           setStats(statsData?.data || statsData);
        } catch (error) {
@@ -141,7 +145,7 @@ const Memberships = () => {
 
     useEffect(() => {
        fetchData();
-    }, []);
+    }, [page]);
 
     const handleCreatePlan = async (e: React.FormEvent) => {
        e.preventDefault();
@@ -298,7 +302,7 @@ const Memberships = () => {
     const getStatusColor = (status: string) => {
        switch (status) {
           case 'Active': return 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-[0_0_15px_rgba(74,103,32,0.1)]';
-          case 'Expired': return 'bg-zen-brown/10 text-zen-brown/40 border-zen-brown/10';
+          case 'Expired': return 'bg-zen-brown/10 text-zen-brown/40 border-zen-brown/25';
           default: return 'bg-gray-100 text-gray-400 border-gray-200';
        }
     };
@@ -340,7 +344,7 @@ const Memberships = () => {
       onViewModeChange={setViewMode}
     >
       {/* Tabs Header */}
-      <div className="flex items-center gap-8 mb-8 border-b border-zen-brown/5 px-2">
+      <div className="flex items-center gap-8 mb-8 border-b border-zen-brown/15 px-2">
          {[
            { id: 'registry', label: 'Memberships', icon: Users },
            { id: 'plans', label: 'Tier Management', icon: Crown }
@@ -384,7 +388,7 @@ const Memberships = () => {
                  {viewMode === 'grid' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                      {plans.map((plan) => (
-                        <div key={plan._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/5 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+                        <div key={plan._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                            {/* Sanctuary Background Glow */}
                            <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                            
@@ -395,7 +399,7 @@ const Memberships = () => {
                            <div className="relative z-10 flex flex-col h-full justify-between">
                               <div>
                                  <div className="flex items-center justify-between mb-8">
-                                    <div className="w-16 h-16 rounded-[1.80rem] bg-zen-sand/10 text-zen-sand flex items-center justify-center group-hover:scale-110 transition-transform duration-700 shadow-xl border border-white/50">
+                                    <div className="w-16 h-16 rounded-[1.80rem] bg-zen-sand/10 text-zen-sand flex items-center justify-center group-hover:scale-110 transition-transform duration-700 shadow-xl border border-white/80">
                                        <Crown size={28} strokeWidth={1.5} />
                                     </div>
                                     <div className="flex flex-col items-end gap-2">
@@ -427,7 +431,7 @@ const Memberships = () => {
                                     <p className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.3em] mb-3 px-1">Covered Rituals</p>
                                     <div className="flex flex-wrap gap-1.5">
                                        {(plan.applicableServices || []).slice(0, 3).map((s: any) => (
-                                          <span key={s._id} className="px-2 py-1 bg-zen-brown/5 rounded-lg text-[8px] text-zen-brown/60 font-bold border border-zen-brown/5 shadow-sm">
+                                          <span key={s._id} className="px-2 py-1 bg-zen-brown/5 rounded-lg text-[8px] text-zen-brown/60 font-bold border border-zen-brown/15 shadow-sm">
                                              {s.name}
                                           </span>
                                        ))}
@@ -443,7 +447,7 @@ const Memberships = () => {
                                  </div>
                               </div>
                               
-                              <div className="grid grid-cols-2 gap-6 pt-8 border-t border-zen-brown/5 relative z-10">
+                              <div className="grid grid-cols-2 gap-6 pt-8 border-t border-zen-brown/15 relative z-10">
                                  <div className="flex flex-col gap-1">
                                     <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-[0.3em]">Ritual Sequence</span>
                                     <span className="text-sm font-black text-zen-brown flex items-center gap-2">
@@ -464,10 +468,10 @@ const Memberships = () => {
                      ))}
                   </div>
                  ) : (
-                    <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in slide-in-from-bottom-4 duration-700">
                        <table className="w-full text-center border-collapse min-w-[900px]">
                           <thead>
-                             <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
+                             <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
                                 <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Hierarchy</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Tier Identity</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Investment (QR)</th>
@@ -477,7 +481,7 @@ const Memberships = () => {
                                 <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Controls</th>
                              </tr>
                           </thead>
-                          <tbody className="divide-y divide-zen-brown/5">
+                          <tbody className="divide-y divide-zen-brown/15">
                              {plans.map((plan, idx) => (
                                 <tr key={plan._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
                                    <td className="px-8 py-6 text-zen-brown/40 font-serif text-lg">{(idx + 1).toString().padStart(2, '0')}</td>
@@ -522,14 +526,14 @@ const Memberships = () => {
 
             {activeTab === 'registry' && (
               <div className="space-y-12">
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 px-2">
+                  <div className="flex overflow-x-auto pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
                     {[
                       { label: 'Total Votaries', value: memberships.length.toString(), icon: Users, trend: `${stats?.totalActive || 0} active currently` },
                       { label: 'Tier Engagement', value: stats?.activeTiers?.toString() || '0', icon: BarChart3, trend: 'In sanctuary' },
                       { label: 'Active Rituals', value: stats?.totalSessionsRemaining?.toString() || '0', icon: Sparkles, trend: 'Available assets' },
                       { label: 'Concluded Journeys', value: stats?.totalExpired?.toString() || '0', icon: AlertCircle, trend: 'History' }
                     ].map((stat, i) => (
-                      <div key={i} className="bg-white/80 backdrop-blur-xl p-8 rounded-[3rem] shadow-2xl shadow-zen-brown/5 border border-white relative overflow-hidden group hover:-translate-y-2 transition-all duration-700">
+                      <div key={i} className="flex-shrink-0 w-[280px] lg:w-auto bg-white/80 backdrop-blur-xl p-8 rounded-[3rem] shadow-2xl shadow-zen-brown/15 border border-white relative overflow-hidden group hover:-translate-y-2 transition-all duration-700">
                          <div className="absolute top-0 right-0 w-24 h-24 bg-zen-sand/5 rounded-bl-full -z-0"></div>
                          <stat.icon className="text-zen-brown/20 mb-6 group-hover:scale-110 transition-transform duration-700" size={32} />
                          <h5 className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.4em] mb-1.5">{stat.label}</h5>
@@ -551,10 +555,10 @@ const Memberships = () => {
                     </div>
 
                     {viewMode === 'table' ? (
-                       <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden overflow-x-auto custom-scrollbar">
+                       <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar">
                           <table className="w-full text-center border-collapse min-w-[1000px]">
                              <thead>
-                                <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
+                                <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
                                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">No</th>
                                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Votary (Client)</th>
                                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Sacred Tier</th>
@@ -564,7 +568,7 @@ const Memberships = () => {
                                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Actions</th>
                                 </tr>
                              </thead>
-                             <tbody className="divide-y divide-zen-brown/5">
+                             <tbody className="divide-y divide-zen-brown/15">
                                 {filteredMemberships.map((m, index) => (
                                   <tr key={m._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
                                      <td className="px-6 py-6 text-zen-brown/40 font-serif">{(index + 1).toString().padStart(2, '0')}</td>
@@ -616,14 +620,14 @@ const Memberships = () => {
                     ) : (
                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                           {filteredMemberships.map((m) => (
-                             <div key={m._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/5 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+                             <div key={m._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                                 {/* Background Glow Overlay */}
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                                 
                                 <div className="relative z-10">
                                    <div className="flex items-center justify-between mb-8">
                                       <div className="flex items-center gap-5">
-                                         <div className="w-16 h-16 rounded-[1.8rem] bg-zen-sand/10 text-zen-sand flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700 shadow-xl border border-white/50">
+                                         <div className="w-16 h-16 rounded-[1.8rem] bg-zen-sand/10 text-zen-sand flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700 shadow-xl border border-white/80">
                                             <Users size={24} strokeWidth={1.5} />
                                          </div>
                                          <div className="min-w-0">
@@ -657,7 +661,7 @@ const Memberships = () => {
                                    </div>
 
                                    <div className="space-y-4">
-                                      <div className="flex items-center justify-between p-5 bg-white border border-zen-brown/5 rounded-[2rem] shadow-sm hover:shadow-lg transition-all duration-500 group/tier">
+                                      <div className="flex items-center justify-between p-5 bg-white border border-zen-brown/15 rounded-[2rem] shadow-sm hover:shadow-lg transition-all duration-500 group/tier">
                                          <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-2xl bg-zen-sand/5 flex items-center justify-center text-zen-sand group-hover/tier:scale-110 transition-transform">
                                                <ShieldCheck size={18} />
@@ -691,6 +695,7 @@ const Memberships = () => {
                           ))}
                        </div>
                     )}
+                    <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
                  </div>
               </div>
             )}
@@ -700,7 +705,7 @@ const Memberships = () => {
       {/* Plan Configuration Modal */}
       <Modal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} title={editingPlan ? 'Refine Tier' : 'Establish Sacred Tier'} hideHeader maxWidth="max-w-4xl" >
         <form onSubmit={handleCreatePlan} className="flex flex-col h-[90vh]">
-           <div className="px-10 py-10 border-b border-zen-brown/5 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-50">
+           <div className="px-10 py-10 border-b border-zen-brown/15 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-50">
               <div className="flex items-center gap-6">
                  <div className="w-16 h-16 rounded-2xl bg-zen-cream flex items-center justify-center text-zen-sand">
                     <Crown size={32} />
@@ -732,7 +737,7 @@ const Memberships = () => {
                          type="checkbox" 
                          checked={planFormData.isUnlimited} 
                          onChange={e => setPlanFormData({...planFormData, isUnlimited: e.target.checked})}
-                         className="w-4 h-4 rounded border-zen-brown/10 text-zen-sand focus:ring-zen-sand transition-all"
+                         className="w-4 h-4 rounded border-zen-brown/25 text-zen-sand focus:ring-zen-sand transition-all"
                        />
                        <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Infinite Lifespan</span>
                     </label>
@@ -758,7 +763,7 @@ const Memberships = () => {
                              key={service._id}
                              type="button"
                              onClick={() => toggleService(service._id)}
-                             className={`p-4 rounded-2xl border text-left transition-all duration-300 ${isSelected ? 'bg-zen-brown text-zen-cream border-zen-brown shadow-xl' : 'bg-white text-zen-brown/60 border-zen-brown/5 hover:border-zen-brown/20'}`}
+                             className={`p-4 rounded-2xl border text-left transition-all duration-300 ${isSelected ? 'bg-zen-brown text-zen-cream border-zen-brown shadow-xl' : 'bg-white text-zen-brown/60 border-zen-brown/15 hover:border-zen-brown/35'}`}
                            >
                               <p className="font-serif font-bold text-sm leading-tight">{service.name}</p>
                               <div className="flex items-center justify-between mt-2">
@@ -773,7 +778,7 @@ const Memberships = () => {
               <ZenTextarea label="Manifest Essence" value={planFormData.description} onChange={(e: any) => setPlanFormData({...planFormData, description: e.target.value})} />
            </div>
 
-           <div className="px-10 py-10 border-t border-zen-brown/5 bg-gray-50/50 flex gap-6 sticky bottom-0 z-50">
+           <div className="px-10 py-10 border-t border-zen-brown/15 bg-gray-50/50 flex gap-6 sticky bottom-0 z-50">
               <ZenButton variant="secondary" onClick={() => setIsPlanModalOpen(false)} className="flex-1" type="button">Discard</ZenButton>
               <ZenButton type="submit" className="flex-[2]">Manifest Tier</ZenButton>
            </div>
@@ -850,9 +855,9 @@ const Memberships = () => {
             </div>
 
             {activeMembershipForRedeem && (
-               <div className="bg-zen-cream/30 p-6 rounded-3xl border border-zen-brown/5">
+               <div className="bg-zen-cream/30 p-6 rounded-3xl border border-zen-brown/15">
                   <p className="font-serif font-lg font-bold text-zen-brown">{activeMembershipForRedeem.client?.name}</p>
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-zen-brown/5">
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-zen-brown/15">
                      <span className="text-xl font-serif font-bold text-zen-brown">{activeMembershipForRedeem.remainingSessions} / {activeMembershipForRedeem.totalSessions} Sessions</span>
                   </div>
                </div>
@@ -896,18 +901,18 @@ const Memberships = () => {
                </div>
             </div>
 
-            <div className="bg-white rounded-[2.5rem] border border-zen-brown/5 overflow-hidden shadow-sm">
+            <div className="bg-white rounded-[2.5rem] border border-zen-brown/15 overflow-hidden shadow-sm">
                <table className="w-full text-left">
-                  <thead className="bg-zen-cream/10 border-b border-zen-brown/5">
+                  <thead className="bg-zen-cream/10 border-b border-zen-brown/15">
                      <tr>
-                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">S No</th>
+                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest whitespace-nowrap">S No</th>
                         <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Date</th>
                         <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Branch</th>
                         <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Ritual (Massage)</th>
                         <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Slot</th>
                      </tr>
                   </thead>
-                  <tbody className="divide-y divide-zen-brown/5">
+                  <tbody className="divide-y divide-zen-brown/15">
                      {selectedHistory?.usageHistory?.length > 0 ? selectedHistory.usageHistory.map((usage: any, idx: number) => (
                         <tr key={idx} className="hover:bg-zen-cream/5 transition-colors duration-300">
                            <td className="px-8 py-5 text-[11px] font-serif font-bold text-zen-brown/40">{(idx + 1).toString().padStart(2, '0')}</td>

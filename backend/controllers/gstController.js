@@ -1,11 +1,14 @@
 const GST = require('../models/GST');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all GST rates
 // @route   GET /api/gst
 const getGSTRates = async (req, res) => {
   try {
-    const rates = await GST.find().sort({ percentage: 1 });
-    res.json(rates);
+    const { data, pagination } = await paginateModelQuery(GST, {}, req, {
+      sort: { percentage: 1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

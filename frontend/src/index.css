@@ -5,12 +5,12 @@
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Italiana", serif;
   
-  /* Deep Lavender & Dark Theme Palette */
-  --color-zen-cream: #F5F5FA; /* Clean Light Background */
-  --color-zen-brown: #1E1B4B; /* Very Deep Indigo/Purple for Sidebar */
-  --color-zen-sand: #5B21B6;  /* Rich Violet for Primary Actions */
-  --color-zen-leaf: #7C3AED;  /* Vibrant Purple for Accents */
-  --color-zen-stone: #E0E7FF; /* Soft Indigo Mist */
+  /* Sacred Zen Palette - Extracted from Image */
+  --color-zen-cream: var(--zen-cream, #FDFCFB); /* Pure Alabaster Background */
+  --color-zen-brown: var(--zen-brown, #2D1622); /* Deep Plum/Midnight Plum for Text & Primary Elements */
+  --color-zen-sand: var(--zen-sand, #2D1622);  /* Consistent Deep Plum for Buttons */
+  --color-zen-leaf: var(--zen-leaf, #B08968);  /* Soft Golden Earth for Accents */
+  --color-zen-stone: var(--zen-stone, #E8E2DE); /* Neutral Stone for subtle backgrounds */
   
   /* Extended Lavender Palette */
   --color-lavender-50: #F5F3FF;
@@ -53,6 +53,15 @@
   ::-webkit-scrollbar-thumb {
     @apply bg-zen-sand/30 rounded-full hover:bg-zen-sand transition-colors;
   }
+  /* Remove Autofill Background */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+    -webkit-text-fill-color: inherit !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
 }
 
 @layer utilities {
@@ -72,8 +81,14 @@
     perspective: 1000px;
   }
 
-  .lavender-gradient {
-    background: linear-gradient(135deg, #1E1B4B 0%, #4338CA 100%);
+  .zen-sidebar-gradient {
+    background: linear-gradient(
+      135deg,
+      var(--sidebar-gradient-start, #2D1622) 0%,
+      var(--sidebar-gradient-end, #3D2632) 100%
+    );
+    background-size: 180% 180%;
+    animation: sidebar-gradient-shift 18s ease-in-out infinite;
   }
 
   .lavender-glass {
@@ -135,6 +150,12 @@
   100% { top: 100%; opacity: 0; }
 }
 
+@keyframes sidebar-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -151,4 +172,3 @@
 .animate-spin-slow {
   animation: spin-slow 12s linear infinite;
 }
-

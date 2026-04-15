@@ -17,6 +17,7 @@ dayjs.extend(customParseFormat);
 
 // Global Zen Components
 import { ZenPageLayout } from '../components/zen/ZenLayout';
+import { ZenPagination } from '../components/zen/ZenPagination';
 import { ZenDropdown, ZenInput, ZenTextarea, ZenDatePicker } from '../components/zen/ZenInputs';
 import { ZenIconButton, ZenBadge, ZenButton } from '../components/zen/ZenButtons';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -80,6 +81,8 @@ const Employees = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [shifts, setShifts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_specialist_view') as 'grid' | 'table') || 'grid';
@@ -181,6 +184,9 @@ const Employees = () => {
 
   useEffect(() => {
     fetchEmployees();
+  }, [selectedBranch, page]);
+
+  useEffect(() => {
     fetchRoles();
     fetchShifts();
   }, [selectedBranch]);
@@ -346,12 +352,16 @@ const Employees = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`${API_URL}/employees`, {
+      const response = await fetch(`${API_URL}/employees?page=${page}&limit=10`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) {
+      if (data.data) {
+        setEmployees(data.data);
+        setTotalPages(data.pagination.pages);
+      } else if (Array.isArray(data)) {
         setEmployees(data);
+        setTotalPages(1);
       }
     } catch (error) {
       notify('error', 'Error', 'Failed to load staff');
@@ -540,10 +550,10 @@ const Employees = () => {
           <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
-        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-10" : "bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden overflow-x-auto"}>
+        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-10" : "bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto"}>
           {viewMode === 'grid' ? (
             filteredEmployees.map((emp) => (
-              <div key={emp._id} className={`group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/5 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${emp.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}>
+              <div key={emp._id} className={`group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${emp.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}>
                  <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                  <div className="relative z-10">
                     <div className="flex items-center gap-4 lg:gap-6 mb-4 lg:mb-6">
@@ -570,7 +580,7 @@ const Employees = () => {
                        </div>
                     </div>
                  </div>
-                 <div className="relative z-10 pt-4 border-t border-zen-brown/5 flex items-center justify-between">
+                 <div className="relative z-10 pt-4 border-t border-zen-brown/15 flex items-center justify-between">
                     <ZenBadge variant={emp.status === 'Active' ? 'leaf' : 'inactive'}>{emp.status === 'Inactive' ? 'Deactive' : emp.status}</ZenBadge>
                     <div className="flex items-center gap-2 text-zen-brown/20 italic text-[10px] font-medium font-serif">
                        Earnings: {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
@@ -581,8 +591,8 @@ const Employees = () => {
           ) : (
             <table className="w-full text-center border-collapse min-w-[800px]">
                <thead>
-                 <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
-                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">S NO</th>
+                 <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
+                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Specialist</th>
                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Payroll</th>
                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Shift</th>
@@ -590,7 +600,7 @@ const Employees = () => {
                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Actions</th>
                  </tr>
                </thead>
-               <tbody className="divide-y divide-zen-brown/5">
+               <tbody className="divide-y divide-zen-brown/15">
                  {filteredEmployees.map((emp, idx) => (
                    <tr key={emp._id} className="hover:bg-zen-cream/5 transition-all group">
                      <td className="px-6 py-6 text-zen-brown/40 font-serif">{(idx + 1).toString().padStart(2, '0')}</td>
@@ -624,9 +634,11 @@ const Employees = () => {
         </div>
       )}
 
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} hideHeader maxWidth="max-w-4xl" title="Specialist Configuration">
         <form onSubmit={handleSubmit} className="flex flex-col h-[90vh] sm:h-[85vh] w-full relative">
-          <div className="flex items-center justify-between px-10 py-10 border-b border-zen-brown/5 bg-white/95 backdrop-blur-sm z-[60]">
+          <div className="flex items-center justify-between px-10 py-10 border-b border-zen-brown/15 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-8">
                 <div className="relative w-28 h-28 group cursor-pointer shrink-0">
                    <div className="w-full h-full rounded-full ring-4 ring-zen-cream overflow-hidden bg-zen-cream flex items-center justify-center transition-all group-hover:ring-zen-brown/20 shadow-xl">
@@ -646,7 +658,7 @@ const Employees = () => {
              <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} />
           </div>
 
-          <div className="flex items-center gap-8 px-12 border-b border-zen-brown/5 bg-white/50 backdrop-blur-sm z-50">
+          <div className="flex items-center gap-8 px-12 border-b border-zen-brown/15 bg-white/50 backdrop-blur-sm z-50">
              {['profile', 'config', 'payroll', 'activity', 'documents'].map(tab => (
                 <button key={tab} type="button" onClick={() => setActiveTab(tab as any)} className={`py-4 text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all ${activeTab === tab ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/60'}`}>
                    {tab === 'profile' ? 'Matrix' : tab === 'config' ? 'Logic' : tab === 'payroll' ? 'Resonance' : tab === 'activity' ? 'History' : 'Archives'}
@@ -746,7 +758,7 @@ const Employees = () => {
               ) : activeTab === 'payroll' ? (
                  <div className="flex-1 overflow-y-auto pb-10 custom-scrollbar animate-in slide-in-from-right-4 duration-500 py-6 space-y-10">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                       <div className="bg-zen-cream/30 p-8 rounded-[2.5rem] border border-zen-brown/5">
+                       <div className="bg-zen-cream/30 p-8 rounded-[2.5rem] border border-zen-brown/15">
                           <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">Base Retainer</p>
                           <h4 className="text-2xl font-serif font-black text-zen-brown">{settings?.general?.currencySymbol} {(formData.payroll.baseAmount || 0).toLocaleString()}</h4>
                           <span className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-widest leading-none italic">{formData.payroll.type === 'Monthly' ? 'FIXED MONTHLY' : 'ESTIMATED HOURLY'}</span>
@@ -773,17 +785,17 @@ const Employees = () => {
                           <span>Service Reward Registry</span>
                           <span className="text-zen-brown/20 italic font-serif normal-case tracking-normal">Breakdown per ritual</span>
                        </h5>
-                       <div className="bg-white/40 rounded-[2rem] border border-zen-brown/5 overflow-hidden">
+                       <div className="bg-white/40 rounded-[2rem] border border-zen-brown/15 overflow-hidden">
                           <table className="w-full text-left">
                              <thead>
-                                <tr className="bg-zen-cream/10 text-[9px] font-black text-zen-brown/30 uppercase tracking-widest border-b border-zen-brown/5">
+                                <tr className="bg-zen-cream/10 text-[9px] font-black text-zen-brown/30 uppercase tracking-widest border-b border-zen-brown/15">
                                    <th className="px-8 py-4">Temporal Node</th>
                                    <th className="px-8 py-4">Ritual</th>
                                    <th className="px-8 py-4">Client</th>
                                    <th className="px-8 py-4 text-right">Reward</th>
                                 </tr>
                              </thead>
-                             <tbody className="divide-y divide-zen-brown/5">
+                             <tbody className="divide-y divide-zen-brown/15">
                                 {allAppointments
                                    .filter(a => a.employee === formData.name && a.date.startsWith(historyMonth))
                                    .sort((a, b) => dayjs(b.date).unix() - dayjs(a.date).unix())
@@ -819,7 +831,7 @@ const Employees = () => {
               ) : activeTab === 'activity' ? (
                 <div className="flex-1 overflow-y-auto pb-10 px-1 pr-4 custom-scrollbar animate-in fade-in duration-500 py-6 space-y-6">
                          <div className="w-full">
-                             <div className="flex items-center justify-between bg-white/40 p-6 rounded-[2rem] border border-zen-brown/5 mb-6">
+                             <div className="flex items-center justify-between bg-white/40 p-6 rounded-[2rem] border border-zen-brown/15 mb-6">
                                 <div className="flex items-center gap-6">
                                    <ZenDropdown 
                                      label="Analysis Period" 
@@ -831,13 +843,13 @@ const Employees = () => {
                                 </div>
                                 <div className="flex items-center gap-2">
                                    {employeeAttendance.length === 0 && (
-                                     <ZenButton onClick={simulateAttendance} variant="ghost" className="text-[10px] py-4 px-8 rounded-2xl border-dashed border-zen-brown/10">Establish Flow</ZenButton>
+                                     <ZenButton onClick={simulateAttendance} variant="ghost" className="text-[10px] py-4 px-8 rounded-2xl border-dashed border-zen-brown/25">Establish Flow</ZenButton>
                                    )}
                                 </div>
                              </div>
 
                             <div className="flex items-center justify-between gap-6 mb-4 shrink-0">
-                               <div className="flex bg-zen-cream/30 p-1.5 rounded-[1.5rem] border border-zen-brown/5 shadow-inner">
+                               <div className="flex bg-zen-cream/30 p-1.5 rounded-[1.5rem] border border-zen-brown/15 shadow-inner">
                                   <button 
                                     type="button"
                                     onClick={() => setHistoryView('calendar')}
@@ -861,7 +873,7 @@ const Employees = () => {
 
                     {historyView === 'calendar' ? (
                        employeeAttendance.length > 0 ? (
-                          <div className="p-6 bg-white/40 rounded-[2rem] border border-zen-brown/5 animate-in zoom-in-95 duration-700 shadow-2xl shadow-zen-brown/5">
+                          <div className="p-6 bg-white/40 rounded-[2rem] border border-zen-brown/15 animate-in zoom-in-95 duration-700 shadow-2xl shadow-zen-brown/15">
                              <div className="flex items-center justify-between mb-6">
                                 <h4 className="text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Temporal Matrix · {dayjs(historyMonth).format('MMM YYYY')}</h4>
                                 <div className="flex gap-4">
@@ -919,13 +931,13 @@ const Employees = () => {
                                        <div key={day} className={`aspect-square rounded-xl border flex flex-col p-2 relative transition-all duration-500 group cursor-default shadow-sm ${
                                           record 
                                              ? record.overtimeMinutes > 0 ? 'bg-red-50/30 border-red-100 text-red-500 hover:shadow-red-200/50' : 'bg-zen-leaf/5 border-zen-leaf/10 text-zen-leaf hover:shadow-zen-leaf/20'
-                                             : isToday ? 'bg-zen-cream border-zen-brown/20 text-zen-brown' : 'bg-white/10 border-zen-brown/5 text-zen-brown/20'
+                                             : isToday ? 'bg-zen-cream border-zen-brown/35 text-zen-brown' : 'bg-white/10 border-zen-brown/15 text-zen-brown/20'
                                        } ${isInCycle && !record ? 'ring-2 ring-indigo-200/30 border-indigo-200 bg-indigo-50/10' : ''} hover:scale-105 hover:shadow-xl hover:z-10`}>
                                           <span className={`text-[10px] font-bold tracking-widest relative z-10 ${record ? 'opacity-90' : isToday ? 'text-zen-brown' : 'text-zen-brown/60'}`}>{day}</span>
                                           {record?.overtimeMinutes > 0 && <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse shadow-sm" />}
                                           {isInCycle && !record && <div className="absolute bottom-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-sm" />}
                                           
-                                          <div className={`absolute inset-0 transition-all duration-500 bg-white/5 rounded-xl flex items-center justify-center p-1.5 pointer-events-none backdrop-blur-sm border border-zen-brown/5 shadow-2xl z-0 ${isInCycle || record ? 'opacity-100' : 'opacity-0'}`}>
+                                          <div className={`absolute inset-0 transition-all duration-500 bg-white/5 rounded-xl flex items-center justify-center p-1.5 pointer-events-none backdrop-blur-sm border border-zen-brown/15 shadow-2xl z-0 ${isInCycle || record ? 'opacity-100' : 'opacity-0'}`}>
                                              <p className="text-[8px] font-black uppercase tracking-widest text-zen-brown leading-relaxed text-center whitespace-pre-line">
                                                  {record ? `${record.checkIn}\n—\n${record.checkOut}` : isInCycle ? (formData.shift || 'Full Shift') + '\nScheduled' : ''}
                                              </p>
@@ -937,24 +949,24 @@ const Employees = () => {
                           </div>
                        ) : (
                           <div className="flex-1 flex flex-col items-center justify-center p-20 animate-in fade-in zoom-in-95 duration-1000">
-                             <div className="w-24 h-24 rounded-full border-2 border-dashed border-zen-brown/10 flex items-center justify-center text-zen-brown/20 mb-6">
+                             <div className="w-24 h-24 rounded-full border-2 border-dashed border-zen-brown/25 flex items-center justify-center text-zen-brown/20 mb-6">
                                 <Calendar size={40} strokeWidth={1} />
                              </div>
                              <p className="font-serif italic text-lg text-zen-brown/40">No celestial activity recorded for this lunar phase</p>
                           </div>
                        )
                      ) : (
-                       <div className="bg-white/40 rounded-[2.5rem] border border-zen-brown/5 overflow-hidden shadow-2xl shadow-zen-brown/5 animate-in slide-in-from-bottom-10 duration-700">
+                       <div className="bg-white/40 rounded-[2.5rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15 animate-in slide-in-from-bottom-10 duration-700">
                           <table className="w-full text-left border-collapse">
                              <thead>
-                                <tr className="bg-zen-cream/20 border-b border-zen-brown/5">
+                                <tr className="bg-zen-cream/20 border-b border-zen-brown/15">
                                     <th className="px-8 py-5 text-[9px] font-black text-zen-brown/40 uppercase tracking-[0.3em] w-[25%]">Temporal Node</th>
                                     <th className="px-8 py-5 text-[9px] font-black text-zen-brown/40 uppercase tracking-[0.3em] text-center w-[25%]">Sequence / Status</th>
                                     <th className="px-8 py-5 text-[9px] font-black text-zen-brown/40 uppercase tracking-[0.3em] text-center w-[30%]">Execution / Overtime</th>
                                     <th className="px-8 py-5 text-[9px] font-black text-zen-brown/40 uppercase tracking-[0.3em] text-right w-[20%]">Actions</th>
                                 </tr>
                              </thead>
-                             <tbody className="divide-y divide-zen-brown/5">
+                             <tbody className="divide-y divide-zen-brown/15">
                                 {employeeAttendance
                                    .filter(log => log.date.startsWith(historyMonth))
                                    .map((log: any, idx: number) => (
@@ -1017,7 +1029,7 @@ const Employees = () => {
                           </table>
                           {employeeAttendance.filter(log => log.date.startsWith(historyMonth)).length === 0 && (
                              <div className="flex flex-col items-center justify-center py-24 text-zen-brown/10 space-y-6">
-                                <div className="w-20 h-20 rounded-[2.5rem] border border-dashed border-zen-brown/10 flex items-center justify-center">
+                                <div className="w-20 h-20 rounded-[2.5rem] border border-dashed border-zen-brown/25 flex items-center justify-center">
                                    <Shield size={28} strokeWidth={1} />
                                 </div>
                                 <p className="font-serif italic text-base opacity-50">Log registry empty for this cycle</p>
@@ -1031,7 +1043,7 @@ const Employees = () => {
 
                     {/* Upload Area — only when editing an existing employee */}
                     {editingEmp ? (
-                      <div className="border-2 border-dashed border-zen-brown/10 rounded-[2.5rem] p-8 flex flex-col items-center gap-4 hover:border-zen-brown/20 transition-all group/upload">
+                      <div className="border-2 border-dashed border-zen-brown/25 rounded-[2.5rem] p-8 flex flex-col items-center gap-4 hover:border-zen-brown/35 transition-all group/upload">
                         <div className="w-14 h-14 rounded-2xl bg-zen-cream flex items-center justify-center text-zen-brown/20 group-hover/upload:text-zen-brown/40 transition-colors">
                           <Upload size={28} />
                         </div>
@@ -1045,7 +1057,7 @@ const Employees = () => {
                             placeholder="Document name..."
                             value={docName}
                             onChange={e => setDocName(e.target.value)}
-                            className="flex-1 pb-2 bg-transparent border-b border-zen-brown/10 outline-none text-sm font-medium text-zen-brown placeholder:text-zen-brown/20"
+                            className="flex-1 pb-2 bg-transparent border-b border-zen-brown/25 outline-none text-sm font-medium text-zen-brown placeholder:text-zen-brown/20"
                           />
                         </div>
                         <label className={`flex items-center gap-3 px-8 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all ${uploadingDoc ? 'bg-zen-brown/20 text-zen-brown/40' : 'bg-zen-brown text-white hover:bg-black shadow-xl'}`}>
@@ -1095,7 +1107,7 @@ const Employees = () => {
                         </label>
                       </div>
                     ) : (
-                      <div className="p-8 bg-zen-cream/20 rounded-[2rem] border border-zen-brown/5 text-center">
+                      <div className="p-8 bg-zen-cream/20 rounded-[2rem] border border-zen-brown/15 text-center">
                         <p className="text-sm font-serif italic text-zen-brown/40">Save the employee profile first to enable document management.</p>
                       </div>
                     )}
@@ -1107,7 +1119,7 @@ const Employees = () => {
                           Archived Records · {editingEmp.documents.length} File{editingEmp.documents.length !== 1 ? 's' : ''}
                         </p>
                         {editingEmp.documents.map((doc: any) => (
-                          <div key={doc._id} className="group flex items-center justify-between p-5 bg-white rounded-[1.5rem] border border-zen-brown/5 shadow-sm hover:shadow-md transition-all duration-300">
+                          <div key={doc._id} className="group flex items-center justify-between p-5 bg-white rounded-[1.5rem] border border-zen-brown/15 shadow-sm hover:shadow-md transition-all duration-300">
                             <div className="flex items-center gap-4">
                               <div className="w-12 h-12 rounded-xl bg-zen-cream flex items-center justify-center text-zen-brown/30 shrink-0">
                                 <File size={22} />
@@ -1169,7 +1181,7 @@ const Employees = () => {
               )}
           </div>
 
-          <div className="px-12 py-10 border-t border-zen-brown/5 bg-white/95 z-[60] flex gap-6">
+          <div className="px-12 py-10 border-t border-zen-brown/15 bg-white/95 z-[60] flex gap-6">
              <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Discard</ZenButton>
              <ZenButton type="submit" className="flex-[2] py-5">
                 <span>Save Configuration</span>

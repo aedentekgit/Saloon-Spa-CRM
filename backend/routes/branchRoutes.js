@@ -10,7 +10,7 @@ const { protect, admin } = require('../middleware/authMiddleware');
 const { upload } = require('../middleware/uploadMiddleware');
 
 router.route('/')
-  .get(protect, getBranches)
+  .get(getBranches)
   .post(protect, admin, upload.fields([{ name: 'logo', maxCount: 1 }]), createBranch);
 
 router.route('/:id')

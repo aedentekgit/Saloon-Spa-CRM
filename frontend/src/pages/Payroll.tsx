@@ -126,22 +126,22 @@ const Payroll = () => {
       onAddClick={handleExport}
       addButtonIcon={<Download size={18} />}
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-        <div className="bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/5 shadow-xl flex items-center gap-6">
+      <div className="flex overflow-x-auto pb-8 gap-6 md:grid md:grid-cols-3 md:gap-8 mb-12 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
+        <div className="flex-shrink-0 w-[300px] md:w-auto bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
            <div className="w-16 h-16 rounded-2xl bg-zen-brown text-white flex items-center justify-center shadow-lg"><Wallet2 size={32} /></div>
            <div>
               <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Total Monthly Disbursement</p>
               <h4 className="text-3xl font-serif font-bold text-zen-brown">{settings?.general.currencySymbol} {stats.total.toLocaleString()}</h4>
            </div>
         </div>
-        <div className="bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/5 shadow-xl flex items-center gap-6">
+        <div className="flex-shrink-0 w-[300px] md:w-auto bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
            <div className="w-16 h-16 rounded-2xl bg-red-400 text-white flex items-center justify-center shadow-lg"><Zap size={32} /></div>
            <div>
               <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Overtime Premiums</p>
               <h4 className="text-3xl font-serif font-bold text-zen-brown">{settings?.general.currencySymbol} {stats.ot.toLocaleString()}</h4>
            </div>
         </div>
-        <div className="bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/5 shadow-xl flex items-center gap-6">
+        <div className="flex-shrink-0 w-[300px] md:w-auto bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
            <div className="w-16 h-16 rounded-2xl bg-zen-leaf text-white flex items-center justify-center shadow-lg"><Clock size={32} /></div>
            <div>
               <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Accumulated Labor Hours</p>
@@ -150,15 +150,15 @@ const Payroll = () => {
         </div>
       </div>
 
-      <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/5 overflow-hidden shadow-2xl">
-         <div className="px-10 py-10 border-b border-zen-brown/5 flex justify-between items-center bg-white/40">
+      <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-2xl">
+         <div className="px-10 py-10 border-b border-zen-brown/15 flex justify-between items-center bg-white/40">
             <div className="flex items-center gap-10">
                <div>
                   <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Financial Ledger</h3>
                   <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-2">{dayjs(selectedMonth).format('MMMM YYYY')} Disbursement Records</p>
                </div>
                
-               <div className="flex bg-zen-cream/30 p-1.5 rounded-2xl border border-zen-brown/5">
+               <div className="flex bg-zen-cream/30 p-1.5 rounded-2xl border border-zen-brown/15">
                   <input 
                     type="month" 
                     value={selectedMonth} 
@@ -177,7 +177,7 @@ const Payroll = () => {
           <div className="overflow-x-auto min-h-[500px]">
              <table className="w-full text-center border-separate border-spacing-0 min-w-[1000px]">
                 <thead>
-                   <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
+                   <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
                       <th className="px-8 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center w-[20%]">Specialist</th>
                       <th className="px-8 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center w-[15%]">Protocol</th>
                       <th className="px-8 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center w-[15%]">Attendance</th>
@@ -186,7 +186,7 @@ const Payroll = () => {
                       <th className="px-8 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center w-[20%]">Final Payout</th>
                    </tr>
                 </thead>
-                <tbody className="divide-y divide-zen-brown/5">
+                <tbody className="divide-y divide-zen-brown/15">
                    {filteredData.map((row) => (
                       <tr key={row.employeeId} className="hover:bg-zen-cream/5 transition-all duration-500 group">
                          <td className="px-8 py-8">

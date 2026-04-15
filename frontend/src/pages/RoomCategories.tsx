@@ -121,7 +121,7 @@ const RoomCategories = () => {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
           {filteredCategories.map((cat) => (
-            <div key={cat._id} className="group relative bg-white rounded-[2rem] p-6 lg:p-8 shadow-2xl shadow-zen-brown/5 border border-zen-brown/5 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+            <div key={cat._id} className="group relative bg-white rounded-[2rem] p-6 lg:p-8 shadow-2xl shadow-zen-brown/15 border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
 
                <div className="relative z-10">
@@ -152,7 +152,7 @@ const RoomCategories = () => {
                  </div>
                </div>
 
-               <div className="relative z-10 pt-6 border-t border-zen-brown/5 flex items-center justify-between">
+               <div className="relative z-10 pt-6 border-t border-zen-brown/15 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                      <ZenBadge variant={cat.isActive ? 'leaf' : 'inactive'}>{cat.isActive ? 'Active' : 'Inactive'}</ZenBadge>
                   </div>
@@ -163,25 +163,25 @@ const RoomCategories = () => {
             </div>
           ))}
           {filteredCategories.length === 0 && (
-             <div className="col-span-full py-32 text-center text-zen-brown/20 italic font-serif text-2xl border-2 border-dashed border-zen-brown/5 rounded-[3rem]">
+             <div className="col-span-full py-32 text-center text-zen-brown/20 italic font-serif text-2xl border-2 border-dashed border-zen-brown/15 rounded-[3rem]">
                 No room categories found in the sanctuary registry.
              </div>
           )}
         </div>
       ) : (
-        <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/5 overflow-hidden shadow-2xl shadow-zen-brown/5">
+        <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15">
           <div className="overflow-x-auto">
             <table className="w-full border-separate border-spacing-0">
               <thead>
                 <tr className="bg-zen-cream/10">
-                  <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center w-24">S NO</th>
+                  <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center w-24 whitespace-nowrap">S NO</th>
                   <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Identity</th>
                   <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Essence Description</th>
                   <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Status</th>
                   <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Ritual Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zen-brown/5">
+              <tbody className="divide-y divide-zen-brown/15">
                 {filteredCategories.map((cat, index) => (
                   <tr key={cat._id} className="group hover:bg-white transition-all duration-500">
                     <td className="px-10 py-8 text-center">
@@ -229,7 +229,7 @@ const RoomCategories = () => {
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-auto w-full relative bg-white">
-           <div className="px-10 py-8 border-b border-zen-brown/5 flex justify-between items-center">
+           <div className="px-10 py-8 border-b border-zen-brown/15 flex justify-between items-center">
               <div>
                 <h3 className="font-serif text-2xl text-zen-brown">{editingCategory ? 'Refine Resonance' : 'New Essence Type'}</h3>
                 <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Sanctuary Registry Enrollment</p>
@@ -253,7 +253,7 @@ const RoomCategories = () => {
                 onChange={(e: any) => setFormData({...formData, description: e.target.value})}
               />
 
-              <div className="flex items-center gap-4 p-6 bg-zen-cream/20 rounded-[1.5rem] border border-zen-brown/5">
+              <div className="flex items-center gap-4 p-6 bg-zen-cream/20 rounded-[1.5rem] border border-zen-brown/15">
                  <div className={`w-3 h-3 rounded-full ${formData.isActive ? 'bg-zen-leaf shadow-[0_0_10px_rgba(107,138,122,0.5)]' : 'bg-slate-300'}`}></div>
                  <div className="flex-1">
                     <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Resonance Status</p>
@@ -269,7 +269,7 @@ const RoomCategories = () => {
               </div>
            </div>
 
-           <div className="px-10 py-8 border-t border-zen-brown/5 bg-zen-cream/5 flex gap-4">
+           <div className="px-10 py-8 border-t border-zen-brown/15 bg-zen-cream/5 flex gap-4">
               <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">
                 Discard
               </ZenButton>

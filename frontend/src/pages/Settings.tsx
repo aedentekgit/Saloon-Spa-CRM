@@ -60,6 +60,8 @@ interface SettingsData {
   };
   theme: {
     primaryColor: string;
+    headingFont: string;
+    bodyFont: string;
     darkMode: boolean;
   };
   notifications: {
@@ -201,8 +203,8 @@ const Settings = () => {
     >
       <div className="min-h-[750px] flex flex-col lg:flex-row gap-8">
         <aside className="lg:w-80 shrink-0">
-           <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/5 p-6 sticky top-24 shadow-2xl shadow-zen-brown/5">
-              <div className="px-4 py-6 mb-6 border-b border-zen-brown/5 flex items-center gap-4">
+           <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/15 p-6 sticky top-24 shadow-2xl shadow-zen-brown/15">
+              <div className="px-4 py-6 mb-6 border-b border-zen-brown/15 flex items-center gap-4">
                  <div className="w-12 h-12 bg-zen-brown rounded-2xl flex items-center justify-center text-white shadow-lg">
                     <SettingsIcon size={22} />
                  </div>
@@ -223,7 +225,7 @@ const Settings = () => {
                            : 'text-zen-brown/40 hover:bg-zen-cream/40 hover:text-zen-brown'
                        }`}
                     >
-                       <item.icon size={18} className={activeSection === item.id ? 'text-zen-sand' : 'text-zen-brown/20 group-hover:text-zen-brown/40'} strokeWidth={1.5} />
+                       <item.icon size={18} className={activeSection === item.id ? 'text-white' : 'text-zen-brown/20 group-hover:text-zen-brown/40'} strokeWidth={1.5} />
                        <span>{item.name}</span>
                        {activeSection === item.id && (
                           <motion.div 
@@ -249,13 +251,13 @@ const Settings = () => {
               >
                   {activeSection === 'foundations' && (
                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
-                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5">
+                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
                            <header className="mb-12 flex items-center justify-between">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Business Profile</h3>
                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Manage your platform's public identity.</p>
                               </div>
-                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[2rem] flex items-center justify-center text-zen-sand border border-zen-brown/5">
+                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[2rem] flex items-center justify-center text-zen-sand border border-zen-brown/15">
                                  <Map size={28} strokeWidth={1.5} />
                               </div>
                            </header>
@@ -335,7 +337,7 @@ const Settings = () => {
                               />
                            </div>
 
-                           <footer className="mt-12 pt-10 border-t border-zen-brown/5 flex justify-end">
+                           <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
                               <ZenButton 
                                  onClick={() => handleSave('general')}
                                  disabled={saving}
@@ -384,7 +386,7 @@ const Settings = () => {
 
                   {activeSection === 'visuals' && (
                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5 h-fit">
+                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 h-fit">
                            <header className="mb-12">
                               <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Interface</h3>
                               <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Configure workspace styling.</p>
@@ -393,7 +395,7 @@ const Settings = () => {
                            <div className="space-y-8">
                               <div 
                                  onClick={() => setSettings(prev => prev ? {...prev, theme: {...prev.theme, darkMode: !prev.theme.darkMode}} : null)}
-                                 className={`p-8 rounded-[2rem] border-2 transition-all duration-500 cursor-pointer flex items-center justify-between ${settings.theme.darkMode ? 'bg-zen-brown border-zen-brown shadow-2xl shadow-zen-brown/20' : 'bg-zen-cream/20 border-zen-brown/5'}`}
+                                 className={`p-8 rounded-[2rem] border-2 transition-all duration-500 cursor-pointer flex items-center justify-between ${settings.theme.darkMode ? 'bg-zen-brown border-zen-brown shadow-2xl shadow-zen-brown/20' : 'bg-zen-cream/20 border-zen-brown/15'}`}
                               >
                                  <div className="flex items-center gap-6">
                                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${settings.theme.darkMode ? 'bg-white/10 text-white' : 'bg-white text-zen-sand shadow-lg'}`}>
@@ -409,19 +411,36 @@ const Settings = () => {
                                  </div>
                               </div>
 
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                 <ZenDropdown 
+                                    label="Heading Font (Serif)"
+                                    icon={Layers}
+                                    options={['Italiana', 'Playfair Display', 'Cormorant Garamond', 'Libre Baskerville', 'Lora']}
+                                    value={settings.theme.headingFont}
+                                    onChange={(val) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, headingFont: val}} : null)}
+                                 />
+                                 <ZenDropdown 
+                                    label="Body Font (Sans)"
+                                    icon={Layout}
+                                    options={['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Montserrat']}
+                                    value={settings.theme.bodyFont}
+                                    onChange={(val) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, bodyFont: val}} : null)}
+                                 />
+                              </div>
+
                               <ZenButton onClick={() => handleSave('theme')} className="w-full py-5 rounded-[1.5rem] text-lg font-bold shadow-2xl shadow-zen-brown/10">
                                  Save Aesthetics
                               </ZenButton>
                            </div>
                         </section>
 
-                        <div className="bg-zen-cream/10 p-12 rounded-[3.5rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5">
+                        <div className="bg-zen-cream/10 p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
                            <h4 className="text-xl font-serif font-bold text-zen-brown mb-10 flex items-center gap-4">
                               <Palette className="text-zen-sand" size={24} strokeWidth={1.5} />
                               Sacred Palette
                            </h4>
                            <div className="grid grid-cols-3 gap-6">
-                              {['#634832', '#977F6D', '#A69080', '#065F46', '#B45309', '#7F1D1D'].map(color => (
+                              {['#2D1622', '#634832', '#8B7E74', '#977F6D', '#A69080', '#1E1B4B'].map(color => (
                                  <button
                                     key={color}
                                     onClick={() => setSettings(prev => prev ? {...prev, theme: {...prev.theme, primaryColor: color}} : null)}
@@ -436,13 +455,13 @@ const Settings = () => {
 
                   {activeSection === 'storage' && (
                      <div className="max-w-4xl">
-                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5">
+                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
                            <header className="mb-12 flex items-center justify-between">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Storage Provider</h3>
                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Configure automated file hosting.</p>
                               </div>
-                              <div className="flex bg-zen-cream/30 p-1.5 rounded-2xl border border-zen-brown/5">
+                              <div className="flex bg-zen-cream/30 p-1.5 rounded-2xl border border-zen-brown/15">
                                  {['local', 'cloudinary'].map((prov) => (
                                     <button 
                                        key={prov}
@@ -457,7 +476,7 @@ const Settings = () => {
 
                            <AnimatePresence mode="wait">
                               {settings.upload.provider === 'local' ? (
-                                 <motion.div key="local" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="p-10 bg-zen-cream/10 rounded-[2.5rem] border border-zen-brown/5 flex items-center gap-8 group">
+                                 <motion.div key="local" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="p-10 bg-zen-cream/10 rounded-[2.5rem] border border-zen-brown/15 flex items-center gap-8 group">
                                     <div className="w-20 h-20 rounded-[2rem] bg-white flex items-center justify-center text-zen-sand shadow-sm group-hover:scale-110 transition-transform duration-700">
                                        <HardDrive size={36} strokeWidth={1} />
                                     </div>
@@ -468,7 +487,7 @@ const Settings = () => {
                                  </motion.div>
                               ) : (
                                  <motion.div key="cloudinary" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-8">
-                                    <div className="bg-zen-cream/10 p-10 rounded-[2.5rem] border border-zen-brown/5 space-y-8">
+                                    <div className="bg-zen-cream/10 p-10 rounded-[2.5rem] border border-zen-brown/15 space-y-8">
                                        <ZenInput 
                                           label="Cloud Name" 
                                           value={settings.upload.cloudinaryCloudName}
@@ -605,13 +624,13 @@ const Settings = () => {
 
                   {activeSection === 'smtp' && (
                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5">
+                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
                            <header className="mb-12 flex items-center justify-between">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">SMTP Gateway</h3>
                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Manage dynamic outbound communication credentials.</p>
                               </div>
-                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[2rem] flex items-center justify-center text-zen-sand border border-zen-brown/5">
+                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[2rem] flex items-center justify-center text-zen-sand border border-zen-brown/15">
                                  <Mail size={28} strokeWidth={1.5} />
                               </div>
                            </header>
@@ -665,7 +684,7 @@ const Settings = () => {
                               </div>
                            </div>
 
-                           <footer className="mt-12 pt-10 border-t border-zen-brown/5 flex justify-end">
+                           <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
                               <ZenButton 
                                  onClick={() => handleSave('smtp' as any)}
                                  disabled={saving}
@@ -677,7 +696,7 @@ const Settings = () => {
                         </div>
 
                         <div className="xl:col-span-4">
-                           <div className="bg-zen-cream/10 p-10 rounded-[3rem] border border-zen-brown/5 h-full">
+                           <div className="bg-zen-cream/10 p-10 rounded-[3rem] border border-zen-brown/15 h-full">
                               <h4 className="text-xl font-serif font-bold text-zen-brown mb-6 flex items-center gap-3">
                                  <ShieldCheck className="text-zen-sand" size={24} />
                                  Security Protocol
@@ -687,7 +706,7 @@ const Settings = () => {
                                  For standard configuration, use port **587** with TLS. For legacy systems, port **465** provides direct SSL.
                               </p>
                               <div className="mt-8 space-y-4">
-                                 <div className="p-5 bg-white rounded-2xl border border-zen-brown/5">
+                                 <div className="p-5 bg-white rounded-2xl border border-zen-brown/15">
                                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em] mb-1">Status</p>
                                     <div className="flex items-center gap-3">
                                        <div className={`w-2 h-2 rounded-full ${settings.smtp?.host ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />

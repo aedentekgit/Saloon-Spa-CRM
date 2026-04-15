@@ -4,6 +4,7 @@ import { Camera, Clock, Shield, TrendingUp, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { ZenPageLayout } from '../components/zen/ZenLayout';
+import { ZenPagination } from '../components/zen/ZenPagination';
 import { ZenBadge, ZenButton, ZenIconButton } from '../components/zen/ZenButtons';
 import { notify } from '../components/ZenNotification';
 import { useSettings } from '../context/SettingsContext';
@@ -47,6 +48,8 @@ const Attendance = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const isAdminOrManager = user?.role === 'Admin' || user?.role === 'Manager';
   
@@ -54,7 +57,7 @@ const Attendance = () => {
 
   useEffect(() => {
     fetchHistory();
-  }, [selectedBranch]);
+  }, [selectedBranch, page]);
 
   useEffect(() => {
     if (user?.role === 'Admin' || user?.role === 'Manager') {
@@ -82,6 +85,9 @@ const Attendance = () => {
   const fetchHistory = async () => {
     try {
       const url = new URL(`${API_URL}/attendance`);
+      url.searchParams.append('page', page.toString());
+      url.searchParams.append('limit', '10');
+      
       if (selectedBranch && selectedBranch !== 'all') {
         url.searchParams.append('branch', selectedBranch);
       }
@@ -89,8 +95,15 @@ const Attendance = () => {
       const response = await fetch(url.toString(), {
         headers: { 'Authorization': `Bearer ${user?.token || ''}` }
       });
-      const data = await response.json();
+      const resData = await response.json();
       
+      const data = resData.data || resData;
+      if (resData.pagination) {
+        setTotalPages(resData.pagination.pages);
+      } else {
+        setTotalPages(1);
+      }
+
       if (Array.isArray(data)) {
         const sortedData = data.sort((a, b) => dayjs(a.date).unix() - dayjs(b.date).unix());
         setAttendance(sortedData);
@@ -296,7 +309,7 @@ const Attendance = () => {
     >
       <div className="flex flex-col lg:flex-row gap-10">
         <div className="w-full lg:w-[450px] space-y-8 h-fit lg:sticky lg:top-8">
-           <div className="bg-white/90 backdrop-blur-2xl p-10 rounded-[4rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/10 text-center relative overflow-hidden group">
+           <div className="bg-white/90 backdrop-blur-2xl p-10 rounded-[4rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 text-center relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-150 transition-transform duration-[2000ms] ease-out">
                  <Shield size={200} />
               </div>
@@ -312,13 +325,13 @@ const Attendance = () => {
                     </h2>
                     <span className="text-xl font-serif font-bold text-zen-brown/40">{currentTime.split(' ')[1]}</span>
                  </div>
-                 <div className="mt-4 inline-flex items-center gap-3 px-6 py-2 bg-zen-cream/30 rounded-full border border-zen-brown/5">
+                 <div className="mt-4 inline-flex items-center gap-3 px-6 py-2 bg-zen-cream/30 rounded-full border border-zen-brown/15">
                     <CalendarIcon size={12} className="text-zen-sand" />
                     <p className="text-[10px] font-bold text-zen-brown/60 uppercase tracking-widest">{dayjs().format('dddd, MMMM D')}</p>
                  </div>
               </div>
               
-              <div className="relative aspect-square rounded-[3.5rem] bg-zen-brown/5 border-2 border-dashed border-zen-brown/10 overflow-hidden flex flex-col items-center justify-center mb-10 group/cam transition-all duration-700 hover:border-zen-sand/30">
+              <div className="relative aspect-square rounded-[3.5rem] bg-zen-brown/5 border-2 border-dashed border-zen-brown/25 overflow-hidden flex flex-col items-center justify-center mb-10 group/cam transition-all duration-700 hover:border-zen-sand/30">
                  <AnimatePresence mode="wait">
                     {videoActive ? (
                        <motion.div 
@@ -379,7 +392,7 @@ const Attendance = () => {
                <motion.div 
                  initial={{ opacity: 0, y: 20 }}
                  animate={{ opacity: 1, y: 0 }}
-                 className="p-10 bg-white/60 backdrop-blur-xl rounded-[3rem] border border-zen-brown/5 shadow-xl shadow-zen-brown/5 flex items-center justify-between group overflow-hidden"
+                 className="p-10 bg-white/60 backdrop-blur-xl rounded-[3rem] border border-zen-brown/15 shadow-xl shadow-zen-brown/15 flex items-center justify-between group overflow-hidden"
                >
                   <div className="relative z-10">
                      <p className="text-[10px] font-bold text-zen-leaf uppercase tracking-[0.3em] mb-3">Daily Energy Exchange</p>
@@ -395,8 +408,8 @@ const Attendance = () => {
         </div>
 
         <div className="flex-1 space-y-8">
-           <div className="bg-white/80 backdrop-blur-md rounded-[4rem] border border-zen-brown/5 overflow-hidden shadow-2xl shadow-zen-brown/5 min-h-[700px] flex flex-col">
-              <div className="px-12 py-12 border-b border-zen-brown/5 flex justify-between items-center bg-white/40">
+           <div className="bg-white/80 backdrop-blur-md rounded-[4rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15 min-h-[700px] flex flex-col">
+              <div className="px-12 py-12 border-b border-zen-brown/15 flex justify-between items-center bg-white/40">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Financial Sequence</h3>
                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Historical Presence & Earnings Registry</p>
@@ -419,7 +432,7 @@ const Attendance = () => {
                        {filteredAttendance.map((row) => (
                           <tr key={row._id} className="group transition-all duration-500">
                              {isAdminOrManager && (
-                                <td className="px-8 py-7 bg-white group-hover:bg-zen-cream/30 rounded-l-[2rem] border-y border-l border-zen-brown/5 transition-colors">
+                                <td className="px-8 py-7 bg-white group-hover:bg-zen-cream/30 rounded-l-[2rem] border-y border-l border-zen-brown/15 transition-colors">
                                    <div className="flex items-center gap-4">
                                       <div className="w-10 h-10 rounded-full bg-zen-brown/5 flex items-center justify-center text-zen-brown/20 font-serif font-bold shadow-inner">
                                          {row.employeeName.charAt(0)}
@@ -428,7 +441,7 @@ const Attendance = () => {
                                    </div>
                                 </td>
                              )}
-                             <td className={`px-8 py-7 bg-white group-hover:bg-zen-cream/30 border-y border-zen-brown/5 transition-colors ${!isAdminOrManager ? 'rounded-l-[2rem] border-l' : ''}`}>
+                             <td className={`px-8 py-7 bg-white group-hover:bg-zen-cream/30 border-y border-zen-brown/15 transition-colors ${!isAdminOrManager ? 'rounded-l-[2rem] border-l' : ''}`}>
                                 <div className="flex flex-col">
                                    <span className="font-serif text-lg text-zen-brown font-bold tracking-tight">{dayjs(row.date).format('MMM DD, YYYY')}</span>
                                    <div className="flex items-center gap-2 mt-1">
@@ -437,10 +450,10 @@ const Attendance = () => {
                                    </div>
                                 </div>
                              </td>
-                             <td className="px-8 py-7 bg-white group-hover:bg-zen-cream/30 border-y border-zen-brown/5 transition-colors">
+                             <td className="px-8 py-7 bg-white group-hover:bg-zen-cream/30 border-y border-zen-brown/15 transition-colors">
                                 <span className="font-serif text-sm text-zen-brown/60 italic font-medium">{formatDuration(row.duration)}</span>
                              </td>
-                             <td className="px-8 py-7 bg-white group-hover:bg-zen-cream/30 border-y border-zen-brown/5 transition-colors">
+                             <td className="px-8 py-7 bg-white group-hover:bg-zen-cream/30 border-y border-zen-brown/15 transition-colors">
                                 {row.overtimeMinutes ? (
                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-400/5 rounded-full border border-red-400/10">
                                       <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest">{formatDuration(row.overtimeMinutes)}</span>
@@ -449,14 +462,14 @@ const Attendance = () => {
                                    <span className="text-zen-brown/10 text-xs">—</span>
                                 )}
                              </td>
-                             <td className="px-8 py-7 bg-white group-hover:bg-zen-cream/30 border-y border-zen-brown/5 transition-colors">
+                             <td className="px-8 py-7 bg-white group-hover:bg-zen-cream/30 border-y border-zen-brown/15 transition-colors">
                                 {row.dailyEarnings !== undefined ? (
                                    <span className="font-serif font-bold text-zen-brown text-lg">{settings?.general?.currencySymbol} {row.dailyEarnings.toLocaleString()}</span>
                                 ) : (
                                    <span className="text-zen-brown/10">—</span>
                                 )}
                              </td>
-                             <td className="px-8 py-7 bg-white group-hover:bg-zen-cream/30 rounded-r-[2rem] border-y border-r border-zen-brown/5 transition-colors text-right">
+                             <td className="px-8 py-7 bg-white group-hover:bg-zen-cream/30 rounded-r-[2rem] border-y border-r border-zen-brown/15 transition-colors text-right">
                                 <div className="flex items-center justify-end gap-6">
                                    <ZenBadge variant={row.status === 'Present' ? 'leaf' : 'sand'} className="font-bold tracking-widest px-4 py-1.5 rounded-xl">
                                       {row.status === 'Present' && row.checkOut !== '--' ? 'COMPLETE' : row.status.toUpperCase()}
@@ -490,9 +503,11 @@ const Attendance = () => {
         </div>
       </div>
 
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+
       <Modal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} title="Manual Presence Registry" maxWidth="max-w-2xl">
          <form onSubmit={handleManualSubmit} className="space-y-8 p-6">
-            <div className="p-8 bg-zen-cream/30 rounded-[2.5rem] border border-zen-brown/5">
+            <div className="p-8 bg-zen-cream/30 rounded-[2.5rem] border border-zen-brown/15">
                <div className="flex items-center gap-4 mb-8">
                   <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-zen-brown/30 shadow-inner">
                      <Plus size={20} />
@@ -516,7 +531,7 @@ const Attendance = () => {
                         const emp = employees.find(e => e._id === manualFormData.employeeId);
                         if (!emp) return null;
                         return (
-                           <div className="mt-4 p-4 bg-white/40 rounded-2xl border border-zen-brown/5 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
+                           <div className="mt-4 p-4 bg-white/40 rounded-2xl border border-zen-brown/15 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
                               <div className="flex items-center gap-3">
                                  <div className="w-8 h-8 rounded-lg bg-zen-brown text-white flex items-center justify-center">
                                     <TrendingUp size={14} />

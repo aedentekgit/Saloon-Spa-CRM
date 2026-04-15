@@ -166,13 +166,13 @@ const Leave = () => {
     >
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
         <div className="lg:col-span-1 space-y-8">
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/5 transition-all duration-700 hover:-translate-y-2">
+           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 transition-all duration-700 hover:-translate-y-2">
               <h3 className="text-xl font-serif font-bold text-zen-brown mb-6 flex items-center gap-3">
                  <CalendarDays size={20} className="text-zen-sand" />
                  Pause Balances
               </h3>
               <div className="space-y-4">
-                 <div className="group p-5 bg-zen-cream/30 rounded-3xl border border-zen-brown/5 hover:bg-white transition-all duration-500">
+                 <div className="group p-5 bg-zen-cream/30 rounded-3xl border border-zen-brown/15 hover:bg-white transition-all duration-500">
                     <div className="flex justify-between items-center mb-1">
                        <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Ritual Leave</span>
                        <span className="text-lg font-serif font-bold text-zen-brown">8</span>
@@ -192,7 +192,7 @@ const Leave = () => {
                     </div>
                  </div>
 
-                 <div className="group p-5 bg-zen-brown/5 rounded-3xl border border-zen-brown/10 hover:bg-white transition-all duration-500">
+                 <div className="group p-5 bg-zen-brown/5 rounded-3xl border border-zen-brown/25 hover:bg-white transition-all duration-500">
                     <div className="flex justify-between items-center mb-1">
                        <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Casual Drift</span>
                        <span className="text-lg font-serif font-bold text-zen-brown">2</span>
@@ -215,8 +215,8 @@ const Leave = () => {
         </div>
 
         <div className="lg:col-span-3">
-           <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/5 h-full flex flex-col">
-              <div className="px-10 py-10 border-b border-zen-brown/5 flex justify-between items-center bg-white/40">
+           <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/15 h-full flex flex-col">
+              <div className="px-10 py-10 border-b border-zen-brown/15 flex justify-between items-center bg-white/40">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Pause Registry</h3>
                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Active and Historical Applications</p>
@@ -234,7 +234,7 @@ const Leave = () => {
                           <th className="px-8 py-6 text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] text-right">Actions</th>
                        </tr>
                     </thead>
-                    <tbody className="divide-y divide-zen-brown/5">
+                    <tbody className="divide-y divide-zen-brown/15">
                        {filteredRequests.map((req) => (
                           <tr key={req._id} className="group hover:bg-white transition-all duration-500">
                              <td className="px-8 py-8">
@@ -296,7 +296,7 @@ const Leave = () => {
               </div>
 
               {/* Mobile Interaction Cards */}
-              <div className="sm:hidden grid grid-cols-1 divide-y divide-zen-brown/5">
+              <div className="sm:hidden grid grid-cols-1 divide-y divide-zen-brown/15">
                  {filteredRequests.map((req) => (
                     <div key={req._id} className="p-8 space-y-6">
                        <div className="flex justify-between items-start">
@@ -309,7 +309,7 @@ const Leave = () => {
                           </ZenBadge>
                        </div>
                        
-                       <div className="p-5 bg-zen-cream/20 rounded-[2rem] border border-zen-brown/5">
+                       <div className="p-5 bg-zen-cream/20 rounded-[2rem] border border-zen-brown/15">
                           <p className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-[.3em] mb-2">{req.type}</p>
                           <p className="text-sm text-zen-brown/60 italic leading-relaxed">"{req.reason}"</p>
                        </div>

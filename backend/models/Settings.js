@@ -21,7 +21,9 @@ const settingsSchema = new mongoose.Schema({
     cloudinaryApiSecret: { type: String, default: '' }
   },
   theme: {
-    primaryColor: { type: String, default: '#6366f1' }, // Default Indigo
+    primaryColor: { type: String, default: '#2D1622' }, // Deep Zen Plum
+    headingFont: { type: String, default: 'Italiana' },
+    bodyFont: { type: String, default: 'Plus Jakarta Sans' },
     darkMode: { type: Boolean, default: false }
   },
   notifications: {

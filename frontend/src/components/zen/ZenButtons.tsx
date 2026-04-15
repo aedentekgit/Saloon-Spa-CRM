@@ -5,7 +5,7 @@ export const ZenButton = ({ children, variant = 'primary', className = '', ...pr
   const variants: any = {
     primary: "bg-zen-brown text-zen-cream hover:bg-black hover:shadow-2xl",
     secondary: "bg-zen-stone text-zen-brown hover:bg-zen-sand/10 hover:shadow-lg",
-    outline: "bg-white text-zen-brown border border-zen-brown/5 hover:bg-zen-brown hover:text-white shadow-sm"
+    outline: "bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-brown hover:text-white shadow-sm"
   };
 
   return (
@@ -17,9 +17,9 @@ export const ZenButton = ({ children, variant = 'primary', className = '', ...pr
 
 export const ZenIconButton = ({ icon: Icon, variant = 'outline', className = '', type = 'button', size = 'md', ...props }: any) => {
   const variants: any = {
-    outline: "bg-white text-zen-brown border border-zen-brown/5 hover:bg-zen-brown hover:text-white",
+    outline: "bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-brown hover:text-white",
     cream: "bg-zen-cream text-zen-brown hover:bg-zen-brown hover:text-white",
-    danger: "bg-white text-red-500 border border-zen-brown/5 hover:bg-red-500 hover:text-white",
+    danger: "bg-white text-red-500 border border-zen-brown/15 hover:bg-red-500 hover:text-white",
     leaf: "bg-zen-leaf/10 text-zen-leaf border border-zen-leaf/20 hover:bg-zen-leaf hover:text-white",
     sand: "bg-zen-sand/10 text-zen-brown border border-zen-sand/20 hover:bg-zen-sand hover:text-white"
   };

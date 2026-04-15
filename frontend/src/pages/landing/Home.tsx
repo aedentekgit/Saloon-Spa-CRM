@@ -3,18 +3,49 @@ import { ArrowRight, Leaf, Waves, Wind, Sun, Star, Award, ShieldCheck, Sparkles 
 import { Link } from 'react-router-dom';
 
 const Home = () => {
+  const signatureTreatments = [
+    {
+      title: 'Swedish Massage',
+      desc: 'Flowing, full-body strokes designed to soften tension and calm the nervous system.',
+      img: '/images/swedish_massage.png',
+    },
+    {
+      title: 'Deep Tissue Massage',
+      desc: 'Focused pressure work for stubborn knots, postural strain, and deeper release.',
+      img: '/images/deep_tissue_massage.png',
+    },
+    {
+      title: 'Aromatherapy Massage',
+      desc: 'Botanical oils and slow rhythm to calm the senses and leave the room in balance.',
+      img: '/images/aromatherapy_massage.png',
+    },
+  ];
+
+  const restorativePairings = [
+    {
+      title: 'Thai Massage',
+      desc: 'Assisted stretching and rhythmic compression to restore mobility and ease.',
+      img: '/images/thai_massage.png',
+    },
+    {
+      title: 'Foot Reflexology',
+      desc: 'Grounding pressure mapped across the feet to rebalance the whole body.',
+      img: '/images/foot_reflexology.png',
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#32172A] selection:bg-[#4A2C40]/20 font-sans">
+    <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-brown/10 font-sans">
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] lg:h-screen flex items-center px-4 md:px-6 lg:px-24 overflow-hidden pt-24 lg:pt-16">
+      <section className="relative min-h-[90vh] lg:h-screen flex items-center px-4 md:px-6 lg:px-24 overflow-hidden">
         {/* Background Elements */}
         <div className="absolute top-[-10%] right-[-5%] w-[60%] h-[80%] bg-[#E5BAD4]/10 rounded-full blur-[120px] -z-10 animate-pulse" />
         <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-[#4A2C40]/5 rounded-full blur-[100px] -z-10" />
 
         <div className="max-w-7xl w-full mx-auto grid lg:grid-cols-2 gap-12 lg:gap-24 items-center">
           <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
-            <div className="flex items-center gap-3 text-[10px] md:text-sm font-bold tracking-[0.2em] uppercase text-[#4A2C40]/60">
-              <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
+            <div className="flex items-center gap-3 text-[10px] md:text-sm font-bold tracking-[0.2em] uppercase text-zen-brown/60">
+              <span className="w-8 h-[1px] bg-zen-brown/30" />
               Est. 2024 • The Global Sanctuary
             </div>
             
@@ -22,12 +53,12 @@ const Home = () => {
               The Art of<br />
               <span className="italic relative">
                 Profound
-                <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-[#4A2C40]/10" />
+                <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-zen-brown/10" />
               </span><br />
               Balance
             </h1>
 
-            <p className="text-lg md:text-xl text-[#32172A]/70 max-w-xl leading-relaxed font-sans mt-6">
+            <p className="text-lg md:text-xl text-zen-brown/70 max-w-xl leading-relaxed font-sans mt-6">
               Step into a realm where time slows and every breath is a ritual. 
               We harmonize ancient wisdom with contemporary luxury to restore 
               your soul&apos;s natural resonance.
@@ -36,18 +67,18 @@ const Home = () => {
             <div className="flex flex-col sm:flex-row gap-6 pt-6">
               <Link 
                 to="/landing-services"
-                className="group relative px-10 py-5 bg-[#32172A] text-[#FAF9F6] rounded-full font-bold overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-[#32172A]/20 text-center sm:text-left"
+                className="group relative px-10 py-5 bg-zen-brown text-zen-cream rounded-full font-bold overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-zen-brown/20 text-center sm:text-left"
               >
                 <span className="relative z-10 flex items-center justify-center sm:justify-start gap-2 uppercase tracking-widest text-[11px]">
                   Reservation Entry
                   <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#4A2C40] to-[#32172A] opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-r from-zen-brown/80 to-zen-brown opacity-0 group-hover:opacity-100 transition-opacity" />
               </Link>
 
               <Link 
                 to="/about"
-                className="px-10 py-5 border border-[#32172A]/10 rounded-full font-bold hover:bg-[#32172A]/5 transition-all text-[#32172A]/80 text-center uppercase tracking-widest text-[11px]"
+                className="px-10 py-5 border border-zen-brown/25 rounded-full font-bold hover:bg-zen-brown/5 transition-all text-zen-brown/80 text-center uppercase tracking-widest text-[11px]"
               >
                 Our Heritage
               </Link>
@@ -73,21 +104,21 @@ const Home = () => {
           <div className="relative animate-in fade-in zoom-in duration-1000 delay-300">
             <div className="aspect-[4/5] w-full rounded-[3rem] md:rounded-[5rem] overflow-hidden shadow-2xl lg:skew-y-2">
                <img 
-                 src="https://images.unsplash.com/photo-1540555700478-4be28955d20a?auto=format&fit=crop&q=80" 
-                 alt="Spa Environment" 
+                 src="/images/hero_sanctuary.png" 
+                 alt="Warm sanctuary interior with water and lantern light" 
                  className="w-full h-full object-cover grayscale-[0.2] hover:grayscale-0 transition-all duration-1000 scale-110 hover:scale-100"
                />
             </div>
             {/* Glass Card Overlay - Positioned for mobile/desktop */}
-            <div className="absolute -bottom-6 -left-4 md:-bottom-10 md:-left-10 p-6 md:p-10 backdrop-blur-3xl bg-white/40 border border-white/50 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl max-w-[280px] md:max-w-sm hidden sm:block">
+            <div className="absolute -bottom-6 -left-4 md:-bottom-10 md:-left-10 p-6 md:p-10 backdrop-blur-3xl bg-white/40 border border-white/80 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl max-w-[280px] md:max-w-sm hidden sm:block">
               <div className="flex items-center gap-4 mb-4">
                 <div className="p-3 bg-[#4A2C40]/10 rounded-2xl text-[#4A2C40]">
                   <Waves size={24} />
                 </div>
-                <h3 className="font-serif font-bold text-xl md:text-2xl">Pure Hydration</h3>
+                <h3 className="font-serif font-bold text-xl md:text-2xl">Sacred Arrival</h3>
               </div>
               <p className="text-xs md:text-sm text-[#32172A]/60 leading-relaxed">
-                Experience the restorative power of our signature thermal springs, bottled from deep within the sanctuary grounds.
+                Warm timber, lantern light, and a quiet water feature set the tone before the first treatment begins.
               </p>
             </div>
           </div>
@@ -99,8 +130,8 @@ const Home = () => {
         <div className="max-w-7xl mx-auto space-y-16">
            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
               <div className="space-y-4 max-w-2xl">
-                <div className="text-[11px] font-bold text-[#4A2C40]/60 uppercase tracking-[0.3em]">Signature Collections</div>
-                <h2 className="text-4xl md:text-6xl font-serif font-bold">Curated for your <span className="italic">soul&apos;s need</span></h2>
+                <div className="text-[11px] font-bold text-[#4A2C40]/60 uppercase tracking-[0.3em]">Signature Treatments</div>
+                <h2 className="text-4xl md:text-6xl font-serif font-bold">Curated for your <span className="italic">rest and recovery</span></h2>
               </div>
               <Link to="/landing-services" className="group flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.3em] text-[#32172A]">
                 Explore All Rituals
@@ -111,15 +142,11 @@ const Home = () => {
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-              {[
-                { title: 'Forest Bathing', desc: 'Japanese shinrin-yoku therapy with native aromatic pine.', img: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80' },
-                { title: 'Somatic Release', desc: 'Unblocking deep muscular tension through mindful pressure.', img: 'https://images.unsplash.com/photo-1544161515-436cead10a73?auto=format&fit=crop&q=80' },
-                { title: 'Lunar Ceremonies', desc: 'Evening rituals aligned with celestial cycles of renewal.', img: 'https://images.unsplash.com/photo-1532187863486-abf51ad95699?auto=format&fit=crop&q=80' }
-              ].map((item, i) => (
+              {signatureTreatments.map((item, i) => (
                 <div key={i} className="group cursor-pointer">
                   <div className="aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-6 relative">
-                    <img src={item.img} alt={item.title} className="w-full h-full object-cover grayscale-[0.4] group-hover:grayscale-0 transition-all duration-1000 scale-100 group-hover:scale-110" />
-                    <div className="absolute inset-x-6 bottom-6 p-6 backdrop-blur-3xl bg-white/20 border border-white/20 rounded-3xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                    <img src={item.img} alt={item.title} className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000 scale-100 group-hover:scale-110" loading="lazy" />
+                    <div className="absolute inset-x-6 bottom-6 p-6 backdrop-blur-3xl bg-white/20 border border-white/40 rounded-3xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
                        <Sparkles className="text-white mb-2" size={20} />
                        <h4 className="text-white font-serif font-bold text-xl">{item.title}</h4>
                     </div>
@@ -185,10 +212,10 @@ const Home = () => {
            
            <div className="grid grid-cols-2 gap-4">
               <div className="aspect-[4/5] rounded-3xl overflow-hidden mt-12 shadow-2xl">
-                 <img src="https://images.unsplash.com/photo-1544161515-436cead10a73?auto=format&fit=crop&q=80" alt="Detail" className="w-full h-full object-cover" />
+                 <img src={restorativePairings[0].img} alt={restorativePairings[0].title} className="w-full h-full object-cover" loading="lazy" />
               </div>
               <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
-                 <img src="https://images.unsplash.com/photo-1620121692029-d088224efc74?auto=format&fit=crop&q=80" alt="Detail" className="w-full h-full object-cover" />
+                 <img src={restorativePairings[1].img} alt={restorativePairings[1].title} className="w-full h-full object-cover" loading="lazy" />
               </div>
            </div>
         </div>

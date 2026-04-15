@@ -1,5 +1,6 @@
 const Room = require('../models/Room');
 const { deleteFile } = require('../middleware/uploadMiddleware');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all rooms
 // @route   GET /api/rooms
@@ -12,8 +13,10 @@ const getRooms = async (req, res) => {
         query.branch = req.user.branch._id || req.user.branch;
       }
     }
-    const rooms = await Room.find(query).populate('branch');
-    res.json(rooms);
+    const { data, pagination } = await paginateModelQuery(Room, query, req, {
+      populate: 'branch'
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

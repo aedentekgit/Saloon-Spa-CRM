@@ -1,4 +1,5 @@
 const Appointment = require('../models/Appointment');
+const { paginateModelQuery } = require('../utils/pagination');
 
 // @desc    Get all appointments
 // @route   GET /api/appointments
@@ -26,8 +27,10 @@ const getAppointments = async (req, res) => {
       query.clientId = req.user._id;
     }
 
-    const appointments = await Appointment.find(query).sort({ createdAt: -1 });
-    res.json(appointments);
+    const { data, pagination } = await paginateModelQuery(Appointment, query, req, {
+      sort: { createdAt: -1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

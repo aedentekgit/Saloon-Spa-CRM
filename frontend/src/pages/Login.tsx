@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, Mail, Lock, Sparkles, ArrowRight } from 'lucide-react';
 
@@ -42,9 +42,9 @@ const Login = () => {
       {/* Cinematic Left Side */}
       <div className="hidden lg:flex w-1/2 relative">
         <img 
-          src="/Users/aedenteka/.gemini/antigravity/brain/8a1ceb14-f523-4690-8125-456987941959/luxury_spa_hero_1776075149420.png" 
+          src="/login-bg.png" 
           alt="Sanctuary" 
-          className="w-full h-full object-cover grayscale opacity-80"
+          className="w-full h-full object-cover opacity-90"
         />
         <div className="absolute inset-0 bg-[#1A1816]/40" />
         <div className="absolute inset-0 flex flex-col justify-end p-24">
@@ -93,7 +93,7 @@ const Login = () => {
                        className="w-full bg-transparent text-sm font-medium focus:outline-none placeholder:text-[#1A1816]/10"
                        required
                      />
-                     <Mail size={16} strokeWidth={1} className="absolute right-0 top-0 text-[#1A1816]/10" />
+                     <Mail size={16} strokeWidth={1} className="absolute right-0 top-0 text-[#1A1816]/40" />
                   </div>
                </div>
 
@@ -111,7 +111,7 @@ const Login = () => {
                      <button 
                        type="button"
                        onClick={() => setShowPassword(!showPassword)}
-                       className="absolute right-0 top-0 text-[#1A1816]/10 hover:text-[#B4A596] transition-colors"
+                       className="absolute right-0 top-0 text-[#1A1816]/40 hover:text-[#B4A596] transition-colors"
                      >
                        {showPassword ? <EyeOff size={16} strokeWidth={1} /> : <Eye size={16} strokeWidth={1} />}
                      </button>
@@ -126,6 +126,12 @@ const Login = () => {
               Authenticate
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </button>
+
+            <div className="pt-6 text-center">
+               <p className="text-[10px] font-bold text-[#B4A596] uppercase tracking-widest">
+                  Not a member? <Link to="/signup" className="text-[#1A1816] hover:underline">Join the Sanctuary</Link>
+               </p>
+            </div>
 
             <div className="pt-12 text-center opacity-40">
                <p className="text-[8px] font-bold uppercase tracking-[0.5em] flex items-center justify-center gap-4">

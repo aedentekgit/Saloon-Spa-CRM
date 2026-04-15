@@ -10,12 +10,15 @@ import { SettingsProvider } from './context/SettingsContext';
 // Components
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
+import MobileFooter from './components/MobileFooter';
 import { NotificationContainer } from './components/ZenNotification';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import ScrollToTop from './components/ScrollToTop';
 
 // Pages
 // Pages - Administrative
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Appointments from './pages/Appointments';
@@ -45,6 +48,7 @@ import PublicLayout from './components/landing/PublicLayout';
 import Home from './pages/landing/Home';
 import About from './pages/landing/About';
 import LandingServices from './pages/landing/LandingServices';
+import LandingRooms from './pages/landing/LandingRooms';
 import OurTeam from './pages/landing/OurTeam';
 import Contact from './pages/landing/Contact';
 
@@ -87,7 +91,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scrollbar-hide bg-white/80 backdrop-blur-xl rounded-none lg:rounded-[3rem] shadow-2xl border border-zen-brown/5 scroll-smooth relative">
+        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scrollbar-hide bg-white/80 backdrop-blur-xl rounded-none lg:rounded-[3rem] shadow-2xl border border-zen-brown/15 scroll-smooth relative pb-24 lg:pb-0">
           <Navbar 
             onMenuClick={() => setIsMobileMenuOpen(true)} 
             isCollapsed={isCollapsed}
@@ -109,6 +113,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </AnimatePresence>
         </main>
       </div>
+      
+      <MobileFooter />
     </div>
   );
 };
@@ -122,10 +128,12 @@ const AppRoutes = () => {
       <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
       <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
       <Route path="/landing-services" element={<PublicLayout><LandingServices /></PublicLayout>} />
+      <Route path="/landing-rooms" element={<PublicLayout><LandingRooms /></PublicLayout>} />
       <Route path="/team" element={<PublicLayout><OurTeam /></PublicLayout>} />
       <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
       
       <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
 
       {/* Protected Dashboards */}
       <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
@@ -168,6 +176,7 @@ export default function App() {
           <CategoryProvider>
             <DataProvider>
               <Router>
+                <ScrollToTop />
                 <ErrorBoundary>
                   <AppRoutes />
                 </ErrorBoundary>

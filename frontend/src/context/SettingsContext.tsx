@@ -17,6 +17,8 @@ interface SettingsData {
   };
   theme: {
     primaryColor: string;
+    headingFont?: string;
+    bodyFont?: string;
     darkMode: boolean;
   };
   upload: {
@@ -41,6 +43,71 @@ interface SettingsContextType {
   refreshSettings: () => Promise<void>;
   updateSettings: (newData: Partial<SettingsData>) => Promise<void>;
 }
+
+const DEFAULT_SIDEBAR_START = '#2D1622';
+const DEFAULT_SIDEBAR_END = '#3D2632';
+
+const normalizeHexColor = (color: string) => {
+  const value = color.trim().replace(/^#/, '');
+  if (/^[0-9a-fA-F]{3}$/.test(value)) {
+    return value.split('').map(ch => ch + ch).join('').toUpperCase();
+  }
+  if (/^[0-9a-fA-F]{6}$/.test(value)) {
+    return value.toUpperCase();
+  }
+  return null;
+};
+
+const hexToRgb = (hex: string) => {
+  const normalized = normalizeHexColor(hex);
+  if (!normalized) return null;
+
+  const parsed = parseInt(normalized, 16);
+  return {
+    r: (parsed >> 16) & 255,
+    g: (parsed >> 8) & 255,
+    b: parsed & 255
+  };
+};
+
+const rgbToHex = (r: number, g: number, b: number) => {
+  const clamp = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
+  return `#${[clamp(r), clamp(g), clamp(b)].map(value => value.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+};
+
+const mixHexColors = (baseColor: string, targetColor: string, ratio: number) => {
+  const base = hexToRgb(baseColor);
+  const target = hexToRgb(targetColor);
+  if (!base || !target) return baseColor;
+
+  return rgbToHex(
+    base.r + (target.r - base.r) * ratio,
+    base.g + (target.g - base.g) * ratio,
+    base.b + (target.b - base.b) * ratio
+  );
+};
+
+const deriveSidebarGradient = (primaryColor?: string) => {
+  if (!primaryColor) {
+    return {
+      start: DEFAULT_SIDEBAR_START,
+      end: DEFAULT_SIDEBAR_END
+    };
+  }
+
+  const base = normalizeHexColor(primaryColor);
+  if (!base) {
+    return {
+      start: DEFAULT_SIDEBAR_START,
+      end: DEFAULT_SIDEBAR_END
+    };
+  }
+
+  return {
+    start: mixHexColors(base, '#000000', 0.2),
+    end: mixHexColors(base, '#FFFFFF', 0.18)
+  };
+};
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
@@ -96,14 +163,58 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     fetchSettings();
   }, [user]);
 
-  // Update Favicon and Title
+  // Update Favicon, Title and Dynamic Theme
   useEffect(() => {
-    if (settings && settings.general) {
+    if (settings) {
       // Update Title
-      document.title = settings.general.siteName || 'Spa & Saloon CRM';
+      if (settings.general) {
+        document.title = settings.general.siteName || 'Spa & Saloon CRM';
+      }
+
+    // Update Theme Colors & Fonts (Dynamic CSS Variables)
+    if (settings.theme) {
+      const root = document.documentElement;
+      const sidebarGradient = deriveSidebarGradient(settings.theme.primaryColor);
+      
+      if (settings.theme.primaryColor) {
+        root.style.setProperty('--zen-sand', settings.theme.primaryColor);
+        root.style.setProperty('--zen-brown', settings.theme.primaryColor);
+      }
+
+      root.style.setProperty('--sidebar-gradient-start', sidebarGradient.start);
+      root.style.setProperty('--sidebar-gradient-end', sidebarGradient.end);
+
+      if (settings.theme.headingFont || settings.theme.bodyFont) {
+        const hFont = settings.theme.headingFont || 'Italiana';
+        const bFont = settings.theme.bodyFont || 'Plus Jakarta Sans';
+        
+        root.style.setProperty('--font-serif', `"${hFont}", serif`);
+        root.style.setProperty('--font-sans', `"${bFont}", sans-serif`);
+
+        // Dynamically load Google Fonts
+        const fontLink = document.getElementById('dynamic-google-fonts') as HTMLLinkElement;
+        const fontsToLoad = [hFont, bFont].filter(Boolean);
+        const fontQuery = fontsToLoad.map(f => `family=${f.replace(/\s+/g, '+')}:wght@300;400;500;600;700;800`).join('&');
+        const url = `https://fonts.googleapis.com/css2?${fontQuery}&display=swap`;
+
+        if (fontLink) {
+          fontLink.href = url;
+        } else {
+          const link = document.createElement('link');
+          link.id = 'dynamic-google-fonts';
+          link.rel = 'stylesheet';
+          link.href = url;
+          document.head.appendChild(link);
+        }
+      }
+    } else {
+      const root = document.documentElement;
+      root.style.setProperty('--sidebar-gradient-start', DEFAULT_SIDEBAR_START);
+      root.style.setProperty('--sidebar-gradient-end', DEFAULT_SIDEBAR_END);
+    }
 
       // Update Favicon
-      if (settings.general.logo) {
+      if (settings.general && settings.general.logo) {
         const logoUrl = settings.general.logo.startsWith('http') 
           ? settings.general.logo 
           : `${API_URL.split('/api')[0]}/${settings.general.logo.replace(/^\.?\//, '')}`;

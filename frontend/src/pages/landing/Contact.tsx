@@ -33,11 +33,8 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
-      {/* Header Spacer */}
-      <div className="h-40" />
-
       {/* Hero Section */}
-      <section className="px-6 lg:px-24 mb-32">
+      <section className="px-6 lg:px-24 mb-16">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-center">
           <div className="space-y-12 animate-in fade-in slide-in-from-left-8 duration-1000">
              <div className="space-y-6">
@@ -200,7 +197,7 @@ const Contact = () => {
               className="w-full h-full object-cover grayscale opacity-40 group-hover:opacity-60 transition-opacity"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#32172A]/20 to-transparent" />
-            <div className="relative p-12 backdrop-blur-2xl bg-white/40 border border-white/50 rounded-[3rem] shadow-2xl flex flex-col items-center gap-6 text-center animate-bounce-slow">
+            <div className="relative p-12 backdrop-blur-2xl bg-white/40 border border-white/80 rounded-[3rem] shadow-2xl flex flex-col items-center gap-6 text-center animate-bounce-slow">
                <div className="p-4 bg-[#4A2C40] text-white rounded-2xl shadow-xl">
                   <MapPin size={32} />
                </div>

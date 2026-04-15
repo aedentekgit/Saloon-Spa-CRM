@@ -6,6 +6,7 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
 import { useAuth } from '../context/AuthContext';
 import { ZenPageLayout } from '../components/zen/ZenLayout';
+import { ZenPagination } from '../components/zen/ZenPagination';
 import { ZenBadge, ZenButton, ZenIconButton } from '../components/zen/ZenButtons';
 import { notify } from '../components/ZenNotification';
 import { ZenDropdown, ZenInput } from '../components/zen/ZenInputs';
@@ -28,6 +29,8 @@ const Shifts = () => {
   const { selectedBranch } = useBranches();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_shift_view') as 'grid' | 'table') || 'grid';
   });
@@ -64,7 +67,7 @@ const Shifts = () => {
 
   useEffect(() => {
     fetchShifts();
-  }, [selectedBranch]);
+  }, [selectedBranch, page]);
 
   useEffect(() => {
     const calculateDuration = () => {
@@ -89,6 +92,8 @@ const Shifts = () => {
   const fetchShifts = async () => {
     try {
       const url = new URL(`${API_URL}/shifts`);
+      url.searchParams.append('page', page.toString());
+      url.searchParams.append('limit', '10');
       if (selectedBranch && selectedBranch !== 'all') {
         url.searchParams.append('branch', selectedBranch);
       }
@@ -96,11 +101,16 @@ const Shifts = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) {
+      if (data.data) {
+        setShifts(data.data);
+        setTotalPages(data.pagination?.pages || 1);
+      } else if (Array.isArray(data)) {
         setShifts(data);
+        setTotalPages(1);
       }
     } catch (error) {
       notify('error', 'Error', 'Failed to retrieve shifts');
+      setTotalPages(1);
     }
   };
 
@@ -225,7 +235,7 @@ const Shifts = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className={`bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-zen-brown/5 shadow-2xl shadow-zen-brown/5 group relative overflow-hidden ${shift.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}
+                className={`bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 group relative overflow-hidden ${shift.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}
               >
                  <div className="absolute top-0 right-0 p-6 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
                     <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(shift)} className="bg-white/80" />
@@ -243,7 +253,7 @@ const Shifts = () => {
                  </div>
 
                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-zen-cream/20 rounded-2xl border border-zen-brown/5">
+                    <div className="flex items-center justify-between p-4 bg-zen-cream/20 rounded-2xl border border-zen-brown/15">
                        <div className="flex items-center gap-3">
                           <Calendar size={14} className="text-zen-brown/30" />
                           <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Interval</span>
@@ -269,7 +279,7 @@ const Shifts = () => {
 
           {filteredShifts.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-40 text-zen-brown/20 space-y-4">
-              <div className="w-24 h-24 rounded-full border-2 border-dashed border-zen-brown/10 flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full border-2 border-dashed border-zen-brown/25 flex items-center justify-center">
                 <Clock size={40} strokeWidth={1} />
               </div>
               <p className="font-serif italic text-lg">No shift sequences established in this sanctuary</p>
@@ -277,11 +287,11 @@ const Shifts = () => {
           )}
         </div>
       ) : (
-        <div className="bg-white/80 backdrop-blur-xl rounded-[3rem] shadow-2xl overflow-hidden border border-zen-brown/5">
+        <div className="bg-white/80 backdrop-blur-xl rounded-[3rem] shadow-2xl overflow-hidden border border-zen-brown/15">
            <table className="w-full text-center border-collapse">
               <thead>
-                 <tr className="bg-zen-cream/10 border-b border-zen-brown/5">
-                    <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">S NO</th>
+                 <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
+                    <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
                     <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Shift Identity</th>
                     <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Interval</th>
                     <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Duration</th>
@@ -289,7 +299,7 @@ const Shifts = () => {
                     <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Actions</th>
                  </tr>
               </thead>
-              <tbody className="divide-y divide-zen-brown/5">
+              <tbody className="divide-y divide-zen-brown/15">
                  {filteredShifts.map((shift, idx) => (
                     <tr key={shift._id} className={`hover:bg-zen-cream/5 transition-all group ${shift.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}>
                        <td className="px-8 py-8 text-zen-brown/40 font-serif">{(idx + 1).toString().padStart(2, '0')}</td>
@@ -324,9 +334,11 @@ const Shifts = () => {
         </div>
       )}
 
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingShift ? 'Refine Shift' : 'Configure New Shift'} maxWidth="max-w-2xl">
          <form onSubmit={handleSubmit} className="p-8 space-y-8">
-            <div className="bg-zen-cream/30 p-8 rounded-[2.5rem] border border-zen-brown/5 space-y-8">
+            <div className="bg-zen-cream/30 p-8 rounded-[2.5rem] border border-zen-brown/15 space-y-8">
                <ZenInput 
                  label="Shift Identity" 
                  placeholder="e.g. Morning Zen" 
