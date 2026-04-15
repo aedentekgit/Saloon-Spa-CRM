@@ -76,7 +76,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const frontendPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(frontendPath));
 
-// Routes
+// API Routes (Preferred with /api prefix)
 app.use('/api/users', userRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/roles', roleRoutes);
@@ -97,6 +97,28 @@ app.use('/api/memberships', require('./routes/membershipRoutes'));
 app.use('/api/categories', categoryRoutes);
 app.use('/api/shifts', shiftRoutes);
 app.use('/api/gst', require('./routes/gstRoutes'));
+
+// Fallback legacy routes (Handles cases where /api prefix is missing in Frontend URL)
+app.use('/users', userRoutes);
+app.use('/settings', settingsRoutes);
+app.use('/roles', roleRoutes);
+app.use('/admins', require('./routes/adminRoutes'));
+app.use('/employees', employeeRoutes);
+app.use('/clients', clientRoutes);
+app.use('/services', serviceRoutes);
+app.use('/rooms', roomRoutes);
+app.use('/appointments', appointmentRoutes);
+app.use('/attendance', attendanceRoutes);
+app.use('/leaves', leaveRoutes);
+app.use('/invoices', invoiceRoutes);
+app.use('/expenses', expenseRoutes);
+app.use('/inventory', inventoryRoutes);
+app.use('/whatsapp', whatsAppRoutes);
+app.use('/branches', branchRoutes);
+app.use('/memberships', require('./routes/membershipRoutes'));
+app.use('/categories', categoryRoutes);
+app.use('/shifts', shiftRoutes);
+app.use('/gst', require('./routes/gstRoutes'));
 
 // Root route / Health check
 app.get('/api/health', (req, res) => {
