@@ -68,7 +68,7 @@ export const ZenDropdown = ({
             ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[2.5rem] max-h-[70vh]' : 'rounded-[2rem] max-h-60'}
           `}
           style={window.innerWidth >= 640 ? {
-            width: dropdownRef.current?.getBoundingClientRect().width,
+            minWidth: Math.max(160, dropdownRef.current?.getBoundingClientRect().width || 0),
             left: dropdownRef.current?.getBoundingClientRect().left,
             top: (dropdownRef.current?.getBoundingClientRect().bottom || 0) + 8
           } : {}}
@@ -387,7 +387,7 @@ export const ZenTextarea = ({ label, ...props }: any) => (
   </div>
 );
 
-export const ZenMonthPicker = ({ label, value, onChange, className = "" }: any) => {
+export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLabel }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -420,17 +420,17 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "" }: any) 
 
   return (
     <div className={`relative group ${className}`} ref={containerRef}>
-      <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] block mb-4">{label}</label>
+      {!hideLabel && <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] block mb-4">{label}</label>}
       
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between cursor-pointer group/trigger"
       >
-        <div className="flex items-center gap-5">
-          <div className="w-10 h-10 rounded-2xl bg-zen-cream/30 flex items-center justify-center text-zen-brown/30 group-hover/trigger:text-zen-brown transition-all duration-500">
-            <Calendar size={18} strokeWidth={1.5} />
+         <div className="flex items-center gap-4">
+          <div className="w-9 h-9 rounded-xl bg-zen-cream/30 flex items-center justify-center text-zen-brown/30 group-hover/trigger:text-zen-brown transition-all duration-500">
+            <Calendar size={16} strokeWidth={1.5} />
           </div>
-          <span className="text-2xl font-serif font-bold text-zen-brown tracking-tight">
+          <span className="text-lg font-serif font-bold text-zen-brown tracking-tight">
             {selectedMonth.label}
           </span>
         </div>
@@ -440,7 +440,7 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "" }: any) 
         />
       </div>
 
-      <div className="h-px w-full bg-zen-brown/5 mt-6 mb-2" />
+       <div className="h-px w-full bg-zen-brown/5 mt-4 mb-1" />
 
       {isOpen && createPortal(
         <div 

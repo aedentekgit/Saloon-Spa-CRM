@@ -8,19 +8,49 @@ const { paginateModelQuery } = require('../utils/pagination');
 const getInventory = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role !== 'Admin') {
+    const { search, branch } = req.query;
+
+    // Admin can see everything or filter by branch
+    // Managers/Staff can only see their own branch
+    if (req.user.role === 'Admin') {
+      if (branch && branch !== 'all') {
+        query.branch = branch;
+      }
+    } else {
       if (req.user.branch) {
         query.branch = req.user.branch;
       } else {
-        // If not admin and no branch, they shouldn't see anything or only non-branch items
         query.branch = null; 
       }
     }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } },
+        { vendor: { $regex: search, $options: 'i' } }
+      ];
+    }
+
     const { data, pagination } = await paginateModelQuery(Inventory, query, req, {
       populate: { path: 'branch', select: 'name' },
       sort: { name: 1 }
     });
-    res.json(pagination ? { data, pagination } : data);
+
+    // Fetch metrics for the filtered view
+    const totalItems = await Inventory.countDocuments(query);
+    const lowStockItems = await Inventory.countDocuments({ ...query, $expr: { $lte: ['$stock', '$lowStock'] } });
+    const categories = await Inventory.distinct('category', query);
+
+    res.json(pagination ? { 
+      data, 
+      pagination,
+      metrics: {
+        totalItems,
+        lowStockCount: lowStockItems,
+        categoryCount: categories.length
+      }
+    } : { data, metrics: { totalItems, lowStockCount: lowStockItems, categoryCount: categories.length } });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -30,7 +60,7 @@ const getInventory = async (req, res) => {
 // @route   POST /api/inventory
 // @access  Private/Manager
 const createInventoryItem = async (req, res) => {
-  const { name, category, stock, lowStock, vendor, branch } = req.body;
+  const { name, category, stock, lowStock, vendor, branch, unit } = req.body;
   
   // IDOR Check
   const assignedBranch = branch || req.user.branch;
@@ -51,6 +81,7 @@ const createInventoryItem = async (req, res) => {
       stock,
       lowStock,
       vendor,
+      unit,
       branch: assignedBranch || null,
       image
     });
@@ -85,6 +116,7 @@ const updateInventoryItem = async (req, res) => {
     item.stock = req.body.stock !== undefined ? req.body.stock : item.stock;
     item.lowStock = req.body.lowStock !== undefined ? req.body.lowStock : item.lowStock;
     item.vendor = req.body.vendor || item.vendor;
+    item.unit = req.body.unit || item.unit;
     
     if (isAdmin && req.body.branch) {
       item.branch = req.body.branch;

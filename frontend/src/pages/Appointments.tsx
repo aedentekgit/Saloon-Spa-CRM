@@ -430,7 +430,7 @@ const Appointments = () => {
       <div className="flex flex-col lg:flex-row gap-10">
         <div className="flex-1 space-y-8">
            {/* Calendar Controls - Now visible in both Grid and Table view */}
-            <div className="bg-white/80 backdrop-blur-xl p-4 sm:p-8 rounded-[1.5rem] sm:rounded-[3.5rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/15 flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
+            <div className="bg-white/80 backdrop-blur-xl p-4 sm:p-8 rounded-[1.5rem] sm:rounded-[3.5rem] border border-zen-brown/25 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full xl:w-auto">
                   <div className="flex items-center gap-2 sm:gap-3 bg-zen-cream/30 p-1.5 sm:p-2 rounded-full w-full xl:w-auto justify-between sm:justify-start">
                      <ZenIconButton icon={ChevronLeft} onClick={handlePrev} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
@@ -457,7 +457,7 @@ const Appointments = () => {
              <>
 
                {/* Calendar View Area */}
-               <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-zen-brown/25 overflow-hidden shadow-2xl shadow-zen-brown/15 min-h-[500px]">
+               <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-zen-brown/25 overflow-hidden shadow-sm min-h-[500px]">
                   {loading ? (
                      <div className="flex flex-col items-center justify-center h-[500px]">
                         <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
@@ -488,7 +488,7 @@ const Appointments = () => {
                                     days.push(
                                        <div 
                                          key={d} 
-                                         className={`relative min-h-[60px] sm:min-h-[100px] p-2 sm:p-4 rounded-xl sm:rounded-[1.5rem] transition-all duration-500 cursor-pointer group hover:bg-white hover:shadow-2xl hover:-translate-y-1 ${isToday ? 'bg-zen-brown text-white shadow-xl' : 'bg-white/60 border border-zen-brown/15'}`}
+                                         className={`relative min-h-[60px] sm:min-h-[100px] p-2 sm:p-4 rounded-xl sm:rounded-[1.5rem] transition-all duration-500 cursor-pointer group hover:bg-white hover:shadow-sm hover:-translate-y-1 ${isToday ? 'bg-zen-brown text-white shadow-xl' : 'bg-white/60 border border-zen-brown/15'}`}
                                          onClick={() => {
                                             setSelectedDate(startOfMonth.date(d));
                                             setViewType('Day');
@@ -521,7 +521,7 @@ const Appointments = () => {
                   ) : (
                      <div className="p-4 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 animate-in fade-in zoom-in duration-1000 pb-20 sm:pb-8">
                         {filteredAppointments.map((apt) => (
-                           <div key={apt._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-8 shadow-2xl shadow-zen-brown/15 border border-zen-brown/25 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
+                           <div key={apt._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-8 shadow-sm border border-zen-brown/25 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
                               <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                               
                               <div className="relative z-10">
@@ -532,8 +532,8 @@ const Appointments = () => {
                                           <p className="text-[10px] sm:text-xs font-serif font-black">{apt.time || '--:--'}</p>
                                        </div>
                                        <div className="min-w-0">
-                                          <h3 className="text-lg sm:text-xl font-serif font-bold text-zen-brown tracking-tight leading-none group-hover:translate-x-1 transition-transform duration-500 truncate">{apt.client}</h3>
-                                          <p className="text-[9px] sm:text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em] mt-1.5 italic truncate">{apt.employee}</p>
+                                          <h3 className="text-2xl sm:text-3xl font-serif font-black text-zen-brown tracking-tighter leading-none group-hover:translate-x-1 transition-transform duration-500 truncate">{apt.client}</h3>
+                                          <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[.4em] mt-2 italic truncate">{apt.employee}</p>
                                        </div>
                                     </div>
                                     <div className="flex gap-1.5 sm:gap-2 shrink-0">
@@ -579,26 +579,26 @@ const Appointments = () => {
              </>
            ) : (
              /* Table View Area */
-             <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-zen-brown/25 overflow-hidden overflow-x-auto">
+             <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-sm border border-zen-brown/25 overflow-hidden overflow-x-auto">
                <table className="w-full text-center border-collapse min-w-[800px]">
                  <thead>
-                   <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
-                     <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Identity</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Ritual</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Sanctuary</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Temporal Index</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Actions</th>
+                   <tr className="bg-zen-brown border-b border-zen-brown/15">
+                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Identity</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Ritual</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Sanctuary</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Temporal Index</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Actions</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-zen-brown/15">
                     {filteredAppointments.map((apt, idx) => (
                        <tr key={apt._id} className="hover:bg-zen-cream/5 transition-all group">
                          <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</td>
-                         <td className="px-6 py-6">
+                         <td className="px-10 py-5">
                            <div className="flex flex-col items-center">
-                             <span className="font-serif font-bold text-zen-brown">{apt.client}</span>
-                             <span className="text-[10px] text-zen-brown/30 uppercase tracking-[0.2em]">{apt.employee}</span>
+                             <span className="font-serif text-lg text-zen-brown font-black tracking-tight leading-tight">{apt.client}</span>
+                             <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">{apt.employee}</span>
                            </div>
                          </td>
                          <td className="px-6 py-6">
@@ -637,7 +637,7 @@ const Appointments = () => {
 
         {/* Sidebar */}
         <div className="w-full lg:w-96 space-y-6 sm:space-y-10">
-           <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/15 transition-all duration-700 hover:-translate-y-2">
+           <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border border-zen-brown/25 shadow-sm transition-all duration-700 hover:-translate-y-2">
               <h3 className="text-xl sm:text-2xl font-serif font-bold text-zen-brown mb-6 sm:mb-10 tracking-tight">Daily Insight</h3>
               <div className="space-y-6 sm:space-y-8">
                  <div className="bg-zen-cream/30 p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-zen-brown/25 group hover:bg-white transition-all duration-500">
@@ -648,7 +648,7 @@ const Appointments = () => {
               </div>
            </div>
 
-           <div className="bg-zen-brown p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] text-white shadow-2xl shadow-zen-brown/20 relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
+           <div className="bg-zen-brown p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] text-white shadow-sm relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
               <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-125 transition-transform duration-1000">
                  <Sparkles size={150} />
               </div>

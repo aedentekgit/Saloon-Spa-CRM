@@ -31,6 +31,11 @@ const inventorySchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Branch'
   },
+  unit: {
+    type: String,
+    enum: ['kg', 'L', 'gm', 'ml', 'Nos', 'Pack', 'Bottle'],
+    default: 'Nos'
+  },
   image: {
     type: String
   }

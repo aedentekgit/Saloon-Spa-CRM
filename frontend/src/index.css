@@ -135,6 +135,30 @@
   .card-padding {
     @apply p-4 sm:p-6 lg:p-8;
   }
+
+  .custom-scrollbar {
+    -ms-overflow-style: auto !important;
+    scrollbar-width: thin !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    display: block !important;
+    height: 4px !important;
+    width: 4px !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 20px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
 }
 
 /* Custom animations */
@@ -196,6 +220,21 @@
   animation: spin-slow 12s linear infinite;
 }
 
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(-5%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s infinite;
+}
+
 /* Global Tabular Theme Styles */
 @layer base {
   table {
@@ -209,17 +248,17 @@
   table thead th {
     background-color: var(--zen-primary) !important;
     color: var(--zen-contrast-text) !important;
-    @apply py-6 px-10 text-[10px] font-bold uppercase tracking-[0.3em] font-sans;
+    @apply py-4 px-8 text-[10px] font-bold uppercase tracking-[0.3em] font-sans;
     border: none !important;
   }
 
   /* Extreme Sacred Geometry - Rounded Header Corners */
   table thead tr th:first-child {
-    @apply rounded-none px-10;
+    @apply rounded-none px-8;
   }
 
   table thead tr th:last-child {
-    @apply rounded-none px-10;
+    @apply rounded-none px-8;
   }
 
   table tbody tr {

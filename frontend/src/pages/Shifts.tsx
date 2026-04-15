@@ -235,7 +235,7 @@ const Shifts = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className={`bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 group relative overflow-hidden ${shift.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}
+                className={`bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-sm group relative overflow-hidden ${shift.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}
               >
                  <div className="absolute top-0 right-0 p-6 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
                     <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(shift)} className="bg-white/80" />
@@ -256,7 +256,7 @@ const Shifts = () => {
                     <div className="flex items-center justify-between p-4 bg-zen-cream/20 rounded-2xl border border-zen-brown/15">
                        <div className="flex items-center gap-3">
                           <Calendar size={14} className="text-zen-brown/30" />
-                          <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Interval</span>
+                          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Interval</span>
                        </div>
                        <span className="font-serif font-bold text-zen-brown">{shift.startTime} - {shift.endTime}</span>
                     </div>
@@ -287,16 +287,16 @@ const Shifts = () => {
           )}
         </div>
       ) : (
-        <div className="bg-white/80 backdrop-blur-xl rounded-[3rem] shadow-2xl overflow-hidden border border-zen-brown/15">
+        <div className="bg-white/80 backdrop-blur-xl rounded-[3rem] shadow-sm overflow-hidden border border-zen-brown/15">
            <table className="w-full text-center border-collapse">
               <thead>
-                 <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
-                    <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
-                    <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Shift Identity</th>
-                    <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Interval</th>
-                    <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Duration</th>
-                    <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Status</th>
-                    <th className="px-8 py-8 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Actions</th>
+                 <tr className="bg-zen-brown border-b border-zen-brown/15">
+                    <th className="px-8 py-8 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
+                    <th className="px-8 py-8 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Shift Identity</th>
+                    <th className="px-8 py-8 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Interval</th>
+                    <th className="px-8 py-8 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Duration</th>
+                    <th className="px-8 py-8 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Status</th>
+                    <th className="px-8 py-8 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Actions</th>
                  </tr>
               </thead>
               <tbody className="divide-y divide-zen-brown/15">

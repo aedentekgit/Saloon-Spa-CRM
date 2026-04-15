@@ -234,7 +234,7 @@ const Admins = () => {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
           {filteredAdmins.map((admin) => (
-            <div key={admin._id} className={`group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${admin.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
+            <div key={admin._id} className={`group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-sm border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${admin.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
 
               <div className="relative z-10">
@@ -284,10 +284,10 @@ const Admins = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-sm border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
+              <tr className="bg-zen-brown border-b border-zen-brown/15">
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center whitespace-nowrap">S NO</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Identity</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Email Hub</th>

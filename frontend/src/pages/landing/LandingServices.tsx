@@ -221,7 +221,7 @@ const LandingServices = () => {
                 return (
                   <div
                     key={service._id}
-                    className="group relative bg-white rounded-[3rem] overflow-hidden border border-[#32172A]/5 hover:shadow-2xl transition-all duration-700 animate-in fade-in slide-in-from-bottom-8"
+                    className="group relative bg-white rounded-[3rem] overflow-hidden border border-[#32172A]/5 hover:shadow-sm transition-all duration-700 animate-in fade-in slide-in-from-bottom-8"
                     style={{ animationDelay: `${i * 80}ms` }}
                   >
                     {/* Image */}
@@ -316,7 +316,7 @@ const LandingServices = () => {
             </p>
             <Link
               to="/contact"
-              className="inline-block px-14 py-6 bg-[#FAF9F6] text-[#32172A] rounded-full text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-[#E5BAD4] transition-all shadow-2xl"
+              className="inline-block px-14 py-6 bg-[#FAF9F6] text-[#32172A] rounded-full text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-[#E5BAD4] transition-all shadow-sm"
             >
               Request Consultation
             </Link>

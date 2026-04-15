@@ -67,7 +67,7 @@ const Home = () => {
             <div className="flex flex-col sm:flex-row gap-6 pt-6">
               <Link 
                 to="/landing-services"
-                className="group relative px-10 py-5 bg-zen-brown text-zen-cream rounded-full font-bold overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-zen-brown/20 text-center sm:text-left"
+                className="group relative px-10 py-5 bg-zen-brown text-zen-cream rounded-full font-bold overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-sm text-center sm:text-left"
               >
                 <span className="relative z-10 flex items-center justify-center sm:justify-start gap-2 uppercase tracking-widest text-[11px]">
                   Reservation Entry
@@ -102,7 +102,7 @@ const Home = () => {
 
           {/* Decorative Media Area */}
           <div className="relative animate-in fade-in zoom-in duration-1000 delay-300">
-            <div className="aspect-[4/5] w-full rounded-[3rem] md:rounded-[5rem] overflow-hidden shadow-2xl lg:skew-y-2">
+            <div className="aspect-[4/5] w-full rounded-[3rem] md:rounded-[5rem] overflow-hidden shadow-sm lg:skew-y-2">
                <img 
                  src="/images/hero_sanctuary.png" 
                  alt="Warm sanctuary interior with water and lantern light" 
@@ -110,7 +110,7 @@ const Home = () => {
                />
             </div>
             {/* Glass Card Overlay - Positioned for mobile/desktop */}
-            <div className="absolute -bottom-6 -left-4 md:-bottom-10 md:-left-10 p-6 md:p-10 backdrop-blur-3xl bg-white/40 border border-white/80 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl max-w-[280px] md:max-w-sm hidden sm:block">
+            <div className="absolute -bottom-6 -left-4 md:-bottom-10 md:-left-10 p-6 md:p-10 backdrop-blur-3xl bg-white/40 border border-white/80 rounded-[2.5rem] md:rounded-[3rem] shadow-sm max-w-[280px] md:max-w-sm hidden sm:block">
               <div className="flex items-center gap-4 mb-4">
                 <div className="p-3 bg-[#4A2C40]/10 rounded-2xl text-[#4A2C40]">
                   <Waves size={24} />
@@ -174,7 +174,7 @@ const Home = () => {
               { icon: Wind, title: 'Clarity', desc: 'Bespoke aromatics to clear the mind and sharpen focus.' },
               { icon: Sun, title: 'Vitality', desc: 'Energy restoration through light and warmth therapy.' },
             ].map((pill, i) => (
-              <div key={i} className="group p-8 md:p-10 bg-white border border-[#32172A]/5 rounded-[3rem] hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+              <div key={i} className="group p-8 md:p-10 bg-white border border-[#32172A]/5 rounded-[3rem] hover:shadow-sm transition-all duration-500 hover:-translate-y-2">
                 <div className="w-16 h-16 bg-[#4A2C40]/5 rounded-2xl flex items-center justify-center text-[#4A2C40] mb-8 group-hover:bg-[#4A2C40] group-hover:text-white transition-all duration-500">
                   <pill.icon size={32} />
                 </div>
@@ -211,10 +211,10 @@ const Home = () => {
            </div>
            
            <div className="grid grid-cols-2 gap-4">
-              <div className="aspect-[4/5] rounded-3xl overflow-hidden mt-12 shadow-2xl">
+              <div className="aspect-[4/5] rounded-3xl overflow-hidden mt-12 shadow-sm">
                  <img src={restorativePairings[0].img} alt={restorativePairings[0].title} className="w-full h-full object-cover" loading="lazy" />
               </div>
-              <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
+              <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-sm">
                  <img src={restorativePairings[1].img} alt={restorativePairings[1].title} className="w-full h-full object-cover" loading="lazy" />
               </div>
            </div>

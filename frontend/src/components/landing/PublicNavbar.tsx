@@ -102,71 +102,98 @@ const PublicNavbar = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] bg-[#FAF9F6] lg:hidden flex flex-col"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="fixed inset-0 z-[200] bg-[#FDFCFB] lg:hidden flex flex-col shadow-2xl overflow-y-auto"
           >
-            {/* Header Area */}
-            <div className="flex h-20 items-center justify-between px-6 border-b border-zen-primary/5">
+            {/* Elegant Header Area */}
+            <div className="flex h-24 shrink-0 items-center justify-between px-8 bg-[#FDFCFB] border-b border-zen-primary/5">
               <NavLink to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zen-primary text-zen-contrast">
-                  <Sparkles size={18} />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zen-primary text-zen-contrast shadow-xl shadow-zen-primary/20">
+                  <Sparkles size={20} />
                 </div>
-                <span className="font-serif text-lg font-bold tracking-[0.2em] uppercase text-black">ZenSpa</span>
+                <span className="font-serif text-xl font-bold tracking-[0.2em] uppercase text-black">ZenSpa</span>
               </NavLink>
               <button
                 onClick={() => setIsOpen(false)}
-                className="h-12 w-12 rounded-full border border-black/10 flex items-center justify-center text-black active:scale-90 transition-transform"
+                className="h-14 w-14 rounded-full bg-white border border-black/5 flex items-center justify-center text-black shadow-lg active:scale-95 transition-all"
               >
-                <X size={24} />
+                <X size={28} />
               </button>
             </div>
 
-            {/* Links Area */}
-            <div className="flex-1 flex flex-col justify-center items-center px-6 gap-y-8">
-              {navLinks.map((link, i) => (
-                <motion.div
-                  key={link.path}
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.08, ease: "easeOut" }}
-                >
-                  <NavLink
-                    to={link.path}
-                    onClick={() => setIsOpen(false)}
-                    className={({ isActive }) => `
-                      font-serif text-5xl md:text-6xl transition-all duration-500
-                      ${isActive ? 'italic text-zen-primary translate-x-2' : 'text-black/60 hover:text-black'}
-                    `}
+            {/* Links Area - Staggered & Refined */}
+            <div className="flex-1 flex flex-col justify-center px-10 relative">
+              {/* Subtle background decoration */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] -z-10 pointer-events-none">
+                <Sparkles size={400} />
+              </div>
+
+              <div className="space-y-10">
+                {navLinks.map((link, i) => (
+                  <motion.div
+                    key={link.path}
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 + 0.2, ease: "easeOut" }}
                   >
-                    {link.name}
-                  </NavLink>
-                </motion.div>
-              ))}
+                    <NavLink
+                      to={link.path}
+                      onClick={() => setIsOpen(false)}
+                      className={({ isActive }) => `
+                        group relative flex flex-col transition-all duration-500
+                        ${isActive ? 'text-zen-primary' : 'text-black/40 hover:text-black'}
+                      `}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <div className="flex items-center gap-4">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40">0{i + 1}</span>
+                            <span className={`font-serif text-5xl sm:text-6xl font-black leading-none tracking-tight transition-transform duration-500 group-hover:translate-x-4 ${isActive ? 'italic' : ''}`}>
+                              {link.name}
+                            </span>
+                          </div>
+                          {isActive && (
+                            <motion.div 
+                              layoutId="mobile-link-dot"
+                              className="absolute -left-6 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-zen-sand"
+                            />
+                          )}
+                        </>
+                      )}
+                    </NavLink>
+                  </motion.div>
+                ))}
+              </div>
             </div>
 
-            {/* Footer Buttons Area */}
-            <div className="p-8 pb-12 flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-4">
+            {/* Footer Area - Premium CTA */}
+            <div className="p-10 pb-12 space-y-8 bg-[#FDFCFB] border-t border-zen-primary/5">
+              <div className="flex flex-col gap-4">
                 <Link
                   to="/login"
                   onClick={() => setIsOpen(false)}
-                  className="rounded-full border border-black/10 bg-white py-5 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-black active:scale-95 transition-all"
+                  className="w-full rounded-2xl border border-black/10 bg-white py-6 text-center text-[11px] font-bold uppercase tracking-[0.3em] text-black active:scale-[0.98] transition-all shadow-sm hover:shadow-md"
                 >
                   Portal Access
                 </Link>
                 <Link
                   to="/contact"
                   onClick={() => setIsOpen(false)}
-                  className="rounded-full bg-zen-primary py-5 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-zen-contrast active:scale-95 transition-all shadow-xl shadow-zen-primary/20"
+                  className="w-full rounded-2xl bg-zen-primary py-6 text-center text-[11px] font-bold uppercase tracking-[0.3em] text-zen-contrast active:scale-[0.98] transition-all shadow-2xl shadow-zen-primary/30"
                 >
-                  Book Now
+                  Book Your Ritual
                 </Link>
               </div>
-              <p className="text-[10px] text-center text-black/30 uppercase tracking-[0.4em] mt-4 font-bold">
-                est. 2024 • the global sanctuary
-              </p>
+              
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-[1px] bg-black/10" />
+                <p className="text-[10px] text-black/30 uppercase tracking-[0.5em] font-black">
+                  Since 2024 • Doha, Qatar
+                </p>
+              </div>
             </div>
           </motion.div>
         )}

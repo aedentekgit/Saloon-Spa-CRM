@@ -99,7 +99,7 @@ const Contact = () => {
           </div>
 
           <div className="animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">
-             <div className="p-10 lg:p-16 bg-white border border-[#32172A]/5 rounded-[4rem] shadow-2xl relative">
+             <div className="p-10 lg:p-16 bg-white border border-[#32172A]/5 rounded-[4rem] shadow-sm relative">
                 {isSubmitted ? (
                   <div className="h-[500px] flex flex-col items-center justify-center text-center space-y-6 animate-in zoom-in duration-500">
                      <div className="w-24 h-24 bg-green-50 text-green-500 rounded-full flex items-center justify-center">
@@ -189,23 +189,24 @@ const Contact = () => {
       </section>
 
       {/* Map Placeholder */}
-      <section className="px-6 lg:px-24 pb-32">
-         <div className="max-w-7xl mx-auto h-[500px] bg-[#E4E2DE] rounded-[5rem] overflow-hidden flex items-center justify-center relative group">
+      <section className="px-4 md:px-6 lg:px-24 pb-20 md:pb-32 overflow-hidden">
+         <div className="max-w-7xl mx-auto h-[400px] md:h-[500px] bg-[#E4E2DE] rounded-3xl md:rounded-[4rem] lg:rounded-[5rem] overflow-hidden flex items-center justify-center lg:justify-end lg:pr-24 relative group">
             <img 
               src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80" 
               alt="Map Location" 
-              className="w-full h-full object-cover grayscale opacity-40 group-hover:opacity-60 transition-opacity"
+              className="absolute inset-0 w-full h-full object-cover grayscale opacity-40 group-hover:opacity-60 transition-opacity"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#32172A]/20 to-transparent" />
-            <div className="relative p-12 backdrop-blur-2xl bg-white/40 border border-white/80 rounded-[3rem] shadow-2xl flex flex-col items-center gap-6 text-center animate-bounce-slow">
-               <div className="p-4 bg-[#4A2C40] text-white rounded-2xl shadow-xl">
-                  <MapPin size={32} />
+            
+            <div className="relative p-6 md:p-10 lg:p-12 w-[90%] md:w-auto max-w-sm backdrop-blur-xl bg-white/40 border border-white/80 rounded-2xl md:rounded-[2.5rem] lg:rounded-[3rem] shadow-sm flex flex-col items-center gap-4 md:gap-6 text-center animate-bounce-slow">
+               <div className="p-3 md:p-4 bg-[#4A2C40] text-white rounded-xl md:rounded-2xl shadow-xl">
+                  <MapPin className="w-6 h-6 md:w-8 md:h-8" />
                </div>
                <div className="space-y-1">
-                  <h3 className="text-2xl font-serif font-bold text-[#32172A]">The Entrance</h3>
-                  <p className="text-sm text-[#32172A]/60">Equilibrium Valley, Doha</p>
+                  <h3 className="text-xl md:text-2xl font-serif font-bold text-[#32172A]">The Entrance</h3>
+                  <p className="text-xs md:text-sm text-[#32172A]/60">Equilibrium Valley, Doha</p>
                </div>
-               <button className="text-xs font-bold uppercase tracking-widest text-[#4A2C40] underline underline-offset-8">Gps coordinates</button>
+               <button className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-[#4A2C40] underline underline-offset-8 decoration-1">Gps coordinates</button>
             </div>
          </div>
       </section>

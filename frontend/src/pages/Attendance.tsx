@@ -309,7 +309,7 @@ const Attendance = () => {
     >
       <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
         <div className="w-full lg:w-[450px] space-y-6 sm:space-y-8 h-fit lg:sticky lg:top-8">
-           <div className="bg-white/90 backdrop-blur-2xl p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[4rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 text-center relative overflow-hidden group">
+           <div className="bg-white/90 backdrop-blur-2xl p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[4rem] border border-zen-brown/15 shadow-sm text-center relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-150 transition-transform duration-[2000ms] ease-out">
                  <Shield size={200} />
               </div>
@@ -378,10 +378,10 @@ const Attendance = () => {
               <ZenButton 
                 onClick={handleAttendance}
                 disabled={loading}
-                className={`w-full py-5 sm:py-6 rounded-[1.5rem] sm:rounded-[2rem] text-base sm:text-lg font-serif transition-all duration-700 ${isCheckedIn ? 'bg-[#FF6B6B] hover:bg-[#FF5252] shadow-2xl shadow-red-500/20' : 'bg-zen-brown hover:bg-zen-brown/90 shadow-2xl shadow-zen-brown/30'} ${loading ? 'opacity-50 cursor-wait' : ''}`}
+                className={`w-full py-5 sm:py-6 rounded-[1.5rem] sm:rounded-[2rem] text-base sm:text-lg font-serif transition-all duration-700 ${isCheckedIn ? 'bg-[#FF6B6B] hover:bg-[#FF5252] shadow-sm shadow-red-500/20' : 'bg-zen-brown hover:bg-zen-brown/90 shadow-sm'} ${loading ? 'opacity-50 cursor-wait' : ''}`}
               >
                   <span className="flex items-center justify-center gap-3 sm:gap-4">
-                     {loading ? <Loader2 className="animate-spin" size={20} className="sm:w-6 sm:h-6" /> : (isCheckedIn ? <LogOut size={20} className="sm:w-6 sm:h-6" /> : <LogIn size={20} className="sm:w-6 sm:h-6" />)}
+                     {loading ? <Loader2 className="animate-spin sm:w-6 sm:h-6" size={20} /> : (isCheckedIn ? <LogOut size={20} className="sm:w-6 sm:h-6" /> : <LogIn size={20} className="sm:w-6 sm:h-6" />)}
                      <span className="tracking-tight">{loading ? 'Processing Flow...' : isCheckedIn ? 'Terminate Presence' : 'Establish Presence'}</span>
                   </span>
               </ZenButton>
@@ -408,7 +408,7 @@ const Attendance = () => {
         </div>
 
         <div className="flex-1 space-y-6 sm:space-y-8">
-           <div className="bg-white/80 backdrop-blur-md rounded-[2.5rem] sm:rounded-[4rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15 min-h-[500px] sm:min-h-[700px] flex flex-col">
+           <div className="bg-white/80 backdrop-blur-md rounded-[2.5rem] sm:rounded-[4rem] border border-zen-brown/15 overflow-hidden shadow-sm min-h-[500px] sm:min-h-[700px] flex flex-col">
               <div className="px-12 py-12 border-b border-zen-brown/15 flex justify-between items-center bg-white/40">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Financial Sequence</h3>
@@ -446,7 +446,7 @@ const Attendance = () => {
                                    <span className="font-serif text-lg text-zen-brown font-bold tracking-tight">{dayjs(row.date).format('MMM DD, YYYY')}</span>
                                    <div className="flex items-center gap-2 mt-1">
                                       <Clock size={10} className="text-zen-sand" />
-                                      <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">{row.checkIn} — {row.checkOut}</span>
+                                      <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{row.checkIn} — {row.checkOut}</span>
                                    </div>
                                 </div>
                              </td>

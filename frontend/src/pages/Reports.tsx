@@ -104,7 +104,7 @@ const Reports = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-10">
-        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 group">
+        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-sm group">
            <div className="flex items-center justify-between mb-10">
               <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight flex items-center gap-4">
                  <Activity size={24} className="text-zen-sand" />
@@ -142,7 +142,7 @@ const Reports = () => {
            </div>
         </div>
 
-        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
+        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-sm">
            <div className="flex items-center justify-between mb-10">
               <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight flex items-center gap-4">
                  <PieIcon size={24} className="text-zen-sand" />
@@ -180,7 +180,7 @@ const Reports = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
+        <div className="lg:col-span-2 bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-sm">
            <div className="flex items-center justify-between mb-10">
               <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight flex items-center gap-4">
                  <BarChart3 size={24} className="text-zen-sand" />
@@ -213,7 +213,7 @@ const Reports = () => {
            </div>
         </div>
 
-        <div className="bg-zen-brown p-10 rounded-[3rem] shadow-2xl shadow-zen-brown/20 relative overflow-hidden group">
+        <div className="bg-zen-brown p-10 rounded-[3rem] shadow-sm relative overflow-hidden group">
            <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-125 transition-transform duration-1000">
               <Sparkles size={160} />
            </div>
@@ -268,7 +268,7 @@ const Reports = () => {
 
               <div className="pt-8 border-t border-white/5">
                  <div className="flex items-center gap-4 p-6 bg-white/5 rounded-[2rem] border border-white/5">
-                    <div className="p-4 bg-emerald-500 rounded-2xl text-white shadow-2xl shadow-emerald-500/20">
+                    <div className="p-4 bg-emerald-500 rounded-2xl text-white shadow-sm shadow-emerald-500/20">
                        <TrendingUp size={24} />
                     </div>
                     <div>

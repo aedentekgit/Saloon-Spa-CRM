@@ -166,7 +166,7 @@ const Leave = () => {
     >
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
         <div className="lg:col-span-1 space-y-8">
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 transition-all duration-700 hover:-translate-y-2">
+           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3.5rem] border border-white shadow-sm transition-all duration-700 hover:-translate-y-2">
               <h3 className="text-xl font-serif font-bold text-zen-brown mb-6 flex items-center gap-3">
                  <CalendarDays size={20} className="text-zen-sand" />
                  Pause Balances
@@ -174,7 +174,7 @@ const Leave = () => {
               <div className="space-y-4">
                  <div className="group p-5 bg-zen-cream/30 rounded-3xl border border-zen-brown/15 hover:bg-white transition-all duration-500">
                     <div className="flex justify-between items-center mb-1">
-                       <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Ritual Leave</span>
+                       <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Ritual Leave</span>
                        <span className="text-lg font-serif font-bold text-zen-brown">8</span>
                     </div>
                     <div className="h-1 bg-zen-brown/5 rounded-full overflow-hidden">
@@ -194,7 +194,7 @@ const Leave = () => {
 
                  <div className="group p-5 bg-zen-brown/5 rounded-3xl border border-zen-brown/25 hover:bg-white transition-all duration-500">
                     <div className="flex justify-between items-center mb-1">
-                       <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Casual Drift</span>
+                       <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Casual Drift</span>
                        <span className="text-lg font-serif font-bold text-zen-brown">2</span>
                     </div>
                     <div className="h-1 bg-zen-brown/10 rounded-full overflow-hidden">
@@ -204,7 +204,7 @@ const Leave = () => {
               </div>
            </div>
 
-           <div className="bg-zen-brown p-10 rounded-[3.5rem] text-white shadow-2xl shadow-zen-brown/20 relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
+           <div className="bg-zen-brown p-10 rounded-[3.5rem] text-white shadow-sm relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-1000">
                  <Sparkles size={120} />
               </div>
@@ -215,7 +215,7 @@ const Leave = () => {
         </div>
 
         <div className="lg:col-span-3">
-           <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/15 h-full flex flex-col">
+           <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-sm h-full flex flex-col">
               <div className="px-10 py-10 border-b border-zen-brown/15 flex justify-between items-center bg-white/40">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Pause Registry</h3>
@@ -367,7 +367,7 @@ const Leave = () => {
 
            <div className="pt-4 flex gap-4">
               <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Discard</ZenButton>
-              <ZenButton type="submit" className="flex-[2] py-5 rounded-[2rem] shadow-2xl shadow-zen-brown/20">
+              <ZenButton type="submit" className="flex-[2] py-5 rounded-[2rem] shadow-sm">
                  Dispatch Application
               </ZenButton>
            </div>

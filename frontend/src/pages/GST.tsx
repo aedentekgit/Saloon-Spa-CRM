@@ -29,12 +29,19 @@ const GST = () => {
     percentage: 0,
     isActive: false
   });
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
+    return (localStorage.getItem('zen_tax_view') as 'grid' | 'table') || 'grid';
+  });
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     fetchRates();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('zen_tax_view', viewMode);
+  }, [viewMode]);
 
   const fetchRates = async () => {
     try {
@@ -130,11 +137,13 @@ const GST = () => {
       addButtonLabel="Initialize Rate"
       onAddClick={() => setIsModalOpen(true)}
       addButtonIcon={<Plus size={18} />}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
     >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-1 space-y-8">
            {/* Global Toggle Card */}
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 relative overflow-hidden group">
+           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/15 shadow-sm relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-1000">
                  <Percent size={120} />
               </div>
@@ -146,7 +155,7 @@ const GST = () => {
                  <div className="flex items-center justify-between p-6 bg-zen-cream/30 rounded-[2rem] border border-zen-brown/15 transition-all">
                     <div>
                        <span className="text-sm font-bold text-zen-brown tracking-tight">Tax Application</span>
-                       <p className="text-[9px] text-zen-brown/40 uppercase tracking-widest mt-1">
+                       <p className="text-[9px] text-white/40 uppercase tracking-widest mt-1">
                           {settings?.billing?.gstEnabled ? 'Currently Active' : 'Suspended'}
                        </p>
                     </div>
@@ -172,7 +181,7 @@ const GST = () => {
               </div>
            </div>
 
-           <div className="bg-zen-brown p-10 rounded-[3rem] text-white shadow-2xl shadow-zen-brown/20 relative overflow-hidden group">
+           <div className="bg-zen-brown p-10 rounded-[3rem] text-white shadow-sm relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:rotate-12 transition-transform duration-1000">
                  <ShieldCheck size={100} />
               </div>
@@ -184,51 +193,100 @@ const GST = () => {
         </div>
 
         <div className="lg:col-span-2">
-           <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15 h-full flex flex-col">
+           <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-sm h-full flex flex-col">
               <div className="px-10 py-10 border-b border-zen-brown/15 flex justify-between items-center bg-white/40">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Sequence Registry</h3>
                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Available Taxation Models</p>
                  </div>
               </div>
-
-              <div className="flex-1 overflow-y-auto p-8 space-y-6">
-                 {rates.map((rate) => (
-                    <div 
-                      key={rate._id} 
-                      className={`group flex items-center justify-between p-8 rounded-[2.5rem] border transition-all duration-500 hover:shadow-xl ${rate.isActive ? 'bg-white border-zen-sand shadow-lg' : 'bg-white/40 border-zen-brown/15 hover:bg-white'}`}
-                    >
-                       <div className="flex items-center gap-8">
-                          <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all duration-500 ${rate.isActive ? 'bg-zen-sand text-white' : 'bg-zen-brown/5 text-zen-brown/20'}`}>
-                             <Percent size={28} />
-                          </div>
-                          <div>
-                             <h4 className="text-xl font-serif font-bold text-zen-brown tracking-tight flex items-center gap-3">
-                                {rate.name}
-                                {rate.isActive && <ZenBadge variant="leaf">Live Rate</ZenBadge>}
-                             </h4>
-                             <p className="text-sm font-bold text-zen-brown/40 uppercase tracking-[0.2em] mt-1">{rate.percentage}% Multiplier</p>
-                          </div>
-                       </div>
-
-                       <div className="flex items-center gap-4">
-                          {!rate.isActive && (
-                             <ZenIconButton 
-                               icon={CheckCircle2} 
-                               variant="cream"
-                               onClick={() => handleActivate(rate._id)}
-                               className="hover:scale-110 transition-transform"
-                             />
-                          )}
-                          <ZenIconButton 
-                            icon={Trash2} 
-                            variant="danger"
-                            onClick={() => { setRateToDelete(rate._id); setIsConfirmOpen(true); }}
-                            className="hover:scale-110 transition-transform"
-                          />
-                       </div>
-                    </div>
-                 ))}
+ 
+              <div className="flex-1 overflow-y-auto">
+                 {viewMode === 'grid' ? (
+                   <div className="p-8 space-y-6">
+                      {rates.map((rate) => (
+                         <div 
+                           key={rate._id} 
+                           className={`group flex items-center justify-between p-8 rounded-[2.5rem] border transition-all duration-500 hover:shadow-xl ${rate.isActive ? 'bg-white border-zen-sand shadow-lg' : 'bg-white/40 border-zen-brown/15 hover:bg-white'}`}
+                         >
+                            <div className="flex items-center gap-8">
+                               <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all duration-500 ${rate.isActive ? 'bg-zen-sand text-white' : 'bg-zen-brown/5 text-zen-brown/20'}`}>
+                                  <Percent size={28} />
+                               </div>
+                               <div>
+                                  <h4 className="text-xl font-serif font-bold text-zen-brown tracking-tight flex items-center gap-3">
+                                     {rate.name}
+                                     {rate.isActive && <ZenBadge variant="leaf">Live Rate</ZenBadge>}
+                                  </h4>
+                                  <p className="text-sm font-bold text-zen-brown/40 uppercase tracking-[0.2em] mt-1">{rate.percentage}% Multiplier</p>
+                               </div>
+                            </div>
+ 
+                            <div className="flex items-center gap-4">
+                               {!rate.isActive && (
+                                  <ZenIconButton 
+                                    icon={CheckCircle2} 
+                                    variant="cream"
+                                    onClick={() => handleActivate(rate._id)}
+                                    className="hover:scale-110 transition-transform"
+                                  />
+                               )}
+                               <ZenIconButton 
+                                 icon={Trash2} 
+                                 variant="danger"
+                                 onClick={() => { setRateToDelete(rate._id); setIsConfirmOpen(true); }}
+                                 className="hover:scale-110 transition-transform"
+                               />
+                            </div>
+                         </div>
+                      ))}
+                   </div>
+                 ) : (
+                   <div className="min-w-full overflow-x-auto">
+                      <table className="w-full text-center border-collapse">
+                         <thead>
+                            <tr className="bg-zen-cream/10 border-b border-zen-brown/10">
+                               <th className="px-8 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">S NO</th>
+                               <th className="px-8 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Tax Model</th>
+                               <th className="px-8 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Multiplier</th>
+                               <th className="px-8 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Identity</th>
+                               <th className="px-8 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Actions</th>
+                            </tr>
+                         </thead>
+                         <tbody className="divide-y divide-zen-brown/10">
+                            {rates.map((rate, idx) => (
+                               <tr key={rate._id} className={`hover:bg-zen-cream/5 transition-colors group ${rate.isActive ? 'bg-zen-sand/5' : ''}`}>
+                                  <td className="px-8 py-8 text-sm font-serif text-zen-brown/30">{(idx + 1).toString().padStart(2, '0')}</td>
+                                  <td className="px-8 py-8">
+                                     <div className="flex flex-col items-center">
+                                        <span className="font-serif font-bold text-zen-brown text-lg">{rate.name}</span>
+                                        {rate.isActive && <ZenBadge variant="leaf" className="mt-1 scale-75 origin-center">Live</ZenBadge>}
+                                     </div>
+                                  </td>
+                                  <td className="px-8 py-8">
+                                     <span className="font-serif font-black text-zen-brown">{rate.percentage}%</span>
+                                  </td>
+                                  <td className="px-8 py-8">
+                                     <span className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.2em]">{rate._id.slice(-6).toUpperCase()}</span>
+                                  </td>
+                                  <td className="px-8 py-8">
+                                     <div className="flex items-center justify-center gap-3">
+                                        {!rate.isActive && (
+                                           <ZenIconButton icon={CheckCircle2} onClick={() => handleActivate(rate._id)} />
+                                        )}
+                                        <ZenIconButton 
+                                          icon={Trash2} 
+                                          variant="danger" 
+                                          onClick={() => { setRateToDelete(rate._id); setIsConfirmOpen(true); }} 
+                                        />
+                                     </div>
+                                  </td>
+                               </tr>
+                            ))}
+                         </tbody>
+                      </table>
+                   </div>
+                 )}
 
                  {rates.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center py-20 opacity-20 italic font-serif">
@@ -264,7 +322,7 @@ const GST = () => {
            />
 
            <div className="pt-4">
-              <ZenButton type="submit" className="w-full py-5 rounded-[2rem] shadow-2xl shadow-zen-brown/20">
+              <ZenButton type="submit" className="w-full py-5 rounded-[2rem] shadow-sm">
                  Commit to Registry
               </ZenButton>
            </div>

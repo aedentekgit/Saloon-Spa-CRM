@@ -136,7 +136,7 @@ const WhatsApp = () => {
     >
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
         <div className="lg:col-span-3 space-y-10">
-           <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
+           <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-sm">
               <div className="flex items-center justify-between mb-8">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Ritual Templates</h3>
@@ -151,7 +151,7 @@ const WhatsApp = () => {
                       key={tpl.id}
                       onClick={() => handleSelectTemplate(tpl)}
                       className={`group p-8 rounded-[2.5rem] border transition-all duration-500 cursor-pointer relative overflow-hidden ${selectedTemplate?.id === tpl.id 
-                        ? 'bg-zen-brown text-white border-zen-brown shadow-2xl shadow-zen-brown/20' 
+                        ? 'bg-zen-brown text-white border-zen-brown shadow-sm' 
                         : 'bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-cream hover:border-zen-sand'}`}
                     >
                        {selectedTemplate?.id === tpl.id && (
@@ -172,7 +172,7 @@ const WhatsApp = () => {
               </div>
            </div>
 
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
+           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/15 shadow-sm">
               <div className="flex items-center justify-between mb-10">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Campaign Terminal</h3>
@@ -205,7 +205,7 @@ const WhatsApp = () => {
                  </div>
 
                  <ZenButton 
-                   className="w-full py-6 rounded-[2.5rem] text-xl shadow-2xl shadow-emerald-500/10 flex items-center justify-center gap-4 bg-[#25D366] hover:bg-[#20bd5c] text-white border-none" 
+                   className="w-full py-6 rounded-[2.5rem] text-xl shadow-sm shadow-emerald-500/10 flex items-center justify-center gap-4 bg-[#25D366] hover:bg-[#20bd5c] text-white border-none" 
                    onClick={handleSend}
                    disabled={!message || isSending}
                  >
@@ -226,7 +226,7 @@ const WhatsApp = () => {
         </div>
 
         <div className="space-y-10">
-           <div className="bg-zen-brown p-10 rounded-[3rem] shadow-2xl shadow-zen-brown/20 relative overflow-hidden group">
+           <div className="bg-zen-brown p-10 rounded-[3rem] shadow-sm relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-1000">
                  <Zap size={150} />
               </div>
@@ -255,7 +255,7 @@ const WhatsApp = () => {
               </div>
            </div>
 
-           <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15 flex flex-col h-[600px]">
+           <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-sm flex flex-col h-[600px]">
               <div className="p-8 border-b border-zen-brown/15 bg-white/40 flex justify-between items-center">
                  <div>
                     <h3 className="text-lg font-serif font-bold text-zen-brown">Sequence History</h3>
@@ -278,7 +278,7 @@ const WhatsApp = () => {
                        <div className="flex justify-between items-end border-t border-zen-brown/15 pt-4">
                           <div className="flex items-center gap-2">
                              <Users size={12} className="text-zen-sand" />
-                             <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">{cam.sentCount} Ambassadors</span>
+                             <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{cam.sentCount} Ambassadors</span>
                           </div>
                           <p className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-[.2em]">{dayjs(cam.date).format('MMM DD, YYYY')}</p>
                        </div>

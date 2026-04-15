@@ -136,18 +136,18 @@ const MobileFooter: React.FC = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-                <div className="grid grid-cols-3 gap-4">
+                 <div className="grid grid-cols-3 gap-4">
                   {filteredSheet.map((item) => (
                     <NavLink
                       key={item.name}
                       to={item.path}
                       onClick={() => setIsMoreOpen(false)}
-                      className="flex flex-col items-center justify-center gap-1.5 p-3 py-4 rounded-3xl bg-white/60 hover:bg-white hover:shadow-lg transition-all duration-500 border border-white group text-center"
+                      className="flex flex-col items-center justify-center gap-1.5 p-3 py-4 rounded-3xl bg-white hover:bg-zen-cream/30 hover:shadow-lg transition-all duration-500 border border-zen-brown/5 group text-center"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-zen-cream flex items-center justify-center text-zen-brown/20 group-hover:text-zen-sand transition-all duration-500 group-hover:bg-zen-sand/5 shrink-0">
-                        <item.icon size={20} strokeWidth={1.5} />
+                      <div className="w-11 h-11 rounded-[1.25rem] bg-stone-100 flex items-center justify-center text-zen-brown/40 group-hover:text-zen-sand transition-all duration-500 group-hover:bg-zen-sand/10 shrink-0">
+                        <item.icon size={22} strokeWidth={2} />
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-zen-brown group-hover:text-zen-sand transition-colors leading-tight">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-zen-brown/80 group-hover:text-zen-sand transition-colors leading-tight">
                         {item.name}
                       </span>
                     </NavLink>

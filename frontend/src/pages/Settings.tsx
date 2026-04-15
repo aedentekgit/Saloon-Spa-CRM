@@ -67,7 +67,16 @@ interface SettingsData {
   notifications: {
     pushEnabled: boolean;
     fcmToken?: string;
+    // Client side
+    firebaseApiKey?: string;
+    firebaseAuthDomain?: string;
     firebaseProjectId?: string;
+    firebaseStorageBucket?: string;
+    firebaseMessagingSenderId?: string;
+    firebaseAppId?: string;
+    firebaseMeasurementId?: string;
+    firebaseVapidKey?: string;
+    // Server side
     firebaseClientEmail?: string;
     firebasePrivateKey?: string;
     firebaseServiceAccount?: string;
@@ -200,10 +209,12 @@ const Settings = () => {
       title="Settings"
       hideSearch
       hideAddButton
+      hideBranchSelector
+      hideViewToggle
     >
       <div className="min-h-[750px] flex flex-col lg:flex-row gap-8">
         <aside className="lg:w-80 shrink-0">
-           <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/15 p-6 sticky top-24 shadow-2xl shadow-zen-brown/15">
+           <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/15 p-6 sticky top-24 shadow-sm">
               <div className="px-4 py-6 mb-6 border-b border-zen-brown/15 flex items-center gap-4">
                  <div className="w-12 h-12 bg-zen-brown rounded-2xl flex items-center justify-center text-white shadow-lg">
                     <SettingsIcon size={22} />
@@ -251,7 +262,7 @@ const Settings = () => {
               >
                   {activeSection === 'foundations' && (
                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
-                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
+                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm">
                            <header className="mb-12 flex items-center justify-between">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Business Profile</h3>
@@ -287,7 +298,7 @@ const Settings = () => {
                                      />
                                      <div className="flex items-center gap-2 mt-2 px-1">
                                         <Info size={10} className="text-zen-brown/40" />
-                                        <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest whitespace-nowrap">
+                                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">
                                           {getPhoneValidationProtocol(settings.general.countryIso)}
                                         </p>
                                      </div>
@@ -341,7 +352,7 @@ const Settings = () => {
                               <ZenButton 
                                  onClick={() => handleSave('general')}
                                  disabled={saving}
-                                 className="px-12 py-5 rounded-[1.5rem] shadow-2xl shadow-zen-brown/10 transition-all text-lg"
+                                 className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
                               >
                                  Update Profile
                               </ZenButton>
@@ -349,7 +360,7 @@ const Settings = () => {
                         </div>
 
                         <div className="xl:col-span-4 space-y-6">
-                           <div className="bg-zen-brown p-10 rounded-[3rem] text-white shadow-2xl shadow-zen-brown/20 relative overflow-hidden group min-h-[400px]">
+                           <div className="bg-zen-brown p-10 rounded-[3rem] text-white shadow-sm relative overflow-hidden group min-h-[400px]">
                               <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-150 transition-transform duration-1000">
                                  <Camera size={150} />
                               </div>
@@ -360,7 +371,7 @@ const Settings = () => {
                                       <img 
                                         src={logoFile ? URL.createObjectURL(logoFile) : (settings.general.logo && settings.general.logo.startsWith('http') ? settings.general.logo : `${API_URL.split('/api')[0]}/${settings.general.logo?.replace(/^\.?\//, '')}`)} 
                                         alt="Logo" 
-                                        className="h-40 w-40 object-cover rounded-[2rem] shadow-2xl" 
+                                        className="h-40 w-40 object-cover rounded-[2rem] shadow-sm" 
                                       />
                                       <label htmlFor="logo-upload-final" className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 rounded-[2rem] flex items-center justify-center transition-all cursor-pointer backdrop-blur-md">
                                          <Camera className="text-white" size={32} />
@@ -386,7 +397,7 @@ const Settings = () => {
 
                   {activeSection === 'visuals' && (
                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 h-fit">
+                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm h-fit">
                            <header className="mb-12">
                               <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Interface</h3>
                               <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Configure workspace styling.</p>
@@ -395,7 +406,7 @@ const Settings = () => {
                            <div className="space-y-8">
                               <div 
                                  onClick={() => setSettings(prev => prev ? {...prev, theme: {...prev.theme, darkMode: !prev.theme.darkMode}} : null)}
-                                 className={`p-8 rounded-[2rem] border-2 transition-all duration-500 cursor-pointer flex items-center justify-between ${settings.theme.darkMode ? 'bg-zen-brown border-zen-brown shadow-2xl shadow-zen-brown/20' : 'bg-zen-cream/20 border-zen-brown/15'}`}
+                                 className={`p-8 rounded-[2rem] border-2 transition-all duration-500 cursor-pointer flex items-center justify-between ${settings.theme.darkMode ? 'bg-zen-brown border-zen-brown shadow-sm' : 'bg-zen-cream/20 border-zen-brown/15'}`}
                               >
                                  <div className="flex items-center gap-6">
                                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${settings.theme.darkMode ? 'bg-white/10 text-white' : 'bg-white text-zen-sand shadow-lg'}`}>
@@ -428,13 +439,13 @@ const Settings = () => {
                                  />
                               </div>
 
-                              <ZenButton onClick={() => handleSave('theme')} className="w-full py-5 rounded-[1.5rem] text-lg font-bold shadow-2xl shadow-zen-brown/10">
+                              <ZenButton onClick={() => handleSave('theme')} className="w-full py-5 rounded-[1.5rem] text-lg font-bold shadow-sm">
                                  Save Aesthetics
                               </ZenButton>
                            </div>
                         </section>
 
-                        <div className="bg-zen-cream/10 p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
+                        <div className="bg-zen-cream/10 p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm">
                            <h4 className="text-xl font-serif font-bold text-zen-brown mb-10 flex items-center gap-4">
                               <Palette className="text-zen-sand" size={24} strokeWidth={1.5} />
                               Sacred Palette
@@ -444,7 +455,7 @@ const Settings = () => {
                                  <button
                                     key={color}
                                     onClick={() => setSettings(prev => prev ? {...prev, theme: {...prev.theme, primaryColor: color}} : null)}
-                                    className={`h-20 rounded-2xl transition-all duration-500 border-4 border-white ${settings.theme.primaryColor === color ? 'ring-4 ring-zen-sand scale-110 shadow-2xl' : 'hover:scale-105 opacity-60 hover:opacity-100'}`}
+                                    className={`h-20 rounded-2xl transition-all duration-500 border-4 border-white ${settings.theme.primaryColor === color ? 'ring-4 ring-zen-sand scale-110 shadow-sm' : 'hover:scale-105 opacity-60 hover:opacity-100'}`}
                                     style={{ backgroundColor: color }}
                                  />
                               ))}
@@ -455,7 +466,7 @@ const Settings = () => {
 
                   {activeSection === 'storage' && (
                      <div className="max-w-4xl">
-                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
+                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm">
                            <header className="mb-12 flex items-center justify-between">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Storage Provider</h3>
@@ -510,7 +521,7 @@ const Settings = () => {
                            </AnimatePresence>
 
                            <div className="mt-12">
-                              <ZenButton onClick={() => handleSave('upload')} className="w-full py-5 rounded-[1.5rem] text-lg shadow-2xl shadow-zen-brown/10">
+                              <ZenButton onClick={() => handleSave('upload')} className="w-full py-5 rounded-[1.5rem] text-lg shadow-sm">
                                  Update Storage Gateway
                               </ZenButton>
                            </div>
@@ -518,113 +529,127 @@ const Settings = () => {
                      </div>
                   )}
 
-                  {activeSection === 'alerts' && (
-                     <div className="max-w-4xl">
-                        <section className="bg-zen-brown p-16 rounded-[4rem] text-white shadow-2xl relative overflow-hidden group">
-                           <div className="absolute top-0 right-0 p-20 opacity-5 group-hover:scale-125 transition-transform duration-[2000ms] pointer-events-none"><Bell size={250} /></div>
-                           <header className="mb-20 relative z-10">
-                              <h3 className="text-4xl font-serif font-bold tracking-tight mb-3">System Alerts</h3>
-                              <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.4em]">Manage sanctuary communication channels.</p>
-                           </header>
+                   {activeSection === 'alerts' && (
+                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
+                         <div className="xl:col-span-12 bg-white/80 backdrop-blur-xl p-10 sm:p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm">
+                            <header className="mb-12 relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
+                               <div>
+                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">System Notifications</h3>
+                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Manage sanctuary communication channels & Firebase Dispatch.</p>
+                               </div>
+                               <div className="flex items-center gap-6 p-4 bg-zen-cream/30 rounded-3xl border border-zen-brown/10 backdrop-blur-md">
+                                  <div className="flex flex-col items-end">
+                                     <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Global Status</p>
+                                     <p className="text-sm font-serif font-bold text-zen-sand">{settings.notifications.pushEnabled ? 'Active Relay' : 'Standby Mode'}</p>
+                                  </div>
+                                  <button 
+                                     onClick={() => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, pushEnabled: !prev.notifications.pushEnabled}} : null)}
+                                     className={`w-16 h-8 rounded-full flex items-center px-1 transition-all duration-500 ${settings.notifications.pushEnabled ? 'bg-zen-sand shadow-[0_0_20px_rgba(234,179,8,0.4)]' : 'bg-zen-brown/10'}`}
+                                  >
+                                     <motion.div layout className="w-6 h-6 rounded-full bg-white shadow-sm" animate={{ x: settings.notifications.pushEnabled ? 32 : 0 }} />
+                                  </button>
+                               </div>
+                            </header>
 
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
-                              <div className="space-y-8">
-                                 <div className="flex items-center justify-between p-10 bg-white/5 rounded-[3rem] border border-white/10 hover:bg-white/10 transition-all duration-500">
-                                    <div>
-                                       <p className="text-2xl font-serif font-bold tracking-tight">Push Alerts</p>
-                                       <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Real-time Echoes</p>
-                                    </div>
-                                    <button 
-                                       onClick={() => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, pushEnabled: !prev.notifications.pushEnabled}} : null)}
-                                       className={`w-16 h-8 rounded-full flex items-center px-1 transition-all duration-500 ${settings.notifications.pushEnabled ? 'bg-zen-sand' : 'bg-white/10'}`}
-                                    >
-                                       <motion.div layout className="w-6 h-6 rounded-full bg-white shadow-2xl" animate={{ x: settings.notifications.pushEnabled ? 32 : 0 }} />
-                                    </button>
-                                 </div>
-                                 {settings.notifications.pushEnabled && (
-                                    <motion.div 
-                                       initial={{ opacity: 0, height: 0 }}
-                                       animate={{ opacity: 1, height: 'auto' }}
-                                       className="space-y-6 pt-4"
-                                    >
-                                       <ZenInput 
-                                          label="Project ID" 
-                                          darkMode 
-                                          value={settings.notifications.firebaseProjectId || ''}
-                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseProjectId: e.target.value}} : null)}
-                                       />
-                                       <ZenInput 
-                                          label="Client Email" 
-                                          darkMode 
-                                          value={settings.notifications.firebaseClientEmail || ''}
-                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseClientEmail: e.target.value}} : null)}
-                                       />
-                                       <ZenTextarea 
-                                          label="Private Key" 
-                                          darkMode 
-                                          placeholder="-----BEGIN PRIVATE KEY-----..."
-                                          value={settings.notifications.firebasePrivateKey || ''}
-                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebasePrivateKey: e.target.value}} : null)}
-                                       />
-                                       <div className="pt-6 border-t border-white/5">
-                                          <ZenInput 
-                                             label="Test Target Token" 
-                                             darkMode 
-                                             placeholder="Device FCM Token"
-                                             value={settings.notifications.fcmToken || ''}
-                                             onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, fcmToken: e.target.value}} : null)}
-                                          />
-                                          <button
-                                             type="button"
-                                             onClick={async () => {
-                                                try {
-                                                   const res = await fetch(`${API_URL}/settings/test-notification`, {
-                                                      method: 'POST',
-                                                      headers: { 'Authorization': `Bearer ${user?.token}` }
-                                                   });
-                                                   const data = await res.json();
-                                                   if (res.ok) notify('success', 'Signal Sent', data.message);
-                                                   else notify('error', 'Signal Failed', data.message);
-                                                } catch (e) {
-                                                   notify('error', 'Network Error', 'Could not reach cosmic relay.');
-                                                }
-                                             }}
-                                             className="mt-4 w-full py-4 bg-zen-sand/20 hover:bg-zen-sand/30 text-zen-sand rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all"
-                                          >
-                                             Transmit Test Signal
-                                          </button>
-                                       </div>
-                                    </motion.div>
-                                 )}
+                            <div className="space-y-12 relative z-10">
+                               {/* Section: Firebase Setup */}
+                               <div className={`transition-all duration-700 ${settings.notifications.pushEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                                  <div className="flex items-center gap-4 mb-10 pb-4 border-b border-zen-brown/10">
+                                     <Zap size={20} className="text-zen-sand" />
+                                     <h4 className="text-xl font-serif font-bold text-zen-brown tracking-tight uppercase">Firebase Configuration</h4>
+                                  </div>
 
-                                 <div className="p-10 bg-white/5 rounded-[3rem] border border-white/10 flex items-center justify-between cursor-pointer hover:bg-white/10 transition-all duration-500 group/item">
-                                    <div className="flex items-center gap-8">
-                                       <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-zen-sand">
-                                          <MessageSquare size={24} strokeWidth={1.5} />
-                                       </div>
-                                       <p className="text-2xl font-serif font-bold tracking-tight">WhatsApp</p>
-                                    </div>
-                                    <ChevronRight size={20} className="opacity-20 group-hover/item:translate-x-2 transition-transform" />
-                                 </div>
-                              </div>
-                              <div className="flex flex-col h-full">
-                                 <div className="flex-1 bg-white/5 rounded-[3rem] border border-white/10 p-12 flex flex-col items-center justify-center relative overflow-hidden text-center">
-                                    <Activity size={80} className="text-white/5 animate-pulse relative z-10 mb-6" />
-                                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.4em] relative z-10">Relay Status: {settings.notifications.pushEnabled ? 'Awaited' : 'Standby'}</p>
-                                    <div className="absolute inset-0 bg-gradient-to-br from-zen-sand/5 to-transparent opacity-50" />
-                                 </div>
-                                 <ZenButton onClick={() => handleSave('notifications')} className="mt-10 w-full py-6 bg-white text-zen-brown hover:bg-zen-cream rounded-[1.5rem] font-bold text-lg shadow-2xl">
-                                    Save Notification Logic
-                                 </ZenButton>
-                              </div>
-                           </div>
-                        </section>
-                     </div>
-                  )}
+                                  <div className="space-y-12">
+                                     {/* Step 1: Client Connectivity */}
+                                     <div>
+                                        <div className="flex items-center gap-3 mb-8">
+                                           <div className="w-8 h-8 rounded-xl bg-zen-cream flex items-center justify-center text-zen-sand text-[10px] font-black border border-zen-brown/10">01</div>
+                                           <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[.3em]">Client Connectivity (Web SDK)</p>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                           <ZenInput label="API Key" value={settings.notifications.firebaseApiKey || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseApiKey: e.target.value}} : null)} />
+                                           <ZenInput label="Auth Domain" value={settings.notifications.firebaseAuthDomain || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseAuthDomain: e.target.value}} : null)} />
+                                           <ZenInput label="Project ID" value={settings.notifications.firebaseProjectId || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseProjectId: e.target.value}} : null)} />
+                                           <ZenInput label="Storage Bucket" value={settings.notifications.firebaseStorageBucket || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseStorageBucket: e.target.value}} : null)} />
+                                           <ZenInput label="Messaging Sender ID" value={settings.notifications.firebaseMessagingSenderId || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseMessagingSenderId: e.target.value}} : null)} />
+                                           <ZenInput label="App ID" value={settings.notifications.firebaseAppId || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseAppId: e.target.value}} : null)} />
+                                        </div>
+                                        <div className="mt-8">
+                                            <ZenInput label="VAPID Public Key" placeholder="BExXx..." value={settings.notifications.firebaseVapidKey || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseVapidKey: e.target.value}} : null)} />
+                                        </div>
+                                     </div>
+
+                                     {/* Step 2: Server Authorization */}
+                                     <div>
+                                        <div className="flex items-center gap-3 mb-8">
+                                           <div className="w-8 h-8 rounded-xl bg-zen-cream flex items-center justify-center text-zen-sand text-[10px] font-black border border-zen-brown/10">02</div>
+                                           <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[.3em]">Server Authorization (Admin SDK)</p>
+                                        </div>
+                                        <div className="space-y-8">
+                                           <ZenInput label="Service Client Email" value={settings.notifications.firebaseClientEmail || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseClientEmail: e.target.value}} : null)} />
+                                           <ZenTextarea label="Private Key" placeholder="-----BEGIN PRIVATE KEY-----" value={settings.notifications.firebasePrivateKey || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebasePrivateKey: e.target.value}} : null)} />
+                                        </div>
+                                     </div>
+
+                                     {/* Test Signal Block */}
+                                     <div className="p-8 bg-zen-cream/20 rounded-3xl border border-zen-brown/10 flex flex-col sm:flex-row items-center justify-between gap-6">
+                                        <div className="flex items-center gap-6">
+                                           <div className="p-4 bg-white text-zen-sand rounded-2xl shadow-sm border border-zen-brown/5"><Activity size={24} /></div>
+                                           <div>
+                                              <p className="text-lg font-serif font-bold text-zen-brown">Signal Resonance</p>
+                                              <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Verify configuration integrity</p>
+                                           </div>
+                                        </div>
+                                        <div className="flex items-center gap-4 w-full sm:w-auto">
+                                           <input 
+                                              type="text" 
+                                              placeholder="Target Device Token" 
+                                              className="bg-white border border-zen-brown/10 rounded-xl px-4 py-2.5 text-xs text-zen-brown focus:outline-none focus:ring-4 focus:ring-zen-sand/5 w-full sm:w-64 transition-all"
+                                              value={settings.notifications.fcmToken || ''}
+                                              onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, fcmToken: e.target.value}} : null)}
+                                           />
+                                           <button 
+                                              onClick={async () => {
+                                                 try {
+                                                    const res = await fetch(`${API_URL}/settings/test-notification`, {
+                                                       method: 'POST',
+                                                       headers: { 'Authorization': `Bearer ${user?.token}` }
+                                                    });
+                                                    const data = await res.json();
+                                                    if (res.ok) notify('success', 'Signal Sent', data.message);
+                                                    else notify('error', 'Signal Failed', data.message);
+                                                 } catch (e) {
+                                                    notify('error', 'Network Error', 'Could not reach cosmic relay.');
+                                                 }
+                                              }}
+                                              className="bg-zen-brown text-white px-8 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-zen-sand transition-all shadow-lg whitespace-nowrap"
+                                           >
+                                              Test Signal
+                                           </button>
+                                        </div>
+                                     </div>
+                                  </div>
+                               </div>
+
+                               {/* Section: Save Area */}
+                               <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
+                                  <ZenButton 
+                                     onClick={() => handleSave('notifications')} 
+                                     disabled={saving}
+                                     className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
+                                  >
+                                     <Save className="mr-2" size={20} />
+                                     Update Logic
+                                  </ZenButton>
+                               </footer>
+                            </div>
+                         </div>
+                      </div>
+                   )}
 
                   {activeSection === 'smtp' && (
                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15">
+                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm">
                            <header className="mb-12 flex items-center justify-between">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">SMTP Gateway</h3>
@@ -688,7 +713,7 @@ const Settings = () => {
                               <ZenButton 
                                  onClick={() => handleSave('smtp' as any)}
                                  disabled={saving}
-                                 className="px-12 py-5 rounded-[1.5rem] shadow-2xl shadow-zen-brown/10 transition-all text-lg"
+                                 className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
                               >
                                  Verify & Save
                               </ZenButton>

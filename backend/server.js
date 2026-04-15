@@ -158,3 +158,10 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
+
+// Handle unhandled promise rejections cleanly without cryptic timeouts
+process.on('unhandledRejection', (err, promise) => {
+  console.error(`Unhandled Rejection Error: ${err.message}`);
+  // Don't crash immediately in dev, let nodemon or subsequent requests handle it
+  // This prevents cryptic 'Timeout._onTimeout' from hanging the terminal
+});

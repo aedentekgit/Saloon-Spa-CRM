@@ -218,7 +218,7 @@ const Roles = () => {
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {filteredRoles.map(role => (
-            <div key={role._id} className={`group relative bg-white rounded-[2rem] p-6 lg:p-8 shadow-2xl shadow-zen-brown/15 border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${role.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
+            <div key={role._id} className={`group relative bg-white rounded-[2rem] p-6 lg:p-8 shadow-sm border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${role.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
               
 
@@ -245,7 +245,7 @@ const Roles = () => {
 
               <div className="flex-1 relative z-10">
                  <div className="flex items-center justify-between mb-6">
-                    <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest ">Authority Sectors ({role.permissions.length})</p>
+                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest ">Authority Sectors ({role.permissions.length})</p>
                     <Key size={14} className="text-zen-sand opacity-30" />
                  </div>
                  <div className="flex flex-wrap gap-2">
@@ -277,7 +277,7 @@ const Roles = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] shadow-2xl shadow-zen-brown/15 border border-zen-brown/15 overflow-hidden">
+        <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] shadow-sm border border-zen-brown/15 overflow-hidden">
            <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-separate border-spacing-0">
                  <thead>
@@ -375,7 +375,7 @@ const Roles = () => {
             <ZenButton 
               type="submit"
               form="role-modal-form"
-              className="flex-[2] py-5 rounded-[2rem] shadow-2xl shadow-zen-brown/20"
+              className="flex-[2] py-5 rounded-[2rem] shadow-sm"
             >
               {editingRole ? 'Archive Refinement' : 'Commit Authority'}
             </ZenButton>
@@ -436,7 +436,7 @@ const Roles = () => {
                       onClick={() => togglePermission(page.id)}
                       className={`flex items-center justify-between p-6 rounded-[2rem] border transition-all duration-700 relative overflow-hidden group/btn ${
                         isActive 
-                          ? 'bg-zen-leaf text-white border-zen-leaf shadow-2xl shadow-zen-leaf/20' 
+                          ? 'bg-zen-leaf text-white border-zen-leaf shadow-sm shadow-zen-leaf/20' 
                           : 'bg-white text-zen-brown/60 border-zen-brown/15 hover:border-zen-leaf/40 hover:bg-zen-cream'
                       }`}
                     >

@@ -121,7 +121,7 @@ const RoomCategories = () => {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
           {filteredCategories.map((cat) => (
-            <div key={cat._id} className="group relative bg-white rounded-[2rem] p-6 lg:p-8 shadow-2xl shadow-zen-brown/15 border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+            <div key={cat._id} className="group relative bg-white rounded-[2rem] p-6 lg:p-8 shadow-sm border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
 
                <div className="relative z-10">
@@ -169,7 +169,7 @@ const RoomCategories = () => {
           )}
         </div>
       ) : (
-        <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15">
+        <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full border-separate border-spacing-0">
               <thead>
@@ -256,7 +256,7 @@ const RoomCategories = () => {
               <div className="flex items-center gap-4 p-6 bg-zen-cream/20 rounded-[1.5rem] border border-zen-brown/15">
                  <div className={`w-3 h-3 rounded-full ${formData.isActive ? 'bg-zen-leaf shadow-[0_0_10px_rgba(107,138,122,0.5)]' : 'bg-slate-300'}`}></div>
                  <div className="flex-1">
-                    <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Resonance Status</p>
+                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Resonance Status</p>
                     <p className="text-sm font-serif text-zen-brown italic">{formData.isActive ? 'Currently pulsating through the sanctuary' : 'Temporarily withdrawn from resonance'}</p>
                  </div>
                  <button 
@@ -273,7 +273,7 @@ const RoomCategories = () => {
               <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">
                 Discard
               </ZenButton>
-              <ZenButton type="submit" className="flex-[2] py-5 shadow-2xl shadow-zen-brown/10">
+              <ZenButton type="submit" className="flex-[2] py-5 shadow-sm">
                  <span>{editingCategory ? 'Update Resonance' : 'Establish Type'}</span>
                  <Sparkles size={18} className="ml-2" />
               </ZenButton>

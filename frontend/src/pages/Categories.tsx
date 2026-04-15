@@ -103,7 +103,7 @@ const Categories = () => {
       onAddClick={() => handleOpenModal()}
       addButtonIcon={<Plus size={18} />}
     >
-      <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15">
+      <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-separate border-spacing-0">
             <thead>
@@ -187,7 +187,7 @@ const Categories = () => {
            />
 
            <div className="pt-6">
-              <ZenButton type="submit" className="w-full py-5 rounded-[2rem] shadow-2xl shadow-zen-brown/20 flex items-center justify-center gap-3">
+              <ZenButton type="submit" className="w-full py-5 rounded-[2rem] shadow-sm flex items-center justify-center gap-3">
                  <span>{editingCategory ? 'Archiving Refinement' : 'Establish Category'}</span>
                  <Sparkles size={18} />
               </ZenButton>

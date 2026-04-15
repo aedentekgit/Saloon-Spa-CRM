@@ -47,12 +47,12 @@ export const ZenBadge = ({ children, variant = 'leaf', className = '', ...props 
   const variants: any = {
     leaf: "bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-sm",
     sand: "bg-zen-sand/10 text-zen-brown border-zen-sand/20",
-    danger: "bg-red-50 text-red-400 border-red-100",
+    danger: "bg-red-50 text-red-500 border-red-100",
     inactive: "bg-slate-50 text-slate-400 border-slate-100"
   };
 
   return (
-    <span className={`text-[9px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border ${variants[variant]} ${className}`} {...props}>
+    <span className={`inline-flex items-center justify-center whitespace-nowrap text-[9px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border ${variants[variant]} ${className}`} {...props}>
       {children}
     </span>
   );

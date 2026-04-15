@@ -273,7 +273,7 @@ const Rooms = () => {
             return (
               <div 
                 key={room._id} 
-                className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[4rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8"
+                className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[4rem] shadow-sm border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8"
                 style={{ animationDelay: `${i * 50}ms` }}
               >
                 <div className="aspect-[16/9] sm:aspect-[4/3] relative overflow-hidden">
@@ -336,28 +336,28 @@ const Rooms = () => {
           })}
         </div>
       ) : (
-        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-sm border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr>
-                <th>S NO</th>
-                <th>Visual</th>
-                <th>Branch</th>
-                <th>Sanctuary Name</th>
-                <th>Category</th>
-                <th>Cleaning</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
+               <tr className="bg-zen-brown border-b border-zen-brown/15">
+                 <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">S No</th>
+                 <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Visual</th>
+                 <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Branch</th>
+                 <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Sanctuary Name</th>
+                 <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Category</th>
+                 <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Cleaning</th>
+                 <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Status</th>
+                 <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap text-right">Actions</th>
+               </tr>
             </thead>
             <tbody>
               {filteredRooms.map((room, index) => {
                 const roomImage = getDisplayImage(room);
                 return (
                 <tr key={room._id}>
-                  <td>
-                    <span>{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
-                  </td>
+                   <td className="px-8 py-5 text-center">
+                     <span className="font-serif text-xl text-zen-brown/40">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
+                   </td>
                   <td>
                     <div className="flex justify-center">
                       <div className="w-14 lg:w-16 h-10 lg:h-12 rounded-[1.5rem] overflow-hidden bg-zen-cream border-2 border-white shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
@@ -370,32 +370,32 @@ const Rooms = () => {
                       </div>
                     </div>
                   </td>
-                  <td>
-                    <span>{room.branch?.name || 'Main Registry'}</span>
-                  </td>
-                  <td>
-                    <div className="flex flex-col items-center">
-                      <p className="font-serif text-base lg:text-lg text-zen-brown tracking-tight font-bold whitespace-nowrap">{room.name}</p>
-                      <p className="text-[8px] lg:text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0.5 lg:mt-1">Active Space</p>
-                    </div>
-                  </td>
-                  <td>
-                    <ZenBadge variant="sand">{room.type}</ZenBadge>
-                  </td>
-                  <td>
-                    <div className="flex items-center justify-center gap-2 text-sm text-zen-brown/70 italic font-medium">
-                      <Clock size={12} />
-                      {room.cleaningDuration || 0}m
-                    </div>
-                  </td>
-                  <td>
-                    <ZenBadge variant={
-                      room.status === 'Free' ? 'leaf' :
-                      room.status === 'Occupied' ? 'danger' : 'sand'
-                    }>{room.status}</ZenBadge>
-                  </td>
-                  <td>
-                    <div className="flex items-center justify-center gap-3">
+                   <td className="px-8 py-5">
+                     <span className="text-[10px] font-black text-zen-brown/60 uppercase tracking-widest">{room.branch?.name || 'Main Registry'}</span>
+                   </td>
+                   <td className="px-10 py-5 text-left">
+                     <div className="flex flex-col items-center">
+                       <p className="font-serif text-lg text-zen-brown font-black tracking-tight leading-tight whitespace-nowrap">{room.name}</p>
+                       <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">Active Space</p>
+                     </div>
+                   </td>
+                   <td className="px-8 py-5">
+                     <ZenBadge variant="sand" className="uppercase font-black tracking-widest">{room.type}</ZenBadge>
+                   </td>
+                   <td className="px-8 py-5">
+                     <div className="flex items-center justify-center gap-2 text-[10px] text-zen-brown/70 italic font-black uppercase tracking-widest">
+                       <Clock size={12} className="text-zen-sand" />
+                       {room.cleaningDuration || 0}m
+                     </div>
+                   </td>
+                   <td className="px-8 py-5">
+                     <ZenBadge variant={
+                       room.status === 'Free' ? 'leaf' :
+                       room.status === 'Occupied' ? 'danger' : 'sand'
+                     } className="uppercase font-black tracking-widest">{room.status}</ZenBadge>
+                   </td>
+                  <td className="px-10 py-8 text-right">
+                    <div className="flex items-center justify-end gap-3">
                        <ZenIconButton 
                           icon={Sparkles} 
                           variant={room.isActive ? 'leaf' : 'sand'} 
@@ -428,7 +428,7 @@ const Rooms = () => {
           <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-4 sm:gap-8 flex-1">
                 <div className="relative w-24 sm:w-32 h-24 sm:h-32 group cursor-pointer shrink-0">
-                   <div className="w-full h-full rounded-[2rem] ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-2xl relative">
+                   <div className="w-full h-full rounded-[2rem] ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-sm relative">
                       {(roomImageFile || previewRoomImage) ? (
                         <img 
                           src={roomImageFile ? URL.createObjectURL(roomImageFile) : previewRoomImage?.src} 
@@ -450,7 +450,7 @@ const Rooms = () => {
                      className="absolute inset-0 opacity-0 cursor-pointer z-10" 
                      onChange={e => setRoomImageFile(e.target.files?.[0] || null)} 
                    />
-                   <div className="absolute bottom-1 right-1 p-2.5 bg-zen-brown text-white rounded-full shadow-2xl scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={12} /></div>
+                   <div className="absolute bottom-1 right-1 p-2.5 bg-zen-brown text-white rounded-full shadow-sm scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={12} /></div>
                 </div>
 
                 <div className="space-y-4 flex-1">

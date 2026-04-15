@@ -41,7 +41,7 @@ const About = () => {
           </div>
 
           <div className="relative animate-in fade-in slide-in-from-right-8 duration-1000">
-            <div className="aspect-square rounded-[5rem] overflow-hidden shadow-2xl relative z-10">
+            <div className="aspect-square rounded-[5rem] overflow-hidden shadow-sm relative z-10">
               <img 
                 src="/images/about_hero.png" 
                 alt="Zen Sanctuary – luxurious spa treatment room with herbal botanicals and candlelight" 

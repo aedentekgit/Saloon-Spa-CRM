@@ -29,10 +29,19 @@ const settingsSchema = new mongoose.Schema({
   notifications: {
     pushEnabled: { type: Boolean, default: false },
     fcmToken: { type: String, default: '' },
+    // Client Side Config
+    firebaseApiKey: { type: String, default: '' },
+    firebaseAuthDomain: { type: String, default: '' },
     firebaseProjectId: { type: String, default: '' },
+    firebaseStorageBucket: { type: String, default: '' },
+    firebaseMessagingSenderId: { type: String, default: '' },
+    firebaseAppId: { type: String, default: '' },
+    firebaseMeasurementId: { type: String, default: '' },
+    firebaseVapidKey: { type: String, default: '' },
+    // Admin SDK Config (Backend)
     firebaseClientEmail: { type: String, default: '' },
     firebasePrivateKey: { type: String, default: '' },
-    firebaseServiceAccount: { type: String, default: '' } // For raw JSON if needed
+    firebaseServiceAccount: { type: String, default: '' } 
   },
   billing: {
     gstEnabled: { type: Boolean, default: false }

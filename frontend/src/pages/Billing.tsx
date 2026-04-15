@@ -271,7 +271,7 @@ const Billing = () => {
     >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-10 items-stretch">
         <div className="lg:col-span-2 flex flex-col h-full">
-           <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 overflow-hidden group flex flex-col h-full">
+           <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-zen-brown/15 shadow-sm overflow-hidden group flex flex-col h-full">
               <div className="p-6 sm:p-10 bg-zen-brown text-white flex flex-col sm:flex-row justify-between items-start gap-6 sm:gap-8 relative overflow-hidden">
                  <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-125 transition-transform duration-1000">
                     <Zap size={150} />
@@ -402,13 +402,13 @@ const Billing = () => {
 
                  <div className="space-y-4 pt-10 border-t border-zen-brown/15">
                     <div className="flex justify-between items-center px-6">
-                       <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-left">Internal Subtotal</span>
+                       <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest text-left">Internal Subtotal</span>
                        <span className="font-serif text-lg font-bold text-zen-brown">{settings?.general.currencySymbol || 'QR'} {subtotal.toLocaleString()}</span>
                     </div>
                     {isGstEnabled && (
                       <div className="flex justify-between items-center px-6">
                          <div className="flex items-center gap-4">
-                            <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-left shrink-0">Tax Logic</span>
+                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest text-left shrink-0">Tax Logic</span>
                             <ZenDropdown 
                               label="Tax Rate"
                               hideLabel
@@ -424,7 +424,7 @@ const Billing = () => {
                     
                     <div className="flex justify-between items-center px-6 pt-4">
                        <div className="flex items-center gap-4">
-                          <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Adjust Balance</span>
+                          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Adjust Balance</span>
                           <ZenDropdown 
                             label="Adjustment Method" 
                             options={['Fixed', 'Percentage']} 
@@ -457,7 +457,7 @@ const Billing = () => {
         </div>
 
         <div className="flex flex-col h-full">
-           <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 flex flex-col h-full">
+           <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-zen-brown/15 shadow-sm flex flex-col h-full">
               <h3 className="text-lg sm:text-xl font-serif font-bold text-zen-brown mb-6 sm:mb-8 flex items-center gap-3">
                  <div className="w-8 h-8 rounded-xl bg-zen-sand/10 flex items-center justify-center text-[10px] font-bold text-zen-sand border border-zen-sand/20 shadow-sm shrink-0">
                     {settings?.general.currencySymbol || 'QR'}
@@ -541,7 +541,7 @@ const Billing = () => {
               )}
 
               <ZenButton 
-                className="w-full py-5 rounded-[2rem] mt-10 text-lg shadow-2xl shadow-emerald-500/10" 
+                className="w-full py-5 rounded-[2rem] mt-10 text-lg shadow-sm shadow-emerald-500/10" 
                 onClick={handleConfirmPayment}
                 disabled={!selectedClient || invoiceItems.length === 0}
               >

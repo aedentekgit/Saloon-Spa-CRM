@@ -289,7 +289,7 @@ const Services = () => {
             return (
               <div 
                 key={service._id} 
-                className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[4rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8"
+                className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[4rem] shadow-sm border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8"
                 style={{ animationDelay: `${i * 50}ms` }}
               >
                 {/* Visual Frame */}
@@ -367,25 +367,25 @@ const Services = () => {
           })}
         </div>
       ) : (
-        <div className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] shadow-sm border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Visual</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Branch</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Service Name</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Duration</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Price</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Actions</th>
+              <tr className="bg-zen-brown border-b border-zen-brown/15">
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Visual</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Branch</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Service Name</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Duration</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Price</th>
+                <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Status</th>
+                <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zen-brown/15">
               {filteredServices.map((service, index) => (
                 <tr key={service._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <span className="font-serif text-base lg:text-lg text-zen-brown/40">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
+                  <td className="px-8 py-5 text-center">
+                    <span className="font-serif text-xl text-zen-brown/40">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
                   </td>
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex justify-center">
@@ -398,41 +398,40 @@ const Services = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">{service.branch?.name || 'H.Q'}</span>
+                  <td className="px-8 py-5">
+                    <span className="text-[10px] font-black text-zen-brown/60 uppercase tracking-widest">{service.branch?.name || 'H.Q'}</span>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                  <td className="px-10 py-5 text-left">
                     <div className="flex flex-col items-center">
-                      <p className="font-serif text-base lg:text-lg text-zen-brown tracking-tight font-bold whitespace-nowrap">{service.name}</p>
-                      <p className="text-[8px] lg:text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0.5 lg:mt-1">Premium Offering</p>
+                      <p className="font-serif text-lg text-zen-brown font-black tracking-tight leading-tight whitespace-nowrap">{service.name}</p>
+                      <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">Premium Offering</p>
                     </div>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <div className="flex items-center justify-center gap-2 text-sm text-zen-brown/70 italic font-medium">
-                      <Clock size={12} />
+                  <td className="px-8 py-5">
+                    <div className="flex items-center justify-center gap-2 text-[10px] text-zen-brown/70 italic font-black uppercase tracking-widest">
+                      <Clock size={12} className="text-zen-sand" />
                       {service.duration} Min
                     </div>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                  <td className="px-8 py-5">
                     <div className="flex flex-col items-center">
-                      <p className="font-serif text-base lg:text-lg text-zen-brown tracking-tight font-bold whitespace-nowrap">{settings?.general?.currencySymbol || 'QR'} {service.price}</p>
-                      <p className="text-[8px] lg:text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0.5 lg:mt-1">Energy Exchange</p>
+                      <p className="font-serif text-lg text-zen-brown font-black tracking-tight leading-tight whitespace-nowrap">{settings?.general?.currencySymbol || 'QR'} {service.price}</p>
+                      <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">Energy Exchange</p>
                     </div>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6 text-center">
-                    <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'}>{service.status}</ZenBadge>
+                  <td className="px-8 py-5 text-center">
+                    <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'} className="uppercase font-black tracking-widest">{service.status}</ZenBadge>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <div className="flex items-center justify-center gap-2 lg:gap-3">
+                  <td className="px-10 py-8 text-right">
+                    <div className="flex items-center justify-end gap-3">
                        <ZenIconButton 
                           icon={Sparkles} 
                           variant={service.status === 'Active' ? 'leaf' : 'sand'} 
                           onClick={() => toggleStatus(service)} 
                           className={service.status === 'Active' ? 'text-zen-leaf' : 'text-zen-sand'}
-                          size="sm"
                        />
-                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} size="sm" />
-                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} size="sm" />
+                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} />
+                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} />
                     </div>
                   </td>
                 </tr>
@@ -456,7 +455,7 @@ const Services = () => {
           <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-4 sm:gap-8 flex-1">
                 <div className="relative w-20 sm:w-32 h-20 sm:h-32 group cursor-pointer shrink-0">
-                   <div className="w-full h-full rounded-3xl ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-2xl relative">
+                   <div className="w-full h-full rounded-3xl ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-sm relative">
                       {(imageFile || (editingService && editingService.image)) ? (
                         <img 
                           src={imageFile ? URL.createObjectURL(imageFile) : getImageUrl(editingService?.image)} 
@@ -477,7 +476,7 @@ const Services = () => {
                      className="absolute inset-0 opacity-0 cursor-pointer z-10" 
                      onChange={e => setImageFile(e.target.files?.[0] || null)} 
                    />
-                   <div className="absolute bottom-1 right-1 p-2.5 bg-zen-brown text-white rounded-full shadow-2xl scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={12} /></div>
+                   <div className="absolute bottom-1 right-1 p-2.5 bg-zen-brown text-white rounded-full shadow-sm scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={12} /></div>
                 </div>
 
                 <div className="space-y-1 sm:space-y-4 flex-1">

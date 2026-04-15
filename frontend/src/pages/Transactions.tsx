@@ -192,7 +192,7 @@ const Transactions = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.1 }}
-              className="bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] border border-white shadow-2xl shadow-zen-brown/10 group hover:-translate-y-2 transition-all duration-500"
+              className="bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] border border-white shadow-sm group hover:-translate-y-2 transition-all duration-500"
             >
               <div className="flex justify-between items-start mb-6">
                 <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform duration-500 shadow-sm border border-white`}>
@@ -211,7 +211,7 @@ const Transactions = () => {
         </div>
 
         {/* Global Filter Bar */}
-        <div className="bg-white/70 backdrop-blur-xl p-6 sm:p-8 rounded-[2rem] sm:rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/10">
+        <div className="bg-white/70 backdrop-blur-xl p-6 sm:p-8 rounded-[2rem] sm:rounded-[3.5rem] border border-white shadow-sm">
           <div className="flex flex-col xl:flex-row gap-8 items-end">
             <div className="flex-1 w-full flex flex-col gap-4">
                <label className="text-[10px] font-bold text-black/30 uppercase tracking-[.4em] ml-6">Registry Search</label>
@@ -234,6 +234,7 @@ const Transactions = () => {
                 onChange={(val: any) => setTypeFilter(val)}
                 options={['All', 'Inflow', 'Outflow']}
                 variant="pill"
+                className="min-w-[120px]"
               />
               <ZenDropdown 
                 label="Status"
@@ -241,6 +242,7 @@ const Transactions = () => {
                 onChange={(val: any) => setStatusFilter(val)}
                 options={['All', 'Completed', 'Pending']}
                 variant="pill"
+                className="min-w-[120px]"
               />
                <ZenDropdown 
                 label="Timeline"
@@ -248,6 +250,7 @@ const Transactions = () => {
                 onChange={(val: any) => setDateRange(val)}
                 options={['All', 'Today', 'Week', 'Month']}
                 variant="pill"
+                className="min-w-[120px]"
               />
               <ZenButton variant="primary" className="px-10 h-[52px] !rounded-2xl flex items-center gap-3 shadow-xl">
                  <Download size={18} />
@@ -260,15 +263,14 @@ const Transactions = () => {
         {/* Immersive Transaction Table */}
         <div className="bg-white/70 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[4rem] border border-white overflow-hidden shadow-3xl shadow-zen-brown/15">
           <div className="overflow-x-auto overflow-y-hidden">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-center border-collapse">
               <thead>
-                <tr>
-                  <th>Sequence Details</th>
-                  <th>Timeline</th>
-                  <th>Mechanism</th>
-                  <th>Resonance Type</th>
-                  <th className="text-right">Volume</th>
-                  <th className="text-center">Protocol</th>
+                <tr className="bg-[#2D1622] text-white">
+                  <th className="px-6 py-8 text-[10px] font-black uppercase tracking-[0.3em]">S No</th>
+                  <th className="px-10 py-8 text-[10px] font-black uppercase tracking-[0.3em] text-left">Sequence Details/Timeline</th>
+                  <th className="px-10 py-8 text-[10px] font-black uppercase tracking-[0.3em]">Resonance Type</th>
+                  <th className="px-10 py-8 text-[10px] font-black uppercase tracking-[0.3em]">Volume</th>
+                  <th className="px-10 py-8 text-[10px] font-black uppercase tracking-[0.3em] text-right">Mechanism/Protocol</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zen-brown/5">
@@ -282,45 +284,47 @@ const Transactions = () => {
                       transition={{ delay: idx * 0.05 }}
                       className="group hover:bg-white/90 transition-all duration-300"
                     >
+                      <td className="px-6 py-8">
+                        <span className="font-serif text-xl font-bold text-zen-brown/30">
+                          {((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}
+                        </span>
+                      </td>
                       <td className="px-10 py-8">
                         <div className="flex items-center gap-6">
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform duration-500 ${
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform duration-500 shrink-0 ${
                             t.type === 'Inflow' ? 'bg-emerald-50 text-emerald-500 border-emerald-100' : 'bg-rose-50 text-rose-500 border-rose-100'
                           }`}>
                             {t.type === 'Inflow' ? <ArrowUpRight size={24} /> : <ArrowDownRight size={24} />}
                           </div>
-                          <div>
+                          <div className="text-left">
                             <p className="text-lg font-serif font-bold text-zen-brown group-hover:text-zen-sand transition-colors">{t.title}</p>
-                            <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">{t.id}</span>
+                            <div className="flex items-center gap-4 mt-1">
+                               <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">{t.id}</span>
+                               <span className="w-1 h-1 rounded-full bg-zen-brown/10" />
+                               <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{dayjs(t.date).format('MMM DD, YYYY')}</span>
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-8">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zen-brown/70">{dayjs(t.date).format('MMMM DD, YYYY')}</span>
-                          <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">{dayjs(t.date).format('h:mm A')}</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-8">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-zen-cream rounded-lg text-zen-sand border border-white shadow-sm">
-                            {React.createElement(getMethodIcon(t.method), { size: 16 })}
-                          </div>
-                          <span className="text-sm font-semibold text-zen-brown/80">{t.method}</span>
-                        </div>
-                      </td>
+
+
                       <td className="px-8 py-8">
                         <ZenBadge variant={t.type === 'Inflow' ? 'leaf' : 'outline'} className="px-4 py-1.5 border-zen-brown/10">
                           {t.category}
                         </ZenBadge>
                       </td>
-                      <td className="px-8 py-8 text-right">
+                      <td className="px-8 py-8">
                         <p className={`text-xl font-serif font-bold ${t.type === 'Inflow' ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {t.type === 'Inflow' ? '+' : '-'}{settings?.general.currencySymbol || 'QR'} {t.amount.toLocaleString()}
                         </p>
                       </td>
-                      <td className="px-10 py-8">
-                        <div className="flex justify-center items-center gap-4">
+                      <td className="px-10 py-8 text-right">
+                        <div className="flex justify-end items-center gap-6">
+                           <div className="flex items-center gap-2 px-3 py-1.5 bg-zen-cream/30 rounded-xl border border-white shrink-0">
+                             {React.createElement(getMethodIcon(t.method), { size: 14, className: 'text-zen-brown/40' })}
+                             <span className="text-[10px] font-bold text-zen-brown/60 uppercase">{t.method}</span>
+                           </div>
+
                           <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm ${
                             t.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 
                             t.status === 'Pending' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 
@@ -348,7 +352,7 @@ const Transactions = () => {
                 </div>
                 <ZenButton variant="secondary" onClick={() => { setSearchTerm(''); setTypeFilter('All'); setStatusFilter('All'); setDateRange('All'); }}>
                    Reset All Filters
-                </ZenButton>
+                 </ZenButton>
               </div>
             )}
           </div>

@@ -329,7 +329,7 @@ const Clients = () => {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-10">
           {filteredClients.map((client) => (
-            <div key={client._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+            <div key={client._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-sm border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
 
               <div className="relative z-10">
@@ -401,18 +401,18 @@ const Clients = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white/70 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[3.5rem] shadow-sm border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Portrait</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Client</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Contact & Email</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Membership</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Spending</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Actions</th>
+              <tr className="bg-zen-brown border-b border-zen-brown/15">
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Portrait</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Client</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Contact & Email</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Membership</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Spending</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Status</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zen-brown/15">
@@ -499,7 +499,7 @@ const Clients = () => {
           <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-4 sm:gap-8 flex-1">
                 <div className="relative w-20 sm:w-32 h-20 sm:h-32 group cursor-pointer shrink-0">
-                   <div className="w-full h-full rounded-full ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-2xl relative">
+                   <div className="w-full h-full rounded-full ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-sm relative">
                       {(profilePicFile || (editingClient && editingClient.profilePic)) ? (
                         <img 
                           src={profilePicFile ? URL.createObjectURL(profilePicFile) : getImageUrl(editingClient?.profilePic)} 
@@ -521,7 +521,7 @@ const Clients = () => {
                      className="absolute inset-0 opacity-0 cursor-pointer z-10" 
                      onChange={e => setProfilePicFile(e.target.files?.[0] || null)} 
                    />
-                   <div className="absolute bottom-1 right-1 p-2.5 bg-zen-brown text-white rounded-full shadow-2xl scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={12} /></div>
+                   <div className="absolute bottom-1 right-1 p-2.5 bg-zen-brown text-white rounded-full shadow-sm scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={12} /></div>
                 </div>
 
                 <div className="space-y-1 sm:space-y-4 flex-1">

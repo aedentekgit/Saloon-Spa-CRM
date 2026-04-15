@@ -17,6 +17,7 @@ interface ZenLayoutProps {
   hideSearch?: boolean;
   hideBranchSelector?: boolean;
   hideViewToggle?: boolean;
+  headerActions?: React.ReactNode;
 }
 
 export const ZenPageLayout = ({
@@ -32,15 +33,16 @@ export const ZenPageLayout = ({
   hideAddButton = false,
   hideSearch = false,
   hideBranchSelector = false,
-  hideViewToggle = false
+  hideViewToggle = false,
+  headerActions
 }: ZenLayoutProps) => {
 
   return (
     <div className="page-container min-h-screen p-4 sm:p-6 lg:p-8 animate-in fade-in duration-1000">
       
       {/* Search and Action Bar */}
-      {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel)) && (
-        <div className="mb-6 lg:mb-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel) || headerActions) && (
+        <div className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           {!hideSearch && (
             <div className="flex-1 max-w-2xl w-full">
               <div className="relative group">
@@ -58,12 +60,14 @@ export const ZenPageLayout = ({
             </div>
           )}
 
-          <div className="flex items-center gap-3 sm:gap-5 w-full lg:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+          <div className="flex items-center gap-3 sm:gap-5 w-full lg:w-auto overflow-x-auto pb-1 sm:pb-0 custom-scrollbar">
             {!hideBranchSelector && (
               <div className="shrink-0">
                 <BranchSelector />
               </div>
             )}
+
+            {headerActions}
 
             {!hideViewToggle && onViewModeChange && (
               <div className="flex bg-white/80 backdrop-blur-xl p-1.5 rounded-[1.2rem] sm:rounded-[1.8rem] border border-stone-200/50 shadow-xl shadow-zen-brown/5">

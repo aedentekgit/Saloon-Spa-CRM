@@ -269,7 +269,7 @@ const Branches = () => {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
           {filteredBranches.map((branch) => (
-            <div key={branch._id} className="group relative bg-white rounded-[2rem] p-5 lg:p-6 shadow-2xl shadow-zen-brown/15 border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+            <div key={branch._id} className="group relative bg-white rounded-[2rem] p-5 lg:p-6 shadow-sm border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
 
                <div className="relative z-10">
@@ -329,10 +329,10 @@ const Branches = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] shadow-2xl shadow-zen-brown/15 border border-zen-brown/15 overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] shadow-sm border border-zen-brown/15 overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
+              <tr className="bg-zen-brown border-b border-zen-brown/15">
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">S.No</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Visual</th>
                 <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Designation</th>
@@ -408,7 +408,7 @@ const Branches = () => {
           <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-4 sm:gap-8 flex-1">
                 <div className="relative w-24 sm:w-32 h-24 sm:h-32 group cursor-pointer shrink-0">
-                   <div className="w-full h-full rounded-[2rem] ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-2xl relative">
+                   <div className="w-full h-full rounded-[2rem] ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-sm relative">
                       {(logoFile || (editingBranch && editingBranch.logo)) ? (
                         <img 
                           src={logoFile ? URL.createObjectURL(logoFile) : getImageUrl(editingBranch?.logo)} 
@@ -429,7 +429,7 @@ const Branches = () => {
                      className="absolute inset-0 opacity-0 cursor-pointer z-10" 
                      onChange={e => setLogoFile(e.target.files?.[0] || null)} 
                    />
-                   <div className="absolute bottom-1 right-1 p-2.5 bg-zen-brown text-white rounded-full shadow-2xl scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={12} /></div>
+                   <div className="absolute bottom-1 right-1 p-2.5 bg-zen-brown text-white rounded-full shadow-sm scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={12} /></div>
                 </div>
 
                 <div className="space-y-4">

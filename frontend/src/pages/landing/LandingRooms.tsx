@@ -157,7 +157,7 @@ const LandingRooms = () => {
                       style={{ animationDelay: `${idx * 150}ms` }}
                     >
                       {/* Image Frame */}
-                      <div className="aspect-[4/5] rounded-[4rem] overflow-hidden shadow-2xl relative">
+                      <div className="aspect-[4/5] rounded-[4rem] overflow-hidden shadow-sm relative">
                         {roomImg ? (
                           <img 
                             src={roomImg.src} 

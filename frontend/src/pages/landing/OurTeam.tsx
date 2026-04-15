@@ -158,7 +158,7 @@ const OurTeam = () => {
                       className={`flex flex-col lg:flex-row gap-16 items-center ${i % 2 !== 0 ? 'lg:flex-row-reverse' : ''}`}
                     >
                       <div className="flex-1 w-full animate-in fade-in zoom-in duration-1000">
-                          <div className="aspect-[4/5] rounded-[5rem] overflow-hidden shadow-2xl relative group">
+                          <div className="aspect-[4/5] rounded-[5rem] overflow-hidden shadow-sm relative group">
                             {picUrl ? (
                               <img 
                                 src={picUrl} 

@@ -556,10 +556,10 @@ const Employees = () => {
           <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
-        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-10" : "bg-white/70 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto"}>
+        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-10" : "bg-white/70 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] shadow-sm border border-white overflow-hidden overflow-x-auto"}>
           {viewMode === 'grid' ? (
             filteredEmployees.map((emp) => (
-              <div key={emp._id} className={`group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${emp.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}>
+              <div key={emp._id} className={`group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-sm border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${emp.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}>
                  <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                  <div className="relative z-10">
                     <div className="flex items-center gap-4 lg:gap-6 mb-4 lg:mb-6">
@@ -567,17 +567,17 @@ const Employees = () => {
                           {emp.profilePic ? (<img src={getImageUrl(emp.profilePic)} alt={emp.name} className="w-full h-full object-cover" />) : (<User size={32} className="text-zen-brown/10" strokeWidth={1} />)}
                        </div>
                        <div className="min-w-0 flex-1">
-                          <h3 className="text-xl lg:text-2xl font-serif text-zen-brown tracking-tight truncate">{emp.name}</h3>
-                          <div className="flex items-center gap-2 mt-1 lg:mt-2 flex-wrap">
-                             <p className="text-[10px] lg:text-[11px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">{emp.role}</p>
+                          <h3 className="text-2xl sm:text-3xl font-serif font-black text-zen-brown tracking-tighter leading-none mb-1 truncate">{emp.name}</h3>
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                             <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.4em]">{emp.role}</p>
                              {(emp as any).branch?.name && (
-                               <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 rounded-md">
+                               <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded-md">
                                  {(emp as any).branch.name}
                                </span>
                              )}
                           </div>
-                          <div className="mt-2 text-[10px] font-serif italic text-zen-brown/40 flex items-center gap-1">
-                             <Zap size={10} /> {emp.payroll?.type || 'Monthly'} Based
+                          <div className="mt-2 text-[9px] font-serif font-black uppercase tracking-widest text-zen-brown/20 flex items-center gap-1.5">
+                             <Zap size={10} className="text-zen-sand" /> {emp.payroll?.type || 'Monthly'} Sequence
                           </div>
                        </div>
                        <div className="flex flex-col sm:flex-row gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
@@ -597,41 +597,53 @@ const Employees = () => {
           ) : (
             <table className="w-full text-center border-collapse min-w-[800px]">
                <thead>
-                 <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
-                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
-                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Specialist</th>
-                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Payroll</th>
-                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Shift</th>
-                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Earnings</th>
-                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Actions</th>
-                 </tr>
+                  <tr className="bg-zen-brown border-b border-zen-brown/15">
+                    <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">S No</th>
+                    <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap text-center">Specialist</th>
+                    <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap text-center">Payroll</th>
+                    <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap text-center">Shift</th>
+                    <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap text-center">Earnings</th>
+                    <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap text-right">Actions</th>
+                  </tr>
                </thead>
                <tbody className="divide-y divide-zen-brown/15">
-                 {filteredEmployees.map((emp, idx) => (
-                   <tr key={emp._id} className="hover:bg-zen-cream/5 transition-all group">
-                     <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</td>
-                     <td className="px-6 py-6">
+                  {filteredEmployees.map((emp, idx) => (
+                    <tr key={emp._id} className="hover:bg-zen-cream/5 transition-all group">
+                      <td className="px-10 py-5 text-center">
+                        <span className="font-serif text-xl text-zen-brown/40">{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</span>
+                      </td>
+                     <td className="px-10 py-5">
                         <div className="flex flex-col items-center">
-                           <span className="font-serif font-bold text-zen-brown">{emp.name}</span>
-                           <span className="text-[10px] text-zen-brown/30 uppercase tracking-[0.2em]">{emp.role}</span>
+                           <span className="font-serif text-lg text-zen-brown font-black tracking-tight leading-tight">{emp.name}</span>
+                           <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">{emp.role}</span>
                         </div>
                      </td>
-                     <td className="px-6 py-6 font-serif italic text-zen-brown/60 text-sm">
-                        {emp.payroll?.type || 'Monthly'} 
-                        <span className="text-[10px] not-italic text-zen-brown/30 ml-2">({settings?.general?.currencySymbol} {emp.payroll?.baseAmount || emp.salary})</span>
-                     </td>
-                     <td className="px-6 py-6 font-serif italic text-zen-brown/40 text-sm">
-                        {emp.payroll?.shiftHours || 8} hrs / day
-                     </td>
-                     <td className="px-6 py-6">
-                        <ZenBadge variant="leaf">{settings?.general?.currencySymbol} {emp.earnings?.toLocaleString() || 0}</ZenBadge>
-                     </td>
-                     <td className="px-6 py-6">
-                        <div className="flex items-center justify-center gap-3 transition-all">
-                           <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} size="sm" />
-                           <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} size="sm" />
-                        </div>
-                     </td>
+                      <td className="px-8 py-5">
+                         <div className="flex items-center justify-center gap-2 text-[10px] text-zen-brown/70 italic font-black uppercase tracking-widest">
+                            <Zap size={12} className="text-zen-sand" />
+                            {emp.payroll?.type || 'Monthly'}
+                         </div>
+                      </td>
+                      <td className="px-8 py-5">
+                         <div className="flex items-center justify-center gap-2 text-[10px] text-zen-brown/70 font-black uppercase tracking-widest">
+                            {emp.shifts && emp.shifts.length > 0 ? (
+                              <span>{emp.shifts[0].startTime} - {emp.shifts[0].endTime}</span>
+                            ) : (
+                              <span>No Shift</span>
+                            )}
+                         </div>
+                      </td>
+                      <td className="px-8 py-5">
+                         <ZenBadge variant="sand" className="uppercase font-black tracking-widest">
+                            {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
+                         </ZenBadge>
+                      </td>
+                      <td className="px-10 py-8 text-right">
+                         <div className="flex items-center justify-end gap-3">
+                            <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} />
+                            <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} />
+                         </div>
+                      </td>
                    </tr>
                  ))}
                </tbody>
@@ -642,38 +654,54 @@ const Employees = () => {
 
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} hideHeader maxWidth="max-w-4xl" title="Specialist Configuration">
-        <form onSubmit={handleSubmit} className="flex flex-col h-[90vh] sm:h-[85vh] w-full relative">
-          <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 bg-white/95 backdrop-blur-sm z-[60]">
-             <div className="flex items-center gap-4 sm:gap-8 flex-1">
-                <div className="relative w-20 sm:w-28 h-20 sm:h-28 group cursor-pointer shrink-0">
-                   <div className="w-full h-full rounded-full ring-4 ring-zen-cream overflow-hidden bg-zen-cream flex items-center justify-center transition-all group-hover:ring-zen-brown/20 shadow-xl">
-                      {(profilePicFile || (editingEmp && editingEmp.profilePic)) ? (
-                        <img src={profilePicFile ? URL.createObjectURL(profilePicFile) : getImageUrl(editingEmp?.profilePic)} className="w-full h-full object-cover" />
-                      ) : <UserCircle className="text-zen-brown/10" size={56} />}
-                   </div>
-                   <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e => setProfilePicFile(e.target.files?.[0] || null)} />
-                </div>
-                <div className="flex-1">
-                   <ZenInput label="Full Identity" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-xl sm:text-3xl pb-2 sm:pb-4 focus:border-zen-brown transition-all duration-500" />
-                   <div className="w-full sm:w-72 mt-1 sm:mt-2">
-                      <ZenDropdown label="Vocation" options={roles.filter(r => r.status === 'Active' || r.isActive).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} />
-                   </div>
-                </div>
-             </div>
-             <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} className="self-start mt-2" />
-          </div>
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        maxWidth="max-w-4xl"
+        header={
+          <div className="flex flex-col shrink-0">
+            <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 bg-white/95 backdrop-blur-sm z-[60]">
+               <div className="flex items-center gap-4 sm:gap-8 flex-1">
+                  <div className="relative w-20 sm:w-28 h-20 sm:h-28 group cursor-pointer shrink-0">
+                     <div className="w-full h-full rounded-full ring-4 ring-zen-cream overflow-hidden bg-zen-cream flex items-center justify-center transition-all group-hover:ring-zen-brown/20 shadow-xl">
+                        {(profilePicFile || (editingEmp && editingEmp.profilePic)) ? (
+                          <img src={profilePicFile ? URL.createObjectURL(profilePicFile) : getImageUrl(editingEmp?.profilePic)} className="w-full h-full object-cover" />
+                        ) : <UserCircle className="text-zen-brown/10" size={56} />}
+                     </div>
+                     <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e => setProfilePicFile(e.target.files?.[0] || null)} />
+                  </div>
+                  <div className="flex-1">
+                     <ZenInput label="Full Identity" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-xl sm:text-3xl pb-2 sm:pb-4 focus:border-zen-brown transition-all duration-500" />
+                     <div className="w-full sm:w-72 mt-1 sm:mt-2">
+                        <ZenDropdown label="Vocation" options={roles.filter(r => r.status === 'Active' || r.isActive).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} />
+                     </div>
+                  </div>
+               </div>
+               <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} className="self-start mt-2" />
+            </div>
 
-          <div className="flex items-center gap-4 sm:gap-8 px-6 sm:px-12 border-b border-zen-brown/15 bg-white/50 backdrop-blur-sm z-50 overflow-x-auto scrollbar-hide">
-             {['profile', 'config', 'payroll', 'activity', 'documents'].map(tab => (
-                <button key={tab} type="button" onClick={() => setActiveTab(tab as any)} className={`py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all min-w-max ${activeTab === tab ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/60'}`}>
-                   {tab === 'profile' ? 'Matrix' : tab === 'config' ? 'Logic' : tab === 'payroll' ? 'Resonance' : tab === 'activity' ? 'History' : 'Archives'}
-                   {activeTab === tab && <motion.div layoutId="modalTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-zen-brown" />}
-                </button>
-             ))}
+            <div className="flex items-center gap-4 sm:gap-8 px-6 sm:px-12 border-b border-zen-brown/15 bg-white/50 backdrop-blur-sm z-50 overflow-x-auto scrollbar-hide">
+               {['profile', 'config', 'payroll', 'activity', 'documents'].map(tab => (
+                  <button key={tab} type="button" onClick={() => setActiveTab(tab as any)} className={`py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all min-w-max ${activeTab === tab ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/60'}`}>
+                     {tab === 'profile' ? 'Matrix' : tab === 'config' ? 'Logic' : tab === 'payroll' ? 'Resonance' : tab === 'activity' ? 'History' : 'Archives'}
+                     {activeTab === tab && <motion.div layoutId="modalTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-zen-brown" />}
+                  </button>
+               ))}
+            </div>
           </div>
-
-          <div className={`flex-1 ${activeTab === 'activity' ? 'overflow-hidden' : 'overflow-y-auto'} px-6 sm:px-12 flex flex-col pb-40`}>
+        }
+        footer={
+          <div className="flex gap-6">
+             <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Discard</ZenButton>
+             <ZenButton type="submit" form="employee-form" className="flex-[2] py-5">
+                <span>Save Configuration</span>
+                <Sparkles size={18} />
+             </ZenButton>
+          </div>
+        }
+      >
+        <form id="employee-form" onSubmit={handleSubmit} className="w-full relative">
+          <div className={`space-y-6 ${activeTab === 'activity' ? 'overflow-hidden' : ''}`}>
               {activeTab === 'profile' ? (
                  <div className="grid grid-cols-2 gap-x-16 gap-y-10 animate-in fade-in duration-500 py-12">
                      <ZenInput label="Email Port" icon={Mail} value={formData.email} onChange={(e: any) => setFormData({...formData, email: e.target.value})} />
@@ -688,7 +716,7 @@ const Employees = () => {
                       <div className="col-span-2"><ZenTextarea label="Resident Residence" value={formData.address} onChange={(e: any) => setFormData({...formData, address: e.target.value})} /></div>
                  </div>
               ) : activeTab === 'config' ? (
-                <div className="grid grid-cols-2 gap-x-16 gap-y-10 animate-in fade-in duration-500 h-full py-12 pb-40">
+                <div className="grid grid-cols-2 gap-x-16 gap-y-10 animate-in fade-in duration-500 h-full py-12">
                     <div className="col-span-1">
                       <ZenDropdown 
                         label="Calculation Mode" 
@@ -762,7 +790,7 @@ const Employees = () => {
                     </div>
                 </div>
               ) : activeTab === 'payroll' ? (
-                 <div className="flex-1 overflow-y-auto pb-10 custom-scrollbar animate-in slide-in-from-right-4 duration-500 py-6 space-y-10">
+                 <div className="flex-1 pb-10 custom-scrollbar animate-in slide-in-from-right-4 duration-500 py-6 space-y-10">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                        <div className="bg-zen-cream/30 p-8 rounded-[2.5rem] border border-zen-brown/15">
                           <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">Base Retainer</p>
@@ -835,7 +863,7 @@ const Employees = () => {
                     </div>
                  </div>
               ) : activeTab === 'activity' ? (
-                <div className="flex-1 overflow-y-auto pb-10 px-1 pr-4 custom-scrollbar animate-in fade-in duration-500 py-6 space-y-6">
+                <div className="animate-in fade-in duration-500 py-6 space-y-6">
                          <div className="w-full">
                              <div className="flex items-center justify-between bg-white/40 p-6 rounded-[2rem] border border-zen-brown/15 mb-6">
                                 <div className="flex items-center gap-6">
@@ -879,17 +907,17 @@ const Employees = () => {
 
                     {historyView === 'calendar' ? (
                        employeeAttendance.length > 0 ? (
-                          <div className="p-6 bg-white/40 rounded-[2rem] border border-zen-brown/15 animate-in zoom-in-95 duration-700 shadow-2xl shadow-zen-brown/15">
+                          <div className="p-6 bg-white/40 rounded-[2rem] border border-zen-brown/15 animate-in zoom-in-95 duration-700 shadow-sm">
                              <div className="flex items-center justify-between mb-6">
                                 <h4 className="text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Temporal Matrix · {dayjs(historyMonth).format('MMM YYYY')}</h4>
                                 <div className="flex gap-4">
                                    <div className="flex items-center gap-2">
                                       <div className="w-2 h-2 rounded-full bg-zen-leaf shadow-sm shadow-zen-leaf/40" />
-                                      <span className="text-[8px] font-bold text-zen-brown/40 uppercase tracking-widest">Normal Cycles</span>
+                                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Normal Cycles</span>
                                    </div>
                                    <div className="flex items-center gap-2">
                                       <div className="w-2 h-2 rounded-full bg-red-400 shadow-sm shadow-red-400/40" />
-                                      <span className="text-[8px] font-bold text-zen-brown/40 uppercase tracking-widest">Extended Hours</span>
+                                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Extended Hours</span>
                                    </div>
                                 </div>
                              </div>
@@ -943,7 +971,7 @@ const Employees = () => {
                                           {record?.overtimeMinutes > 0 && <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse shadow-sm" />}
                                           {isInCycle && !record && <div className="absolute bottom-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-sm" />}
                                           
-                                          <div className={`absolute inset-0 transition-all duration-500 bg-white/5 rounded-xl flex items-center justify-center p-1.5 pointer-events-none backdrop-blur-sm border border-zen-brown/15 shadow-2xl z-0 ${isInCycle || record ? 'opacity-100' : 'opacity-0'}`}>
+                                          <div className={`absolute inset-0 transition-all duration-500 bg-white/5 rounded-xl flex items-center justify-center p-1.5 pointer-events-none backdrop-blur-sm border border-zen-brown/15 shadow-sm z-0 ${isInCycle || record ? 'opacity-100' : 'opacity-0'}`}>
                                              <p className="text-[8px] font-black uppercase tracking-widest text-zen-brown leading-relaxed text-center whitespace-pre-line">
                                                  {record ? `${record.checkIn}\n—\n${record.checkOut}` : isInCycle ? (formData.shift || 'Full Shift') + '\nScheduled' : ''}
                                              </p>
@@ -962,7 +990,7 @@ const Employees = () => {
                           </div>
                        )
                      ) : (
-                       <div className="bg-white/40 rounded-[2.5rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15 animate-in slide-in-from-bottom-10 duration-700">
+                       <div className="bg-white/40 rounded-[2.5rem] border border-zen-brown/15 overflow-hidden shadow-sm animate-in slide-in-from-bottom-10 duration-700">
                           <table className="w-full text-left border-collapse">
                              <thead>
                                 <tr className="bg-zen-cream/20 border-b border-zen-brown/15">
@@ -1037,7 +1065,7 @@ const Employees = () => {
                              <div className="flex flex-col items-center justify-center py-24 text-zen-brown/10 space-y-6">
                                 <div className="w-20 h-20 rounded-[2.5rem] border border-dashed border-zen-brown/25 flex items-center justify-center">
                                    <Shield size={28} strokeWidth={1} />
-                                </div>
+                                 </div>
                                 <p className="font-serif italic text-base opacity-50">Log registry empty for this cycle</p>
                              </div>
                           )}
@@ -1045,7 +1073,7 @@ const Employees = () => {
                     )}
                  </div>
               ) : (
-                 <div className="space-y-8 animate-in fade-in duration-500 py-12 flex-1 overflow-y-auto">
+                 <div className="space-y-8 animate-in fade-in duration-500 py-12">
 
                     {/* Upload Area — only when editing an existing employee */}
                     {editingEmp ? (
@@ -1142,7 +1170,7 @@ const Employees = () => {
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
                               <a
                                 href={doc.url?.startsWith('http') ? doc.url : `${API_URL.replace('/api', '')}/${doc.url?.replace(/^\.?\//, '')}`}
                                 target="_blank"
@@ -1185,14 +1213,6 @@ const Employees = () => {
 
                  </div>
               )}
-          </div>
-
-          <div className="px-12 py-10 border-t border-zen-brown/15 bg-white/95 z-[60] flex gap-6">
-             <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Discard</ZenButton>
-             <ZenButton type="submit" className="flex-[2] py-5">
-                <span>Save Configuration</span>
-                <Sparkles size={18} />
-             </ZenButton>
           </div>
         </form>
       </Modal>

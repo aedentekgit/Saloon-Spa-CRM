@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { 
   Users, 
   Crown, 
@@ -391,9 +392,9 @@ const Memberships = () => {
                  {viewMode === 'grid' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                      {plans.map((plan) => (
-                        <div key={plan._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+                        <div key={plan._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-sm border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 hover:z-10 h-full flex flex-col justify-between">
                            {/* Sanctuary Background Glow */}
-                           <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-[2.5rem] sm:rounded-bl-[3.5rem] rounded-tr-[2.5rem] sm:rounded-tr-[3.5rem] overflow-hidden -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                            
                            <div className="absolute -bottom-4 -right-4 text-zen-sand opacity-[0.03] group-hover:opacity-[0.07] transition-all duration-700 pointer-events-none">
                               <Crown size={150} />
@@ -471,10 +472,10 @@ const Memberships = () => {
                      ))}
                   </div>
                  ) : (
-                    <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-sm border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in slide-in-from-bottom-4 duration-700">
                        <table className="w-full text-center border-collapse min-w-[900px]">
                           <thead>
-                             <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
+                             <tr className="bg-zen-brown border-b border-zen-brown/15">
                                 <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Hierarchy</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Tier Identity</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Investment (QR)</th>
@@ -529,15 +530,15 @@ const Memberships = () => {
 
             {activeTab === 'registry' && (
               <div className="space-y-12">
-                  <div className="flex overflow-x-auto pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+                  <div className="flex overflow-x-auto pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
                     {[
                       { label: 'Total Votaries', value: memberships.length.toString(), icon: Users, trend: `${stats?.totalActive || 0} active currently` },
                       { label: 'Tier Engagement', value: stats?.activeTiers?.toString() || '0', icon: BarChart3, trend: 'In sanctuary' },
                       { label: 'Active Rituals', value: stats?.totalSessionsRemaining?.toString() || '0', icon: Sparkles, trend: 'Available assets' },
                       { label: 'Concluded Journeys', value: stats?.totalExpired?.toString() || '0', icon: AlertCircle, trend: 'History' }
                     ].map((stat, i) => (
-                      <div key={i} className="flex-shrink-0 w-[260px] lg:w-auto bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] shadow-2xl shadow-zen-brown/15 border border-white relative overflow-hidden group hover:-translate-y-2 transition-all duration-700">
-                         <div className="absolute top-0 right-0 w-24 h-24 bg-zen-sand/5 rounded-bl-full -z-0"></div>
+                      <div key={i} className="flex-shrink-0 w-[260px] lg:w-auto bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] shadow-sm border border-white relative group hover:-translate-y-2 hover:z-50 hover:shadow-zen-brown/25 transition-all duration-700">
+                         <div className="absolute top-0 right-0 w-24 h-24 bg-zen-sand/5 rounded-bl-[2.5rem] sm:rounded-bl-[3rem] rounded-tr-[2.5rem] sm:rounded-tr-[3rem] -z-0 overflow-hidden pointer-events-none"></div>
                          <stat.icon className="text-zen-brown/20 mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-700" size={28} />
                          <h5 className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.4em] mb-1.5">{stat.label}</h5>
                          <p className="text-4xl font-serif font-black text-zen-brown tracking-tighter">{stat.value}</p>
@@ -558,10 +559,10 @@ const Memberships = () => {
                     </div>
 
                     {viewMode === 'table' ? (
-                       <div className="bg-white/70 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar">
+                       <div className="bg-white/70 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[3.5rem] border border-white overflow-hidden overflow-x-auto custom-scrollbar">
                           <table className="w-full text-center border-collapse min-w-[1000px]">
                              <thead>
-                                <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
+                                <tr className="bg-zen-brown border-b border-zen-brown/15">
                                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">No</th>
                                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Votary (Client)</th>
                                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Sacred Tier</th>
@@ -575,25 +576,29 @@ const Memberships = () => {
                                 {filteredMemberships.map((m, index) => (
                                   <tr key={m._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
                                      <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</td>
-                                     <td className="px-6 py-6">
+                                     <td className="px-10 py-5">
                                         <div className="flex flex-col items-center">
-                                           <span className="font-serif font-bold text-zen-brown">{m.client?.name}</span>
-                                           <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">{m.client?.phone}</span>
+                                           <span className="font-serif text-lg text-zen-brown font-black tracking-tight leading-tight">{m.client?.name}</span>
+                                           <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">{m.client?.phone}</span>
                                         </div>
                                      </td>
-                                     <td className="px-6 py-6">
-                                        <ZenBadge variant="sand">{m.plan?.name}</ZenBadge>
+                                     <td className="px-8 py-5">
+                                        <ZenBadge variant="sand" className="uppercase font-black tracking-widest">{m.plan?.name}</ZenBadge>
                                      </td>
-                                     <td className="px-6 py-6 text-xs text-zen-brown font-medium">
-                                        {new Date(m.startDate).toLocaleDateString()} - {new Date(m.endDate).toLocaleDateString()}
+                                     <td className="px-8 py-5">
+                                        <div className="flex items-center justify-center gap-2 text-[10px] text-zen-brown/70 italic font-black uppercase tracking-widest">
+                                           <Calendar size={12} className="text-zen-sand" />
+                                           {dayjs(m.startDate).format('DD/MM')} - {dayjs(m.endDate).format('DD/MM')}
+                                        </div>
                                      </td>
-                                     <td className="px-6 py-6 text-zen-brown font-bold tracking-tighter">
-                                        {Math.max(0, (m.totalSessions > 0 ? m.totalSessions : (m.plan?.maxSessions || 0)) - m.remainingSessions)} / {m.totalSessions > 0 ? m.totalSessions : (m.plan?.maxSessions || 0)} Sessions
+                                     <td className="px-8 py-5">
+                                        <div className="flex flex-col items-center">
+                                           <p className="font-serif text-lg text-zen-brown font-black tracking-tighter leading-none">{Math.max(0, (m.totalSessions > 0 ? m.totalSessions : (m.plan?.maxSessions || 0)) - m.remainingSessions)} / {m.totalSessions > 0 ? m.totalSessions : (m.plan?.maxSessions || 0)}</p>
+                                           <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">Sessions Ritualized</p>
+                                        </div>
                                      </td>
-                                     <td className="px-6 py-6">
-                                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${getStatusColor(m.status)}`}>
-                                           {m.status}
-                                        </span>
+                                     <td className="px-8 py-5 text-center">
+                                        <ZenBadge variant={m.status === 'Active' ? 'leaf' : 'sand'} className="uppercase font-black tracking-widest">{m.status}</ZenBadge>
                                      </td>
                                      <td className="px-6 py-6">
                                         <div className="flex items-center justify-center gap-2">
@@ -623,7 +628,7 @@ const Memberships = () => {
                     ) : (
                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                           {filteredMemberships.map((m) => (
-                             <div key={m._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+                             <div key={m._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-sm border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                                 {/* Background Glow Overlay */}
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                                 
@@ -706,101 +711,100 @@ const Memberships = () => {
       </AnimatePresence>
 
       {/* Plan Configuration Modal */}
-      <Modal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} title={editingPlan ? 'Refine Tier' : 'Establish Sacred Tier'} hideHeader maxWidth="max-w-4xl" >
-        <form onSubmit={handleCreatePlan} className="flex flex-col h-[90vh]">
-           <div className="px-10 py-10 border-b border-zen-brown/15 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-50">
-              <div className="flex items-center gap-6">
-                 <div className="w-16 h-16 rounded-2xl bg-zen-cream flex items-center justify-center text-zen-sand">
-                    <Crown size={32} />
-                 </div>
-                 <div>
-                    <h2 className="text-3xl font-serif font-bold text-zen-brown">{editingPlan ? 'Refine Tier' : 'Establish Sacred Tier'}</h2>
-                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-1">Tier Session & Scope Configuration</p>
-                 </div>
-              </div>
-              <ZenIconButton icon={X} onClick={() => setIsPlanModalOpen(false)} />
-           </div>
+      <Modal 
+        isOpen={isPlanModalOpen} 
+        onClose={() => setIsPlanModalOpen(false)} 
+        title={editingPlan ? 'Refine Tier' : 'Establish Sacred Tier'} 
+        subtitle="Tier Session & Scope Configuration"
+        maxWidth="max-w-4xl"
+        headerIcon={Crown}
+        footer={
+          <div className="flex gap-6">
+            <ZenButton variant="secondary" onClick={() => setIsPlanModalOpen(false)} className="flex-1" type="button">Discard</ZenButton>
+            <ZenButton type="submit" form="plan-form" className="flex-[2] flex items-center justify-center gap-3 shadow-sm">
+               <span>{editingPlan ? 'Archive Refinement' : 'Manifest Tier'}</span>
+               <Sparkles size={18} />
+            </ZenButton>
+          </div>
+        }
+      >
+        <form id="plan-form" onSubmit={handleCreatePlan} className="space-y-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
+               <ZenInput label="Tier Identity" placeholder="E.g. Zenith Platinum" value={planFormData.name} onChange={(e: any) => setPlanFormData({...planFormData, name: e.target.value})} />
+               <ZenInput label="No of times (Sessions)" icon={Hash} type="number" value={planFormData.maxSessions} onChange={(e: any) => setPlanFormData({...planFormData, maxSessions: Number(e.target.value)})} />
+               <ZenInput label="Primary Investment (QR)" icon={CreditCard} type="number" value={planFormData.price} onChange={(e: any) => setPlanFormData({...planFormData, price: Number(e.target.value)})} />
+               <div className="space-y-4">
+                  <ZenInput 
+                     label="Temporal Duration (Days)" 
+                     icon={Clock} 
+                     type="number" 
+                     disabled={planFormData.isUnlimited}
+                     value={planFormData.isUnlimited ? '' : planFormData.durationDays} 
+                     onChange={(e: any) => setPlanFormData({...planFormData, durationDays: Number(e.target.value)})} 
+                  />
+                  <label className="flex items-center gap-3 cursor-pointer group mt-2">
+                     <input 
+                       type="checkbox" 
+                       checked={planFormData.isUnlimited} 
+                       onChange={e => setPlanFormData({...planFormData, isUnlimited: e.target.checked})}
+                       className="w-4 h-4 rounded border-zen-brown/25 text-zen-sand focus:ring-zen-sand transition-all"
+                     />
+                     <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Infinite Lifespan</span>
+                  </label>
+               </div>
 
-           <div className="flex-1 overflow-y-auto px-10 py-12 space-y-12 scrollbar-none">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
-                 <ZenInput label="Tier Identity" placeholder="E.g. Zenith Platinum" value={planFormData.name} onChange={(e: any) => setPlanFormData({...planFormData, name: e.target.value})} />
-                 <ZenInput label="No of times (Sessions)" icon={Hash} type="number" value={planFormData.maxSessions} onChange={(e: any) => setPlanFormData({...planFormData, maxSessions: Number(e.target.value)})} />
-                 <ZenInput label="Primary Investment (QR)" icon={CreditCard} type="number" value={planFormData.price} onChange={(e: any) => setPlanFormData({...planFormData, price: Number(e.target.value)})} />
-                 <div className="space-y-4">
-                    <ZenInput 
-                       label="Temporal Duration (Days)" 
-                       icon={Clock} 
-                       type="number" 
-                       disabled={planFormData.isUnlimited}
-                       value={planFormData.isUnlimited ? '' : planFormData.durationDays} 
-                       onChange={(e: any) => setPlanFormData({...planFormData, durationDays: Number(e.target.value)})} 
-                    />
-                    <label className="flex items-center gap-3 cursor-pointer group mt-2">
-                       <input 
-                         type="checkbox" 
-                         checked={planFormData.isUnlimited} 
-                         onChange={e => setPlanFormData({...planFormData, isUnlimited: e.target.checked})}
-                         className="w-4 h-4 rounded border-zen-brown/25 text-zen-sand focus:ring-zen-sand transition-all"
-                       />
-                       <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Infinite Lifespan</span>
-                    </label>
-                 </div>
+               <div className="flex flex-col justify-center">
+                  <h4 className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mb-4">Availability Status</h4>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={planFormData.isActive} onChange={e => setPlanFormData({...planFormData, isActive: e.target.checked})} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-zen-leaf after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    <span className="ms-3 text-[10px] font-bold text-white/40 uppercase tracking-widest">{planFormData.isActive ? 'Active' : 'Deactivated'}</span>
+                  </label>
+               </div>
+            </div>
 
-                 <div className="flex flex-col justify-center">
-                    <h4 className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mb-4">Availability Status</h4>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked={planFormData.isActive} onChange={e => setPlanFormData({...planFormData, isActive: e.target.checked})} className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-zen-leaf after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                      <span className="ms-3 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">{planFormData.isActive ? 'Active' : 'Deactivated'}</span>
-                    </label>
-                 </div>
-              </div>
-
-              <div className="space-y-6">
-                  <h4 className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] px-2">Services List (Coverage)</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                     {services.filter(s => s.status === 'Active').map(service => {
-                        const isSelected = planFormData.applicableServices.includes(service._id);
-                        return (
-                           <button
-                             key={service._id}
-                             type="button"
-                             onClick={() => toggleService(service._id)}
-                             className={`p-4 rounded-2xl border text-left transition-all duration-300 ${isSelected ? 'bg-zen-brown text-zen-cream border-zen-brown shadow-xl' : 'bg-white text-zen-brown/60 border-zen-brown/15 hover:border-zen-brown/35'}`}
-                           >
-                              <p className="font-serif font-bold text-sm leading-tight">{service.name}</p>
-                              <div className="flex items-center justify-between mt-2">
-                                 <span className="text-[8px] uppercase tracking-widest opacity-60">{service.category?.name}</span>
-                                 {isSelected && <CheckCircle2 size={12} />}
-                              </div>
-                           </button>
-                        );
-                     })}
-                  </div>
-              </div>
-              <ZenTextarea label="Manifest Essence" value={planFormData.description} onChange={(e: any) => setPlanFormData({...planFormData, description: e.target.value})} />
-           </div>
-
-           <div className="px-10 py-10 border-t border-zen-brown/15 bg-gray-50/50 flex gap-6 sticky bottom-0 z-50">
-              <ZenButton variant="secondary" onClick={() => setIsPlanModalOpen(false)} className="flex-1" type="button">Discard</ZenButton>
-              <ZenButton type="submit" className="flex-[2]">Manifest Tier</ZenButton>
-           </div>
+            <div className="space-y-6">
+                <h4 className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] px-2">Services List (Coverage)</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                   {services.filter(s => s.status === 'Active').map(service => {
+                      const isSelected = planFormData.applicableServices.includes(service._id);
+                      return (
+                         <button
+                           key={service._id}
+                           type="button"
+                           onClick={() => toggleService(service._id)}
+                           className={`p-4 rounded-2xl border text-left transition-all duration-300 ${isSelected ? 'bg-zen-brown text-zen-cream border-zen-brown shadow-xl' : 'bg-white text-zen-brown/60 border-zen-brown/15 hover:border-zen-brown/35'}`}
+                         >
+                            <p className="font-serif font-bold text-sm leading-tight">{service.name}</p>
+                            <div className="flex items-center justify-between mt-2">
+                               <span className="text-[8px] uppercase tracking-widest opacity-60">{service.category?.name}</span>
+                               {isSelected && <CheckCircle2 size={12} />}
+                            </div>
+                         </button>
+                      );
+                   })}
+                </div>
+            </div>
+            <ZenTextarea label="Manifest Essence" value={planFormData.description} onChange={(e: any) => setPlanFormData({...planFormData, description: e.target.value})} />
         </form>
       </Modal>
 
       {/* Enrollment Modal */}
-      <Modal isOpen={isEnrollModalOpen} onClose={() => setIsEnrollModalOpen(false)} title="Divine Enrollment" hideHeader maxWidth="max-w-2xl" >
-         <form onSubmit={handleEnroll} className="p-10 space-y-10">
-            <div className="flex items-center gap-6">
-               <div className="w-14 h-14 rounded-2xl bg-zen-sand/10 text-zen-sand flex items-center justify-center">
-                  <Plus size={24} />
-               </div>
-               <div>
-                  <h2 className="text-2xl font-serif font-bold text-zen-brown">{editingEnrollmentId ? 'Refine Enrollment' : 'Divine Enrollment'}</h2>
-                  <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-1">Initiating members</p>
-               </div>
+      <Modal 
+         isOpen={isEnrollModalOpen} 
+         onClose={() => setIsEnrollModalOpen(false)} 
+         title={editingEnrollmentId ? 'Refine Enrollment' : 'Divine Enrollment'} 
+         subtitle="Initiating members"
+         maxWidth="max-w-2xl"
+         headerIcon={Plus}
+         footer={
+            <div className="flex gap-4">
+               <ZenButton variant="secondary" onClick={() => setIsEnrollModalOpen(false)} className="flex-1" type="button">Discard</ZenButton>
+               <ZenButton type="submit" form="enroll-form" className="flex-[2]">{editingEnrollmentId ? 'Apply Refinements' : 'Complete Initiation'}</ZenButton>
             </div>
-
+         }
+      >
+         <form id="enroll-form" onSubmit={handleEnroll} className="space-y-10">
             <ZenDropdown 
                label="Seek Votary (Client)" 
                options={clients.filter(c => c.status === 'Active').map(c => `${c.name || 'Unknown'} (${c.phone || 'No Phone'})`)} 
@@ -837,26 +841,24 @@ const Memberships = () => {
             </div>
 
             <ZenDatePicker label="Start Date" value={enrollData.startDate} onChange={val => setEnrollData({...enrollData, startDate: val})} />
-
-            <div className="pt-10 flex gap-4">
-               <ZenButton variant="secondary" onClick={() => setIsEnrollModalOpen(false)} className="flex-1" type="button">Discard</ZenButton>
-               <ZenButton type="submit" className="flex-[2]">{editingEnrollmentId ? 'Apply Refinements' : 'Complete Initiation'}</ZenButton>
-            </div>
          </form>
       </Modal>
 
       {/* Redemption Modal */}
-      <Modal isOpen={isRedeemModalOpen} onClose={() => setIsRedeemModalOpen(false)} title="Divine Redemption" hideHeader maxWidth="max-w-xl" >
-         <form onSubmit={handleRedeem} className="p-10 space-y-8">
-            <div className="flex items-center gap-6">
-               <div className="w-14 h-14 rounded-2xl bg-zen-leaf/10 text-zen-leaf flex items-center justify-center">
-                  <Sparkles size={24} />
-               </div>
-               <div>
-                  <h2 className="text-2xl font-serif font-bold text-zen-brown">Divine Redemption</h2>
-               </div>
+      <Modal 
+         isOpen={isRedeemModalOpen} 
+         onClose={() => setIsRedeemModalOpen(false)} 
+         title="Divine Redemption" 
+         maxWidth="max-w-xl" 
+         headerIcon={Sparkles}
+         footer={
+            <div className="flex gap-4">
+               <ZenButton variant="secondary" onClick={() => setIsRedeemModalOpen(false)} className="flex-1" type="button">Discard</ZenButton>
+               <ZenButton type="submit" form="redeem-form" className="flex-[2]">Redeem Sacred Essence</ZenButton>
             </div>
-
+         }
+      >
+         <form id="redeem-form" onSubmit={handleRedeem} className="space-y-8">
             {activeMembershipForRedeem && (
                <div className="bg-zen-cream/30 p-6 rounded-3xl border border-zen-brown/15">
                   <p className="font-serif font-lg font-bold text-zen-brown">{activeMembershipForRedeem.client?.name}</p>
@@ -877,42 +879,38 @@ const Memberships = () => {
             />
 
             <ZenTextarea label="Redemption Notes" value={redeemData.notes} onChange={(e: any) => setRedeemData({...redeemData, notes: e.target.value})} />
-
-            <div className="pt-6 flex gap-4">
-               <ZenButton variant="secondary" onClick={() => setIsRedeemModalOpen(false)} className="flex-1" type="button">Discard</ZenButton>
-               <ZenButton type="submit" className="flex-[2]">Redeem Sacred Essence</ZenButton>
-            </div>
          </form>
       </Modal>
 
       {/* Usage History Modal */}
-      <Modal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} title="Services Taken Registry" hideHeader maxWidth="max-w-4xl" >
-         <div className="p-10 space-y-10">
-            <div className="flex items-center justify-between">
-               <div className="flex items-center gap-6">
-                  <div className="w-14 h-14 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
-                     <History size={24} />
-                  </div>
-                  <div>
-                     <h2 className="text-2xl font-serif font-bold text-zen-brown">Services Taken Registry</h2>
-                     <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-1">Detailed redemption records</p>
-                  </div>
+      <Modal 
+         isOpen={isHistoryModalOpen} 
+         onClose={() => setIsHistoryModalOpen(false)} 
+         title="Services Taken Registry" 
+         subtitle="Detailed redemption records"
+         maxWidth="max-w-4xl" 
+         headerIcon={History}
+         footer={
+            <div className="flex justify-between items-center">
+               <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Client Identity</span>
+                  <p className="font-serif font-bold text-zen-brown">{selectedHistory?.client?.name}</p>
                </div>
-               <div className="text-right">
-                  <h3 className="font-serif text-lg font-bold text-zen-brown">{selectedHistory?.client?.name}</h3>
-                  <ZenBadge variant="sand" className="mt-1">{selectedHistory?.plan?.name}</ZenBadge>
-               </div>
+               <ZenBadge variant="sand">{selectedHistory?.plan?.name}</ZenBadge>
             </div>
+         }
+      >
+         <div className="space-y-10">
 
             <div className="bg-white rounded-[2.5rem] border border-zen-brown/15 overflow-hidden shadow-sm">
                <table className="w-full text-left">
-                  <thead className="bg-zen-cream/10 border-b border-zen-brown/15">
+                  <thead className="bg-zen-brown border-b border-zen-brown/15">
                      <tr>
-                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest whitespace-nowrap">S No</th>
-                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Date</th>
-                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Branch</th>
-                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Ritual (Massage)</th>
-                        <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Slot</th>
+                        <th className="px-8 py-5 text-[10px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">S No</th>
+                        <th className="px-8 py-5 text-[10px] font-bold text-white/40 uppercase tracking-widest">Date</th>
+                        <th className="px-8 py-5 text-[10px] font-bold text-white/40 uppercase tracking-widest">Branch</th>
+                        <th className="px-8 py-5 text-[10px] font-bold text-white/40 uppercase tracking-widest">Ritual (Massage)</th>
+                        <th className="px-8 py-5 text-[10px] font-bold text-white/40 uppercase tracking-widest">Slot</th>
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-zen-brown/15">

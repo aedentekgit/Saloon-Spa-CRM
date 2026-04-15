@@ -159,7 +159,7 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10">
         {/* Immersive Analytics Deck */}
-        <div className="lg:col-span-8 bg-white p-6 sm:p-12 rounded-[2.5rem] sm:rounded-[3.2rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 relative overflow-hidden">
+        <div className="lg:col-span-8 bg-white p-6 sm:p-12 rounded-[2.5rem] sm:rounded-[3.2rem] border border-zen-brown/15 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none hidden sm:block">
              <Activity size={180} className="text-zen-sand" />
           </div>
@@ -238,7 +238,7 @@ const AdminDashboard = () => {
 
         {/* Vital Stats Dashboard */}
         <div className="lg:col-span-4 space-y-10">
-          <section className="bg-zen-brown p-12 rounded-[3.2rem] text-white shadow-2xl shadow-zen-brown/20 relative overflow-hidden group">
+          <section className="bg-zen-brown p-12 rounded-[3.2rem] text-white shadow-sm relative overflow-hidden group">
              <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-125 transition-transform duration-1000">
                 <Target size={150} />
              </div>
@@ -321,7 +321,7 @@ const EmployeeDashboard = () => {
           <motion.div 
             key={card.title} 
             whileHover={{ y: -18, zIndex: 50 }}
-            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 group transition-all duration-500 relative"
+            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-sm group transition-all duration-500 relative"
           >
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
               <card.icon size={26} />
@@ -332,7 +332,7 @@ const EmployeeDashboard = () => {
         ))}
       </div>
 
-      <div className="bg-white p-12 rounded-[4rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10">
+      <div className="bg-white p-12 rounded-[4rem] border border-zen-brown/15 shadow-sm">
         <div className="flex items-center justify-between mb-12">
           <div>
             <h3 className="text-3xl font-serif font-bold text-black tracking-tight">Today's Sacred Schedule</h3>
@@ -346,7 +346,7 @@ const EmployeeDashboard = () => {
         <div className="space-y-6">
           {myAppointments.length > 0 ? (
             myAppointments.map((apt) => (
-              <div key={apt._id || apt.id} className="flex items-center justify-between p-8 bg-white/50 rounded-[3rem] border border-transparent hover:border-zen-brown/15 hover:bg-white hover:shadow-2xl hover:shadow-zen-brown/15 transition-all duration-700 group">
+              <div key={apt._id || apt.id} className="flex items-center justify-between p-8 bg-white/50 rounded-[3rem] border border-transparent hover:border-zen-brown/15 hover:bg-white hover:shadow-sm hover:shadow-zen-brown/15 transition-all duration-700 group">
                 <div className="flex items-center gap-10">
                   <div className="w-20 h-20 bg-zen-cream rounded-[2rem] flex flex-col items-center justify-center border border-white shadow-sm group-hover:bg-zen-brown group-hover:text-white transition-all duration-700">
                     <span className="text-[10px] font-bold uppercase opacity-30 tracking-widest mb-1">Ritual</span>
@@ -401,7 +401,7 @@ const ManagerDashboard = () => {
     <div className="space-y-10 pb-20">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {cards.map((card) => (
-          <div key={card.title} className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 group transition-all duration-500">
+          <div key={card.title} className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-sm group transition-all duration-500">
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
               <card.icon size={26} />
             </div>
@@ -440,7 +440,7 @@ const ClientDashboard = () => {
           <motion.div 
             key={card.title} 
             whileHover={{ y: -18, zIndex: 50 }}
-            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 group transition-all duration-500 relative"
+            className="bg-white p-10 rounded-[3.5rem] border border-zen-brown/15 shadow-sm group transition-all duration-500 relative"
           >
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
               <card.icon size={26} />
@@ -452,7 +452,7 @@ const ClientDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div className="lg:col-span-8 bg-white/60 backdrop-blur-xl rounded-[4rem] p-12 border border-white shadow-2xl shadow-zen-brown/15">
+        <div className="lg:col-span-8 bg-white/60 backdrop-blur-xl rounded-[4rem] p-12 border border-white shadow-sm">
           <header className="mb-12">
             <h3 className="text-3xl font-serif font-bold text-black tracking-tight">Your Relaxation Journey</h3>
             <p className="text-xs font-bold text-black/20 uppercase tracking-[0.4em] mt-2">Personalized Sanctuary History</p>
@@ -461,7 +461,7 @@ const ClientDashboard = () => {
           <div className="space-y-6">
             {myAppointments.length > 0 ? (
               myAppointments.map((apt) => (
-                <div key={apt.id} className="flex items-center justify-between p-8 bg-white/40 rounded-[3.5rem] border border-transparent hover:border-zen-brown/15 hover:bg-white hover:shadow-2xl transition-all duration-700 group">
+                <div key={apt.id} className="flex items-center justify-between p-8 bg-white/40 rounded-[3.5rem] border border-transparent hover:border-zen-brown/15 hover:bg-white hover:shadow-sm transition-all duration-700 group">
                   <div className="flex items-center gap-8">
                     <div className="w-16 h-16 bg-zen-cream rounded-[2rem] flex items-center justify-center border border-white text-zen-sand group-hover:bg-zen-sand group-hover:text-white transition-all duration-700">
                       <Calendar size={28} />
@@ -488,7 +488,7 @@ const ClientDashboard = () => {
         </div>
 
         <div className="lg:col-span-4 space-y-8">
-          <div className="bg-zen-sand/90 backdrop-blur-xl p-12 rounded-[4.5rem] text-white shadow-2xl shadow-zen-sand/20 relative overflow-hidden group h-full flex flex-col justify-between">
+          <div className="bg-zen-sand/90 backdrop-blur-xl p-12 rounded-[4.5rem] text-white shadow-sm shadow-zen-sand/20 relative overflow-hidden group h-full flex flex-col justify-between">
             <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
             
             <div className="relative z-10">
