@@ -34,7 +34,7 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
       {/* Hero Section */}
-      <section className="px-6 lg:px-24 mb-16">
+      <section className="px-6 lg:px-24 mb-16 pt-12">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-center">
           <div className="space-y-12 animate-in fade-in slide-in-from-left-8 duration-1000">
              <div className="space-y-6">
@@ -42,9 +42,9 @@ const Contact = () => {
                    <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
                    Reach the Sanctuary
                 </div>
-                <h1 className="text-6xl lg:text-9xl font-serif font-bold leading-[0.8] tracking-tighter">
+                <h1 className="text-6xl lg:text-7xl font-serif font-bold leading-tight">
                    Begin Your<br />
-                   <span className="italic relative">
+                   <span className="italic relative animate-text-shine">
                      Journey
                      <span className="absolute -bottom-4 left-0 w-full h-[2px] bg-[#4A2C40]/10" />
                    </span>

@@ -2,6 +2,7 @@ import React from 'react';
 import { GitBranch } from 'lucide-react';
 import { useBranches } from '../../context/BranchContext';
 import { ZenDropdown } from './ZenInputs';
+import { useAuth } from '../../context/AuthContext';
 
 interface BranchSelectorProps {
   className?: string;
@@ -14,7 +15,10 @@ export const BranchSelector = ({
   variant = "pill",
   hideLabel = true 
 }: BranchSelectorProps) => {
+  const { user } = useAuth();
   const { branches, selectedBranch, setSelectedBranch } = useBranches();
+
+  if (user?.role !== 'Admin') return null;
 
   const branchOptions = ['All Branches', ...branches.map(b => b.name)];
   const currentBranchName = selectedBranch === 'all' 

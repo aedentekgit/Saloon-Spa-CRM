@@ -9,6 +9,7 @@ interface User {
   name: string;
   token?: string;
   permissions?: string[];
+  branch?: string;
 }
 
 interface AuthContextType {
@@ -20,6 +21,14 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Guardian: Default Permission Sets for Roles
+const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
+  'Admin': ['*'],
+  'Manager': ['dashboard', 'appointments', 'billing', 'clients', 'services', 'rooms', 'employees', 'attendance', 'finance', 'inventory', 'whatsapp', 'reports', 'settings', 'leave'],
+  'Employee': ['dashboard', 'appointments', 'clients', 'services', 'attendance', 'leave'],
+  'Client': []
+};
 
 // Safely access Vite environment variables
 const getApiUrl = () => {
@@ -56,7 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
     // Admin always has full access
     if (user.role === 'Admin') return true;
-    return user.permissions?.includes(permId) || false;
+    
+    // Check custom permissions first
+    if (user.permissions && user.permissions.length > 0) {
+      if (user.permissions.includes(permId)) return true;
+    }
+
+    // Fallback to role-based defaults (Guardian)
+    const defaults = DEFAULT_PERMISSIONS[user.role] || [];
+    return defaults.includes(permId) || defaults.includes('*');
   };
 
   const login = async (email: string, password?: string): Promise<boolean> => {
@@ -78,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: data.role as UserRole,
           name: data.name,
           permissions: data.permissions,
+          branch: data.branch,
           token: data.token
         };
         setUser(userData);

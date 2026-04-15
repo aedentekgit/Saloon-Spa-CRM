@@ -5,7 +5,7 @@ const About = () => {
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
       {/* Hero Content */}
-      <section className="px-6 lg:px-24 mb-16">
+      <section className="px-6 lg:px-24 mb-16 pt-12">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-center">
           <div className="space-y-12 animate-in fade-in slide-in-from-left-8 duration-1000">
             <div className="space-y-6">
@@ -13,9 +13,9 @@ const About = () => {
                 <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
                 The Zen Heritage
               </div>
-              <h1 className="text-6xl lg:text-8xl font-serif font-bold leading-tight">
+              <h1 className="text-6xl lg:text-7xl font-serif font-bold leading-tight">
                 Our Story of <br />
-                <span className="italic">Mindfulness</span>
+                <span className="italic animate-text-shine">Mindfulness</span>
               </h1>
             </div>
 

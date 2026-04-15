@@ -49,9 +49,9 @@ const Home = () => {
               Est. 2024 • The Global Sanctuary
             </div>
             
-            <h1 className="text-5xl md:text-7xl lg:text-[9rem] font-serif font-bold leading-[0.9] tracking-tight">
+            <h1 className="text-5xl md:text-6xl lg:text-[6.5rem] font-serif font-bold leading-[0.9] tracking-tight">
               The Art of<br />
-              <span className="italic relative">
+              <span className="italic relative animate-text-shine">
                 Profound
                 <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-zen-brown/10" />
               </span><br />

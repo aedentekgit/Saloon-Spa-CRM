@@ -125,6 +125,8 @@ const Payroll = () => {
       addButtonLabel="Export Ledger"
       onAddClick={handleExport}
       addButtonIcon={<Download size={18} />}
+      hideBranchSelector
+      hideViewToggle
     >
       <div className="flex overflow-x-auto pb-8 gap-6 md:grid md:grid-cols-3 md:gap-8 mb-12 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
         <div className="flex-shrink-0 w-[280px] sm:w-auto bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">

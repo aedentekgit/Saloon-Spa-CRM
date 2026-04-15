@@ -214,7 +214,7 @@ const Settings = () => {
                  </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible gap-2 lg:gap-2 pb-2 lg:pb-0 scrollbar-hide">
                  {sidebarItems.map((item) => (
                     <button
                        key={item.id}

@@ -7,7 +7,7 @@ const PublicLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen bg-[#FAF9F6] font-sans selection:bg-zen-sand selection:text-white">
       <PublicNavbar />
-      <main className="animate-in fade-in duration-700 pt-32 lg:pt-40">
+      <main className="animate-in fade-in duration-700 pt-20">
         {children}
       </main>
       <PublicFooter />

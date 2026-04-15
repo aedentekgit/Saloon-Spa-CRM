@@ -121,7 +121,7 @@ const Login = () => {
 
             <button
               type="submit"
-              className="w-full py-6 bg-[#1A1816] text-[#FAF9F6] text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-[#B4A596] transition-all flex items-center justify-center gap-4 group"
+              className="w-full py-6 bg-[#1A1816] text-[#FAF9F6] text-[10px] font-bold uppercase tracking-[0.4em] rounded-2xl hover:bg-[#B4A596] hover:shadow-xl hover:shadow-black/10 transition-all flex items-center justify-center gap-4 group"
             >
               Authenticate
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />

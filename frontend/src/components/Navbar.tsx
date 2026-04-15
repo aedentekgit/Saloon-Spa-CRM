@@ -15,7 +15,7 @@ const Navbar = ({
 }) => {
   const { user } = useAuth();
   const location = useLocation();
-  const shouldShowBranchInNavbar = ['/dashboard', '/', '/billing'].includes(location.pathname);
+  const shouldShowBranchInNavbar = ['/dashboard', '/', '/billing', '/reports', '/payroll', '/transactions'].includes(location.pathname);
 
   const getPageTitle = () => {
     const path = location.pathname;

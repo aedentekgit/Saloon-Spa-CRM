@@ -104,7 +104,10 @@ const Memberships = () => {
 
     useEffect(() => {
        localStorage.setItem('zen_membership_view', viewMode);
+       setPage(1);
     }, [viewMode]);
+
+    const PAGE_LIMIT = 12;
 
     const fetchData = async () => {
        setIsLoading(true);
@@ -112,7 +115,7 @@ const Memberships = () => {
           const headers = { 'Authorization': `Bearer ${user?.token}` };
           const [plansRes, enrollRes, servicesRes, branchRes, clientsRes, statsRes] = await Promise.all([
              fetch(`${API_URL}/memberships/plans`, { headers }),
-             fetch(`${API_URL}/memberships/client/all?page=${page}&limit=10`, { headers }),
+             fetch(`${API_URL}/memberships/client/all?page=${page}&limit=${PAGE_LIMIT}`, { headers }),
              fetch(`${API_URL}/services`, { headers }),
              fetch(`${API_URL}/branches`, { headers }),
              fetch(`${API_URL}/clients`, { headers }),
@@ -344,7 +347,7 @@ const Memberships = () => {
       onViewModeChange={setViewMode}
     >
       {/* Tabs Header */}
-      <div className="flex items-center gap-8 mb-8 border-b border-zen-brown/15 px-2">
+      <div className="flex items-center gap-4 sm:gap-8 mb-8 border-b border-zen-brown/15 px-2 overflow-x-auto scrollbar-none whitespace-nowrap">
          {[
            { id: 'registry', label: 'Memberships', icon: Users },
            { id: 'plans', label: 'Tier Management', icon: Crown }
@@ -354,12 +357,12 @@ const Memberships = () => {
              onClick={() => setActiveTab(tab.id as any)}
              className={`py-4 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.3em] relative transition-all duration-500 ${activeTab === tab.id ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/60'}`}
            >
-             <tab.icon size={16} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
-             {tab.label}
-             {activeTab === tab.id && (
-               <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-zen-brown shadow-[0_-2px_8px_rgba(0,0,0,0.1)]" />
-             )}
-           </button>
+            <tab.icon size={14} className="sm:w-4 sm:h-4" strokeWidth={activeTab === tab.id ? 2.5 : 2} />
+            {tab.label}
+            {activeTab === tab.id && (
+              <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-zen-brown shadow-[0_-2px_8px_rgba(0,0,0,0.1)]" />
+            )}
+          </button>
          ))}
       </div>
 
@@ -373,22 +376,22 @@ const Memberships = () => {
          >
             {activeTab === 'plans' && (
               <div className="space-y-10">
-                 <div className="flex items-center justify-between px-2">
+                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-2">
                     <div>
-                       <h3 className="text-xl font-serif font-bold text-zen-brown">Divine Tier Configuration</h3>
-                       <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Strategic Blueprint for Membership Structures</p>
+                       <h3 className="text-lg sm:text-xl font-serif font-bold text-zen-brown">Divine Tier Configuration</h3>
+                       <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Strategic Blueprint Structure</p>
                     </div>
                     <ZenButton onClick={() => { 
                       setEditingPlan(null); 
                       setPlanFormData({ name: '', price: 0, durationDays: 30, maxSessions: 0, applicableServices: [], description: '', branches: [], isActive: true, isUnlimited: false }); 
                       setIsPlanModalOpen(true); 
-                    }} variant="secondary" type="button">Establish New Tier</ZenButton>
+                    }} variant="secondary" type="button" className="w-full sm:w-auto">Establish New Tier</ZenButton>
                  </div>
                  
                  {viewMode === 'grid' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                      {plans.map((plan) => (
-                        <div key={plan._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+                        <div key={plan._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                            {/* Sanctuary Background Glow */}
                            <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                            
@@ -533,9 +536,9 @@ const Memberships = () => {
                       { label: 'Active Rituals', value: stats?.totalSessionsRemaining?.toString() || '0', icon: Sparkles, trend: 'Available assets' },
                       { label: 'Concluded Journeys', value: stats?.totalExpired?.toString() || '0', icon: AlertCircle, trend: 'History' }
                     ].map((stat, i) => (
-                      <div key={i} className="flex-shrink-0 w-[280px] lg:w-auto bg-white/80 backdrop-blur-xl p-8 rounded-[3rem] shadow-2xl shadow-zen-brown/15 border border-white relative overflow-hidden group hover:-translate-y-2 transition-all duration-700">
+                      <div key={i} className="flex-shrink-0 w-[260px] lg:w-auto bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] shadow-2xl shadow-zen-brown/15 border border-white relative overflow-hidden group hover:-translate-y-2 transition-all duration-700">
                          <div className="absolute top-0 right-0 w-24 h-24 bg-zen-sand/5 rounded-bl-full -z-0"></div>
-                         <stat.icon className="text-zen-brown/20 mb-6 group-hover:scale-110 transition-transform duration-700" size={32} />
+                         <stat.icon className="text-zen-brown/20 mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-700" size={28} />
                          <h5 className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.4em] mb-1.5">{stat.label}</h5>
                          <p className="text-4xl font-serif font-black text-zen-brown tracking-tighter">{stat.value}</p>
                          <p className="text-[9px] text-zen-leaf/60 font-black uppercase tracking-widest mt-6 flex items-center gap-2">
@@ -547,15 +550,15 @@ const Memberships = () => {
                  </div>
 
                  <div className="space-y-6">
-                    <div className="flex items-center justify-between px-2">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-2">
                        <div>
-                          <h3 className="text-xl font-serif font-bold text-zen-brown">Member Registry</h3>
+                          <h3 className="text-lg sm:text-xl font-serif font-bold text-zen-brown">Member Registry</h3>
                           <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Live Sanctuary Engagement Data</p>
                        </div>
                     </div>
 
                     {viewMode === 'table' ? (
-                       <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar">
+                       <div className="bg-white/70 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar">
                           <table className="w-full text-center border-collapse min-w-[1000px]">
                              <thead>
                                 <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
@@ -571,7 +574,7 @@ const Memberships = () => {
                              <tbody className="divide-y divide-zen-brown/15">
                                 {filteredMemberships.map((m, index) => (
                                   <tr key={m._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
-                                     <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * 10 + index + 1).toString().padStart(2, '0')}</td>
+                                     <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</td>
                                      <td className="px-6 py-6">
                                         <div className="flex flex-col items-center">
                                            <span className="font-serif font-bold text-zen-brown">{m.client?.name}</span>
@@ -620,7 +623,7 @@ const Memberships = () => {
                     ) : (
                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                           {filteredMemberships.map((m) => (
-                             <div key={m._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+                             <div key={m._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                                 {/* Background Glow Overlay */}
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                                 

@@ -39,3 +39,16 @@ export const rooms = [
   { id: 3, name: 'Room 3', type: 'Couple Spa', status: 'Free', timer: '00:00' },
   { id: 4, name: 'Room 4', type: 'Standard', status: 'Free', timer: '00:00' },
 ];
+
+export const invoices = [
+  { _id: '1', clientName: 'Fatima Al-Sayed', total: 450, date: '2026-04-12', items: [], paymentMode: 'Cash', invoiceNumber: 'INV-101' },
+  { _id: '2', clientName: 'Mohammed Rashid', total: 1200, date: '2026-04-13', items: [], paymentMode: 'Card', invoiceNumber: 'INV-102' },
+  { _id: '3', clientName: 'Sara Hamad', total: 850, date: '2026-04-14', items: [], paymentMode: 'Transfer', invoiceNumber: 'INV-103' },
+  { _id: '4', clientName: 'Khalid Abdullah', total: 2100, date: '2026-04-15', items: [], paymentMode: 'Card', invoiceNumber: 'INV-104' },
+];
+
+export const expenses = [
+  { _id: '1', title: 'Rent', category: 'Fixed', amount: 5000, date: '2026-04-01' },
+  { _id: '2', title: 'Utilities', category: 'Variable', amount: 800, date: '2026-04-05' },
+  { _id: '3', title: 'Marketing', category: 'Variable', amount: 1200, date: '2026-04-10' },
+];

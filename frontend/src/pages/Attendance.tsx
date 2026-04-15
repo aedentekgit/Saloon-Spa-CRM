@@ -86,7 +86,7 @@ const Attendance = () => {
     try {
       const url = new URL(`${API_URL}/attendance`);
       url.searchParams.append('page', page.toString());
-      url.searchParams.append('limit', '10');
+      url.searchParams.append('limit', '12');
       
       if (selectedBranch && selectedBranch !== 'all') {
         url.searchParams.append('branch', selectedBranch);
@@ -307,23 +307,23 @@ const Attendance = () => {
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
     >
-      <div className="flex flex-col lg:flex-row gap-10">
-        <div className="w-full lg:w-[450px] space-y-8 h-fit lg:sticky lg:top-8">
-           <div className="bg-white/90 backdrop-blur-2xl p-10 rounded-[4rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 text-center relative overflow-hidden group">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
+        <div className="w-full lg:w-[450px] space-y-6 sm:space-y-8 h-fit lg:sticky lg:top-8">
+           <div className="bg-white/90 backdrop-blur-2xl p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[4rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 text-center relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-150 transition-transform duration-[2000ms] ease-out">
                  <Shield size={200} />
               </div>
               
-              <div className="mb-12 relative">
-                 <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="mb-8 sm:mb-12 relative">
+                 <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
                     <span className="flex h-2 w-2 rounded-full bg-zen-leaf animate-pulse" />
                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.5em]">Synchronized Time</p>
                  </div>
-                 <div className="flex items-baseline justify-center gap-3">
-                    <h2 className="text-6xl font-serif font-bold text-zen-brown tracking-tighter">
+                 <div className="flex items-baseline justify-center gap-2 sm:gap-3">
+                    <h2 className="text-4xl sm:text-6xl font-serif font-bold text-zen-brown tracking-tighter">
                        {currentTime.split(' ')[0]}
                     </h2>
-                    <span className="text-xl font-serif font-bold text-zen-brown/40">{currentTime.split(' ')[1]}</span>
+                    <span className="text-lg sm:text-xl font-serif font-bold text-zen-brown/40">{currentTime.split(' ')[1]}</span>
                  </div>
                  <div className="mt-4 inline-flex items-center gap-3 px-6 py-2 bg-zen-cream/30 rounded-full border border-zen-brown/15">
                     <CalendarIcon size={12} className="text-zen-sand" />
@@ -331,7 +331,7 @@ const Attendance = () => {
                  </div>
               </div>
               
-              <div className="relative aspect-square rounded-[3.5rem] bg-zen-brown/5 border-2 border-dashed border-zen-brown/25 overflow-hidden flex flex-col items-center justify-center mb-10 group/cam transition-all duration-700 hover:border-zen-sand/30">
+              <div className="relative aspect-square rounded-[2rem] sm:rounded-[3.5rem] bg-zen-brown/5 border-2 border-dashed border-zen-brown/25 overflow-hidden flex flex-col items-center justify-center mb-6 sm:mb-10 group/cam transition-all duration-700 hover:border-zen-sand/30">
                  <AnimatePresence mode="wait">
                     {videoActive ? (
                        <motion.div 
@@ -346,7 +346,7 @@ const Attendance = () => {
                             playsInline 
                             className="w-full h-full object-cover grayscale-[0.3] brightness-110" 
                           />
-                          <div className="absolute inset-0 border-[20px] border-white/10" />
+                          <div className="absolute inset-0 border-[10px] sm:border-[20px] border-white/10" />
                           <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-zen-leaf/50 shadow-[0_0_15px_rgba(34,197,94,0.5)] animate-scan-line z-20" />
                        </motion.div>
                     ) : (
@@ -354,19 +354,19 @@ const Attendance = () => {
                          key="inactive"
                          initial={{ opacity: 0, y: 10 }}
                          animate={{ opacity: 1, y: 0 }}
-                         className="flex flex-col items-center gap-6"
+                         className="flex flex-col items-center gap-4 sm:gap-6"
                        >
-                          <div className="w-28 h-28 rounded-full bg-white flex items-center justify-center text-zen-brown/10 shadow-xl relative group-hover/cam:scale-110 transition-transform duration-700">
+                          <div className="w-20 sm:w-28 h-20 sm:h-28 rounded-full bg-white flex items-center justify-center text-zen-brown/10 shadow-xl relative group-hover/cam:scale-110 transition-transform duration-700">
                              <div className="absolute inset-0 border-2 border-dashed border-zen-sand/20 rounded-full animate-spin-slow" />
-                             <Camera size={44} strokeWidth={1} />
+                             <Camera size={32} className="sm:w-11 sm:h-11" strokeWidth={1} />
                           </div>
-                          <div className="space-y-2">
-                             <p className="text-[11px] font-bold text-zen-brown uppercase tracking-[0.4em]">Initialize Authentication</p>
-                             <p className="text-[9px] text-zen-brown/40 font-medium px-12 leading-relaxed uppercase tracking-widest">Digital presence requires biometric confirmation</p>
+                          <div className="space-y-1 sm:space-y-2">
+                             <p className="text-[10px] sm:text-[11px] font-bold text-zen-brown uppercase tracking-[0.4em]">Initialize Authentication</p>
+                             <p className="text-[8px] sm:text-[9px] text-zen-brown/40 font-medium px-8 sm:px-12 leading-relaxed uppercase tracking-widest text-center">Digital presence requires biometric confirmation</p>
                           </div>
                           <button 
                             onClick={startCamera} 
-                            className="text-[10px] font-bold text-zen-sand border-b border-zen-sand/20 pb-1 hover:border-zen-sand transition-all tracking-[0.2em] mt-2 uppercase"
+                            className="text-[10px] font-bold text-zen-sand border-b border-zen-sand/20 pb-0.5 sm:pb-1 hover:border-zen-sand transition-all tracking-[0.2em] mt-1 sm:mt-2 uppercase"
                           >
                              Activate Optics
                           </button>
@@ -378,10 +378,10 @@ const Attendance = () => {
               <ZenButton 
                 onClick={handleAttendance}
                 disabled={loading}
-                className={`w-full py-6 rounded-[2rem] text-lg font-serif transition-all duration-700 ${isCheckedIn ? 'bg-[#FF6B6B] hover:bg-[#FF5252] shadow-2xl shadow-red-500/20' : 'bg-zen-brown hover:bg-zen-brown/90 shadow-2xl shadow-zen-brown/30'} ${loading ? 'opacity-50 cursor-wait' : ''}`}
+                className={`w-full py-5 sm:py-6 rounded-[1.5rem] sm:rounded-[2rem] text-base sm:text-lg font-serif transition-all duration-700 ${isCheckedIn ? 'bg-[#FF6B6B] hover:bg-[#FF5252] shadow-2xl shadow-red-500/20' : 'bg-zen-brown hover:bg-zen-brown/90 shadow-2xl shadow-zen-brown/30'} ${loading ? 'opacity-50 cursor-wait' : ''}`}
               >
-                  <span className="flex items-center justify-center gap-4">
-                     {loading ? <Loader2 className="animate-spin" size={24} /> : (isCheckedIn ? <LogOut size={24} /> : <LogIn size={24} />)}
+                  <span className="flex items-center justify-center gap-3 sm:gap-4">
+                     {loading ? <Loader2 className="animate-spin" size={20} className="sm:w-6 sm:h-6" /> : (isCheckedIn ? <LogOut size={20} className="sm:w-6 sm:h-6" /> : <LogIn size={20} className="sm:w-6 sm:h-6" />)}
                      <span className="tracking-tight">{loading ? 'Processing Flow...' : isCheckedIn ? 'Terminate Presence' : 'Establish Presence'}</span>
                   </span>
               </ZenButton>
@@ -392,14 +392,14 @@ const Attendance = () => {
                <motion.div 
                  initial={{ opacity: 0, y: 20 }}
                  animate={{ opacity: 1, y: 0 }}
-                 className="p-10 bg-white/60 backdrop-blur-xl rounded-[3rem] border border-zen-brown/15 shadow-xl shadow-zen-brown/15 flex items-center justify-between group overflow-hidden"
+                 className="p-6 sm:p-10 bg-white/60 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3rem] border border-zen-brown/15 shadow-xl shadow-zen-brown/15 flex items-center justify-between group overflow-hidden"
                >
                   <div className="relative z-10">
-                     <p className="text-[10px] font-bold text-zen-leaf uppercase tracking-[0.3em] mb-3">Daily Energy Exchange</p>
-                     <p className="text-4xl font-serif text-zen-brown font-bold tracking-tighter">{settings?.general?.currencySymbol} {attendance[0].dailyEarnings.toLocaleString()}</p>
+                     <p className="text-[10px] font-bold text-zen-leaf uppercase tracking-[0.3em] mb-2 sm:mb-3">Daily Energy Exchange</p>
+                     <p className="text-3xl sm:text-4xl font-serif text-zen-brown font-bold tracking-tighter">{settings?.general?.currencySymbol || 'QR'} {attendance[0].dailyEarnings.toLocaleString()}</p>
                   </div>
-                  <div className="w-16 h-16 rounded-[1.5rem] bg-zen-leaf text-white flex items-center justify-center shadow-lg shadow-zen-leaf/20 relative z-10">
-                     <TrendingUp size={28} />
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-[1.2rem] sm:rounded-[1.5rem] bg-zen-leaf text-white flex items-center justify-center shadow-lg shadow-zen-leaf/20 relative z-10">
+                     <TrendingUp size={24} className="sm:w-7 sm:h-7" />
                   </div>
                   <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-zen-leaf/5 rounded-full blur-3xl pointer-events-none" />
                </motion.div>
@@ -407,8 +407,8 @@ const Attendance = () => {
            </AnimatePresence>
         </div>
 
-        <div className="flex-1 space-y-8">
-           <div className="bg-white/80 backdrop-blur-md rounded-[4rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15 min-h-[700px] flex flex-col">
+        <div className="flex-1 space-y-6 sm:space-y-8">
+           <div className="bg-white/80 backdrop-blur-md rounded-[2.5rem] sm:rounded-[4rem] border border-zen-brown/15 overflow-hidden shadow-2xl shadow-zen-brown/15 min-h-[500px] sm:min-h-[700px] flex flex-col">
               <div className="px-12 py-12 border-b border-zen-brown/15 flex justify-between items-center bg-white/40">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Financial Sequence</h3>

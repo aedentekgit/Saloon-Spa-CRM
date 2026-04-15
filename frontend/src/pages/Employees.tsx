@@ -209,7 +209,10 @@ const Employees = () => {
 
   useEffect(() => {
     localStorage.setItem('zen_specialist_view', viewMode);
+    setPage(1); // Reset to first page when changing view mode to ensure correct limits
   }, [viewMode]);
+
+  const PAGE_LIMIT = 12;
 
   const simulateAttendance = async () => {
     if (!editingEmp) return;
@@ -352,7 +355,7 @@ const Employees = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`${API_URL}/employees?page=${page}&limit=10`, {
+      const response = await fetch(`${API_URL}/employees?page=${page}&limit=${PAGE_LIMIT}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
@@ -461,6 +464,9 @@ const Employees = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name.trim()) {
+      return notify('error', 'Validation Error', 'Full Identity is required');
+    }
     if (!editingEmp && formData.password !== formData.confirmPassword) {
       return notify('error', 'Validation', 'Passwords do not match');
     }
@@ -550,10 +556,10 @@ const Employees = () => {
           <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
-        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-10" : "bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto"}>
+        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-10" : "bg-white/70 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto"}>
           {viewMode === 'grid' ? (
             filteredEmployees.map((emp) => (
-              <div key={emp._id} className={`group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${emp.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}>
+              <div key={emp._id} className={`group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${emp.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}>
                  <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                  <div className="relative z-10">
                     <div className="flex items-center gap-4 lg:gap-6 mb-4 lg:mb-6">
@@ -574,9 +580,9 @@ const Employees = () => {
                              <Zap size={10} /> {emp.payroll?.type || 'Monthly'} Based
                           </div>
                        </div>
-                       <div className="flex flex-col sm:flex-row gap-1 opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
-                          <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} />
-                          <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} />
+                       <div className="flex flex-col sm:flex-row gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
+                          <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} size="sm" />
+                          <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} size="sm" />
                        </div>
                     </div>
                  </div>
@@ -603,7 +609,7 @@ const Employees = () => {
                <tbody className="divide-y divide-zen-brown/15">
                  {filteredEmployees.map((emp, idx) => (
                    <tr key={emp._id} className="hover:bg-zen-cream/5 transition-all group">
-                     <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * 10 + idx + 1).toString().padStart(2, '0')}</td>
+                     <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</td>
                      <td className="px-6 py-6">
                         <div className="flex flex-col items-center">
                            <span className="font-serif font-bold text-zen-brown">{emp.name}</span>
@@ -622,8 +628,8 @@ const Employees = () => {
                      </td>
                      <td className="px-6 py-6">
                         <div className="flex items-center justify-center gap-3 transition-all">
-                           <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} />
-                           <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} />
+                           <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} size="sm" />
+                           <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} size="sm" />
                         </div>
                      </td>
                    </tr>
@@ -638,9 +644,9 @@ const Employees = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} hideHeader maxWidth="max-w-4xl" title="Specialist Configuration">
         <form onSubmit={handleSubmit} className="flex flex-col h-[90vh] sm:h-[85vh] w-full relative">
-          <div className="flex items-center justify-between px-10 py-10 border-b border-zen-brown/15 bg-white/95 backdrop-blur-sm z-[60]">
-             <div className="flex items-center gap-8">
-                <div className="relative w-28 h-28 group cursor-pointer shrink-0">
+          <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 bg-white/95 backdrop-blur-sm z-[60]">
+             <div className="flex items-center gap-4 sm:gap-8 flex-1">
+                <div className="relative w-20 sm:w-28 h-20 sm:h-28 group cursor-pointer shrink-0">
                    <div className="w-full h-full rounded-full ring-4 ring-zen-cream overflow-hidden bg-zen-cream flex items-center justify-center transition-all group-hover:ring-zen-brown/20 shadow-xl">
                       {(profilePicFile || (editingEmp && editingEmp.profilePic)) ? (
                         <img src={profilePicFile ? URL.createObjectURL(profilePicFile) : getImageUrl(editingEmp?.profilePic)} className="w-full h-full object-cover" />
@@ -648,26 +654,26 @@ const Employees = () => {
                    </div>
                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e => setProfilePicFile(e.target.files?.[0] || null)} />
                 </div>
-                <div>
-                   <ZenInput label="Full Identity" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-3xl border-none p-0 h-auto" />
-                   <div className="w-72 mt-2">
+                <div className="flex-1">
+                   <ZenInput label="Full Identity" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-xl sm:text-3xl pb-2 sm:pb-4 focus:border-zen-brown transition-all duration-500" />
+                   <div className="w-full sm:w-72 mt-1 sm:mt-2">
                       <ZenDropdown label="Vocation" options={roles.filter(r => r.status === 'Active' || r.isActive).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} />
                    </div>
                 </div>
              </div>
-             <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} />
+             <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} className="self-start mt-2" />
           </div>
 
-          <div className="flex items-center gap-8 px-12 border-b border-zen-brown/15 bg-white/50 backdrop-blur-sm z-50">
+          <div className="flex items-center gap-4 sm:gap-8 px-6 sm:px-12 border-b border-zen-brown/15 bg-white/50 backdrop-blur-sm z-50 overflow-x-auto scrollbar-hide">
              {['profile', 'config', 'payroll', 'activity', 'documents'].map(tab => (
-                <button key={tab} type="button" onClick={() => setActiveTab(tab as any)} className={`py-4 text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all ${activeTab === tab ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/60'}`}>
+                <button key={tab} type="button" onClick={() => setActiveTab(tab as any)} className={`py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all min-w-max ${activeTab === tab ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/60'}`}>
                    {tab === 'profile' ? 'Matrix' : tab === 'config' ? 'Logic' : tab === 'payroll' ? 'Resonance' : tab === 'activity' ? 'History' : 'Archives'}
                    {activeTab === tab && <motion.div layoutId="modalTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-zen-brown" />}
                 </button>
              ))}
           </div>
 
-          <div className={`flex-1 ${activeTab === 'activity' ? 'overflow-hidden' : 'overflow-y-auto'} px-12 flex flex-col`}>
+          <div className={`flex-1 ${activeTab === 'activity' ? 'overflow-hidden' : 'overflow-y-auto'} px-6 sm:px-12 flex flex-col pb-40`}>
               {activeTab === 'profile' ? (
                  <div className="grid grid-cols-2 gap-x-16 gap-y-10 animate-in fade-in duration-500 py-12">
                      <ZenInput label="Email Port" icon={Mail} value={formData.email} onChange={(e: any) => setFormData({...formData, email: e.target.value})} />

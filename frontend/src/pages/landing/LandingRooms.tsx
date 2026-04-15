@@ -77,16 +77,16 @@ const LandingRooms = () => {
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
       {/* Hero Section */}
-      <section className="px-6 lg:px-24 mb-16">
+      <section className="px-6 lg:px-24 mb-16 pt-12">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-end">
           <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
              <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-[#4A2C40]/60">
                 <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
                 Private Sanctuaries
              </div>
-             <h1 className="text-6xl lg:text-9xl font-serif font-bold leading-[0.8] tracking-tighter">
+             <h1 className="text-6xl lg:text-7xl font-serif font-bold leading-tight">
                 Sacred <br />
-                <span className="italic">Chambers</span>
+                <span className="italic animate-text-shine">Chambers</span>
              </h1>
           </div>
           <div className="pb-4 animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">

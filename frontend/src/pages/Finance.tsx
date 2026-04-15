@@ -164,11 +164,11 @@ const Finance = () => {
       onAddClick={() => setIsModalOpen(true)}
       addButtonIcon={<Plus size={18} />}
     >
-      <div className="flex overflow-x-auto pb-8 gap-6 md:grid md:grid-cols-3 md:gap-8 mb-12 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
-        <div className="flex-shrink-0 w-[300px] md:w-auto bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 hover:shadow-emerald-500/5 transition-all duration-700 group hover:-translate-y-2">
+      <div className="flex overflow-x-auto pb-6 gap-6 md:grid md:grid-cols-3 md:gap-8 mb-10 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
+        <div className="flex-shrink-0 w-[280px] md:w-auto bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 hover:shadow-emerald-500/5 transition-all duration-700 group hover:-translate-y-2">
            <div className="flex justify-between items-start mb-6">
-              <div className="p-5 bg-emerald-50 text-emerald-600 rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500 border border-white shadow-sm">
-                 <TrendingUp size={28} />
+              <div className="p-4 sm:p-5 bg-emerald-50 text-emerald-600 rounded-2xl sm:rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500 border border-white shadow-sm">
+                 <TrendingUp size={24} className="sm:w-7 sm:h-7" />
               </div>
               <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full uppercase tracking-widest border border-white">
                  <ArrowUpRight size={12} />
@@ -179,10 +179,10 @@ const Finance = () => {
            <h3 className="text-3xl font-serif font-bold text-zen-brown mt-2">{settings?.general.currencySymbol || 'QR'} {totalIncome.toLocaleString()}</h3>
         </div>
 
-        <div className="flex-shrink-0 w-[300px] md:w-auto bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 hover:shadow-red-500/5 transition-all duration-700 group hover:-translate-y-2">
+        <div className="flex-shrink-0 w-[280px] md:w-auto bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 hover:shadow-red-500/5 transition-all duration-700 group hover:-translate-y-2">
            <div className="flex justify-between items-start mb-6">
-              <div className="p-5 bg-red-50 text-red-600 rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500 border border-white shadow-sm">
-                 <TrendingDown size={28} />
+              <div className="p-4 sm:p-5 bg-red-50 text-red-600 rounded-2xl sm:rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500 border border-white shadow-sm">
+                 <TrendingDown size={24} className="sm:w-7 sm:h-7" />
               </div>
               <div className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-full uppercase tracking-widest border border-white">
                  <ArrowDownRight size={12} />
@@ -193,13 +193,13 @@ const Finance = () => {
            <h3 className="text-3xl font-serif font-bold text-zen-brown mt-2">{settings?.general.currencySymbol || 'QR'} {totalExpenses.toLocaleString()}</h3>
         </div>
 
-        <div className="flex-shrink-0 w-[300px] md:w-auto bg-zen-brown p-10 rounded-[3.5rem] shadow-2xl shadow-zen-brown/20 relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
+        <div className="flex-shrink-0 w-[280px] md:w-auto bg-zen-brown p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl shadow-zen-brown/20 relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-1000">
               <Sparkles size={120} />
            </div>
            <div className="flex justify-between items-start mb-6 relative z-10">
-              <div className="p-5 bg-white/10 text-white rounded-[1.5rem] border border-white/10 shadow-lg backdrop-blur-md">
-                 <Coins size={28} />
+              <div className="p-4 sm:p-5 bg-white/10 text-white rounded-2xl sm:rounded-[1.5rem] border border-white/10 shadow-lg backdrop-blur-md">
+                 <Coins size={24} className="sm:w-7 sm:h-7" />
               </div>
               <div className="flex items-center gap-2 text-[10px] font-bold text-white bg-white/10 px-4 py-1.5 rounded-full uppercase tracking-widest border border-white/10">
                  Sacred Balance
@@ -210,12 +210,12 @@ const Finance = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <div className="bg-white/70 backdrop-blur-xl p-12 rounded-[4rem] border border-white shadow-2xl shadow-zen-brown/15">
-           <div className="flex items-center justify-between mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10">
+        <div className="bg-white/70 backdrop-blur-xl p-6 sm:p-12 rounded-[2rem] sm:rounded-[4rem] border border-white shadow-2xl shadow-zen-brown/15">
+           <div className="flex items-center justify-between mb-8 sm:mb-10">
               <div>
-                 <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Financial Resonance</h3>
-                 <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[.4em] mt-2">Income vs Expenditure Dynamics</p>
+                 <h3 className="text-xl sm:text-2xl font-serif font-bold text-zen-brown tracking-tight">Financial Resonance</h3>
+                 <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] sm:tracking-[0.4em] mt-2">Income vs Expenditure Dynamics</p>
               </div>
               <ZenIconButton icon={Filter} />
            </div>
@@ -260,22 +260,22 @@ const Finance = () => {
            </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/15 flex flex-col h-full min-h-[500px]">
-           <div className="px-10 py-10 border-b border-zen-brown/15 flex justify-between items-center bg-white/40 sticky top-0 z-10">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[2rem] sm:rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/15 flex flex-col h-full min-h-[500px]">
+           <div className="px-6 py-6 sm:px-10 sm:py-10 border-b border-zen-brown/15 flex justify-between items-center bg-white/40 sticky top-0 z-10">
               <div>
-                 <h3 className="text-2xl font-serif font-black text-zen-brown tracking-tight">Sacred Sequence</h3>
-                 <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Combined Transaction Registry</p>
+                 <h3 className="text-xl sm:text-2xl font-serif font-black text-zen-brown tracking-tight">Sacred Sequence</h3>
+                 <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.3em] sm:tracking-[0.4em] mt-2">Combined Transaction Registry</p>
               </div>
               <div className="flex gap-2">
-                 <ZenBadge variant="leaf" className="px-5">Active Sequence</ZenBadge>
+                 <ZenBadge variant="leaf" className="px-3 sm:px-5">Active Sequence</ZenBadge>
               </div>
            </div>
  
-           <div className="flex-1 overflow-y-auto custom-scrollbar p-10">
+           <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10">
               {viewMode === 'grid' ? (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {expenses.map((exp) => (
-                       <div key={exp._id} className="group relative bg-white/90 backdrop-blur-2xl rounded-[3rem] p-8 border border-white shadow-xl hover:shadow-red-500/5 transition-all duration-700 hover:-translate-y-2">
+                       <div key={exp._id} className="group relative bg-white/90 backdrop-blur-2xl rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-8 border border-white shadow-xl hover:shadow-red-500/5 transition-all duration-700 hover:-translate-y-2">
                           <div className="flex justify-between items-start mb-8">
                              <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-400 group-hover:scale-110 transition-transform duration-500">
                                 <TrendingDown size={24} />
@@ -292,7 +292,7 @@ const Finance = () => {
                        </div>
                     ))}
                     {invoices.map((inv) => (
-                       <div key={inv._id} className="group relative bg-white/90 backdrop-blur-2xl rounded-[3rem] p-8 border border-white shadow-xl hover:shadow-emerald-500/5 transition-all duration-700 hover:-translate-y-2">
+                       <div key={inv._id} className="group relative bg-white/90 backdrop-blur-2xl rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-8 border border-white shadow-xl hover:shadow-emerald-500/5 transition-all duration-700 hover:-translate-y-2">
                           <div className="flex justify-between items-start mb-8">
                              <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform duration-500">
                                 <TrendingUp size={24} />

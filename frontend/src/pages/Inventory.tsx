@@ -77,11 +77,14 @@ const Inventory = () => {
 
   useEffect(() => {
     localStorage.setItem('zen_inventory_view', viewMode);
+    setPage(1);
   }, [viewMode]);
+
+  const PAGE_LIMIT = 12;
 
   const fetchInventory = async () => {
     try {
-      const response = await fetch(`${API_URL}/inventory?page=${page}&limit=10`, {
+      const response = await fetch(`${API_URL}/inventory?page=${page}&limit=${PAGE_LIMIT}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
@@ -241,11 +244,11 @@ const Inventory = () => {
       onAddClick={() => handleOpenModal()}
       addButtonIcon={<Plus size={18} />}
     >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-8 mb-8 sm:mb-12">
         <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 group transition-all duration-700 hover:-translate-y-2">
            <div className="flex justify-between items-start mb-6">
-              <div className="p-5 bg-zen-cream/50 text-zen-brown rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
-                 <Boxes size={28} />
+              <div className="p-4 sm:p-5 bg-zen-cream/50 text-zen-brown rounded-2xl sm:rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
+                 <Boxes size={24} className="sm:w-7 sm:h-7" />
               </div>
            </div>
            <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[.4em]">Resource Volume</p>
@@ -254,8 +257,8 @@ const Inventory = () => {
 
         <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 group transition-all duration-700 hover:-translate-y-2">
            <div className="flex justify-between items-start mb-6">
-              <div className="p-5 bg-orange-50 text-orange-600 rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
-                 <AlertTriangle size={28} />
+              <div className="p-4 sm:p-5 bg-orange-50 text-orange-600 rounded-2xl sm:rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
+                 <AlertTriangle size={24} className="sm:w-7 sm:h-7" />
               </div>
            </div>
            <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[.4em]">Critical Levels</p>
@@ -264,15 +267,15 @@ const Inventory = () => {
 
         <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 group transition-all duration-700 hover:-translate-y-2">
            <div className="flex justify-between items-start mb-6">
-              <div className="p-5 bg-zen-leaf/10 text-zen-leaf rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
-                 <Truck size={28} />
+              <div className="p-4 sm:p-5 bg-zen-leaf/10 text-zen-leaf rounded-2xl sm:rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
+                 <Truck size={24} className="sm:w-7 sm:h-7" />
               </div>
            </div>
            <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[.4em]">Flow Categories</p>
            <h3 className="text-3xl font-serif font-bold text-zen-brown mt-2">{new Set(inventory.map(i => i.category)).size} <span className="text-lg font-sans opacity-20">Sectors</span></h3>
         </div>
 
-        <div className="bg-zen-brown p-10 rounded-[3.5rem] shadow-2xl shadow-zen-brown/20 relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
+        <div className="bg-zen-brown p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl shadow-zen-brown/20 relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-1000">
               <Sparkles size={120} />
            </div>
@@ -291,9 +294,9 @@ const Inventory = () => {
       </div>
 
       {viewMode === 'grid' ? (
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-10">
             {filteredInventory.map((item) => (
-               <div key={item._id} className="group relative bg-white/90 backdrop-blur-2xl rounded-[4rem] p-10 border border-white shadow-2xl shadow-zen-brown/15 flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-3">
+               <div key={item._id} className="group relative bg-white/90 backdrop-blur-2xl rounded-[2rem] sm:rounded-[4rem] p-6 sm:p-10 border border-white shadow-2xl shadow-zen-brown/15 flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-3">
                   {/* Background Glow */}
                   <div className={`absolute -right-10 -bottom-10 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000 ${
                      item.stock <= item.lowStock ? 'bg-red-500/10' : 'bg-zen-sand/10'
@@ -349,7 +352,7 @@ const Inventory = () => {
             )}
          </div>
       ) : (
-         <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/15 animate-in fade-in slide-in-from-bottom-4 duration-700">
+         <div className="bg-white/70 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[4rem] border border-white overflow-hidden shadow-2xl shadow-zen-brown/15 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="overflow-x-auto custom-scrollbar">
                <table className="w-full text-center border-collapse min-w-[1000px]">
                   <thead>
@@ -366,7 +369,7 @@ const Inventory = () => {
                      {filteredInventory.map((item, index) => (
                         <tr key={item._id} className="group hover:bg-zen-cream/5 transition-all duration-500">
                            <td className="px-10 py-8">
-                              <span className="font-serif text-xl text-zen-brown/40">{((page - 1) * 10 + index + 1).toString().padStart(2, '0')}</span>
+                              <span className="font-serif text-xl text-zen-brown/40">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
                            </td>
                            <td className="px-10 py-8">
                               <div className="flex justify-center">

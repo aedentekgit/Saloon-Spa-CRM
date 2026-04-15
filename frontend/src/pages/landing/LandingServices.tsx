@@ -117,28 +117,30 @@ const LandingServices = () => {
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
       {/* Hero Section */}
-      <section className="relative px-6 lg:px-24 mb-12 pt-12 overflow-hidden text-center">
-        <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-          <div className="flex items-center justify-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-[#4A2C40]/60">
-            <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
-            Sacred Rituals
-            <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
+      <section className="px-6 lg:px-24 mb-16 pt-12">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-end">
+          <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
+             <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-[#4A2C40]/60">
+                <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
+                Sacred Rituals
+             </div>
+             <h1 className="text-6xl lg:text-7xl font-serif font-bold leading-tight">
+                The Path to <br />
+                <span className="italic animate-text-shine">Renewal</span>
+             </h1>
           </div>
-          <h1 className="text-6xl lg:text-9xl font-serif font-bold leading-[0.9] tracking-tighter">
-            The Path to <br />
-            <span className="italic">Renewal</span>
-          </h1>
-          <p className="max-w-2xl mx-auto text-xl text-[#32172A]/60 leading-relaxed font-sans mt-4">
-            Our services are passages of renewal. Each treatment is tailored
-            to your immediate state of being, facilitated by masters of their craft.
-          </p>
+          <div className="pb-4 animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">
+             <p className="text-xl text-[#32172A]/70 leading-relaxed font-sans max-w-md">
+                Our services are passages of renewal. Each treatment is tailored to your immediate state of being, facilitated by masters of their craft.
+             </p>
+          </div>
         </div>
       </section>
 
       {/* Branch Tabs */}
       <section className="px-6 lg:px-24 mb-16">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap items-center justify-center gap-4 lg:gap-8 pb-8 border-b border-[#32172A]/5 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap items-center gap-4 lg:gap-8 pb-8 border-b border-[#32172A]/5 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setSelectedBranch('all')}
               className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap

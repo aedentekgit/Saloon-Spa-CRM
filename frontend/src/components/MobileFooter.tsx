@@ -67,7 +67,7 @@ const MobileFooter: React.FC = () => {
   return (
     <>
       {/* Main Navigation Bar */}
-      <div className="lg:hidden fixed bottom-6 left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700">
+      <div className="lg:hidden fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700">
         <nav className="bg-white/95 backdrop-blur-2xl rounded-[2rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/20 p-1.5 flex items-center justify-around relative ring-1 ring-black/5">
           {filteredFooter.map((item) => (
             <NavLink
@@ -85,11 +85,8 @@ const MobileFooter: React.FC = () => {
               {({ isActive }) => (
                 <>
                   <div className={`transition-all duration-500 ${isActive ? 'scale-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.3)]' : ''}`}>
-                    <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                    <item.icon size={24} strokeWidth={isActive ? 2.5 : 2} />
                   </div>
-                  <span className={`text-[9px] font-bold uppercase tracking-widest transition-all duration-500 ${isActive ? 'opacity-100' : 'opacity-0 h-0 w-0 overflow-hidden'}`}>
-                    {item.name}
-                  </span>
                 </>
               )}
             </NavLink>
@@ -125,65 +122,53 @@ const MobileFooter: React.FC = () => {
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed bottom-0 left-0 right-0 bg-zen-cream z-[120] lg:hidden rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] max-h-[85vh] overflow-hidden flex flex-col border-t border-white"
             >
-              <div className="p-8 border-b border-zen-brown/15 flex items-center justify-between shrink-0 bg-white/50">
+              <div className="p-5 border-b border-zen-brown/15 flex items-center justify-between shrink-0 bg-white/50">
                 <div>
-                  <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Sanctuary Matrix</h3>
-                  <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] mt-1">Explore all sectors</p>
+                  <h3 className="text-xl font-serif font-bold text-zen-brown tracking-tight">Sanctuary Matrix</h3>
+                  <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Explore all sectors</p>
                 </div>
                 <button 
                   onClick={() => setIsMoreOpen(false)}
-                  className="w-12 h-12 rounded-2xl bg-white border border-zen-brown/25 flex items-center justify-center text-zen-brown/40 hover:text-zen-brown hover:rotate-90 transition-all duration-500 shadow-sm"
+                  className="w-10 h-10 rounded-xl bg-white border border-zen-brown/25 flex items-center justify-center text-zen-brown/40 hover:text-zen-brown transition-all duration-500 shadow-sm"
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 sm:p-10 custom-scrollbar">
-                <div className="flex flex-col gap-3">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+                <div className="grid grid-cols-3 gap-4">
                   {filteredSheet.map((item) => (
                     <NavLink
                       key={item.name}
                       to={item.path}
                       onClick={() => setIsMoreOpen(false)}
-                      className="flex items-center gap-6 p-5 rounded-[2rem] bg-white/60 hover:bg-white hover:shadow-xl transition-all duration-500 border border-white group"
+                      className="flex flex-col items-center justify-center gap-1.5 p-3 py-4 rounded-3xl bg-white/60 hover:bg-white hover:shadow-lg transition-all duration-500 border border-white group text-center"
                     >
-                      <div className="w-14 h-14 rounded-2xl bg-zen-cream flex items-center justify-center text-zen-brown/20 group-hover:text-zen-sand transition-all duration-500 group-hover:bg-zen-sand/5 shrink-0">
-                        <item.icon size={24} strokeWidth={1.5} />
+                      <div className="w-10 h-10 rounded-xl bg-zen-cream flex items-center justify-center text-zen-brown/20 group-hover:text-zen-sand transition-all duration-500 group-hover:bg-zen-sand/5 shrink-0">
+                        <item.icon size={20} strokeWidth={1.5} />
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-black uppercase tracking-[0.2em] text-zen-brown group-hover:text-zen-sand transition-colors">
-                          {item.name}
-                        </span>
-                        <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0.5">
-                          Management Sector
-                        </p>
-                      </div>
-                      <ChevronRight className="ml-auto text-zen-brown/10 group-hover:text-zen-sand/30 transition-colors" size={18} />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-zen-brown group-hover:text-zen-sand transition-colors leading-tight">
+                        {item.name}
+                      </span>
                     </NavLink>
                   ))}
-                  
                   <button
                     onClick={() => {
                       logout();
                       setIsMoreOpen(false);
                     }}
-                    className="flex items-center gap-6 p-5 mt-4 rounded-[2rem] bg-red-50/50 hover:bg-red-50 hover:shadow-xl transition-all duration-500 border border-white group"
+                    className="flex flex-col items-center justify-center gap-1.5 p-3 py-4 mt-2 rounded-3xl bg-red-50/50 hover:bg-red-50 hover:shadow-lg transition-all duration-500 border border-white group col-span-3"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-red-100/50 flex items-center justify-center text-red-300 group-hover:text-red-500 transition-all duration-500 shrink-0">
-                      <LogOut size={24} strokeWidth={1.5} />
+                    <div className="w-10 h-10 rounded-xl bg-red-100/50 flex items-center justify-center text-red-300 group-hover:text-red-500 transition-all duration-500 shrink-0">
+                      <LogOut size={20} strokeWidth={1.5} />
                     </div>
-                    <div className="flex flex-col text-left">
-                      <span className="text-sm font-black uppercase tracking-[0.2em] text-red-400">
-                        Terminate Session
-                      </span>
-                      <p className="text-[10px] font-bold text-red-300/40 uppercase tracking-widest mt-0.5">
-                        Security Exit
-                      </p>
-                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-red-400">
+                      Terminate Session
+                    </span>
                   </button>
                 </div>
               </div>
-              <div className="p-10 shrink-0 text-center text-[10px] font-serif italic text-zen-brown/20 bg-white/30 border-t border-zen-brown/15">
+              <div className="p-5 shrink-0 text-center text-[9px] font-serif italic text-zen-brown/20 bg-white/30 border-t border-zen-brown/15">
                 Authentic Wellness Exchange · Sanctuary Digital
               </div>
             </motion.div>

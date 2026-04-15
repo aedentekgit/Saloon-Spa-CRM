@@ -58,6 +58,12 @@ const Roles = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  useEffect(() => {
+    setPage(1);
+  }, [viewMode]);
+
+  const PAGE_LIMIT = 12;
+
   const [formData, setFormData] = useState({
     name: '',
     permissions: [] as string[],
@@ -73,7 +79,7 @@ const Roles = () => {
   const fetchRoles = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/roles?page=${page}&limit=10`, {
+      const response = await fetch(`${API_URL}/roles?page=${page}&limit=${PAGE_LIMIT}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
@@ -287,7 +293,7 @@ const Roles = () => {
                     {filteredRoles.map((role, index) => (
                        <tr key={role._id} className="group hover:bg-white transition-all duration-500">
                           <td className="px-10 py-8">
-                             <span className="font-serif text-lg text-zen-brown/60 font-bold">{((page - 1) * 10 + index + 1).toString().padStart(2, '0')}</span>
+                             <span className="font-serif text-lg text-zen-brown/60 font-bold">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
                           </td>
                           <td className="px-10 py-8">
                              <div className="flex items-center gap-4">

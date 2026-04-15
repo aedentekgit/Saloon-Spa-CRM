@@ -5,7 +5,9 @@ import {
   services as initialServices, 
   appointments as initialAppointments, 
   inventory as initialInventory, 
-  rooms as initialRooms 
+  rooms as initialRooms,
+  invoices as initialInvoices,
+  expenses as initialExpenses
 } from '../data/mockData';
 import { useAuth } from './AuthContext';
 
@@ -96,12 +98,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [invoices, setInvoices] = useState<Invoice[]>(() => {
     const saved = localStorage.getItem('zen_invoices');
-    return saved ? JSON.parse(saved) : [];
+    return saved ? JSON.parse(saved) : initialInvoices;
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('zen_expenses');
-    return saved ? JSON.parse(saved) : [];
+    return saved ? JSON.parse(saved) : initialExpenses;
   });
 
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => {

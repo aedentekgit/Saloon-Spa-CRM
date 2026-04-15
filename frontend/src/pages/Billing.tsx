@@ -14,7 +14,8 @@ import {
   Search,
   ChevronRight,
   Crown,
-  Split
+  Split,
+  ChevronDown
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
@@ -268,10 +269,10 @@ const Billing = () => {
       hideBranchSelector
       onViewModeChange={null as any}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-10 items-stretch">
         <div className="lg:col-span-2 flex flex-col h-full">
-           <div className="bg-white rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 overflow-hidden group flex flex-col h-full">
-              <div className="p-10 bg-zen-brown text-white flex flex-col sm:flex-row justify-between items-start gap-8 relative overflow-hidden">
+           <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 overflow-hidden group flex flex-col h-full">
+              <div className="p-6 sm:p-10 bg-zen-brown text-white flex flex-col sm:flex-row justify-between items-start gap-6 sm:gap-8 relative overflow-hidden">
                  <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-125 transition-transform duration-1000">
                     <Zap size={150} />
                  </div>
@@ -287,8 +288,8 @@ const Billing = () => {
                  </div>
               </div>
 
-              <div className="p-10 space-y-10">
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+              <div className="p-6 sm:p-10 space-y-6 sm:space-y-10">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-10">
                     <ZenDropdown 
                       label="Sanctuary Ambassador"
                       placeholder="Select Recipient"
@@ -298,8 +299,8 @@ const Billing = () => {
                     />
                     
                     {activeMembership && (
-                      <div className="sm:col-span-2 flex items-center gap-4 p-6 bg-zen-sand/5 rounded-3xl border border-zen-sand/10 animate-in fade-in slide-in-from-top-2 duration-500">
-                         <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-zen-sand shadow-sm">
+                      <div className="sm:col-span-2 flex flex-col sm:flex-row items-center gap-4 p-4 sm:p-6 bg-zen-sand/5 rounded-2xl sm:rounded-3xl border border-zen-sand/10 animate-in fade-in slide-in-from-top-2 duration-500">
+                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white flex items-center justify-center text-zen-sand shadow-sm shrink-0">
                             <Crown size={24} />
                          </div>
                          <div className="flex-1">
@@ -362,7 +363,7 @@ const Billing = () => {
                                       </div>
                                    </div>
                                 </td>
-                                <td className="px-6 py-5 bg-zen-cream/10 border-y border-zen-brown/15 group-hover:bg-white text-right font-serif text-lg font-bold">
+                                <td className="px-4 sm:px-6 py-4 sm:py-5 bg-zen-cream/10 border-y border-zen-brown/15 group-hover:bg-white text-right font-serif text-base sm:text-lg font-bold">
                                    {item.isRedeem ? (
                                       <span className="text-zen-leaf italic">Redeemed</span>
                                    ) : (
@@ -443,12 +444,12 @@ const Billing = () => {
                        </div>
                     </div>
 
-                    <div className="flex justify-between items-center px-8 py-8 bg-zen-cream/20 rounded-[2rem] mt-10">
-                       <span className="text-xl font-serif font-bold text-zen-brown flex items-center gap-4">
-                          <Sparkles size={24} className="text-zen-sand" />
+                    <div className="flex justify-between items-center px-4 sm:px-8 py-6 sm:py-8 bg-zen-cream/20 rounded-[1.5rem] sm:rounded-[2rem] mt-6 sm:mt-10">
+                       <span className="text-lg sm:text-xl font-serif font-bold text-zen-brown flex items-center gap-3 sm:gap-4">
+                          <Sparkles size={20} className="text-zen-sand sm:w-6 sm:h-6" />
                           Final Sanctuary Total
                        </span>
-                       <span className="text-4xl font-serif font-bold text-zen-brown tracking-tighter">{settings?.general.currencySymbol || 'QR'} {total.toLocaleString()}</span>
+                       <span className="text-2xl sm:text-4xl font-serif font-bold text-zen-brown tracking-tighter">{settings?.general.currencySymbol || 'QR'} {total.toLocaleString()}</span>
                     </div>
                  </div>
               </div>
@@ -456,15 +457,15 @@ const Billing = () => {
         </div>
 
         <div className="flex flex-col h-full">
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 flex flex-col h-full">
-              <h3 className="text-xl font-serif font-bold text-zen-brown mb-8 flex items-center gap-3">
+           <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/15 flex flex-col h-full">
+              <h3 className="text-lg sm:text-xl font-serif font-bold text-zen-brown mb-6 sm:mb-8 flex items-center gap-3">
                  <div className="w-8 h-8 rounded-xl bg-zen-sand/10 flex items-center justify-center text-[10px] font-bold text-zen-sand border border-zen-sand/20 shadow-sm shrink-0">
                     {settings?.general.currencySymbol || 'QR'}
                  </div>
                  Engagement Mode
               </h3>
               
-              <div className="grid grid-cols-2 gap-6">
+              <div className="flex flex-col gap-3">
                  {[
                     { name: 'Cash', icon: Wallet },
                     { name: 'Card', icon: CreditCard },
@@ -472,16 +473,36 @@ const Billing = () => {
                     { name: 'GPay', icon: Smartphone },
                     { name: 'Split', icon: Split }
                  ].map((mode) => (
-                    <button
-                      key={mode.name}
-                      onClick={() => setPaymentMode(paymentMode === mode.name ? 'Card' : mode.name)}
-                      className={`group p-8 rounded-[2rem] border transition-all duration-500 flex flex-col items-center gap-4 ${paymentMode === mode.name 
-                        ? 'bg-zen-brown text-white border-zen-brown shadow-2xl shadow-zen-brown/20' 
-                        : 'bg-white text-zen-brown/40 border-zen-brown/15 hover:border-zen-sand hover:bg-zen-cream/10'}`}
-                    >
-                       <mode.icon size={28} className={paymentMode === mode.name ? 'text-white' : 'text-zen-sand/60 group-hover:text-zen-sand'} strokeWidth={1.5} />
-                       <span className="text-[10px] font-bold uppercase tracking-[0.3em]">{mode.name}</span>
-                    </button>
+                   <button
+                     key={mode.name}
+                     onClick={() => setPaymentMode(paymentMode === mode.name && mode.name === 'Split' ? 'Card' : mode.name)}
+                     className={`group px-6 py-4 rounded-2xl border transition-all duration-300 flex items-center justify-between ${paymentMode === mode.name 
+                       ? 'bg-zen-brown text-white border-zen-brown shadow-xl shadow-zen-brown/20' 
+                       : 'bg-white/50 text-zen-brown/40 border-zen-brown/10 hover:border-zen-sand/30 hover:bg-white'}`}
+                   >
+                      <div className="flex items-center gap-4">
+                        <mode.icon size={20} className={paymentMode === mode.name ? 'text-white' : 'text-zen-sand/60 group-hover:text-zen-sand'} strokeWidth={1.5} />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.3em]">{mode.name}</span>
+                      </div>
+                      {paymentMode === mode.name && (
+                        <motion.div 
+                          layoutId="payment-active"
+                          className={`w-5 h-5 rounded-full flex items-center justify-center text-white shadow-sm ${mode.name === 'Split' ? 'bg-zen-sand shadow-zen-sand/20' : 'bg-zen-leaf shadow-zen-leaf/20'}`}
+                        >
+                          {mode.name === 'Split' ? (
+                             <motion.div
+                               initial={{ rotate: 0 }}
+                               animate={{ rotate: 180 }}
+                               transition={{ duration: 0.3 }}
+                             >
+                               <ChevronDown size={12} />
+                             </motion.div>
+                          ) : (
+                             <Sparkles size={10} />
+                          )}
+                        </motion.div>
+                      )}
+                   </button>
                  ))}
               </div>
 

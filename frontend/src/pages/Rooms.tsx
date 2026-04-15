@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
-  DoorOpen, Plus, Edit2, Trash2, Camera, X, 
-  Sparkles, Coffee, Timer, Building2, MapPin
+  Plus, Edit2, Trash2, Camera, X, 
+  Sparkles, Building2, Zap, DoorOpen, Clock
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
@@ -58,7 +58,7 @@ const Rooms = () => {
     status: 'Free',
     branch: '',
     isActive: true,
-    cleaningDuration: 0
+    cleaningDuration: 15
   });
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
@@ -86,7 +86,10 @@ const Rooms = () => {
 
   useEffect(() => {
     localStorage.setItem('zen_rooms_view', viewMode);
+    setPage(1);
   }, [viewMode]);
+
+  const PAGE_LIMIT = 12;
 
   useEffect(() => {
     fetchRooms();
@@ -95,7 +98,7 @@ const Rooms = () => {
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/rooms?page=${page}&limit=10`, {
+      const response = await fetch(`${API_URL}/rooms?page=${page}&limit=${PAGE_LIMIT}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
@@ -264,94 +267,100 @@ const Rooms = () => {
           <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
-          {filteredRooms.map((room) => (
-            <div key={room._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-10">
+          {filteredRooms.map((room, i) => {
+            const roomImage = getDisplayImage(room);
+            return (
+              <div 
+                key={room._id} 
+                className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[4rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8"
+                style={{ animationDelay: `${i * 50}ms` }}
+              >
+                <div className="aspect-[16/9] sm:aspect-[4/3] relative overflow-hidden">
+                  <img 
+                    src={roomImage.src} 
+                    alt={room.name} 
+                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.2] group-hover:grayscale-0"
+                    style={{ objectPosition: roomImage.objectPosition }}
+                  />
 
-               <div className="relative z-10">
-                 <div className="flex items-center gap-4 lg:gap-6 mb-4 lg:mb-6">
-                    <div className="relative w-16 lg:w-20 h-16 lg:h-20 rounded-2xl overflow-hidden border-4 border-zen-cream bg-zen-cream flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700 shadow-xl">
-                       <img 
-                         src={getDisplayImage(room)} 
-                         alt={room.name} 
-                         className="w-full h-full object-cover"
-                       />
+                  <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex flex-col items-end gap-2">
+                    <div className="px-3 py-1 sm:px-5 sm:py-2 backdrop-blur-3xl bg-white/80 rounded-full text-[9px] sm:text-[10px] font-bold tracking-widest text-zen-brown flex items-center gap-2 shadow-lg border border-white/20">
+                      <Clock size={10} className="sm:w-3 sm:h-3 text-zen-brown/40" />
+                      {room.cleaningDuration || 0} MIN
                     </div>
-                    
-                    <div className="min-w-0 flex-1">
-                        <h3 className="text-xl lg:text-2xl font-serif text-zen-brown tracking-tight truncate">{room.name}</h3>
-                        <div className="flex items-center gap-2 mt-1 lg:mt-2">
-                           <p className="text-[10px] lg:text-[11px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">{room.type}</p>
-                        </div>
-                     </div>
-
-                    <div className="flex items-center gap-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all duration-500">
-                    <ZenIconButton 
-                       icon={Sparkles} 
-                       variant={room.isActive ? 'leaf' : 'sand'} 
-                       onClick={() => toggleIsActive(room)} 
-                       className={room.isActive ? 'text-zen-leaf' : 'text-zen-sand'}
-                    />
-                    <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(room)} />
-                    <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(room._id)} />
                   </div>
-                 </div>
 
-                 <div className="flex flex-col gap-2 mb-4">
-                     <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
-                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Building2 size={14} /></div>
-                        <span className="text-xs text-zen-brown/70 italic font-medium">{room.branch?.name || 'Central Hub'}</span>
-                     </div>
-                     <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
-                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Sparkles size={14} /></div>
-                        <span className="text-xs text-zen-brown/70 italic font-medium truncate">{room.type} Suite</span>
-                     </div>
-                 </div>
-               </div>
+                  <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 flex flex-col gap-2">
+                    <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[8px] sm:text-[9px] font-bold tracking-widest text-white uppercase border border-white/40 shadow-sm">
+                       {room.branch?.name || 'Sanctuary Hub'}
+                    </span>
+                  </div>
+                </div>
 
-               <div className="relative z-10 pt-4 border-t border-zen-brown/15">
-                      <div className="flex items-center gap-2">
-                         <ZenBadge variant={
-                            room.status === 'Free' ? 'leaf' :
-                            room.status === 'Occupied' ? 'danger' : 'sand'
-                         }>{room.status}</ZenBadge>
-                       </div>
-                      <div className="absolute top-5 right-5">
-                         <ZenBadge variant={room.isActive ? 'leaf' : 'sand'} className="backdrop-blur-md bg-white/80 py-1.5 px-4 text-[10px] tracking-widest uppercase">{room.isActive ? 'Active' : 'Inactive'}</ZenBadge>
-                      </div>
-               </div>
-            </div>
-          ))}
+                <div className="p-6 sm:p-8 flex flex-col flex-1 gap-4 sm:gap-6">
+                  <div className="space-y-1 sm:space-y-2">
+                    <div className="flex items-center gap-2 text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.3em] text-zen-brown/40">
+                      <Building2 size={10} />
+                      {room.type} Suite
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-serif font-bold text-zen-brown leading-tight truncate-2-lines">{room.name}</h3>
+                  </div>
+
+                  <div className="mt-auto pt-4 sm:pt-6 flex items-center justify-between border-t border-zen-brown/5">
+                    <div className="flex items-center gap-2">
+                      <ZenBadge variant={
+                          room.status === 'Free' ? 'leaf' :
+                          room.status === 'Occupied' ? 'danger' : 'sand'
+                       } className="lowercase italic font-serif text-[10px] sm:text-xs">
+                        {room.status}
+                      </ZenBadge>
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <ZenIconButton 
+                         icon={Sparkles} 
+                         variant={room.isActive ? 'leaf' : 'sand'} 
+                         onClick={() => toggleIsActive(room)} 
+                         className={room.isActive ? 'text-zen-leaf' : 'text-zen-sand'}
+                         size="sm"
+                         title="Toggle Presence"
+                      />
+                      <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(room)} size="sm" title="Refine Sanctury" />
+                      <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(room._id)} size="sm" title="Decommission" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
-        <div className="bg-white/80 backdrop-blur-xl px-6 py-6 lg:px-8 lg:py-8 rounded-[3.5rem] border border-white shadow-2xl shadow-zen-brown/15 transition-all duration-700 hover:-translate-y-2 overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
-                <th className="pl-3 pr-4 lg:pl-4 lg:pr-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center whitespace-nowrap">S NO</th>
-                <th className="pl-3 pr-4 lg:pl-4 lg:pr-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center whitespace-nowrap">Photo</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Room Name</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Branch</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Category</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Cleaning</th>
-                <th className="px-4 lg:px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Status</th>
-                <th className="px-4 lg:px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Resonance</th>
-                <th className="pr-6 pl-4 lg:pr-8 lg:pl-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Ritual Actions</th>
+              <tr>
+                <th>S NO</th>
+                <th>Visual</th>
+                <th>Branch</th>
+                <th>Sanctuary Name</th>
+                <th>Category</th>
+                <th>Cleaning</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zen-brown/15">
+            <tbody>
               {filteredRooms.map((room, index) => {
                 const roomImage = getDisplayImage(room);
-
                 return (
-                <tr key={room._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
-                  <td className="pl-3 pr-4 lg:pl-4 lg:pr-6 py-4 lg:py-6">
-                    <span className="font-serif text-base lg:text-lg text-zen-brown/40">{((page - 1) * 10 + index + 1).toString().padStart(2, '0')}</span>
+                <tr key={room._id}>
+                  <td>
+                    <span>{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
                   </td>
-                  <td className="pl-3 pr-4 lg:pl-4 lg:pr-6 py-4 lg:py-6">
-                    <div className="flex justify-start">
-                      <div className="w-14 lg:w-16 h-14 lg:h-16 rounded-2xl overflow-hidden bg-zen-cream border-2 border-white shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
+                  <td>
+                    <div className="flex justify-center">
+                      <div className="w-14 lg:w-16 h-10 lg:h-12 rounded-[1.5rem] overflow-hidden bg-zen-cream border-2 border-white shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
                         <img 
                           src={roomImage.src} 
                           alt={room.name} 
@@ -361,34 +370,32 @@ const Rooms = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                  <td>
+                    <span>{room.branch?.name || 'Main Registry'}</span>
+                  </td>
+                  <td>
                     <div className="flex flex-col items-center">
                       <p className="font-serif text-base lg:text-lg text-zen-brown tracking-tight font-bold whitespace-nowrap">{room.name}</p>
                       <p className="text-[8px] lg:text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0.5 lg:mt-1">Active Space</p>
                     </div>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">{room.branch?.name || 'Main Registry'}</span>
-                  </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                  <td>
                     <ZenBadge variant="sand">{room.type}</ZenBadge>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <span className="text-[10px] font-bold text-zen-brown/60 uppercase tracking-widest">{room.cleaningDuration || 0}m</span>
+                  <td>
+                    <div className="flex items-center justify-center gap-2 text-sm text-zen-brown/70 italic font-medium">
+                      <Clock size={12} />
+                      {room.cleaningDuration || 0}m
+                    </div>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
-                     <div className="flex justify-center">
-                        <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full ${
-                          room.status === 'Free' ? 'bg-zen-leaf/5 text-zen-leaf border border-zen-leaf/10' :
-                          room.status === 'Occupied' ? 'bg-red-50 text-red-400 border border-red-100' : 'bg-zen-sand/5 text-zen-sand border border-zen-sand/10'
-                        }`}>{room.status}</span>
-                     </div>
+                  <td>
+                    <ZenBadge variant={
+                      room.status === 'Free' ? 'leaf' :
+                      room.status === 'Occupied' ? 'danger' : 'sand'
+                    }>{room.status}</ZenBadge>
                   </td>
-                  <td className="px-10 py-8 text-center">
-                    <ZenBadge variant={room.isActive ? 'leaf' : 'sand'}>{room.isActive ? 'Active' : 'Inactive'}</ZenBadge>
-                  </td>
-                  <td className="pr-6 pl-4 lg:pr-8 lg:pl-6 py-8 text-right">
-                    <div className="flex items-center justify-end gap-3 transition-all duration-500">
+                  <td>
+                    <div className="flex items-center justify-center gap-3">
                        <ZenIconButton 
                           icon={Sparkles} 
                           variant={room.isActive ? 'leaf' : 'sand'} 
@@ -409,7 +416,6 @@ const Rooms = () => {
 
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
 
-      {/* Modal - Consistent with Zen Aesthetics and Clients page */}
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
@@ -417,7 +423,7 @@ const Rooms = () => {
         maxWidth="max-w-4xl"
         title={editingRoom ? "Refine Sanctuary" : "New Sanctuary Presence"}
       >
-        <form onSubmit={handleSubmit} className="flex flex-col h-auto w-full relative">
+        <form onSubmit={handleSubmit} className="flex flex-col h-[90vh] sm:h-[85vh] w-full relative">
           
           <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-4 sm:gap-8 flex-1">
@@ -430,12 +436,11 @@ const Rooms = () => {
                           style={roomImageFile ? undefined : { objectPosition: previewRoomImage?.objectPosition }}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif text-5xl uppercase tracking-tighter">
+                        <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif text-5xl uppercase tracking-tighter profile-pic-placeholder">
                           {formData.name.charAt(0) || <DoorOpen size={40} strokeWidth={1} />}
                         </div>
                       )}
                       
-                      {/* Overlay for upload */}
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Camera className="text-white" size={32} />
                       </div>
@@ -448,7 +453,7 @@ const Rooms = () => {
                    <div className="absolute bottom-1 right-1 p-2.5 bg-zen-brown text-white rounded-full shadow-2xl scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={12} /></div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 flex-1">
                    <ZenInput label="Sanctuary Designation" placeholder="E.g. Sapphire Suite" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-4xl border-none p-0 h-auto" />
                    <div className="w-full sm:w-80 relative">
                       <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">Space Registry Allocation</p>
@@ -458,8 +463,8 @@ const Rooms = () => {
              <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} className="self-start mt-2" />
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-8 sm:py-12 scrollbar-none pb-48">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 sm:gap-x-16 gap-y-10 sm:gap-y-14 animate-in slide-in-from-left-4 duration-500">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-8 sm:py-12 scrollbar-none pb-40">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 sm:gap-x-16 gap-y-10 sm:gap-y-14 animate-in fade-in duration-500">
                 <ZenDropdown 
                    label="Sanctuary Category" 
                    options={['None', ...roomCategories]} 

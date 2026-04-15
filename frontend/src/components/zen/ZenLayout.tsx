@@ -36,66 +36,67 @@ export const ZenPageLayout = ({
 }: ZenLayoutProps) => {
 
   return (
-    <div className="page-container min-h-screen p-4 sm:p-6 lg:p-10 animate-in fade-in duration-1000">
+    <div className="page-container min-h-screen p-4 sm:p-6 lg:p-8 animate-in fade-in duration-1000">
       
-
-
       {/* Search and Action Bar */}
-      <div className="mb-8 lg:mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        {!hideSearch && (
-          <div className="flex-1 max-w-2xl w-full">
-            <div className="relative group">
-              <input 
-                type="text" 
-                placeholder={`Search ${title}...`}
-                value={searchTerm}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full bg-white/60 backdrop-blur-md px-6 sm:px-8 py-4 sm:py-5 rounded-2xl sm:rounded-[2rem] border border-zen-brown/15 shadow-xl shadow-zen-brown/15 focus:bg-white focus:border-zen-brown/35 focus:ring-4 focus:ring-zen-brown/5 outline-none transition-all duration-500 font-serif text-base sm:text-lg text-zen-brown placeholder:text-zen-brown/20"
-              />
-              <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-500 group-focus-within:scale-110">
-                <Search className="text-zen-brown/10 group-focus-within:text-zen-brown/30" size={20} />
+      {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel)) && (
+        <div className="mb-6 lg:mb-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          {!hideSearch && (
+            <div className="flex-1 max-w-2xl w-full">
+              <div className="relative group">
+                <input 
+                  type="text" 
+                  placeholder={`Search ${title}...`}
+                  value={searchTerm}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  className="w-full bg-white/80 backdrop-blur-xl px-7 py-4 sm:py-5 rounded-[1.5rem] sm:rounded-[2.5rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/5 focus:bg-white focus:border-zen-brown/30 focus:ring-8 focus:ring-zen-brown/5 outline-none transition-all duration-700 font-serif text-lg text-zen-brown placeholder:text-zen-brown/20"
+                />
+                <div className="absolute right-7 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-700 group-focus-within:scale-110">
+                  <Search className="text-zen-brown/10 group-focus-within:text-zen-brown/40" size={22} />
+                </div>
               </div>
             </div>
+          )}
+
+          <div className="flex items-center gap-3 sm:gap-5 w-full lg:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+            {!hideBranchSelector && (
+              <div className="shrink-0">
+                <BranchSelector />
+              </div>
+            )}
+
+            {!hideViewToggle && onViewModeChange && (
+              <div className="flex bg-white/80 backdrop-blur-xl p-1.5 rounded-[1.2rem] sm:rounded-[1.8rem] border border-stone-200/50 shadow-xl shadow-zen-brown/5">
+                <button 
+                  onClick={() => onViewModeChange('grid')}
+                  className={`p-2.5 sm:p-3 rounded-[0.8rem] sm:rounded-[1.2rem] transition-all duration-700 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-xl shadow-zen-brown/20 scale-105' : 'text-zen-brown/30 hover:text-zen-brown'}`}
+                >
+                  <LayoutGrid size={18} />
+                </button>
+                <button 
+                  onClick={() => onViewModeChange('table')}
+                  className={`p-2.5 sm:p-3 rounded-[0.8rem] sm:rounded-[1.2rem] transition-all duration-700 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-xl shadow-zen-brown/20 scale-105' : 'text-zen-brown/30 hover:text-zen-brown'}`}
+                >
+                  <List size={18} />
+                </button>
+              </div>
+            )}
+
+            {!hideAddButton && addButtonLabel && onAddClick && (
+              <button 
+                onClick={onAddClick}
+                className="shrink-0 h-[52px] sm:h-[64px] rounded-[1.2rem] sm:rounded-[1.8rem] px-6 sm:px-10 shadow-2xl shadow-zen-brown/20 flex items-center justify-center gap-3 active:scale-95 group transition-all duration-700 bg-zen-brown text-white font-bold text-xs sm:text-sm uppercase tracking-[0.2em] relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                <span className="hidden sm:inline relative z-10">{addButtonLabel}</span>
+                <div className="group-hover:rotate-90 transition-transform duration-700 relative z-10 shrink-0">
+                  {addButtonIcon}
+                </div>
+              </button>
+            )}
           </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full md:w-auto justify-end md:justify-start">
-          {!hideBranchSelector && (
-            <div className="shrink-0">
-              <BranchSelector />
-            </div>
-          )}
-
-          {!hideViewToggle && onViewModeChange && (
-            <div className="flex bg-white/60 backdrop-blur-md p-1 rounded-xl sm:rounded-2xl border border-zen-brown/15 shadow-md">
-              <button 
-                onClick={() => onViewModeChange('grid')}
-                className={`p-2.5 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown'}`}
-              >
-                <LayoutGrid size={18} />
-              </button>
-              <button 
-                onClick={() => onViewModeChange('table')}
-                className={`p-2.5 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown'}`}
-              >
-                <List size={18} />
-              </button>
-            </div>
-          )}
-
-          {!hideAddButton && addButtonLabel && onAddClick && (
-            <button 
-              onClick={onAddClick}
-              className="!rounded-xl sm:!rounded-2xl !py-4 sm:!py-5 px-6 sm:px-8 shadow-xl shadow-zen-brown/10 flex items-center justify-center gap-3 active:scale-95 group transition-all duration-500 bg-zen-brown text-white font-bold text-xs sm:text-sm uppercase tracking-widest min-w-fit"
-            >
-              <span className="hidden xs:inline">{addButtonLabel}</span>
-              <div className="group-hover:rotate-90 transition-transform duration-500">
-                {addButtonIcon}
-              </div>
-            </button>
-          )}
         </div>
-      </div>
+      )}
 
       <main className="pb-8">
         {children}

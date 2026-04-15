@@ -83,11 +83,14 @@ const Services = () => {
 
   useEffect(() => {
     localStorage.setItem('zen_services_view', viewMode);
+    setPage(1);
   }, [viewMode]);
+
+  const PAGE_LIMIT = 12;
 
   const fetchServices = async () => {
     try {
-      const response = await fetch(`${API_URL}/services?page=${page}&limit=10`, {
+      const response = await fetch(`${API_URL}/services?page=${page}&limit=${PAGE_LIMIT}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
@@ -278,88 +281,111 @@ const Services = () => {
           <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-          {filteredServices.map((service) => (
-            <div key={service._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2">
-              <div className="h-40 sm:h-48 relative overflow-hidden">
-                {service.image ? (
-                  <img 
-                    src={getImageUrl(service.image)} 
-                    alt={service.name}
-                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-zen-cream flex items-center justify-center text-zen-brown/10">
-                    <Sparkles size={48} strokeWidth={0.5} />
-                  </div>
-                )}
-                <div className="absolute top-5 right-5">
-                   <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'} className="backdrop-blur-md bg-white/80 py-1.5 px-4 text-[10px] tracking-widest uppercase">{service.status}</ZenBadge>
-                </div>
-              </div>
-              
-              <div className="p-6 flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                   <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight truncate">{service.name}</h3>
-                   <div className="flex items-center gap-2">
-                      <MapPin size={10} className="text-zen-brown/30" />
-                      <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest leading-none">{service.branch?.name || 'Sanctuary HQ'}</p>
-                   </div>
-                </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-10">
+          {filteredServices.map((service, i) => {
+            const imgUrl = getImageUrl(service.image);
+            const branchName = service.branch?.name || 'Sanctuary HQ';
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-8">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">Duration</span>
-                      <div className="flex items-center gap-2 text-zen-brown font-serif italic text-sm">
-                        <Clock size={16} className="text-zen-brown/20" />
-                        <span>{service.duration} min</span>
-                      </div>
+            return (
+              <div 
+                key={service._id} 
+                className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[4rem] shadow-2xl shadow-zen-brown/5 border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8"
+                style={{ animationDelay: `${i * 50}ms` }}
+              >
+                {/* Visual Frame */}
+                <div className="aspect-[16/9] sm:aspect-[4/3] relative overflow-hidden">
+                  {imgUrl ? (
+                    <img 
+                      src={imgUrl} 
+                      alt={service.name}
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.2] group-hover:grayscale-0"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-zen-cream flex items-center justify-center text-zen-brown/10">
+                      <Sparkles size={48} strokeWidth={0.5} />
                     </div>
-                    <div className="flex flex-col border-l border-zen-brown/15 pl-8">
-                      <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">Price</span>
-                      <div className="flex items-center gap-2 text-zen-brown font-bold text-sm">
-                        <Coins size={16} className="text-zen-brown/20" />
-                        <span>{settings?.general.currencySymbol || 'QR'} {service.price}</span>
-                      </div>
+                  )}
+
+                  {/* Dynamic Badges */}
+                  <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex flex-col items-end gap-2">
+                    <div className="px-3 py-1 sm:px-5 sm:py-2 backdrop-blur-3xl bg-white/80 rounded-full text-[9px] sm:text-[10px] font-bold tracking-widest text-zen-brown flex items-center gap-2 shadow-lg border border-white/20">
+                      <Clock size={10} className="sm:w-3 sm:h-3 text-zen-brown/40" />
+                      {service.duration} MIN
+                    </div>
+                    <div className="px-3 py-1 sm:px-5 sm:py-2 backdrop-blur-3xl bg-zen-brown/90 rounded-full text-[9px] sm:text-[10px] font-bold tracking-widest text-white flex items-center gap-2 shadow-lg">
+                      <Coins size={10} className="sm:w-3 sm:h-3 text-white/40" />
+                      {settings?.general?.currencySymbol || 'QR'} {service.price}
                     </div>
                   </div>
+
+                  {/* Branch & Status Labels */}
+                  <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 flex flex-col gap-2">
+                    <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[8px] sm:text-[9px] font-bold tracking-widest text-white uppercase border border-white/40 shadow-sm">
+                       {branchName}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="p-6 sm:p-8 flex flex-col flex-1 gap-4 sm:gap-6">
+                  <div className="space-y-1 sm:space-y-2">
+                    <div className="flex items-center gap-2 text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.3em] text-zen-brown/40">
+                      <Sparkles size={10} />
+                      {service.category || 'Wellness Ritual'}
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-serif font-bold text-zen-brown leading-tight truncate-2-lines">{service.name}</h3>
+                  </div>
+
+                  {service.description && (
+                    <p className="text-zen-brown/60 text-xs sm:text-sm leading-relaxed italic line-clamp-2">
+                      {service.description}
+                    </p>
+                  )}
                   
-                  <div className="flex items-center gap-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all duration-500">
-                    <ZenIconButton 
-                       icon={Sparkles} 
-                       variant={service.status === 'Active' ? 'leaf' : 'sand'} 
-                       onClick={() => toggleStatus(service)} 
-                       className={service.status === 'Active' ? 'text-zen-leaf' : 'text-zen-sand'}
-                    />
-                    <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} />
-                    <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} />
+                  <div className="mt-auto pt-4 sm:pt-6 flex items-center justify-between border-t border-zen-brown/5">
+                    <div className="flex items-center gap-2">
+                      <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'} className="lowercase italic font-serif text-[10px] sm:text-xs">
+                        {service.status}
+                      </ZenBadge>
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <ZenIconButton 
+                         icon={Zap} 
+                         variant={service.status === 'Active' ? 'leaf' : 'sand'} 
+                         onClick={() => toggleStatus(service)} 
+                         className={service.status === 'Active' ? 'text-zen-leaf' : 'text-zen-sand'}
+                         size="sm"
+                         title="Toggle Presence"
+                      />
+                      <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} size="sm" title="Refine Ritual" />
+                      <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} size="sm" title="Decommission" />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
-        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center whitespace-nowrap">S NO</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Visual</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Branch</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Service Name</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Duration</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Price</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Status</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Actions</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Visual</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Branch</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Service Name</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Duration</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Price</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Status</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zen-brown/15">
               {filteredServices.map((service, index) => (
                 <tr key={service._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <span className="font-serif text-base lg:text-lg text-zen-brown/40">{((page - 1) * 10 + index + 1).toString().padStart(2, '0')}</span>
+                    <span className="font-serif text-base lg:text-lg text-zen-brown/40">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
                   </td>
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex justify-center">
@@ -389,7 +415,7 @@ const Services = () => {
                   </td>
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex flex-col items-center">
-                      <p className="font-serif text-base lg:text-lg text-zen-brown tracking-tight font-bold whitespace-nowrap">{settings?.general.currencySymbol || 'QR'} {service.price}</p>
+                      <p className="font-serif text-base lg:text-lg text-zen-brown tracking-tight font-bold whitespace-nowrap">{settings?.general?.currencySymbol || 'QR'} {service.price}</p>
                       <p className="text-[8px] lg:text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0.5 lg:mt-1">Energy Exchange</p>
                     </div>
                   </td>
@@ -403,9 +429,10 @@ const Services = () => {
                           variant={service.status === 'Active' ? 'leaf' : 'sand'} 
                           onClick={() => toggleStatus(service)} 
                           className={service.status === 'Active' ? 'text-zen-leaf' : 'text-zen-sand'}
+                          size="sm"
                        />
-                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} />
-                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} />
+                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} size="sm" />
+                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} size="sm" />
                     </div>
                   </td>
                 </tr>
@@ -428,7 +455,7 @@ const Services = () => {
           
           <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-4 sm:gap-8 flex-1">
-                <div className="relative w-24 sm:w-32 h-24 sm:h-32 group cursor-pointer shrink-0">
+                <div className="relative w-20 sm:w-32 h-20 sm:h-32 group cursor-pointer shrink-0">
                    <div className="w-full h-full rounded-3xl ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-2xl relative">
                       {(imageFile || (editingService && editingService.image)) ? (
                         <img 
@@ -436,7 +463,7 @@ const Services = () => {
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif text-5xl uppercase tracking-tighter profile-pic-placeholder">
+                        <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif text-3xl sm:text-5xl uppercase tracking-tighter profile-pic-placeholder">
                           {formData.name.charAt(0) || <Sparkles size={40} strokeWidth={1} />}
                         </div>
                       )}
@@ -453,10 +480,10 @@ const Services = () => {
                    <div className="absolute bottom-1 right-1 p-2.5 bg-zen-brown text-white rounded-full shadow-2xl scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={12} /></div>
                 </div>
 
-                <div className="space-y-4 flex-1">
-                   <ZenInput label="Service Identity" placeholder="E.g. Himalayan Salt Therapy" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-4xl border-none p-0 h-auto" />
+                <div className="space-y-1 sm:space-y-4 flex-1">
+                   <ZenInput label="Service Identity" placeholder="E.g. Himalayan Salt Therapy" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-xl sm:text-4xl border-none p-0 h-auto" />
                    <div className="w-full sm:w-80 relative">
-                      <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">Premium Offering Registry</p>
+                      <p className="text-[8px] sm:text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">Premium Offering Registry</p>
                    </div>
                 </div>
              </div>

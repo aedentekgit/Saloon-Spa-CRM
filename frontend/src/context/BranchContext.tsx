@@ -25,7 +25,9 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { user } = useAuth();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranch, setSelectedBranchState] = useState<string>(() => {
-    return localStorage.getItem('zen_selected_branch') || 'all';
+    const saved = localStorage.getItem('zen_selected_branch');
+    if (user && user.role !== 'Admin' && user.branch) return user.branch;
+    return saved || 'all';
   });
   const [loading, setLoading] = useState(true);
 
@@ -50,6 +52,9 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   useEffect(() => {
+    if (user && user.role !== 'Admin' && user.branch) {
+      setSelectedBranchState(user.branch);
+    }
     fetchBranches();
   }, [user]);
 

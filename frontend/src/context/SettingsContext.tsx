@@ -87,6 +87,14 @@ const mixHexColors = (baseColor: string, targetColor: string, ratio: number) => 
   );
 };
 
+const getContrastColor = (hex: string) => {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return '#FFFFFF';
+  // Use YIQ formula for better human perceived contrast
+  const yiq = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+  return yiq >= 128 ? '#000000' : '#FFFFFF';
+};
+
 const deriveSidebarGradient = (primaryColor?: string) => {
   if (!primaryColor) {
     return {
@@ -178,7 +186,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       if (settings.theme.primaryColor) {
         root.style.setProperty('--zen-sand', settings.theme.primaryColor);
-        root.style.setProperty('--zen-brown', settings.theme.primaryColor);
+        root.style.setProperty('--zen-primary', settings.theme.primaryColor);
+        root.style.setProperty('--zen-contrast-text', getContrastColor(settings.theme.primaryColor));
       }
 
       root.style.setProperty('--sidebar-gradient-start', sidebarGradient.start);

@@ -89,7 +89,7 @@ const Sidebar = ({
   const filteredItems = menuItems.filter(item => hasPermission(item.permission));
 
   return (
-    <aside className={`zen-sidebar-gradient text-zen-cream h-full transition-all duration-300 ease-in-out flex flex-col shadow-2xl z-20 rounded-[2.5rem] relative overflow-hidden ${isCollapsed ? 'lg:w-20 w-64 md:w-64' : 'w-64'}`}>
+    <aside className={`zen-sidebar-gradient text-zen-cream h-full transition-all duration-300 ease-in-out flex flex-col z-20 rounded-[2.5rem] relative overflow-hidden ${isCollapsed ? 'lg:w-20 w-64 md:w-64' : 'w-64'}`}>
       <div className={`p-6 flex items-center border-b border-zen-cream/5 ${isCollapsed && !isMobile ? 'justify-center' : 'justify-between'}`}>
         {(!isCollapsed || isMobile) ? (
           <div className="flex items-center gap-3">

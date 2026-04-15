@@ -121,12 +121,15 @@ const Clients = () => {
 
   useEffect(() => {
     localStorage.setItem('zen_clients_view', viewMode);
+    setPage(1);
   }, [viewMode]);
+
+  const PAGE_LIMIT = 12;
 
   const fetchClients = async () => {
     try {
       console.log('Fetching clients from:', `${API_URL}/clients`);
-      const response = await fetch(`${API_URL}/clients?page=${page}&limit=10`, {
+      const response = await fetch(`${API_URL}/clients?page=${page}&limit=${PAGE_LIMIT}`, {
         headers: { 
           'Authorization': `Bearer ${user?.token}`,
           'Accept': 'application/json'
@@ -324,9 +327,9 @@ const Clients = () => {
           <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-10">
           {filteredClients.map((client) => (
-            <div key={client._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[3.5rem] p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+            <div key={client._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-2xl shadow-zen-brown/15 border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
 
               <div className="relative z-10">
@@ -351,8 +354,8 @@ const Clients = () => {
                     </div>
 
                    <div className="flex flex-col sm:flex-row gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
-                      <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(client)} />
-                      <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(client._id)} />
+                      <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(client)} size="sm" />
+                      <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(client._id)} size="sm" />
                    </div>
                 </div>
 
@@ -380,15 +383,15 @@ const Clients = () => {
                                <span className="text-[9px] font-bold uppercase tracking-widest">{client.status}</span>
                             </button>
                             {client.membership ? (
-                              <ZenBadge variant="sand">
+                              <ZenBadge variant="sand" className="text-[9px] sm:text-[10px]">
                                 {client.membership.remainingSessions}/{client.membership.totalSessions} Sessions
                               </ZenBadge>
                             ) : (
-                              <ZenBadge variant="leaf">{client.visits} Visits</ZenBadge>
+                              <ZenBadge variant="leaf" className="text-[9px] sm:text-[10px]">{client.visits} Visits</ZenBadge>
                             )}
                         </div>
                         {client.branch && (
-                           <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 rounded-md">
+                           <span className="text-[8px] sm:text-[9px] font-bold text-indigo-400 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 rounded-md">
                               {client.branch.name}
                            </span>
                         )}
@@ -398,25 +401,25 @@ const Clients = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="bg-white/70 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-zen-cream/10 border-b border-zen-brown/15">
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">S.No</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Portrait</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Client</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Contact & Email</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Membership</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Spending</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Status</th>
-                <th className="px-4 lg:px-6 py-4 lg:py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Actions</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Portrait</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Client</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Contact & Email</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Membership</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Spending</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Status</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zen-brown/15">
               {filteredClients.map((client, index) => (
                 <tr key={client._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <span className="font-serif text-base lg:text-lg text-zen-brown/40">{((page - 1) * 10 + index + 1).toString().padStart(2, '0')}</span>
+                    <span className="font-serif text-base lg:text-lg text-zen-brown/40">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
                   </td>
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex justify-center">
@@ -455,7 +458,7 @@ const Clients = () => {
                    </td>
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex flex-col items-center">
-                       <span className="font-bold text-zen-brown text-sm">{settings?.general.currencySymbol || 'QR'} {client.totalSpending?.toLocaleString()}</span>
+                       <span className="font-bold text-zen-brown text-sm">{settings?.general?.currencySymbol || 'QR'} {client.totalSpending?.toLocaleString()}</span>
                        <span className="text-[8px] uppercase tracking-widest text-zen-brown/30 font-bold whitespace-nowrap">{client.visits} Visits</span>
                     </div>
                   </td>
@@ -471,8 +474,8 @@ const Clients = () => {
                   </td>
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex items-center justify-center gap-2 lg:gap-3">
-                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(client)} />
-                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(client._id)} />
+                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(client)} size="sm" />
+                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(client._id)} size="sm" />
                     </div>
                   </td>
                 </tr>
@@ -495,7 +498,7 @@ const Clients = () => {
           
           <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 sticky top-0 bg-white/95 backdrop-blur-sm z-[60]">
              <div className="flex items-center gap-4 sm:gap-8 flex-1">
-                <div className="relative w-24 sm:w-32 h-24 sm:h-32 group cursor-pointer shrink-0">
+                <div className="relative w-20 sm:w-32 h-20 sm:h-32 group cursor-pointer shrink-0">
                    <div className="w-full h-full rounded-full ring-4 ring-zen-cream ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-2xl relative">
                       {(profilePicFile || (editingClient && editingClient.profilePic)) ? (
                         <img 
@@ -503,7 +506,7 @@ const Clients = () => {
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif text-5xl uppercase tracking-tighter">
+                        <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif text-3xl sm:text-5xl uppercase tracking-tighter">
                           {formData.name.charAt(0) || <UserIcon size={40} strokeWidth={1} />}
                         </div>
                       )}
@@ -521,21 +524,21 @@ const Clients = () => {
                    <div className="absolute bottom-1 right-1 p-2.5 bg-zen-brown text-white rounded-full shadow-2xl scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={12} /></div>
                 </div>
 
-                <div className="space-y-4">
-                   <ZenInput label="Client Identity" placeholder="E.g. Maria Thompson" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-4xl border-none p-0 h-auto" />
+                <div className="space-y-1 sm:space-y-4 flex-1">
+                   <ZenInput label="Client Identity" placeholder="E.g. Maria Thompson" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-xl sm:text-4xl border-none p-0 h-auto" />
                    <div className="w-full sm:w-80 relative">
-                      <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">Proprietary Member Registry</p>
+                      <p className="text-[8px] sm:text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">Proprietary Member Registry</p>
                    </div>
                 </div>
              </div>
              <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} className="self-start mt-2" />
           </div>
 
-          <div className="flex items-center gap-8 px-12 border-b border-zen-brown/15 bg-white/50 backdrop-blur-sm z-50">
+          <div className="flex items-center gap-4 sm:gap-8 px-6 sm:px-12 border-b border-zen-brown/15 bg-white/50 backdrop-blur-sm z-50 overflow-x-auto scrollbar-hide">
              <button 
                type="button"
                onClick={() => setActiveTab('matrix')}
-               className={`py-4 text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all duration-300 ${activeTab === 'matrix' ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown'}`}
+               className={`py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all duration-300 min-w-max ${activeTab === 'matrix' ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown'}`}
              >
                 Client Matrix
                 {activeTab === 'matrix' && <motion.div layoutId="modalTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-zen-brown" />}
@@ -544,7 +547,7 @@ const Clients = () => {
                <button 
                  type="button"
                  onClick={() => setActiveTab('membership')}
-                 className={`py-4 text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all duration-300 ${activeTab === 'membership' ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown'}`}
+                 className={`py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all duration-300 min-w-max ${activeTab === 'membership' ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown'}`}
                >
                   Membership
                   {activeTab === 'membership' && <motion.div layoutId="modalTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-zen-brown" />}
@@ -554,7 +557,7 @@ const Clients = () => {
                <button 
                  type="button"
                  onClick={() => setActiveTab('history')}
-                 className={`py-4 text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all duration-300 ${activeTab === 'history' ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown'}`}
+                 className={`py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all duration-300 min-w-max ${activeTab === 'history' ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown'}`}
                >
                   History
                   {activeTab === 'history' && <motion.div layoutId="modalTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-zen-brown" />}
@@ -562,7 +565,7 @@ const Clients = () => {
              )}
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-8 sm:py-12 scrollbar-none">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-8 sm:py-12 scrollbar-none pb-40">
                 <AnimatePresence mode="wait">
                   {activeTab === 'membership' ? (
                     <motion.div 
@@ -657,7 +660,7 @@ const Clients = () => {
                           </div>
                           <div className="grid grid-cols-1 gap-4">
                              {editingClient?.memberships?.map((m: any) => (
-                                 <div key={m._id} className={`p-8 rounded-[3rem] border flex items-center justify-between transition-all group ${m.status === 'Active' ? 'bg-indigo-50/50 border-indigo-100 shadow-xl shadow-indigo-500/5' : 'bg-gray-50/50 border-gray-100 opacity-60'}`}>
+                                 <div key={m._id} className={`p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 transition-all group ${m.status === 'Active' ? 'bg-indigo-50/50 border-indigo-100 shadow-xl shadow-indigo-500/5' : 'bg-gray-50/50 border-gray-100 opacity-60'}`}>
                                     <div className="flex items-center gap-6">
                                        <div className={`w-14 h-14 rounded-[1.8rem] flex items-center justify-center shadow-lg ${m.status === 'Active' ? 'bg-indigo-500 text-white shadow-indigo-200' : 'bg-gray-300 text-white shadow-gray-100'}`}>
                                           <Sparkles size={26} />
@@ -671,8 +674,8 @@ const Clients = () => {
                                        </div>
                                     </div>
                                     
-                                    <div className="flex items-center gap-10">
-                                       <div className="text-right hidden sm:block">
+                                    <div className="flex items-center justify-between w-full sm:w-auto gap-10">
+                                       <div className="text-right">
                                           <p className={`text-2xl font-serif font-bold tracking-tighter ${m.status === 'Active' ? 'text-indigo-950' : 'text-gray-400'}`}>
                                              {m.remainingSessions} / {m.totalSessions || m.plan?.maxSessions || 0}
                                           </p>
@@ -787,7 +790,7 @@ const Clients = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-x-12 sm:gap-x-16 gap-y-10 sm:gap-y-14"
+                      className="grid grid-cols-1 md:grid-cols-2 gap-x-12 sm:gap-x-16 gap-y-8 sm:gap-y-14"
                     >
                         <div className="relative">
                           <ZenInput 

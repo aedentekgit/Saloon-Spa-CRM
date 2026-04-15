@@ -124,10 +124,10 @@ const AdminDashboard = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-10 pb-20"
+      className="space-y-4 sm:space-y-10 pb-20"
     >
       {/* Dynamic Luminous Cards */}
-      <div className="flex overflow-x-auto pt-10 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+      <div className="flex overflow-x-auto pt-0 pb-4 sm:pb-6 gap-4 sm:gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
         {cards.map((card, i) => (
           <motion.div
             key={card.title}
@@ -135,46 +135,46 @@ const AdminDashboard = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.1 }}
             whileHover={{ y: -18, zIndex: 50 }}
-            className="flex-shrink-0 w-[280px] sm:w-[320px] lg:w-auto bg-white p-10 rounded-[2.5rem] border border-zen-brown/15 shadow-[0_25px_60px_-15px_rgba(74,55,40,0.08)] group relative"
+            className="flex-shrink-0 w-[240px] sm:w-[300px] lg:w-auto bg-white p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-zen-brown/15 shadow-[0_20px_50px_-15px_rgba(74,55,40,0.06)] group relative"
           >
             {/* Ambient Back Glow */}
             <div className={`absolute -right-10 -bottom-10 w-32 h-32 ${card.bg} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700`} />
             
-            <div className="flex justify-between items-start mb-10 relative z-10">
-              <div className={`p-5 rounded-[2rem] ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
-                <card.icon size={26} />
+            <div className="flex justify-between items-start mb-6 sm:mb-10 relative z-10">
+              <div className={`p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
+                <card.icon size={22} className="sm:w-[26px] sm:h-[26px]" />
               </div>
-              <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${card.color} ${card.bg} border border-white`}>
+              <div className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest ${card.color} ${card.bg} border border-white`}>
                 {card.trend}
               </div>
             </div>
             
             <div className="relative z-10">
-              <p className="text-[10px] font-bold text-zen-brown/50 uppercase tracking-[0.4em] mb-2">{card.title}</p>
-              <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tighter">{card.value}</h3>
+              <p className="text-[9px] sm:text-[10px] font-bold text-black/60 uppercase tracking-[0.4em] mb-2">{card.title}</p>
+              <h3 className="text-2xl sm:text-3xl font-serif font-bold text-black tracking-tighter">{card.value}</h3>
             </div>
           </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10">
         {/* Immersive Analytics Deck */}
-        <div className="lg:col-span-8 bg-white p-12 rounded-[3.2rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+        <div className="lg:col-span-8 bg-white p-6 sm:p-12 rounded-[2.5rem] sm:rounded-[3.2rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none hidden sm:block">
              <Activity size={180} className="text-zen-sand" />
           </div>
           
-          <header className="flex items-center justify-between mb-16 relative z-10">
+          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10 sm:mb-16 relative z-10">
              <div>
-                <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Sanctuary Analytics</h3>
-                <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[.4em] mt-2">Global Resonance & Resource Flow</p>
+                <h3 className="text-2xl sm:text-3xl font-serif font-bold text-black tracking-tight">Sanctuary Analytics</h3>
+                <p className="text-[9px] sm:text-[10px] font-bold text-black/40 uppercase tracking-[.4em] mt-2">Global Resonance & Flow</p>
              </div>
-              <div className="flex gap-4">
-                <div className="flex items-center gap-2 px-4 py-2 bg-zen-sand/5 rounded-full border border-zen-sand/10">
-                   <span className="text-[10px] font-bold text-zen-brown/70 uppercase tracking-widest">Revenue</span>
+              <div className="flex gap-3 sm:gap-4">
+                <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-zen-sand/5 rounded-full border border-zen-sand/10">
+                   <span className="text-[9px] font-bold text-black/70 uppercase tracking-widest">Revenue</span>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/5 rounded-full border border-emerald-500/10">
-                   <span className="text-[10px] font-bold text-zen-brown/70 uppercase tracking-widest">Expenses</span>
+                <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-500/5 rounded-full border border-emerald-500/10">
+                   <span className="text-[9px] font-bold text-black/70 uppercase tracking-widest">Expenses</span>
                 </div>
               </div>
           </header>
@@ -193,13 +193,13 @@ const AdminDashboard = () => {
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#4A3728', opacity: 0.6, fontSize: 11, fontWeight: 700 }} 
+                  tick={{ fill: '#000000', opacity: 0.9, fontSize: 11, fontWeight: 700 }} 
                   dy={20}
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#4A3728', opacity: 0.5, fontSize: 10, fontWeight: 700 }}
+                  tick={{ fill: '#000000', opacity: 0.9, fontSize: 10, fontWeight: 700 }}
                   tickFormatter={(val) => `${settings?.general.currencySymbol || 'QR'} ${val >= 1000 ? val/1000 + 'k' : val}`}
                 />
                 <Tooltip
@@ -326,8 +326,8 @@ const EmployeeDashboard = () => {
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
               <card.icon size={26} />
             </div>
-            <p className="text-[10px] font-bold text-zen-brown/50 uppercase tracking-widest mb-2">{card.title}</p>
-            <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tighter">{card.value}</h3>
+            <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mb-2">{card.title}</p>
+            <h3 className="text-3xl font-serif font-bold text-black tracking-tighter">{card.value}</h3>
           </motion.div>
         ))}
       </div>
@@ -335,8 +335,8 @@ const EmployeeDashboard = () => {
       <div className="bg-white p-12 rounded-[4rem] border border-zen-brown/15 shadow-2xl shadow-zen-brown/10">
         <div className="flex items-center justify-between mb-12">
           <div>
-            <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Today's Sacred Schedule</h3>
-            <p className="text-xs font-bold text-zen-brown/20 uppercase tracking-[0.4em] mt-2">Personalized Service Matrix</p>
+            <h3 className="text-3xl font-serif font-bold text-black tracking-tight">Today's Sacred Schedule</h3>
+            <p className="text-xs font-bold text-black/20 uppercase tracking-[0.4em] mt-2">Personalized Service Matrix</p>
           </div>
           <div className="px-6 py-2 bg-zen-sand/10 rounded-full border border-zen-sand/10">
              <span className="text-[10px] font-bold text-zen-sand uppercase tracking-widest">{user?.name}</span>
@@ -405,8 +405,8 @@ const ManagerDashboard = () => {
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
               <card.icon size={26} />
             </div>
-            <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mb-2">{card.title}</p>
-            <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tighter">{card.value}</h3>
+            <p className="text-[10px] font-bold text-black/20 uppercase tracking-widest mb-2">{card.title}</p>
+            <h3 className="text-3xl font-serif font-bold text-black tracking-tighter">{card.value}</h3>
           </div>
         ))}
       </div>
@@ -445,8 +445,8 @@ const ClientDashboard = () => {
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
               <card.icon size={26} />
             </div>
-            <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mb-2">{card.title}</p>
-            <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tighter">{card.value}</h3>
+            <p className="text-[10px] font-bold text-black/20 uppercase tracking-widest mb-2">{card.title}</p>
+            <h3 className="text-3xl font-serif font-bold text-black tracking-tighter">{card.value}</h3>
           </motion.div>
         ))}
       </div>
@@ -454,8 +454,8 @@ const ClientDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 bg-white/60 backdrop-blur-xl rounded-[4rem] p-12 border border-white shadow-2xl shadow-zen-brown/15">
           <header className="mb-12">
-            <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Your Relaxation Journey</h3>
-            <p className="text-xs font-bold text-zen-brown/20 uppercase tracking-[0.4em] mt-2">Personalized Sanctuary History</p>
+            <h3 className="text-3xl font-serif font-bold text-black tracking-tight">Your Relaxation Journey</h3>
+            <p className="text-xs font-bold text-black/20 uppercase tracking-[0.4em] mt-2">Personalized Sanctuary History</p>
           </header>
           
           <div className="space-y-6">
@@ -523,7 +523,7 @@ const Dashboard = () => {
       hideBranchSelector={true}
       hideViewToggle={true}
     >
-      <div className="mt-4">
+      <div className="mt-0">
         {user?.role === 'Admin' && <AdminDashboard />}
         {user?.role === 'Manager' && <ManagerDashboard />}
         {user?.role === 'Employee' && <EmployeeDashboard />}

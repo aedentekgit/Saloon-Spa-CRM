@@ -71,7 +71,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex p-0 lg:p-6 gap-0 lg:gap-6 h-screen bg-zen-cream overflow-hidden font-sans text-zen-brown relative">
+    <div className="flex p-0 lg:p-4 gap-0 lg:gap-4 h-[100dvh] bg-zen-cream overflow-hidden font-sans text-zen-brown relative">
       <div className={`
         fixed inset-y-0 left-0 z-[100] transform lg:relative lg:translate-x-0 transition-all duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -92,7 +92,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scrollbar-hide bg-white/80 backdrop-blur-xl rounded-none lg:rounded-[3rem] shadow-2xl border border-zen-brown/15 scroll-smooth relative pb-24 lg:pb-0">
+        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scrollbar-hide bg-white/80 backdrop-blur-xl rounded-none lg:rounded-[3rem] border border-zen-brown/15 scroll-smooth relative pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
           <Navbar 
             onMenuClick={() => setIsMobileMenuOpen(true)} 
             isCollapsed={isCollapsed}

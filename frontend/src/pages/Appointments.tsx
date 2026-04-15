@@ -119,12 +119,15 @@ const Appointments = () => {
 
   useEffect(() => {
     localStorage.setItem('zen_appointment_view', viewMode);
+    setPage(1);
   }, [viewMode]);
+
+  const PAGE_LIMIT = 12;
 
   const fetchAppointments = async () => {
     try {
       const authHeader = { 'Authorization': `Bearer ${user?.token}` };
-      const res = await fetch(`${API_URL}/appointments?page=${page}&limit=10`, { headers: authHeader });
+      const res = await fetch(`${API_URL}/appointments?page=${page}&limit=${PAGE_LIMIT}`, { headers: authHeader });
       const data = await res.json();
       if (data.data) {
         setAppointments(data.data);
@@ -144,7 +147,7 @@ const Appointments = () => {
       const authHeader = { 'Authorization': `Bearer ${user?.token}` };
       
       const [aptRes, clientRes, serviceRes, staffRes, shiftRes, roomRes, presenceRes] = await Promise.all([
-        fetch(`${API_URL}/appointments?page=${page}&limit=10`, { headers: authHeader }),
+        fetch(`${API_URL}/appointments?page=${page}&limit=${PAGE_LIMIT}`, { headers: authHeader }),
         fetch(`${API_URL}/clients`, { headers: authHeader }),
         fetch(`${API_URL}/services`, { headers: authHeader }),
         fetch(`${API_URL}/employees`, { headers: authHeader }),
@@ -427,12 +430,12 @@ const Appointments = () => {
       <div className="flex flex-col lg:flex-row gap-10">
         <div className="flex-1 space-y-8">
            {/* Calendar Controls - Now visible in both Grid and Table view */}
-            <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2rem] sm:rounded-[3.5rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/15 flex flex-col xl:flex-row items-center justify-between gap-6 animate-in slide-in-from-top duration-700">
-               <div className="flex flex-col sm:flex-row items-center gap-6 w-full xl:w-auto">
-                  <div className="flex items-center gap-3 bg-zen-cream/30 p-2 rounded-full w-full sm:w-auto justify-between sm:justify-start">
-                     <ZenIconButton icon={ChevronLeft} onClick={handlePrev} className="!w-10 !h-10" />
-                     <h2 className="text-lg font-serif font-bold text-zen-brown tracking-tight sm:min-w-[150px] text-center px-4">{getDateDisplay()}</h2>
-                     <ZenIconButton icon={ChevronRight} onClick={handleNext} className="!w-10 !h-10" />
+            <div className="bg-white/80 backdrop-blur-xl p-4 sm:p-8 rounded-[1.5rem] sm:rounded-[3.5rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/15 flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
+               <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full xl:w-auto">
+                  <div className="flex items-center gap-2 sm:gap-3 bg-zen-cream/30 p-1.5 sm:p-2 rounded-full w-full xl:w-auto justify-between sm:justify-start">
+                     <ZenIconButton icon={ChevronLeft} onClick={handlePrev} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
+                     <h2 className="text-base sm:text-lg font-serif font-bold text-zen-brown tracking-tight sm:min-w-[150px] text-center px-2 sm:px-4">{getDateDisplay()}</h2>
+                     <ZenIconButton icon={ChevronRight} onClick={handleNext} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
                   </div>
                </div>
                <div className="flex bg-zen-cream/30 rounded-2xl sm:rounded-[2rem] p-1.5 w-full xl:w-auto border border-zen-brown/25">
@@ -440,7 +443,7 @@ const Appointments = () => {
                      <button 
                        key={type}
                        onClick={() => setViewType(type)}
-                       className={`flex-1 sm:flex-none px-6 sm:px-8 py-3 transition-all duration-500 text-[10px] font-black uppercase tracking-widest rounded-xl sm:rounded-3xl ${
+                       className={`flex-1 xl:flex-none px-4 sm:px-8 py-2.5 sm:py-3 transition-all duration-500 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-xl sm:rounded-3xl ${
                          viewType === type ? 'bg-white text-zen-brown shadow-xl scale-105' : 'text-zen-brown/30 hover:text-zen-brown'
                        }`}
                      >
@@ -591,7 +594,7 @@ const Appointments = () => {
                  <tbody className="divide-y divide-zen-brown/15">
                     {filteredAppointments.map((apt, idx) => (
                        <tr key={apt._id} className="hover:bg-zen-cream/5 transition-all group">
-                         <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * 10 + idx + 1).toString().padStart(2, '0')}</td>
+                         <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</td>
                          <td className="px-6 py-6">
                            <div className="flex flex-col items-center">
                              <span className="font-serif font-bold text-zen-brown">{apt.client}</span>
@@ -633,34 +636,34 @@ const Appointments = () => {
         </div>
 
         {/* Sidebar */}
-        <div className="w-full lg:w-96 space-y-10">
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3.5rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/15 transition-all duration-700 hover:-translate-y-2">
-              <h3 className="text-2xl font-serif font-bold text-zen-brown mb-10 tracking-tight">Daily Insight</h3>
-              <div className="space-y-8">
-                 <div className="bg-zen-cream/30 p-8 rounded-[2.5rem] border border-zen-brown/25 group hover:bg-white transition-all duration-500">
-                    <p className="text-[10px] font-black text-zen-brown/20 uppercase tracking-[0.4em] mb-3">Booked Energy</p>
-                    <p className="text-4xl font-serif font-bold text-zen-brown tracking-tighter">{filteredAppointments.filter(a => a.date && dayjs(a.date).isSame(dayjs(), 'day')).length}</p>
-                    <p className="text-[9px] font-bold text-zen-brown/30 uppercase mt-2">Active Sequences</p>
+        <div className="w-full lg:w-96 space-y-6 sm:space-y-10">
+           <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/15 transition-all duration-700 hover:-translate-y-2">
+              <h3 className="text-xl sm:text-2xl font-serif font-bold text-zen-brown mb-6 sm:mb-10 tracking-tight">Daily Insight</h3>
+              <div className="space-y-6 sm:space-y-8">
+                 <div className="bg-zen-cream/30 p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-zen-brown/25 group hover:bg-white transition-all duration-500">
+                    <p className="text-[10px] font-black text-zen-brown/20 uppercase tracking-[0.4em] mb-2 sm:mb-3">Booked Energy</p>
+                    <p className="text-3xl sm:text-4xl font-serif font-bold text-zen-brown tracking-tighter">{filteredAppointments.filter(a => a.date && dayjs(a.date).isSame(dayjs(), 'day')).length}</p>
+                    <p className="text-[9px] font-bold text-zen-brown/30 uppercase mt-1 sm:mt-2">Active Sequences</p>
                  </div>
               </div>
            </div>
 
-           <div className="bg-zen-brown p-10 rounded-[3.5rem] text-white shadow-2xl shadow-zen-brown/20 relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
+           <div className="bg-zen-brown p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] text-white shadow-2xl shadow-zen-brown/20 relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
               <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-125 transition-transform duration-1000">
                  <Sparkles size={150} />
               </div>
-              <h3 className="text-2xl font-serif font-bold mb-10 tracking-tight relative z-10">Global Stats</h3>
-              <div className="space-y-10 relative z-10">
+              <h3 className="text-xl sm:text-2xl font-serif font-bold mb-6 sm:mb-10 tracking-tight relative z-10">Global Stats</h3>
+              <div className="space-y-6 sm:space-y-10 relative z-10">
                  <div>
-                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mb-3">Registry Volume</p>
-                    <p className="text-3xl font-serif font-bold tracking-tighter">{filteredAppointments.length}</p>
-                    <div className="w-full h-1 bg-white/5 rounded-full mt-4 overflow-hidden">
+                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mb-2 sm:mb-3">Registry Volume</p>
+                    <p className="text-2xl sm:text-3xl font-serif font-bold tracking-tighter">{filteredAppointments.length}</p>
+                    <div className="w-full h-1 bg-white/5 rounded-full mt-3 sm:mt-4 overflow-hidden">
                        <div className="h-full bg-zen-sand w-2/3 rounded-full" />
                     </div>
                  </div>
                  <div>
-                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mb-3">Ambassadors</p>
-                    <p className="text-3xl font-serif font-bold tracking-tighter">{staffOptions.length - 1}</p>
+                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mb-2 sm:mb-3">Ambassadors</p>
+                    <p className="text-2xl sm:text-3xl font-serif font-bold tracking-tighter">{staffOptions.length - 1}</p>
                  </div>
               </div>
            </div>

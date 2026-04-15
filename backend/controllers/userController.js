@@ -141,6 +141,7 @@ exports.loginUser = async (req, res) => {
       email: user.email,
       role: effectiveRole,
       permissions,
+      branch: user.branch,
       token: generateToken(user._id)
     });
   } catch (error) {

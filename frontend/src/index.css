@@ -7,10 +7,12 @@
   
   /* Sacred Zen Palette - Extracted from Image */
   --color-zen-cream: var(--zen-cream, #FDFCFB); /* Pure Alabaster Background */
-  --color-zen-brown: var(--zen-brown, #2D1622); /* Deep Plum/Midnight Plum for Text & Primary Elements */
+  --color-zen-brown: #000000; /* Deep Black for Text by default across the project */
+  --color-zen-primary: var(--zen-primary, #2D1622); /* The dynamic Primary Theme color */
   --color-zen-sand: var(--zen-sand, #2D1622);  /* Consistent Deep Plum for Buttons */
   --color-zen-leaf: var(--zen-leaf, #B08968);  /* Soft Golden Earth for Accents */
   --color-zen-stone: var(--zen-stone, #E8E2DE); /* Neutral Stone for subtle backgrounds */
+  --color-zen-contrast: var(--zen-contrast-text, #FFFFFF); /* Contrast text color based on primary theme */
   
   /* Extended Lavender Palette */
   --color-lavender-50: #F5F3FF;
@@ -32,7 +34,7 @@
   }
 
   body {
-    @apply bg-zen-cream text-zen-brown font-sans antialiased overflow-x-hidden;
+    @apply bg-zen-cream text-black font-sans antialiased overflow-x-hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -40,31 +42,40 @@
     font-weight: 700;
   }
 
-  /* Custom Scrollbar for Webkit */
+  /* Hide Scrollbars Globally */
+  * {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-zen-sand/30 rounded-full hover:bg-zen-sand transition-colors;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
   /* Remove Autofill Background */
   input:-webkit-autofill,
   input:-webkit-autofill:hover, 
   input:-webkit-autofill:focus, 
   input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 30px transparent inset !important;
-    -webkit-text-fill-color: inherit !important;
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    -webkit-text-fill-color: #000000 !important;
     transition: background-color 5001s ease-in-out 0s;
   }
 }
 
 @layer utilities {
+  /* Override themed backgrounds to use dynamic variables and handle contrast text */
+  .bg-zen-brown {
+    background-color: var(--zen-primary, #2D1622);
+    color: var(--zen-contrast-text, #FFFFFF);
+  }
+
+  .bg-zen-sand {
+    background-color: var(--zen-sand, #2D1622);
+    color: var(--zen-contrast-text, #FFFFFF);
+  }
+
   .glass {
     @apply bg-white/40 backdrop-blur-md border border-white/20;
   }
@@ -98,23 +109,13 @@
   /* Responsive table container */
   .table-container {
     @apply w-full overflow-x-auto;
-    scrollbar-width: none; /* Default to hidden */
+    scrollbar-width: none;
     -ms-overflow-style: none;
     -webkit-overflow-scrolling: touch;
   }
 
   .table-container::-webkit-scrollbar {
     display: none;
-  }
-
-  @media (min-width: 640px) {
-    .table-container {
-      scrollbar-width: thin;
-      -ms-overflow-style: auto;
-    }
-    .table-container::-webkit-scrollbar {
-      display: block;
-    }
   }
 
   .scrollbar-hide {
@@ -161,6 +162,28 @@
   to { transform: rotate(360deg); }
 }
 
+@keyframes text-shine {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-text-shine {
+  background: linear-gradient(
+    110deg,
+    rgba(50, 23, 42, 1) 45%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(50, 23, 42, 1) 55%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent !important;
+  animation: text-shine 3s linear infinite;
+  display: inline-block;
+  padding: 0 0.15em;
+  margin: 0 -0.15em;
+}
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
@@ -171,4 +194,43 @@
 
 .animate-spin-slow {
   animation: spin-slow 12s linear infinite;
+}
+
+/* Global Tabular Theme Styles */
+@layer base {
+  table {
+    @apply w-full border-collapse overflow-hidden;
+  }
+
+  table thead tr {
+    @apply border-none transition-all duration-500;
+  }
+
+  table thead th {
+    background-color: var(--zen-primary) !important;
+    color: var(--zen-contrast-text) !important;
+    @apply py-6 px-10 text-[10px] font-bold uppercase tracking-[0.3em] font-sans;
+    border: none !important;
+  }
+
+  /* Extreme Sacred Geometry - Rounded Header Corners */
+  table thead tr th:first-child {
+    @apply rounded-none px-10;
+  }
+
+  table thead tr th:last-child {
+    @apply rounded-none px-10;
+  }
+
+  table tbody tr {
+    @apply border-b border-black/5 last:border-none transition-all duration-300;
+  }
+
+  table tbody td {
+    @apply py-6 px-10 text-sm text-black/70;
+  }
+
+  table tbody tr:hover {
+    @apply bg-black/[0.02];
+  }
 }
