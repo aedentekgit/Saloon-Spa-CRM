@@ -111,33 +111,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Global Sync Logic
+  // Global Sync Logic (Optimized for Production)
   const refreshData = async () => {
-    if (!user?.token) return;
+    if (!user?.token) {
+      setLoading(false);
+      return;
+    }
     
     try {
       const headers = { 'Authorization': `Bearer ${user.token}` };
-      const [invRes, expRes, cliRes, empRes, serRes, appRes, invenRes] = await Promise.all([
-        fetch(`${API_URL}/invoices`, { headers }),
-        fetch(`${API_URL}/expenses`, { headers }),
-        fetch(`${API_URL}/clients`, { headers }),
+      
+      // We only fetch essential configuration data globally.
+      // Large collections like Invoices, Expenses, and Appointments are fetched 
+      // with limit=1 to get the total count for metadata (e.g. invoice numbering)
+      // without downloading the entire history.
+      const [cliRes, empRes, serRes, invenRes, invCountRes, appCountRes] = await Promise.all([
+        fetch(`${API_URL}/clients?limit=50`, { headers }), 
         fetch(`${API_URL}/employees`, { headers }),
         fetch(`${API_URL}/services`, { headers }),
-        fetch(`${API_URL}/appointments`, { headers }),
-        fetch(`${API_URL}/inventory`, { headers })
+        fetch(`${API_URL}/inventory?limit=50`, { headers }),
+        fetch(`${API_URL}/invoices?limit=1`, { headers }),
+        fetch(`${API_URL}/appointments?limit=1`, { headers })
       ]);
 
-      const [invData, expData, cliData, empData, serData, appData, invenData] = await Promise.all([
-        invRes.json(), expRes.json(), cliRes.json(), empRes.json(), serRes.json(), appRes.json(), invenRes.json()
+      const [cliData, empData, serData, invenData, invCountData, appCountData] = await Promise.all([
+        cliRes.json(), empRes.json(), serRes.json(), invenRes.json(), invCountRes.json(), appCountRes.json()
       ]);
 
-      if (Array.isArray(invData)) setInvoices(invData);
-      if (Array.isArray(expData)) setExpenses(expData);
       if (Array.isArray(cliData)) setClients(cliData);
+      else if (cliData.data) setClients(cliData.data);
+
       if (Array.isArray(empData)) setEmployees(empData);
       if (Array.isArray(serData)) setServices(serData);
-      if (Array.isArray(appData)) setAppointments(appData);
+
       if (Array.isArray(invenData)) setInventory(invenData);
+      else if (invenData.data) setInventory(invenData.data);
+
+      // Handle Invoice and Appointment counts for numbering logic
+      if (invCountData.pagination) {
+        // We set a dummy array with the correct length to satisfy current UI logic
+        const dummyInvoices = new Array(invCountData.pagination.total).fill({});
+        setInvoices(dummyInvoices);
+      }
+      
+      if (appCountData.pagination) {
+        const dummyAppointments = new Array(appCountData.pagination.total).fill({});
+        setAppointments(dummyAppointments);
+      }
+
+      // Invoices, Expenses, and Appointments should NOT be fetched globally 
+      // as they can contain thousands of records in live environments.
+      // We set them to empty or keep cached values.
+      
     } catch (error) {
       console.error('Core Synchronization Failure:', error);
     } finally {

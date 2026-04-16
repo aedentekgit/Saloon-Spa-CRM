@@ -31,4 +31,7 @@ const expenseSchema = mongoose.Schema({
   timestamps: true
 });
 
+expenseSchema.index({ branch: 1, date: -1 });
+expenseSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Expense', expenseSchema);

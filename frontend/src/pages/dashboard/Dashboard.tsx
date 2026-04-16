@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
@@ -263,8 +263,33 @@ const AdminDashboard = () => {
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
-  const { appointments } = useData();
+  const [appointments, setAppointments] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
   
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
+  const fetchMyAppointments = async () => {
+    try {
+      const response = await fetch(`${API_URL}/appointments?limit=100`, { // Get recent appointments
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const data = await response.json();
+      if (data.data) {
+        setAppointments(data.data);
+      } else if (Array.isArray(data)) {
+        setAppointments(data);
+      }
+    } catch (error) {
+      console.error('Sequence retrieval failure:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchMyAppointments();
+  }, [user]);
+
   const myAppointments = useMemo(() => 
     appointments.filter(a => a.employee === user?.name),
     [appointments, user]
@@ -352,7 +377,24 @@ const EmployeeDashboard = () => {
 
 const ManagerDashboard = () => {
   const { settings } = useSettings();
-  const { appointments, rooms, employees } = useData();
+  const { rooms, employees, user } = useData();
+  const [appointments, setAppointments] = React.useState<any[]>([]);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
+  useEffect(() => {
+    const fetchManagerStats = async () => {
+      try {
+        const response = await fetch(`${API_URL}/appointments?limit=100`, {
+          headers: { 'Authorization': `Bearer ${user?.token}` }
+        });
+        const data = await response.json();
+        if (data.data) setAppointments(data.data);
+        else if (Array.isArray(data)) setAppointments(data);
+      } catch (e) {}
+    };
+    fetchManagerStats();
+  }, [user]);
+
   const freeRooms = rooms.filter(r => r.status === 'Free').length;
   const activeStaff = employees.length;
 
@@ -382,8 +424,23 @@ const ManagerDashboard = () => {
 
 const ClientDashboard = () => {
   const { user } = useAuth();
-  const { appointments } = useData();
+  const [appointments, setAppointments] = React.useState<any[]>([]);
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
+  useEffect(() => {
+    const fetchClientApts = async () => {
+      try {
+        const response = await fetch(`${API_URL}/appointments?limit=50`, {
+          headers: { 'Authorization': `Bearer ${user?.token}` }
+        });
+        const data = await response.json();
+        if (data.data) setAppointments(data.data);
+        else if (Array.isArray(data)) setAppointments(data);
+      } catch (e) {}
+    };
+    fetchClientApts();
+  }, [user]);
   
   const myAppointments = useMemo(() => 
     appointments.filter(a => a.client === user?.name),

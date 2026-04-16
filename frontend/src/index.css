@@ -204,8 +204,8 @@
   color: transparent !important;
   animation: text-shine 3s linear infinite;
   display: inline-block;
-  padding: 0 0.15em;
-  margin: 0 -0.15em;
+  padding: 0.2em 0.15em;
+  margin: -0.2em -0.15em;
 }
 
 .animate-float {

@@ -98,7 +98,7 @@ const OurTeam = () => {
       {/* Branch Tabs */}
       <section className="px-6 lg:px-24 mb-24">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap items-center gap-4 lg:gap-8 pb-8 border-b border-[#32172A]/5 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap items-center gap-4 lg:gap-8 px-4 -mx-4 pt-4 -mt-4 pb-8 border-b border-[#32172A]/5 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setSelectedBranch('all')}
               className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap

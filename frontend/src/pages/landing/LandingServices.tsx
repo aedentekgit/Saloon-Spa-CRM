@@ -140,7 +140,7 @@ const LandingServices = () => {
       {/* Branch Tabs */}
       <section className="px-6 lg:px-24 mb-16">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap items-center gap-4 lg:gap-8 pb-8 border-b border-[#32172A]/5 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap items-center gap-4 lg:gap-8 px-4 -mx-4 pt-4 -mt-4 pb-8 border-b border-[#32172A]/5 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setSelectedBranch('all')}
               className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap
@@ -221,16 +221,16 @@ const LandingServices = () => {
                 return (
                   <div
                     key={service._id}
-                    className="group relative bg-white rounded-[3rem] overflow-hidden border border-[#32172A]/5 hover:shadow-sm transition-all duration-700 animate-in fade-in slide-in-from-bottom-8"
+                    className="group relative rounded-[3rem] overflow-hidden bg-[#32172A] hover:shadow-2xl transition-all duration-700 animate-in fade-in slide-in-from-bottom-8 aspect-[4/5] cursor-pointer"
                     style={{ animationDelay: `${i * 80}ms` }}
                   >
-                    {/* Image */}
-                    <div className="aspect-[4/5] overflow-hidden relative">
+                    {/* Background Image */}
+                    <div className="absolute inset-0">
                       {imgUrl ? (
                         <img
                           src={imgUrl}
                           alt={service.name}
-                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.2] group-hover:grayscale-0"
+                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-90 group-hover:opacity-40"
                           onError={(e) => {
                             (e.currentTarget as HTMLImageElement).style.display = 'none';
                             const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -238,61 +238,65 @@ const LandingServices = () => {
                           }}
                         />
                       ) : null}
-                      {/* Fallback placeholder */}
                       <div
-                        className="w-full h-full bg-gradient-to-br from-[#4A2C40]/5 to-[#4A2C40]/20 flex items-center justify-center"
+                        className="w-full h-full bg-gradient-to-br from-[#4A2C40] to-[#E5BAD4] flex items-center justify-center opacity-90 group-hover:opacity-40 transition-opacity duration-1000"
                         style={{ display: imgUrl ? 'none' : 'flex' }}
                       >
-                        <Icon size={56} className="text-[#4A2C40]/20" strokeWidth={0.8} />
-                      </div>
-
-                      {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#32172A]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-                      {/* Status/Price badges */}
-                      <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
-                        <div className="px-5 py-2 backdrop-blur-3xl bg-white/80 rounded-full text-[10px] font-bold tracking-widest text-[#4A2C40] flex items-center gap-1.5 shadow-lg">
-                          <Clock size={12} />
-                          {service.duration} MIN
-                        </div>
-                        <div className="px-5 py-2 backdrop-blur-3xl bg-[#32172A]/80 rounded-full text-[10px] font-bold tracking-widest text-white flex items-center gap-1.5 shadow-lg">
-                          <Coins size={12} />
-                          {service.price > 0 ? `QR ${service.price}` : 'On Request'}
-                        </div>
-                      </div>
-
-                      {/* Branch tag - visible on hover */}
-                      <div className="absolute bottom-6 left-6 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0">
-                          <span className="px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-bold tracking-widest text-white uppercase border border-white/40">
-                             {branchName}
-                          </span>
+                        <Icon size={72} className="text-[#32172A]/20" strokeWidth={0.8} />
                       </div>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-10 space-y-6">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.3em] text-[#4A2C40]/40">
+                    {/* Permanent Gradient for text legibility */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#32172A] via-[#32172A]/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-700 pointer-events-none" />
+
+                    {/* Top Right Badges (Always visible) */}
+                    <div className="absolute top-6 right-6 flex flex-col items-end gap-2 z-10 transition-transform duration-700 group-hover:-translate-y-2">
+                      <div className="px-5 py-2 backdrop-blur-3xl bg-white/90 rounded-full text-[10px] font-bold tracking-widest text-[#4A2C40] flex items-center gap-1.5 shadow-lg">
+                        <Clock size={12} />
+                        {service.duration} MIN
+                      </div>
+                      <div className="px-5 py-2 backdrop-blur-3xl bg-[#32172A]/90 rounded-full text-[10px] font-bold tracking-widest text-white flex items-center gap-1.5 shadow-lg">
+                        <Coins size={12} />
+                        {service.price > 0 ? `QR ${service.price}` : 'On Request'}
+                      </div>
+                    </div>
+
+                    {/* Top Left Branch Badge (Visible on Hover) */}
+                    <div className="absolute top-6 left-6 opacity-0 group-hover:opacity-100 transition-all duration-700 -translate-y-4 group-hover:translate-y-0 z-10">
+                        <span className="px-4 py-2 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-bold tracking-widest text-white uppercase border border-white/40 shadow-xl">
+                           {branchName}
+                        </span>
+                    </div>
+
+                    {/* Main Content Overlay (Translates up on hover) */}
+                    <div className="absolute bottom-0 inset-x-0 p-8 flex flex-col justify-end z-10 translate-y-12 group-hover:translate-y-0 transition-all duration-700">
+                      
+                      {/* Title & Category - partially visible unhovered, fully brightens on hover */}
+                      <div className="space-y-2 mb-6">
+                        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.3em] text-[#E5BAD4] opacity-80 group-hover:opacity-100 transition-opacity duration-700">
                              <Icon size={12} />
                              {service.category || 'Wellness'}
                         </div>
-                        <h3 className="text-3xl font-serif font-bold text-[#32172A] leading-tight">{service.name}</h3>
+                        <h3 className="text-3xl font-serif font-bold text-white leading-tight opacity-90 group-hover:opacity-100 transition-opacity duration-700">{service.name}</h3>
                       </div>
 
-                      <p className="text-[#32172A]/60 text-sm leading-relaxed italic line-clamp-3">
-                        {service.description
-                          ? service.description
-                          : `A masterfully orchestrated ${service.category?.toLowerCase() || 'wellness'} ritual, designed to harmonize the spirit and rejuvenate the body.`}
-                      </p>
-                      
-                      <div className="pt-4 flex items-center justify-between border-t border-[#32172A]/5">
-                        <Link
-                          to="/booking"
-                          className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#4A2C40] group/btn"
-                        >
-                          Book Ritual
-                          <ArrowRight size={14} className="group-hover/btn:translate-x-2 transition-transform" />
-                        </Link>
+                      {/* Description & Button - strictly hidden until hover */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-all duration-700 max-h-0 group-hover:max-h-40 overflow-hidden space-y-6">
+                        <p className="text-white/80 text-sm leading-relaxed italic line-clamp-3">
+                          {service.description
+                            ? service.description
+                            : `A masterfully orchestrated ${service.category?.toLowerCase() || 'wellness'} ritual, designed to harmonize the spirit and rejuvenate the body.`}
+                        </p>
+                        
+                        <div className="pt-4 flex items-center justify-between border-t border-white/20">
+                          <Link
+                            to="/booking"
+                            className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#E5BAD4] group/btn hover:text-white transition-colors"
+                          >
+                            Book Ritual
+                            <ArrowRight size={14} className="group-hover/btn:translate-x-2 transition-transform" />
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </div>

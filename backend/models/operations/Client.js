@@ -44,8 +44,9 @@ clientSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Index for fast branch-specific filtering
+// Indexes for performance
 clientSchema.index({ branch: 1 });
+clientSchema.index({ createdAt: -1 });
 
 // Text index for unified name and phone searching
 clientSchema.index({ name: 'text', phone: 'text' });

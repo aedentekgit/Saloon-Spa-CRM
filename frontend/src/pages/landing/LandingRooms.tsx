@@ -100,7 +100,7 @@ const LandingRooms = () => {
       {/* Branch Tabs */}
       <section className="px-6 lg:px-24 mb-16">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap items-center gap-4 lg:gap-8 pb-8 border-b border-[#32172A]/5 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap items-center gap-4 lg:gap-8 px-4 -mx-4 pt-4 -mt-4 pb-8 border-b border-[#32172A]/5 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setSelectedBranch('all')}
               className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap
@@ -153,16 +153,16 @@ const LandingRooms = () => {
                   return (
                     <div 
                       key={room._id} 
-                      className="group flex flex-col space-y-8 animate-in fade-in slide-in-from-bottom-12 duration-1000"
+                      className="group relative bg-white rounded-[3.5rem] overflow-hidden border border-[#32172A]/5 hover:shadow-2xl hover:shadow-[#32172A]/5 transition-all duration-700 animate-in fade-in slide-in-from-bottom-12 flex flex-col"
                       style={{ animationDelay: `${idx * 150}ms` }}
                     >
                       {/* Image Frame */}
-                      <div className="aspect-[4/5] rounded-[4rem] overflow-hidden shadow-sm relative">
+                      <div className="aspect-[3/2] md:aspect-[16/10] overflow-hidden relative">
                         {roomImg ? (
                           <img 
                             src={roomImg.src} 
                             alt={room.name} 
-                            className="w-full h-full object-cover grayscale-[0.2] transition-all duration-1000 group-hover:scale-110 group-hover:grayscale-0"
+                            className="w-full h-full object-cover grayscale-[0.2] transition-transform duration-1000 group-hover:scale-110 group-hover:grayscale-0"
                             style={{ objectPosition: roomImg.objectPosition }}
                             onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -173,42 +173,45 @@ const LandingRooms = () => {
                         ) : null}
                         {/* Fallback pattern */}
                         <div 
-                           className="w-full h-full bg-gradient-to-br from-[#4A2C40]/5 to-[#4A2C40]/15 flex items-center justify-center"
+                           className="absolute inset-0 bg-gradient-to-br from-[#4A2C40]/5 to-[#4A2C40]/15 flex items-center justify-center"
                            style={{ display: roomImg ? 'none' : 'flex' }}
                         >
                            <DoorOpen size={64} className="text-[#4A2C40]/10" strokeWidth={0.5} />
                         </div>
+                        
+                        {/* Dark Gradient Overlay for legible badge */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#32172A]/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
                         {/* Status Badge */}
-                        <div className="absolute top-8 right-8 px-4 py-1.5 bg-white/30 backdrop-blur-md rounded-full text-[8px] font-bold uppercase tracking-[0.3em] text-white">
+                        <div className="absolute top-6 right-6 px-4 py-2 backdrop-blur-3xl bg-white/80 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] text-[#32172A] shadow-lg">
                            {room.status === 'Free' ? 'Available' : 'Occupied'}
                         </div>
                       </div>
 
                       {/* Info */}
-                      <div className="space-y-6 px-4">
-                        <div className="flex items-center justify-between items-start">
-                           <div className="space-y-1">
-                              <h3 className="text-3xl font-serif font-bold text-[#32172A]">{room.name}</h3>
-                              <p className="text-[10px] font-bold text-[#4A2C40]/40 uppercase tracking-widest flex items-center gap-2">
+                      <div className="p-6 xl:p-8 flex flex-col">
+                        <div className="flex items-start justify-between mb-5">
+                           <div className="space-y-2">
+                              <p className="text-[9px] font-bold text-[#4A2C40]/40 uppercase tracking-widest flex items-center gap-2">
                                 <MapPin size={10} /> {branchName}
                               </p>
+                              <h3 className="text-2xl font-serif font-bold text-[#32172A] leading-tight group-hover:text-[#4A2C40] transition-colors">{room.name}</h3>
                            </div>
-                           <span className="text-[8px] font-black uppercase tracking-[0.3em] bg-[#32172A] text-[#FAF9F6] px-3 py-1 rounded-sm shadow-lg">
+                           <span className="text-[8px] font-black uppercase tracking-[0.3em] bg-[#4A2C40] text-[#FAF9F6] px-3 py-1.5 rounded-[0.4rem] shadow-sm shrink-0">
                               {room.type}
                            </span>
                         </div>
 
-                        <div className="flex flex-wrap gap-4 pt-2 border-t border-[#32172A]/5">
+                        <div className="flex flex-wrap gap-x-5 gap-y-3 pt-4 pb-5 border-t border-[#32172A]/5">
                             {amenities.map((item, i) => (
-                               <div key={i} className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-[#32172A]/30">
+                               <div key={i} className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[#32172A]/40 group-hover:text-[#32172A]/60 transition-colors">
                                   {item.icon}
                                   {item.label}
                                </div>
                             ))}
                         </div>
                         
-                        <button className="w-full py-5 border border-[#32172A]/10 rounded-3xl text-[9px] font-bold uppercase tracking-[0.3em] hover:bg-[#32172A] hover:text-[#FAF9F6] transition-all duration-500">
+                        <button className="w-full py-3.5 border border-[#32172A]/10 rounded-full text-[9px] font-bold uppercase tracking-[0.3em] hover:bg-[#32172A] hover:text-[#FAF9F6] text-[#4A2C40] transition-all duration-500 mt-2">
                            Reserve Chamber
                         </button>
                       </div>

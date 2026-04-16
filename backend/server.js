@@ -3,6 +3,7 @@ console.log('Zen CRM Sanctuary: Orchestration layer initiating...');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./config/db');
@@ -35,6 +36,7 @@ connectDB();
 const app = express();
 
 // Standard Middleware
+app.use(compression());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
