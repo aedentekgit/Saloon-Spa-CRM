@@ -18,51 +18,51 @@ import { NotificationContainer } from './components/shared/ZenNotification';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import ScrollToTop from './components/shared/ScrollToTop';
 
-// Pages
-// Pages - Administrative
-import Login from './pages/auth/Login';
-import Signup from './pages/auth/Signup';
-import Dashboard from './pages/dashboard/Dashboard';
-import Clients from './pages/resources/Clients';
-import Appointments from './pages/operations/Appointments';
-import Rooms from './pages/resources/Rooms';
-import Employees from './pages/resources/Employees';
-import Attendance from './pages/operations/Attendance';
-import Leave from './pages/operations/Leave';
-import Services from './pages/resources/Services';
-import Memberships from './pages/resources/Memberships';
-import Billing from './pages/operations/Billing';
-import Finance from './pages/operations/Finance';
-import Inventory from './pages/resources/Inventory';
-import GST from './pages/operations/GST';
-import WhatsApp from './pages/config/WhatsApp';
-import Reports from './pages/dashboard/Reports';
-import Settings from './pages/config/Settings';
-import Roles from './pages/config/Roles';
-import Branches from './pages/config/Branches';
-import Admins from './pages/config/Admins';
-import RoomCategories from './pages/config/RoomCategories';
-import ServiceCategories from './pages/config/ServiceCategories';
-import Payroll from './pages/operations/Payroll';
-import Shifts from './pages/config/Shifts';
-import Transactions from './pages/operations/Transactions';
-import Categories from './pages/config/Categories';
+// Pages - Lazy Loaded
+const Login = React.lazy(() => import('./pages/auth/Login'));
+const Signup = React.lazy(() => import('./pages/auth/Signup'));
+const Dashboard = React.lazy(() => import('./pages/dashboard/Dashboard'));
+const Clients = React.lazy(() => import('./pages/resources/Clients'));
+const Appointments = React.lazy(() => import('./pages/operations/Appointments'));
+const Rooms = React.lazy(() => import('./pages/resources/Rooms'));
+const Employees = React.lazy(() => import('./pages/resources/Employees'));
+const Attendance = React.lazy(() => import('./pages/operations/Attendance'));
+const Leave = React.lazy(() => import('./pages/operations/Leave'));
+const Services = React.lazy(() => import('./pages/resources/Services'));
+const Memberships = React.lazy(() => import('./pages/resources/Memberships'));
+const Billing = React.lazy(() => import('./pages/operations/Billing'));
+const Finance = React.lazy(() => import('./pages/operations/Finance'));
+const Inventory = React.lazy(() => import('./pages/resources/Inventory'));
+const GST = React.lazy(() => import('./pages/operations/GST'));
+const WhatsApp = React.lazy(() => import('./pages/config/WhatsApp'));
+const Reports = React.lazy(() => import('./pages/dashboard/Reports'));
+const Settings = React.lazy(() => import('./pages/config/Settings'));
+const Roles = React.lazy(() => import('./pages/config/Roles'));
+const Branches = React.lazy(() => import('./pages/config/Branches'));
+const Admins = React.lazy(() => import('./pages/config/Admins'));
+const RoomCategories = React.lazy(() => import('./pages/config/RoomCategories'));
+const ServiceCategories = React.lazy(() => import('./pages/config/ServiceCategories'));
+const Payroll = React.lazy(() => import('./pages/operations/Payroll'));
+const Shifts = React.lazy(() => import('./pages/config/Shifts'));
+const Transactions = React.lazy(() => import('./pages/operations/Transactions'));
+const Categories = React.lazy(() => import('./pages/config/Categories'));
 
 // Pages - Landing (Public)
 import PublicLayout from './components/landing/PublicLayout';
-import Home from './pages/landing/Home';
-import About from './pages/landing/About';
-import LandingServices from './pages/landing/LandingServices';
-import LandingRooms from './pages/landing/LandingRooms';
-import OurTeam from './pages/landing/OurTeam';
-import Contact from './pages/landing/Contact';
+const Home = React.lazy(() => import('./pages/landing/Home'));
+const About = React.lazy(() => import('./pages/landing/About'));
+const LandingServices = React.lazy(() => import('./pages/landing/LandingServices'));
+const LandingRooms = React.lazy(() => import('./pages/landing/LandingRooms'));
+const OurTeam = React.lazy(() => import('./pages/landing/OurTeam'));
+const Contact = React.lazy(() => import('./pages/landing/Contact'));
 
 import { ZenLoadingBarrier } from './components/zen/ZenLoading';
 import { useData } from './context/DataContext';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
-  const { loading: dataLoading } = useData();
+  // We don't block the globally on dataLoading anymore as each page handles its own data
+  const { loading: dataLoading } = useData(); 
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isCollapsed, setIsCollapsed] = React.useState(() => {
@@ -77,7 +77,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  if (authLoading || dataLoading) {
+  if (authLoading) {
     return <ZenLoadingBarrier />;
   }
 
@@ -138,46 +138,48 @@ const AppRoutes = () => {
   const { user } = useAuth();
 
   return (
-    <Routes>
-      {/* Public Pages */}
-      <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-      <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
-      <Route path="/landing-services" element={<PublicLayout><LandingServices /></PublicLayout>} />
-      <Route path="/landing-rooms" element={<PublicLayout><LandingRooms /></PublicLayout>} />
-      <Route path="/team" element={<PublicLayout><OurTeam /></PublicLayout>} />
-      <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
-      
-      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
+    <React.Suspense fallback={<ZenLoadingBarrier />}>
+      <Routes>
+        {/* Public Pages */}
+        <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
+        <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
+        <Route path="/landing-services" element={<PublicLayout><LandingServices /></PublicLayout>} />
+        <Route path="/landing-rooms" element={<PublicLayout><LandingRooms /></PublicLayout>} />
+        <Route path="/team" element={<PublicLayout><OurTeam /></PublicLayout>} />
+        <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+        
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
 
-      {/* Protected Dashboards */}
-      <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-      <Route path="/clients" element={<Layout><Clients /></Layout>} />
-      <Route path="/appointments" element={<Layout><Appointments /></Layout>} />
-      <Route path="/rooms" element={<Layout><Rooms /></Layout>} />
-      <Route path="/employees" element={<Layout><Employees /></Layout>} />
-      <Route path="/attendance" element={<Layout><Attendance /></Layout>} />
-      <Route path="/leave" element={<Layout><Leave /></Layout>} />
-      <Route path="/services" element={<Layout><Services /></Layout>} />
-      <Route path="/memberships" element={<Layout><Memberships /></Layout>} />
-      <Route path="/billing" element={<Layout><Billing /></Layout>} />
-      <Route path="/finance" element={<Layout><Finance /></Layout>} />
-      <Route path="/inventory" element={<Layout><Inventory /></Layout>} />
-      <Route path="/whatsapp" element={<Layout><WhatsApp /></Layout>} />
-      <Route path="/reports" element={<Layout><Reports /></Layout>} />
-      <Route path="/tax" element={<Layout><GST /></Layout>} />
-      <Route path="/settings" element={<Layout><Settings /></Layout>} />
-      <Route path="/roles" element={<Layout><Roles /></Layout>} />
-      <Route path="/branches" element={<Layout><Branches /></Layout>} />
-      <Route path="/room-categories" element={<Layout><RoomCategories /></Layout>} />
-      <Route path="/service-categories" element={<Layout><ServiceCategories /></Layout>} />
-      <Route path="/admins" element={<Layout><Admins /></Layout>} />
-      <Route path="/payroll" element={<Layout><Payroll /></Layout>} />
-      <Route path="/shifts" element={<Layout><Shifts /></Layout>} />
-      <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
+        {/* Protected Dashboards */}
+        <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+        <Route path="/clients" element={<Layout><Clients /></Layout>} />
+        <Route path="/appointments" element={<Layout><Appointments /></Layout>} />
+        <Route path="/rooms" element={<Layout><Rooms /></Layout>} />
+        <Route path="/employees" element={<Layout><Employees /></Layout>} />
+        <Route path="/attendance" element={<Layout><Attendance /></Layout>} />
+        <Route path="/leave" element={<Layout><Leave /></Layout>} />
+        <Route path="/services" element={<Layout><Services /></Layout>} />
+        <Route path="/memberships" element={<Layout><Memberships /></Layout>} />
+        <Route path="/billing" element={<Layout><Billing /></Layout>} />
+        <Route path="/finance" element={<Layout><Finance /></Layout>} />
+        <Route path="/inventory" element={<Layout><Inventory /></Layout>} />
+        <Route path="/whatsapp" element={<Layout><WhatsApp /></Layout>} />
+        <Route path="/reports" element={<Layout><Reports /></Layout>} />
+        <Route path="/tax" element={<Layout><GST /></Layout>} />
+        <Route path="/settings" element={<Layout><Settings /></Layout>} />
+        <Route path="/roles" element={<Layout><Roles /></Layout>} />
+        <Route path="/branches" element={<Layout><Branches /></Layout>} />
+        <Route path="/room-categories" element={<Layout><RoomCategories /></Layout>} />
+        <Route path="/service-categories" element={<Layout><ServiceCategories /></Layout>} />
+        <Route path="/admins" element={<Layout><Admins /></Layout>} />
+        <Route path="/payroll" element={<Layout><Payroll /></Layout>} />
+        <Route path="/shifts" element={<Layout><Shifts /></Layout>} />
+        <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </React.Suspense>
   );
 };
 
