@@ -799,7 +799,7 @@ const Employees = () => {
         }
       >
         <form id="employee-form" onSubmit={handleSubmit} className="w-full space-y-10">
-          <section className="grid grid-cols-1 lg:grid-cols-[168px_minmax(0,1fr)] gap-8 items-start">
+          <section className="grid grid-cols-1 lg:grid-cols-[168px_minmax(0,1fr)] gap-8 items-center">
             <div className="relative mx-auto lg:mx-0 w-36 h-36 sm:w-40 sm:h-40 group cursor-pointer shrink-0">
               <div className="w-full h-full rounded-full ring-4 ring-zen-cream overflow-hidden bg-zen-cream flex items-center justify-center transition-all group-hover:ring-zen-brown/20 shadow-xl">
                 {(profilePicFile || (editingEmp && editingEmp.profilePic)) ? (
@@ -810,7 +810,7 @@ const Employees = () => {
             </div>
 
             <div className="space-y-4">
-              <ZenInput label="Full Name" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-5xl border-none p-0 h-auto font-black tracking-tighter" />
+              <ZenInput hideLabel label="Full Name" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-4xl sm:text-7xl border-none p-0 h-auto font-black tracking-tighter" />
             </div>
           </section>
 
