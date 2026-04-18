@@ -69,27 +69,30 @@ const Finance = () => {
     date: dayjs().format('YYYY-MM-DD')
   });
 
+  const [trendData, setTrendData] = useState<any[]>([]);
+
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('zen_finance_view', viewMode);
-  }, [viewMode]);
-
   const fetchData = async () => {
     try {
-      const [invRes, expRes] = await Promise.all([
+      const [invRes, expRes, statsRes] = await Promise.all([
         fetch(`${API_URL}/invoices`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
-        fetch(`${API_URL}/expenses`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
+        fetch(`${API_URL}/expenses`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
+        fetch(`${API_URL}/stats/dashboard`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
       ]);
       const invData = await invRes.json();
       const expData = await expRes.json();
+      const statsData = await statsRes.json();
       
       if (Array.isArray(invData)) setInvoices(invData);
       if (Array.isArray(expData)) setExpenses(expData);
+      if (statsData.revenue?.trend) {
+        setTrendData(statsData.revenue.trend);
+      }
     } catch (error) {
       notify('error', 'Sync Failure', 'Failed to retrieve finance records');
     } finally {
@@ -102,17 +105,13 @@ const Finance = () => {
   const netProfit = totalIncome - totalExpenses;
 
   const chartData = useMemo(() => {
-    // Basic daily summary for the last 7 days (mock representation for visual excellence)
+    if (trendData.length > 0) return trendData;
+    // Fallback if no trend data
     return [
-      { name: 'Cycle 1', revenue: totalIncome * 0.4, expenses: totalExpenses * 0.3 },
-      { name: 'Cycle 2', revenue: totalIncome * 0.6, expenses: totalExpenses * 0.5 },
-      { name: 'Cycle 3', revenue: totalIncome * 0.5, expenses: totalExpenses * 0.8 },
-      { name: 'Cycle 4', revenue: totalIncome * 0.8, expenses: totalExpenses * 0.4 },
-      { name: 'Cycle 5', revenue: totalIncome * 0.9, expenses: totalExpenses * 0.6 },
-      { name: 'Cycle 6', revenue: totalIncome * 0.7, expenses: totalExpenses * 0.9 },
-      { name: 'Cycle 7', revenue: totalIncome, expenses: totalExpenses },
+      { name: '...', revenue: 0, expenses: 0 },
     ];
-  }, [totalIncome, totalExpenses]);
+  }, [trendData]);
+
 
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
