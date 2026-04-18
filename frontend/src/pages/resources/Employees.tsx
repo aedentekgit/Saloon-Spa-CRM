@@ -809,10 +809,14 @@ const Employees = () => {
               <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e => setProfilePicFile(e.target.files?.[0] || null)} />
             </div>
 
-            <div className="space-y-5">
-              <ZenInput label="Full Name" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-4xl border-none p-0 h-auto font-bold tracking-tighter" />
-
-
+            <div className="space-y-6 flex-1">
+              <ZenInput 
+                label="Full Name" 
+                placeholder="e.g. Alexander Pierce" 
+                value={formData.name} 
+                onChange={(e: any) => setFormData({...formData, name: e.target.value})} 
+                className="font-serif text-3xl sm:text-5xl border-none p-0 h-auto font-black tracking-tight leading-none" 
+              />
             </div>
           </section>
 
