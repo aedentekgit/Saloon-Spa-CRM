@@ -128,7 +128,7 @@ const Shifts = () => {
         },
         body: JSON.stringify({
           ...formData,
-          branch: formData.branch || selectedBranch !== 'all' ? selectedBranch : undefined
+          branch: formData.branch && formData.branch !== 'all' ? formData.branch : (selectedBranch !== 'all' ? selectedBranch : undefined)
         })
       });
 
