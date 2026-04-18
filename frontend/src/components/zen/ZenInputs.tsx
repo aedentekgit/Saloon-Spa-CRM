@@ -41,7 +41,7 @@ export const ZenDropdown = ({
 
   return (
     <div className={`space-y-1 group relative ${isOpen ? 'z-[9999]' : 'z-10'} ${className} ${disabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`} ref={dropdownRef}>
-      {!hideLabel && <label className="text-[12px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>}
+      {!hideLabel && <label className="text-[13px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>}
       <div 
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={variant === 'pill' 
@@ -205,7 +205,7 @@ export const ZenInput = ({ label, icon: Icon, prefix, variant = 'light', type, .
   
   return (
     <div className={`space-y-2 group ${props.containerClassName || ''}`}>
-      <label className={`text-[12px] font-bold uppercase tracking-widest ml-1 ${variant === 'dark' ? 'text-white/40' : 'text-zen-brown/30'}`}>{label}</label>
+      <label className={`text-[13px] font-bold uppercase tracking-widest ml-1 ${variant === 'dark' ? 'text-white/40' : 'text-zen-brown/30'}`}>{label}</label>
       <div className="relative flex items-center px-1">
         {Icon && <Icon className={`absolute left-1 bottom-3 transition-colors ${variant === 'dark' ? 'text-white/20' : 'text-zen-brown/10'} group-focus-within:text-zen-brown`} size={16} />}
         {prefix && (
@@ -216,7 +216,7 @@ export const ZenInput = ({ label, icon: Icon, prefix, variant = 'light', type, .
         <input 
           {...props}
           type={isPassword ? (showPassword ? 'text' : 'password') : type}
-          className={`w-full pb-2 ${Icon ? 'pl-8' : 'pl-1'} bg-transparent border-b border-zen-brown/25 outline-none transition-all font-medium text-base sm:text-lg placeholder:text-zen-brown/30 ${prefix ? (Icon ? 'pl-16' : 'pl-12') : ''} ${variant === 'dark' ? 'text-white focus:border-white/40' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''} ${isPassword ? 'pr-8' : ''} group-hover:border-zen-brown/40`}
+          className={`w-full pb-2 ${Icon ? 'pl-8' : 'pl-1'} bg-transparent border-b border-zen-brown/25 outline-none transition-all font-medium text-lg sm:text-xl placeholder:text-zen-brown/30 ${prefix ? (Icon ? 'pl-16' : 'pl-12') : ''} ${variant === 'dark' ? 'text-white focus:border-white/40' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''} ${isPassword ? 'pr-8' : ''} group-hover:border-zen-brown/40`}
           style={prefix ? { paddingLeft: Icon ? `calc(1.75rem + ${prefix.length * 0.6}rem + 1rem)` : `calc(0.25rem + ${prefix.length * 0.6}rem + 1rem)` } : {}}
         />
         {isPassword && (

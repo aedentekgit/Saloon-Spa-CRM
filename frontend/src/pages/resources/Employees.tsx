@@ -815,7 +815,7 @@ const Employees = () => {
                 placeholder="e.g. Alexander Pierce" 
                 value={formData.name} 
                 onChange={(e: any) => setFormData({...formData, name: e.target.value})} 
-                className="font-serif text-3xl sm:text-5xl border-none p-0 h-auto font-black tracking-tight leading-none" 
+                className="font-serif text-4xl sm:text-6xl border-none p-0 h-auto font-black tracking-tight leading-none" 
               />
             </div>
           </section>
@@ -826,7 +826,7 @@ const Employees = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 sm:px-6 py-3 rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.25em] transition-all duration-500 ${activeTab === tab.id ? 'bg-zen-brown text-white shadow-sm' : 'text-zen-brown/35 hover:text-zen-brown hover:bg-white'}`}
+                className={`px-4 sm:px-6 py-3 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-[0.25em] transition-all duration-500 ${activeTab === tab.id ? 'bg-zen-brown text-white shadow-sm' : 'text-zen-brown/35 hover:text-zen-brown hover:bg-white'}`}
               >
                 {tab.label}
               </button>
