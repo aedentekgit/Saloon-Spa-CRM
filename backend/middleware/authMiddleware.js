@@ -38,7 +38,11 @@ const protect = async (req, res, next) => {
 
       return next();
     } catch (error) {
-      console.error(error);
+      if (error.name === 'TokenExpiredError' || error.message === 'jwt expired') {
+        console.warn('Auth Warning: Session expired (JWT)');
+      } else {
+        console.error(`Auth Error: ${error.message}`);
+      }
       return res.status(401).json({ message: 'Not authorized' });
     }
   }

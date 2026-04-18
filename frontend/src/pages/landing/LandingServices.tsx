@@ -54,15 +54,15 @@ interface Service {
 
 // Skeleton card shown while loading
 const SkeletonCard = () => (
-  <div className="bg-white rounded-[3rem] overflow-hidden border border-[#32172A]/5 animate-pulse">
-    <div className="aspect-[4/5] bg-[#32172A]/10" />
+  <div className="bg-white rounded-[1.5rem] overflow-hidden border border-zen-primary/5 animate-pulse">
+    <div className="aspect-[4/5] bg-zen-primary/10" />
     <div className="p-10 space-y-4">
-      <div className="h-6 bg-[#32172A]/10 rounded-full w-3/4" />
-      <div className="h-4 bg-[#32172A]/10 rounded-full w-full" />
-      <div className="h-4 bg-[#32172A]/10 rounded-full w-2/3" />
+      <div className="h-6 bg-zen-primary/10 rounded-full w-3/4" />
+      <div className="h-4 bg-zen-primary/10 rounded-full w-full" />
+      <div className="h-4 bg-zen-primary/10 rounded-full w-2/3" />
       <div className="flex gap-4 pt-4">
-        <div className="h-6 bg-[#32172A]/10 rounded-full w-20" />
-        <div className="h-6 bg-[#32172A]/10 rounded-full w-16" />
+        <div className="h-6 bg-zen-primary/10 rounded-full w-20" />
+        <div className="h-6 bg-zen-primary/10 rounded-full w-16" />
       </div>
     </div>
   </div>
@@ -80,8 +80,8 @@ const LandingServices = () => {
       try {
         setLoading(true);
         const [servRes, branchRes] = await Promise.all([
-          fetch(`${API_URL}/services`),
-          fetch(`${API_URL}/branches`)
+          fetch(`${API_URL}/services/public`),
+          fetch(`${API_URL}/branches/public`)
         ]);
 
         if (!servRes.ok || !branchRes.ok) throw new Error('Failed to fetch ritual registry');
@@ -115,13 +115,13 @@ const LandingServices = () => {
   }, [services, selectedBranch]);
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
+    <div className="min-h-screen bg-zen-cream text-zen-primary">
       {/* Hero Section */}
       <section className="px-6 lg:px-24 mb-16 pt-12">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-end">
           <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
-             <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-[#4A2C40]/60">
-                <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
+             <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-zen-brown/60">
+                <span className="w-8 h-[1px] bg-zen-primary/30" />
                 Sacred Rituals
              </div>
              <h1 className="text-6xl lg:text-7xl font-serif font-bold leading-tight">
@@ -130,7 +130,7 @@ const LandingServices = () => {
              </h1>
           </div>
           <div className="pb-4 animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">
-             <p className="text-xl text-[#32172A]/70 leading-relaxed font-sans max-w-md">
+             <p className="text-xl text-zen-primary/70 leading-relaxed font-sans max-w-md">
                 Our services are passages of renewal. Each treatment is tailored to your immediate state of being, facilitated by masters of their craft.
              </p>
           </div>
@@ -140,13 +140,13 @@ const LandingServices = () => {
       {/* Branch Tabs */}
       <section className="px-6 lg:px-24 mb-16">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap items-center gap-4 lg:gap-8 pb-8 border-b border-[#32172A]/5 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap items-center gap-4 lg:gap-8 px-4 -mx-4 pt-4 -mt-4 pb-8 border-b border-zen-primary/5 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setSelectedBranch('all')}
               className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap
                 ${selectedBranch === 'all' 
-                  ? 'bg-[#32172A] text-[#FAF9F6] shadow-xl scale-105' 
-                  : 'bg-white text-[#32172A]/40 hover:text-[#32172A] border border-[#32172A]/5'}
+                  ? 'bg-zen-primary text-white shadow-xl scale-105' 
+                  : 'bg-white text-zen-primary/40 hover:text-zen-primary border border-zen-primary/5'}
               `}
             >
               All Sanctuaries
@@ -157,8 +157,8 @@ const LandingServices = () => {
                 onClick={() => setSelectedBranch(branch._id)}
                 className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap
                   ${selectedBranch === branch._id 
-                    ? 'bg-[#32172A] text-[#FAF9F6] shadow-xl scale-105' 
-                    : 'bg-white text-[#32172A]/40 hover:text-[#32172A] border border-[#32172A]/5'}
+                    ? 'bg-zen-primary text-white shadow-xl scale-105' 
+                    : 'bg-white text-zen-primary/40 hover:text-zen-primary border border-zen-primary/5'}
                 `}
               >
                 {branch.name}
@@ -187,10 +187,10 @@ const LandingServices = () => {
               <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
                 <AlertCircle size={28} className="text-red-400" />
               </div>
-              <p className="text-[#32172A]/50 text-lg italic">{error}</p>
+              <p className="text-zen-primary/50 text-lg italic">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="px-8 py-3 bg-[#4A2C40] text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
+                className="px-8 py-3 bg-zen-primary text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
               >
                 Retry Journey
               </button>
@@ -200,11 +200,11 @@ const LandingServices = () => {
           {/* Empty State */}
           {!loading && !error && filteredServices.length === 0 && (
             <div className="flex flex-col items-center justify-center py-32 gap-6 text-center animate-in fade-in duration-700">
-              <div className="w-20 h-20 rounded-full bg-[#4A2C40]/5 flex items-center justify-center opacity-30">
-                <Sparkles size={32} className="text-[#4A2C40]" strokeWidth={1} />
+              <div className="w-20 h-20 rounded-full bg-zen-primary/5 flex items-center justify-center opacity-30">
+                <Sparkles size={32} className="text-zen-brown" strokeWidth={1} />
               </div>
-              <h3 className="text-2xl font-serif text-[#32172A]/60">No rituals found in this sanctuary</h3>
-              <p className="text-[#32172A]/30 text-sm max-w-sm font-bold uppercase tracking-widest">
+              <h3 className="text-2xl font-serif text-zen-primary/60">No rituals found in this sanctuary</h3>
+              <p className="text-zen-primary/30 text-sm max-w-sm font-bold uppercase tracking-widest">
                 Our masters are preparing special offerings for this location.
               </p>
             </div>
@@ -221,16 +221,16 @@ const LandingServices = () => {
                 return (
                   <div
                     key={service._id}
-                    className="group relative bg-white rounded-[3rem] overflow-hidden border border-[#32172A]/5 hover:shadow-sm transition-all duration-700 animate-in fade-in slide-in-from-bottom-8"
+                    className="group relative rounded-[1.5rem] overflow-hidden bg-zen-primary hover:shadow-2xl transition-all duration-700 animate-in fade-in slide-in-from-bottom-8 aspect-[4/5] cursor-pointer"
                     style={{ animationDelay: `${i * 80}ms` }}
                   >
-                    {/* Image */}
-                    <div className="aspect-[4/5] overflow-hidden relative">
+                    {/* Background Image */}
+                    <div className="absolute inset-0">
                       {imgUrl ? (
                         <img
                           src={imgUrl}
                           alt={service.name}
-                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.2] group-hover:grayscale-0"
+                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-90 group-hover:opacity-40"
                           onError={(e) => {
                             (e.currentTarget as HTMLImageElement).style.display = 'none';
                             const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -238,61 +238,65 @@ const LandingServices = () => {
                           }}
                         />
                       ) : null}
-                      {/* Fallback placeholder */}
                       <div
-                        className="w-full h-full bg-gradient-to-br from-[#4A2C40]/5 to-[#4A2C40]/20 flex items-center justify-center"
+                        className="w-full h-full bg-gradient-to-br from-zen-primary to-zen-sand flex items-center justify-center opacity-90 group-hover:opacity-40 transition-opacity duration-1000"
                         style={{ display: imgUrl ? 'none' : 'flex' }}
                       >
-                        <Icon size={56} className="text-[#4A2C40]/20" strokeWidth={0.8} />
-                      </div>
-
-                      {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#32172A]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-                      {/* Status/Price badges */}
-                      <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
-                        <div className="px-5 py-2 backdrop-blur-3xl bg-white/80 rounded-full text-[10px] font-bold tracking-widest text-[#4A2C40] flex items-center gap-1.5 shadow-lg">
-                          <Clock size={12} />
-                          {service.duration} MIN
-                        </div>
-                        <div className="px-5 py-2 backdrop-blur-3xl bg-[#32172A]/80 rounded-full text-[10px] font-bold tracking-widest text-white flex items-center gap-1.5 shadow-lg">
-                          <Coins size={12} />
-                          {service.price > 0 ? `QR ${service.price}` : 'On Request'}
-                        </div>
-                      </div>
-
-                      {/* Branch tag - visible on hover */}
-                      <div className="absolute bottom-6 left-6 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0">
-                          <span className="px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-bold tracking-widest text-white uppercase border border-white/40">
-                             {branchName}
-                          </span>
+                        <Icon size={72} className="text-zen-primary/20" strokeWidth={0.8} />
                       </div>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-10 space-y-6">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.3em] text-[#4A2C40]/40">
+                    {/* Permanent Gradient for text legibility */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-zen-primary via-zen-primary/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-700 pointer-events-none" />
+
+                    {/* Top Right Badges (Always visible) */}
+                    <div className="absolute top-6 right-6 flex flex-col items-end gap-2 z-10 transition-transform duration-700 group-hover:-translate-y-2">
+                      <div className="px-5 py-2 backdrop-blur-3xl bg-white/90 rounded-full text-[10px] font-bold tracking-widest text-zen-brown flex items-center gap-1.5 shadow-lg">
+                        <Clock size={12} />
+                        {service.duration} MIN
+                      </div>
+                      <div className="px-5 py-2 backdrop-blur-3xl bg-zen-primary/90 rounded-full text-[10px] font-bold tracking-widest text-white flex items-center gap-1.5 shadow-lg">
+                        <Coins size={12} />
+                        {service.price > 0 ? `QR ${service.price}` : 'On Request'}
+                      </div>
+                    </div>
+
+                    {/* Top Left Branch Badge (Visible on Hover) */}
+                    <div className="absolute top-6 left-6 opacity-0 group-hover:opacity-100 transition-all duration-700 -translate-y-4 group-hover:translate-y-0 z-10">
+                        <span className="px-4 py-2 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-bold tracking-widest text-white uppercase border border-white/40 shadow-xl">
+                           {branchName}
+                        </span>
+                    </div>
+
+                    {/* Main Content Overlay (Translates up on hover) */}
+                    <div className="absolute bottom-0 inset-x-0 p-8 flex flex-col justify-end z-10 translate-y-12 group-hover:translate-y-0 transition-all duration-700">
+                      
+                      {/* Title & Category - partially visible unhovered, fully brightens on hover */}
+                      <div className="space-y-2 mb-6">
+                        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.3em] text-zen-sand opacity-80 group-hover:opacity-100 transition-opacity duration-700">
                              <Icon size={12} />
                              {service.category || 'Wellness'}
                         </div>
-                        <h3 className="text-3xl font-serif font-bold text-[#32172A] leading-tight">{service.name}</h3>
+                        <h3 className="text-3xl font-serif font-bold text-white leading-tight opacity-90 group-hover:opacity-100 transition-opacity duration-700">{service.name}</h3>
                       </div>
 
-                      <p className="text-[#32172A]/60 text-sm leading-relaxed italic line-clamp-3">
-                        {service.description
-                          ? service.description
-                          : `A masterfully orchestrated ${service.category?.toLowerCase() || 'wellness'} ritual, designed to harmonize the spirit and rejuvenate the body.`}
-                      </p>
-                      
-                      <div className="pt-4 flex items-center justify-between border-t border-[#32172A]/5">
-                        <Link
-                          to="/booking"
-                          className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#4A2C40] group/btn"
-                        >
-                          Book Ritual
-                          <ArrowRight size={14} className="group-hover/btn:translate-x-2 transition-transform" />
-                        </Link>
+                      {/* Description & Button - strictly hidden until hover */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-all duration-700 max-h-0 group-hover:max-h-40 overflow-hidden space-y-6">
+                        <p className="text-white/80 text-sm leading-relaxed italic line-clamp-3">
+                          {service.description
+                            ? service.description
+                            : `A masterfully orchestrated ${service.category?.toLowerCase() || 'wellness'} ritual, designed to harmonize the spirit and rejuvenate the body.`}
+                        </p>
+                        
+                        <div className="pt-4 flex items-center justify-between border-t border-white/20">
+                          <Link
+                            to="/booking"
+                            className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-sand group/btn hover:text-white transition-colors"
+                          >
+                            Book Ritual
+                            <ArrowRight size={14} className="group-hover/btn:translate-x-2 transition-transform" />
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -305,18 +309,18 @@ const LandingServices = () => {
 
       {/* Full Width CTA */}
       <section className="px-6 lg:px-24 pb-32">
-        <div className="max-w-7xl mx-auto bg-[#32172A] rounded-[5rem] overflow-hidden relative p-12 lg:p-24 text-center group">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#4A2C40] to-transparent opacity-50" />
+        <div className="max-w-7xl mx-auto bg-zen-primary rounded-[5rem] overflow-hidden relative p-12 lg:p-24 text-center group">
+          <div className="absolute inset-0 bg-gradient-to-r from-zen-primary to-transparent opacity-50" />
           <div className="relative z-10 space-y-10">
             <h2 className="text-5xl lg:text-7xl font-serif font-bold text-white max-w-2xl mx-auto leading-tight italic">
               Experience Personal <br /> <span className="not-italic opacity-50">Transcendence.</span>
             </h2>
-            <p className="text-[#FAF9F6]/50 text-xl max-w-xl mx-auto leading-relaxed">
+            <p className="text-white/50 text-xl max-w-xl mx-auto leading-relaxed">
               Tailor your path with our Equilibrium Master for a wellness blueprint unique to your soul.
             </p>
             <Link
               to="/contact"
-              className="inline-block px-14 py-6 bg-[#FAF9F6] text-[#32172A] rounded-full text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-[#E5BAD4] transition-all shadow-sm"
+              className="inline-block px-14 py-6 bg-zen-cream text-zen-primary rounded-full text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-zen-sand transition-all shadow-sm"
             >
               Request Consultation
             </Link>

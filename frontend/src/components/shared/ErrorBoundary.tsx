@@ -28,11 +28,11 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-zen-cream flex items-center justify-center p-6 font-sans">
-          <div className="bg-white/80 p-10 rounded-[3rem] shadow-2xl border border-zen-brown/15 max-w-xl w-full text-center">
+          <div className="bg-white/80 p-10 rounded-[1.5rem] shadow-2xl border border-zen-brown/15 max-w-xl w-full text-center">
             <div className="w-20 h-20 bg-red-50 text-red-400 rounded-full flex items-center justify-center mx-auto mb-6">
               <TriangleAlert size={40} />
             </div>
-            <h1 className="text-3xl font-serif font-bold text-zen-brown mb-4 tracking-tight">App Sanctuary Interrupted</h1>
+            <h1 className="text-3xl font-serif font-bold text-zen-brown mb-4 tracking-tight">Application Error</h1>
             <p className="text-zen-brown/60 mb-8 mx-auto leading-relaxed">
               We encountered an unexpected disruption in the interface flow. The system has automatically halted to protect your workflow.
             </p>

@@ -10,12 +10,12 @@ export interface RoomImageSource {
 }
 
 const ROOM_PHOTO_POOL = [
-  '/images/hero_sanctuary.png',
+  '/images/hero_workspace.png',
   '/images/about_hero.png'
 ];
 
 const ROOM_PHOTO_FILES = new Set([
-  'hero_sanctuary.png',
+  'hero_workspace.png',
   'about_hero.png'
 ]);
 
@@ -30,7 +30,7 @@ const ROOM_OBJECT_POSITIONS = [
 ];
 
 const ROOM_PALETTES = [
-  { bgTop: '#F9F4EC', bgBottom: '#D8C2A5', glow: '#FFF8EE', accent: '#4A2C40', accentSoft: '#B6947A', text: '#2E1A25' },
+  { bgTop: '#F9F4EC', bgBottom: '#D8C2A5', glow: '#FFF8EE', accent: '#332766', accentSoft: '#B6947A', text: '#2E1A25' },
   { bgTop: '#F6EFE6', bgBottom: '#CDB89D', glow: '#FFF7EF', accent: '#5C4335', accentSoft: '#C6A88F', text: '#332319' },
   { bgTop: '#F8F2EA', bgBottom: '#D7C7B3', glow: '#FFF9F2', accent: '#6B4B39', accentSoft: '#D8BEA8', text: '#2F1F18' },
   { bgTop: '#F6F1EB', bgBottom: '#CFB79A', glow: '#FFF8F1', accent: '#48605A', accentSoft: '#A6B2AA', text: '#26312E' },
@@ -170,7 +170,7 @@ const pickPalette = (room: RoomImageSource) => {
 const buildRoomVisualSvg = (room: RoomImageSource) => {
   const palette = pickPalette(room);
   const roomName = escapeXml(room.name || 'Room');
-  const roomType = escapeXml((room.type || 'Sanctuary').toUpperCase());
+  const roomType = escapeXml((room.type || 'Workspace').toUpperCase());
   const branchName = escapeXml(getBranchName(room.branch).toUpperCase());
   const initials = escapeXml(getInitials(room.name));
 

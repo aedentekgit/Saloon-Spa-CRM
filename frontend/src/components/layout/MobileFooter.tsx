@@ -42,10 +42,10 @@ const MobileFooter: React.FC = () => {
 
   const sheetItems = [
     { name: 'Memberships', icon: Crown, path: '/memberships', permission: 'billing' },
-    { name: 'Sanctuary Rooms', icon: Bed, path: '/rooms', permission: 'rooms' },
+    { name: 'Rooms', icon: Bed, path: '/rooms', permission: 'rooms' },
     { name: 'Specialists', icon: UserRound, path: '/employees', permission: 'employees' },
     { name: 'Presence', icon: UserCheck, path: '/attendance', permission: 'attendance' },
-    { name: 'Temporal Shifts', icon: Repeat, path: '/shifts', permission: 'settings' },
+    { name: 'Shifts', icon: Repeat, path: '/shifts', permission: 'settings' },
     { name: 'Payroll', icon: TrendingUp, path: '/payroll', permission: 'finance' },
     { name: 'Leave Matrix', icon: CalendarDays, path: '/leave', permission: 'leave' },
     { name: 'Finance Hub', icon: Wallet, path: '/finance', permission: 'finance' },
@@ -56,9 +56,9 @@ const MobileFooter: React.FC = () => {
     { name: 'Room Logic', icon: DoorOpen, path: '/room-categories', permission: 'settings' },
     { name: 'Service Logic', icon: Sparkles, path: '/service-categories', permission: 'settings' },
     { name: 'Admins', icon: UserRound, path: '/admins', permission: 'roles' },
-    { name: 'Authority', icon: Shield, path: '/roles', permission: 'roles' },
+    { name: 'Admin', icon: Shield, path: '/roles', permission: 'roles' },
     { name: 'Tax/GST', icon: Percent, path: '/tax', permission: 'settings' },
-    { name: 'Calibration', icon: SettingsIcon, path: '/settings', permission: 'settings' },
+    { name: 'Settings', icon: SettingsIcon, path: '/settings', permission: 'settings' },
   ];
 
   const filteredFooter = footerItems.filter(item => hasPermission(item.permission));
@@ -68,7 +68,7 @@ const MobileFooter: React.FC = () => {
     <>
       {/* Main Navigation Bar */}
       <div className="lg:hidden fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700">
-        <nav className="bg-white/95 backdrop-blur-2xl rounded-[2rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/20 p-1.5 flex items-center justify-around relative ring-1 ring-black/5">
+        <nav className="bg-white/95 backdrop-blur-2xl rounded-[1rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/20 p-1.5 flex items-center justify-around relative ring-1 ring-black/5">
           {filteredFooter.map((item) => (
             <NavLink
               key={item.name}
@@ -124,7 +124,7 @@ const MobileFooter: React.FC = () => {
             >
               <div className="p-5 border-b border-zen-brown/15 flex items-center justify-between shrink-0 bg-white/50">
                 <div>
-                  <h3 className="text-xl font-serif font-bold text-zen-brown tracking-tight">Sanctuary Matrix</h3>
+                  <h3 className="text-xl font-serif font-bold text-zen-brown tracking-tight">All Sections</h3>
                   <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Explore all sectors</p>
                 </div>
                 <button 
@@ -169,7 +169,7 @@ const MobileFooter: React.FC = () => {
                 </div>
               </div>
               <div className="p-5 shrink-0 text-center text-[9px] font-serif italic text-zen-brown/20 bg-white/30 border-t border-zen-brown/15">
-                Authentic Wellness Exchange · Sanctuary Digital
+                Authentic Wellness Exchange · Workspace Digital
               </div>
             </motion.div>
           </>

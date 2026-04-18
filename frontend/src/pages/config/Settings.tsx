@@ -13,17 +13,13 @@ import {
   Sparkles,
   Cloud,
   HardDrive,
-  Moon,
   Sun,
   Camera,
-  MessageSquare,
   ShieldCheck,
   ChevronRight,
-  Layout,
-  Settings as SettingsIcon,
-  Layers,
   Activity,
-  Info
+  Info,
+  Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
@@ -114,13 +110,49 @@ const Settings = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      setSettings(data);
+      
+      // Ensure all top-level keys exist even if API returns sparse object
+      const safeSettings = {
+        ...data,
+        general: data?.general || { siteName: '', email: '', contactNumber: '', address: '', country: '', countryIso: '', dialingCode: '', currency: '', currencySymbol: '', dateTimeFormat: '', logo: '' },
+        theme: data?.theme || { primaryColor: '', darkMode: false, headingFont: '', bodyFont: '' },
+        upload: data?.upload || { provider: 'local', cloudinaryCloudName: '', cloudinaryApiKey: '', cloudinaryApiSecret: '' },
+        notifications: data?.notifications || { pushEnabled: false },
+        smtp: data?.smtp || { host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '' }
+      };
+      
+      setSettings(safeSettings);
     } catch (error) {
       notify('error', 'Sync Failure', 'Failed to synchronize system configuration.');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (settings?.theme?.primaryColor) {
+      document.documentElement.style.setProperty('--zen-sand', settings.theme.primaryColor);
+      document.documentElement.style.setProperty('--zen-primary', settings.theme.primaryColor);
+    }
+  }, [settings?.theme?.primaryColor]);
+
+  useEffect(() => {
+    const injectFont = (name: string, url: string) => {
+      if (!url || !url.match(/uploads/i)) return;
+      const fullUrl = url.startsWith('http') ? url : `${API_URL.split('/api')[0]}/${url.replace(/^\.?\//, '')}`;
+      const styleId = `font-face-${name}`;
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      styleEl.innerHTML = `@font-face { font-family: '${name}'; src: url('${fullUrl}'); font-display: swap; }`;
+    };
+
+    if (settings?.theme?.headingFont) injectFont('CustomHeadingFont', settings.theme.headingFont);
+    if (settings?.theme?.bodyFont) injectFont('CustomBodyFont', settings.theme.bodyFont);
+  }, [settings?.theme?.headingFont, settings?.theme?.bodyFont]);
 
   const handleSave = async (section: keyof SettingsData) => {
     if (!settings) return;
@@ -182,13 +214,44 @@ const Settings = () => {
     }
   };
 
+  const handleFontUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'heading' | 'body') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSaving(true);
+    const formData = new FormData();
+    formData.append('font', file);
+    formData.append('type', type);
+
+    try {
+      const response = await fetch(`${API_URL}/settings/upload-font`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${user?.token}` },
+        body: formData
+      });
+      const data = await response.json();
+      if (response.ok) {
+         setSettings(prev => prev ? { ...prev, theme: { ...prev.theme, [type === 'heading' ? 'headingFont' : 'bodyFont']: data.fontUrl } } : null);
+         notify('success', 'Font Updated', `${type === 'heading' ? 'Heading' : 'Body'} font successfully uploaded.`);
+      } else {
+         notify('error', 'Upload Failed', data.message || 'Failed to upload font.');
+      }
+    } catch (error) {
+       notify('error', 'Network Error', 'Failed to upload font due to server error.');
+    } finally {
+       setSaving(false);
+       // Clear input to allow re-upload
+       e.target.value = '';
+    }
+  };
+
   if (loading || !settings) {
     return (
       <div className="flex items-center justify-center min-h-[600px]">
         <motion.div 
            animate={{ rotate: 360 }}
            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-           className="p-8 bg-zen-sand/5 rounded-[3rem] border border-zen-sand/10"
+           className="p-8 bg-zen-sand/5 rounded-[1.5rem] border border-zen-sand/10"
         >
            <Zap size={40} className="text-zen-sand" />
         </motion.div>
@@ -198,10 +261,10 @@ const Settings = () => {
 
   const sidebarItems = [
     { id: 'foundations', name: 'General', icon: Map, sub: 'Business Identity' },
-    { id: 'visuals', name: 'Theme', icon: Palette, sub: 'Interface Styling' },
+    { id: 'smtp', name: 'SMTP', icon: ShieldCheck, sub: 'Outbound Configuration' },
+    { id: 'alerts', name: 'Notification', icon: Bell, sub: 'System Alerts' },
     { id: 'storage', name: 'Storage', icon: Cloud, sub: 'File Management' },
-    { id: 'alerts', name: 'Notifications', icon: Bell, sub: 'System Alerts' },
-    { id: 'smtp', name: 'Email (SMTP)', icon: ShieldCheck, sub: 'Outbound Configuration' },
+    { id: 'visuals', name: 'Appearance', icon: Palette, sub: 'Interface Styling' },
   ];
 
   return (
@@ -213,35 +276,32 @@ const Settings = () => {
       hideViewToggle
     >
       <div className="min-h-[750px] flex flex-col lg:flex-row gap-8">
-        <aside className="lg:w-80 shrink-0">
-           <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/15 p-6 sticky top-24 shadow-sm">
-              <div className="px-4 py-6 mb-6 border-b border-zen-brown/15 flex items-center gap-4">
-                 <div className="w-12 h-12 bg-zen-brown rounded-2xl flex items-center justify-center text-white shadow-lg">
-                    <SettingsIcon size={22} />
-                 </div>
-                 <div>
-                    <h2 className="text-lg font-serif font-bold text-zen-brown tracking-tight">Admin Sanctuary</h2>
-                    <p className="text-[9px] text-zen-brown/30 font-bold uppercase tracking-[0.3em]">System Configuration</p>
-                 </div>
+        <aside className="lg:w-64 shrink-0">
+           <div className="bg-white rounded-3xl border border-gray-100 p-4 sticky top-24 shadow-sm pb-6">
+              
+              <div className="px-3 pt-4 pb-2 mb-2">
+                  <h4 className="text-[10px] uppercase font-extrabold text-gray-500 tracking-wider">
+                     Admin Menu
+                  </h4>
               </div>
               
-              <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible gap-2 lg:gap-2 pb-2 lg:pb-0 scrollbar-hide">
+               <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible gap-1 scrollbar-hide">
                  {sidebarItems.map((item) => (
                     <button
                        key={item.id}
                        onClick={() => setActiveSection(item.id as SettingsSection)}
-                       className={`w-full flex items-center gap-4 p-4 rounded-[1.5rem] transition-all duration-500 font-bold text-[11px] uppercase tracking-widest group ${
+                       className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-sans font-bold text-[13px] group relative ${
                          activeSection === item.id 
-                           ? 'bg-zen-brown text-white shadow-xl shadow-zen-brown/20' 
-                           : 'text-zen-brown/40 hover:bg-zen-cream/40 hover:text-zen-brown'
+                           ? 'bg-purple-100/40 text-purple-800' 
+                           : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
                        }`}
                     >
-                       <item.icon size={18} className={activeSection === item.id ? 'text-white' : 'text-zen-brown/20 group-hover:text-zen-brown/40'} strokeWidth={1.5} />
+                       <item.icon size={18} className={activeSection === item.id ? 'text-purple-600' : 'text-gray-400 group-hover:text-gray-600'} />
                        <span>{item.name}</span>
                        {activeSection === item.id && (
                           <motion.div 
                              layoutId="sidebarActive"
-                             className="ml-auto w-1.5 h-1.5 rounded-full bg-zen-sand"
+                             className="absolute right-3 w-1.5 h-1.5 rounded-full bg-purple-600"
                           />
                        )}
                     </button>
@@ -262,13 +322,13 @@ const Settings = () => {
               >
                   {activeSection === 'foundations' && (
                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
-                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm">
+                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
                            <header className="mb-12 flex items-center justify-between">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Business Profile</h3>
                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Manage your platform's public identity.</p>
                               </div>
-                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[2rem] flex items-center justify-center text-zen-sand border border-zen-brown/15">
+                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[1rem] flex items-center justify-center text-zen-sand border border-zen-brown/15">
                                  <Map size={28} strokeWidth={1.5} />
                               </div>
                            </header>
@@ -360,25 +420,25 @@ const Settings = () => {
                         </div>
 
                         <div className="xl:col-span-4 space-y-6">
-                           <div className="bg-zen-brown p-10 rounded-[3rem] text-white shadow-sm relative overflow-hidden group min-h-[400px]">
+                           <div className="bg-zen-brown p-10 rounded-[1.5rem] text-white shadow-sm relative overflow-hidden group min-h-[400px]">
                               <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-150 transition-transform duration-1000">
                                  <Camera size={150} />
                               </div>
                               <h4 className="text-xl font-serif font-bold mb-10 relative z-10">Brand Assets</h4>
                               <div className="relative group w-fit mx-auto mb-10 z-10">
                                  {(logoFile || settings.general.logo) ? (
-                                   <div className="relative p-3 bg-white/5 rounded-[2.5rem] border border-white/10 backdrop-blur-sm">
+                                   <div className="relative p-3 bg-white/5 rounded-[1rem] border border-white/10 backdrop-blur-sm">
                                       <img 
                                         src={logoFile ? URL.createObjectURL(logoFile) : (settings.general.logo && settings.general.logo.startsWith('http') ? settings.general.logo : `${API_URL.split('/api')[0]}/${settings.general.logo?.replace(/^\.?\//, '')}`)} 
                                         alt="Logo" 
-                                        className="h-40 w-40 object-cover rounded-[2rem] shadow-sm" 
+                                        className="h-40 w-40 object-cover rounded-[1rem] shadow-sm" 
                                       />
-                                      <label htmlFor="logo-upload-final" className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 rounded-[2rem] flex items-center justify-center transition-all cursor-pointer backdrop-blur-md">
+                                      <label htmlFor="logo-upload-final" className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 rounded-[1rem] flex items-center justify-center transition-all cursor-pointer backdrop-blur-md">
                                          <Camera className="text-white" size={32} />
                                       </label>
                                    </div>
                                  ) : (
-                                   <label htmlFor="logo-upload-final" className="h-40 w-40 bg-white/5 rounded-[2.5rem] flex items-center justify-center text-white/20 border border-white/10 cursor-pointer hover:bg-white/10 transition-all">
+                                   <label htmlFor="logo-upload-final" className="h-40 w-40 bg-white/5 rounded-[1rem] flex items-center justify-center text-white/20 border border-white/10 cursor-pointer hover:bg-white/10 transition-all">
                                       <Camera size={40} />
                                    </label>
                                  )}
@@ -396,77 +456,164 @@ const Settings = () => {
                   )}
 
                   {activeSection === 'visuals' && (
-                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm h-fit">
-                           <header className="mb-12">
-                              <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Interface</h3>
-                              <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Configure workspace styling.</p>
+                     <div className="max-w-5xl flex flex-col gap-6 font-sans">
+                        <section className="bg-white p-10 md:p-14 rounded-[2rem] border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative">
+                           
+                           <header className="flex items-center gap-5 mb-14">
+                              <div className="w-14 h-14 rounded-full flex items-center justify-center text-purple-700 bg-purple-50">
+                                 <Palette size={24} strokeWidth={2} />
+                              </div>
+                              <h2 className="text-[22px] font-sans font-bold text-slate-900 tracking-tight">Appearance Settings</h2>
                            </header>
                            
-                           <div className="space-y-8">
-                              <div 
-                                 onClick={() => setSettings(prev => prev ? {...prev, theme: {...prev.theme, darkMode: !prev.theme.darkMode}} : null)}
-                                 className={`p-8 rounded-[2rem] border-2 transition-all duration-500 cursor-pointer flex items-center justify-between ${settings.theme.darkMode ? 'bg-zen-brown border-zen-brown shadow-sm' : 'bg-zen-cream/20 border-zen-brown/15'}`}
-                              >
-                                 <div className="flex items-center gap-6">
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${settings.theme.darkMode ? 'bg-white/10 text-white' : 'bg-white text-zen-sand shadow-lg'}`}>
-                                       {settings.theme.darkMode ? <Moon size={24} /> : <Sun size={24} />}
-                                    </div>
-                                    <div>
-                                       <h4 className={`text-lg font-serif font-bold ${settings.theme.darkMode ? 'text-white' : 'text-zen-brown'}`}>Dark Mode</h4>
-                                       <p className={`text-[9px] font-bold uppercase tracking-widest ${settings.theme.darkMode ? 'text-white/40' : 'text-zen-brown/30'}`}>Ambient Lighting</p>
-                                    </div>
+                           <div className="space-y-12 font-sans">
+                              {/* Color Profile Settings */}
+                              <div>
+                                 <div className="flex items-center gap-6 mb-5">
+                                    <h3 className="text-[14px] font-bold text-slate-900">
+                                       Themes
+                                    </h3>
                                  </div>
-                                 <div className={`w-14 h-7 rounded-full flex items-center px-1 transition-all duration-500 ${settings.theme.darkMode ? 'bg-zen-sand' : 'bg-zen-brown/10'}`}>
-                                    <motion.div layout animate={{ x: settings.theme.darkMode ? 28 : 0 }} className="w-5 h-5 rounded-full bg-white shadow-xl" />
+                                 <div className="flex flex-wrap items-center gap-3">
+                                    {[
+                                      '#1E293B', '#0F766E', '#15803D', '#84CC16', '#B45309', '#EA580C', 
+                                      '#BE123C', '#9333EA', '#7E22CE', '#1D4ED8', '#2563EB', '#0284C7', '#451A03'
+                                    ].map(color => (
+                                       <button
+                                          key={color}
+                                          onClick={() => setSettings(prev => prev ? {...prev, theme: {...prev.theme, primaryColor: color}} : null)}
+                                          className={`relative w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                                             settings.theme.primaryColor === color 
+                                                ? 'ring-[6px] ring-purple-100/60 scale-[1.15] z-10' 
+                                                : 'hover:scale-110'
+                                          }`}
+                                          style={{ backgroundColor: color }}
+                                       >
+                                          {settings.theme.primaryColor === color && <Check size={18} className="text-white" strokeWidth={3} />}
+                                       </button>
+                                    ))}
+                                    
+                                    {/* Custom Color Upload Picker & Hex Input */}
+                                    <div className="flex items-center gap-2 bg-slate-50 border border-gray-200 rounded-full pr-4 p-1 ml-2 shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
+                                       <div className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-500 transition-colors cursor-pointer overflow-hidden bg-white shadow-sm border border-gray-200">
+                                          <Palette size={14} />
+                                          <input
+                                             type="color"
+                                             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-20"
+                                             value={settings.theme.primaryColor || '#2D1622'}
+                                             onChange={(e: any) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, primaryColor: e.target.value}} : null)}
+                                          />
+                                       </div>
+                                       <input 
+                                          type="text" 
+                                          value={settings.theme.primaryColor || '#2D1622'}
+                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, primaryColor: e.target.value}} : null)}
+                                          className="bg-transparent border-none outline-none text-[11px] font-bold text-slate-700 w-16 uppercase focus:ring-0 placeholder:text-gray-300"
+                                          placeholder="#HEX"
+                                       />
+                                    </div>
                                  </div>
                               </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                 <ZenDropdown 
-                                    label="Heading Font (Serif)"
-                                    icon={Layers}
-                                    options={['Italiana', 'Playfair Display', 'Cormorant Garamond', 'Libre Baskerville', 'Lora']}
-                                    value={settings.theme.headingFont}
-                                    onChange={(val) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, headingFont: val}} : null)}
-                                 />
-                                 <ZenDropdown 
-                                    label="Body Font (Sans)"
-                                    icon={Layout}
-                                    options={['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Montserrat']}
-                                    value={settings.theme.bodyFont}
-                                    onChange={(val) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, bodyFont: val}} : null)}
-                                 />
-                              </div>
+                              {/* Typography Settings */}
+                              <div className="pt-12 border-t border-slate-100">
+                                 <div className="flex items-center gap-3 mb-8">
+                                    <Sparkles size={18} className="text-purple-500" />
+                                    <h3 className="text-[16px] font-bold text-slate-900">Typography Workshop</h3>
+                                 </div>
+                                 
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {/* Heading Font Specimen */}
+                                    <div className="group relative bg-slate-50/50 rounded-3xl p-8 border border-slate-100 transition-all hover:bg-white hover:shadow-xl hover:shadow-purple-500/5">
+                                       <div className="flex items-center justify-between mb-8">
+                                          <div>
+                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Heading Specimen</label>
+                                             <p className="text-[11px] font-bold text-purple-600">Serif Presence</p>
+                                          </div>
+                                          <label className="w-10 h-10 bg-white shadow-sm rounded-xl flex items-center justify-center text-slate-400 hover:text-purple-600 hover:shadow-md transition-all cursor-pointer">
+                                             <Upload size={16} />
+                                             <input type="file" className="hidden" accept=".zip,.ttf,.otf,.woff,.woff2" onChange={(e) => handleFontUpload(e, 'heading')} />
+                                          </label>
+                                       </div>
 
-                              <ZenButton onClick={() => handleSave('theme')} className="w-full py-5 rounded-[1.5rem] text-lg font-bold shadow-sm">
-                                 Save Aesthetics
-                              </ZenButton>
+                                       <div className="mb-8 py-6 px-4 border-y border-slate-200/50">
+                                          <h1 className="text-4xl text-slate-900 leading-tight truncate" style={{ fontFamily: settings.theme.headingFont.match(/uploads/i) ? 'CustomHeadingFont' : settings.theme.headingFont }}>
+                                             Platform Settings
+                                          </h1>
+                                          <p className="text-[10px] font-medium text-slate-400 mt-2 uppercase tracking-[0.2em] leading-relaxed">Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk</p>
+                                       </div>
+
+                                       <ZenDropdown 
+                                          label="Select Architecture"
+                                          hideLabel
+                                          options={['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Poppins']}
+                                          value={settings.theme.headingFont.match(/uploads/i) ? 'Custom Font' : settings.theme.headingFont}
+                                          onChange={(val) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, headingFont: val}} : null)}
+                                       />
+                                       
+                                       {settings.theme.headingFont.match(/uploads/i) && (
+                                          <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 w-fit px-3 py-1 rounded-full border border-emerald-100">
+                                             <Check size={12} strokeWidth={3} /> Verified Asset
+                                          </div>
+                                       )}
+                                    </div>
+
+                                    {/* Body Font Specimen */}
+                                    <div className="group relative bg-slate-50/50 rounded-3xl p-8 border border-slate-100 transition-all hover:bg-white hover:shadow-xl hover:shadow-purple-500/5">
+                                       <div className="flex items-center justify-between mb-8">
+                                          <div>
+                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Body Specimen</label>
+                                             <p className="text-[11px] font-bold text-purple-600">Sans Readability</p>
+                                          </div>
+                                          <label className="w-10 h-10 bg-white shadow-sm rounded-xl flex items-center justify-center text-slate-400 hover:text-purple-600 hover:shadow-md transition-all cursor-pointer">
+                                             <Upload size={16} />
+                                             <input type="file" className="hidden" accept=".zip,.ttf,.otf,.woff,.woff2" onChange={(e) => handleFontUpload(e, 'body')} />
+                                          </label>
+                                       </div>
+
+                                       <div className="mb-8 py-6 px-4 border-y border-slate-200/50">
+                                          <div className="space-y-2" style={{ fontFamily: settings.theme.bodyFont.match(/uploads/i) ? 'CustomBodyFont' : settings.theme.bodyFont }}>
+                                             <p className="text-sm text-slate-600 font-medium leading-relaxed">Every touchpoint is designed for consistency and reliability.</p>
+                                             <p className="text-sm text-slate-400 leading-relaxed italic">The quick brown fox jumps over the lazy dog.</p>
+                                          </div>
+                                       </div>
+
+                                       <ZenDropdown 
+                                          label="Select Architecture"
+                                          hideLabel
+                                          options={['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Montserrat']}
+                                          value={settings.theme.bodyFont.match(/uploads/i) ? 'Custom Font' : settings.theme.bodyFont}
+                                          onChange={(val) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, bodyFont: val}} : null)}
+                                       />
+
+                                       {settings.theme.bodyFont.match(/uploads/i) && (
+                                          <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 w-fit px-3 py-1 rounded-full border border-emerald-100">
+                                             <Check size={12} strokeWidth={3} /> Verified Asset
+                                          </div>
+                                       )}
+                                    </div>
+                                 </div>
+                              </div>
                            </div>
                         </section>
-
-                        <div className="bg-zen-cream/10 p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm">
-                           <h4 className="text-xl font-serif font-bold text-zen-brown mb-10 flex items-center gap-4">
-                              <Palette className="text-zen-sand" size={24} strokeWidth={1.5} />
-                              Sacred Palette
-                           </h4>
-                           <div className="grid grid-cols-3 gap-6">
-                              {['#2D1622', '#634832', '#8B7E74', '#977F6D', '#A69080', '#1E1B4B'].map(color => (
-                                 <button
-                                    key={color}
-                                    onClick={() => setSettings(prev => prev ? {...prev, theme: {...prev.theme, primaryColor: color}} : null)}
-                                    className={`h-20 rounded-2xl transition-all duration-500 border-4 border-white ${settings.theme.primaryColor === color ? 'ring-4 ring-zen-sand scale-110 shadow-sm' : 'hover:scale-105 opacity-60 hover:opacity-100'}`}
-                                    style={{ backgroundColor: color }}
-                                 />
-                              ))}
-                           </div>
+                        
+                        <div className="flex justify-end pr-4">
+                           <button 
+                              onClick={() => handleSave('theme')} 
+                              disabled={saving}
+                              style={{ backgroundColor: settings.theme.primaryColor || '#7E22CE' }}
+                              className="hover:brightness-110 text-white px-10 py-4 rounded-[1.25rem] text-sm font-bold shadow-2xl shadow-purple-500/20 transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
+                           >
+                              <Save size={18} />
+                              Save Changes
+                           </button>
                         </div>
                      </div>
                   )}
 
                   {activeSection === 'storage' && (
                      <div className="max-w-4xl">
-                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm">
+                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
                            <header className="mb-12 flex items-center justify-between">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Storage Provider</h3>
@@ -487,18 +634,18 @@ const Settings = () => {
 
                            <AnimatePresence mode="wait">
                               {settings.upload.provider === 'local' ? (
-                                 <motion.div key="local" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="p-10 bg-zen-cream/10 rounded-[2.5rem] border border-zen-brown/15 flex items-center gap-8 group">
-                                    <div className="w-20 h-20 rounded-[2rem] bg-white flex items-center justify-center text-zen-sand shadow-sm group-hover:scale-110 transition-transform duration-700">
+                                 <motion.div key="local" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="p-10 bg-zen-cream/10 rounded-[1rem] border border-zen-brown/15 flex items-center gap-8 group">
+                                    <div className="w-20 h-20 rounded-[1rem] bg-white flex items-center justify-center text-zen-sand shadow-sm group-hover:scale-110 transition-transform duration-700">
                                        <HardDrive size={36} strokeWidth={1} />
                                     </div>
                                     <div>
                                        <h4 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Local Filesystem</h4>
-                                       <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mt-1">Storing documents on your private sanctuary storage.</p>
+                                       <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mt-1">Documents are stored in your private workspace.</p>
                                     </div>
                                  </motion.div>
                               ) : (
                                  <motion.div key="cloudinary" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-8">
-                                    <div className="bg-zen-cream/10 p-10 rounded-[2.5rem] border border-zen-brown/15 space-y-8">
+                                    <div className="bg-zen-cream/10 p-10 rounded-[1rem] border border-zen-brown/15 space-y-8">
                                        <ZenInput 
                                           label="Cloud Name" 
                                           value={settings.upload.cloudinaryCloudName}
@@ -531,15 +678,15 @@ const Settings = () => {
 
                    {activeSection === 'alerts' && (
                       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
-                         <div className="xl:col-span-12 bg-white/80 backdrop-blur-xl p-10 sm:p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm">
+                         <div className="xl:col-span-12 bg-white/80 backdrop-blur-xl p-10 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
                             <header className="mb-12 relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
                                <div>
                                   <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">System Notifications</h3>
-                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Manage sanctuary communication channels & Firebase Dispatch.</p>
+                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Manage communication channels and Firebase dispatch.</p>
                                </div>
                                <div className="flex items-center gap-6 p-4 bg-zen-cream/30 rounded-3xl border border-zen-brown/10 backdrop-blur-md">
                                   <div className="flex flex-col items-end">
-                                     <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Global Status</p>
+                                     <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">System Status</p>
                                      <p className="text-sm font-serif font-bold text-zen-sand">{settings.notifications.pushEnabled ? 'Active Relay' : 'Standby Mode'}</p>
                                   </div>
                                   <button 
@@ -596,7 +743,7 @@ const Settings = () => {
                                         <div className="flex items-center gap-6">
                                            <div className="p-4 bg-white text-zen-sand rounded-2xl shadow-sm border border-zen-brown/5"><Activity size={24} /></div>
                                            <div>
-                                              <p className="text-lg font-serif font-bold text-zen-brown">Signal Resonance</p>
+                                              <p className="text-lg font-serif font-bold text-zen-brown">Connection Status</p>
                                               <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Verify configuration integrity</p>
                                            </div>
                                         </div>
@@ -649,13 +796,13 @@ const Settings = () => {
 
                   {activeSection === 'smtp' && (
                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[3.5rem] border border-zen-brown/15 shadow-sm">
+                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
                            <header className="mb-12 flex items-center justify-between">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">SMTP Gateway</h3>
                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Manage dynamic outbound communication credentials.</p>
                               </div>
-                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[2rem] flex items-center justify-center text-zen-sand border border-zen-brown/15">
+                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[1rem] flex items-center justify-center text-zen-sand border border-zen-brown/15">
                                  <Mail size={28} strokeWidth={1.5} />
                               </div>
                            </header>
@@ -721,7 +868,7 @@ const Settings = () => {
                         </div>
 
                         <div className="xl:col-span-4">
-                           <div className="bg-zen-cream/10 p-10 rounded-[3rem] border border-zen-brown/15 h-full">
+                           <div className="bg-zen-cream/10 p-10 rounded-[1.5rem] border border-zen-brown/15 h-full">
                               <h4 className="text-xl font-serif font-bold text-zen-brown mb-6 flex items-center gap-3">
                                  <ShieldCheck className="text-zen-sand" size={24} />
                                  Security Protocol

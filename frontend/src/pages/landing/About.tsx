@@ -1,27 +1,31 @@
 import React from 'react';
-import { History, Heart, Sparkles, MapPin } from 'lucide-react';
+import { History, Heart, Sparkles } from 'lucide-react';
+import { usePublicSettings } from '../../components/landing/usePublicSettings';
 
 const About = () => {
+  const { settings } = usePublicSettings();
+  const siteName = settings.general.siteName;
+
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
+    <div className="min-h-screen bg-zen-cream text-zen-primary">
       {/* Hero Content */}
       <section className="px-6 lg:px-24 mb-16 pt-12">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-center">
           <div className="space-y-12 animate-in fade-in slide-in-from-left-8 duration-1000">
             <div className="space-y-6">
-              <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-[#4A2C40]/60">
-                <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
-                The Zen Heritage
+              <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-zen-brown/60">
+                <span className="w-8 h-[1px] bg-zen-primary/30" />
+                {siteName} Heritage
               </div>
               <h1 className="text-6xl lg:text-7xl font-serif font-bold leading-tight">
-                Our Story of <br />
+                Our Story at <br />
                 <span className="italic animate-text-shine">Mindfulness</span>
               </h1>
             </div>
 
-            <div className="space-y-6 text-lg text-[#32172A]/70 leading-relaxed max-w-xl">
+            <div className="space-y-6 text-lg text-zen-primary/70 leading-relaxed max-w-xl">
               <p>
-                Founded in 2024, Zen Sanctuary was born from a simple yet profound vision: to create a physical manifestion of inner peace. We believe that true luxury is found in the moments between, when the world fades and clarity emerges.
+                Founded in 2024, {siteName} was born from a simple yet profound vision: to create a physical manifestation of inner peace. We believe that true luxury is found in the moments between, when the world fades and clarity emerges.
               </p>
               <p>
                 Drawing from centuries-old eastern traditions and refined with modern neuro-science, our methods go beyond surface treatment. We study the architecture of the soul, ensuring that every guest leaves not just refreshed, but redefined.
@@ -30,12 +34,12 @@ const About = () => {
 
             <div className="grid grid-cols-2 gap-8 pt-6">
               <div className="space-y-2">
-                <span className="text-4xl font-serif font-bold text-[#4A2C40]">12+</span>
-                <p className="text-[10px] uppercase font-bold tracking-widest text-[#32172A]/40">Master Therapists</p>
+                <span className="text-4xl font-serif font-bold text-zen-brown">12+</span>
+                <p className="text-[10px] uppercase font-bold tracking-widest text-zen-primary/40">Master Therapists</p>
               </div>
               <div className="space-y-2">
-                <span className="text-4xl font-serif font-bold text-[#4A2C40]">24k</span>
-                <p className="text-[10px] uppercase font-bold tracking-widest text-[#32172A]/40">Souls Restored</p>
+                <span className="text-4xl font-serif font-bold text-zen-brown">24k</span>
+                <p className="text-[10px] uppercase font-bold tracking-widest text-zen-primary/40">Souls Restored</p>
               </div>
             </div>
           </div>
@@ -49,19 +53,19 @@ const About = () => {
               />
             </div>
             {/* Soft decorative circles */}
-            <div className="absolute -top-12 -right-12 w-64 h-64 bg-[#E5BAD4]/20 rounded-full blur-3xl -z-0" />
-            <div className="absolute -bottom-12 -left-12 w-80 h-80 bg-[#4A2C40]/5 rounded-full blur-3xl -z-0" />
+            <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/20 rounded-full blur-3xl -z-0" />
+            <div className="absolute -bottom-12 -left-12 w-80 h-80 bg-zen-primary/5 rounded-full blur-3xl -z-0" />
           </div>
         </div>
       </section>
 
       {/* Philosophy Carousel-like Display */}
-      <section className="bg-[#32172A] text-[#FAF9F6] py-32 px-6 lg:px-24 rounded-t-[5rem]">
+      <section className="bg-zen-primary text-white py-32 px-6 lg:px-24 rounded-t-[5rem]">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-3 gap-16">
             <div className="space-y-8">
               <div className="p-4 bg-white/5 w-fit rounded-2xl border border-white/10">
-                <History className="text-[#E5BAD4]" size={32} />
+                <History className="text-zen-sand" size={32} />
               </div>
               <h3 className="text-3xl font-serif font-bold leading-tight">Ancestral Healing</h3>
               <p className="text-white/60 leading-relaxed">
@@ -71,7 +75,7 @@ const About = () => {
 
             <div className="space-y-8">
               <div className="p-4 bg-white/5 w-fit rounded-2xl border border-white/10">
-                <Sparkles className="text-[#E5BAD4]" size={32} />
+                <Sparkles className="text-zen-sand" size={32} />
               </div>
               <h3 className="text-3xl font-serif font-bold leading-tight">Modern Luxury</h3>
               <p className="text-white/60 leading-relaxed">
@@ -81,7 +85,7 @@ const About = () => {
 
             <div className="space-y-8">
               <div className="p-4 bg-white/5 w-fit rounded-2xl border border-white/10">
-                <Heart className="text-[#E5BAD4]" size={32} />
+                <Heart className="text-zen-sand" size={32} />
               </div>
               <h3 className="text-3xl font-serif font-bold leading-tight">Radical Empathy</h3>
               <p className="text-white/60 leading-relaxed">
@@ -102,7 +106,7 @@ const About = () => {
             </div>
             
             <div className="max-w-md text-right md:text-left italic text-2xl text-white/80 leading-snug">
-              "We don't sell treatments. We provide the container for transformation to occur."
+              We don't sell treatments. We provide the container for transformation to occur at {siteName}.
             </div>
           </div>
         </div>

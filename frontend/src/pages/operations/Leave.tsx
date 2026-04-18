@@ -61,7 +61,7 @@ const Leave = () => {
       if (Array.isArray(leavesData)) setRequests(leavesData);
       if (Array.isArray(employeesData)) setEmployees(employeesData.filter((e: any) => e.status === 'Active'));
     } catch (error) {
-      notify('error', 'Error', 'Failed to synchronize sanctuary records');
+      notify('error', 'Error', 'Failed to synchronize workspace records');
     } finally {
       setLoading(false);
     }
@@ -157,7 +157,7 @@ const Leave = () => {
 
   return (
     <ZenPageLayout
-      title="Sanctuary Absence"
+      title="Workspace Absence"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       addButtonLabel="Apply for Absence"
@@ -165,129 +165,136 @@ const Leave = () => {
       addButtonIcon={<Plus size={18} />}
     >
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-        <div className="lg:col-span-1 space-y-8">
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3.5rem] border border-white shadow-sm transition-all duration-700 hover:-translate-y-2">
-              <h3 className="text-xl font-serif font-bold text-zen-brown mb-6 flex items-center gap-3">
-                 <CalendarDays size={20} className="text-zen-sand" />
-                 Pause Balances
-              </h3>
-              <div className="space-y-4">
-                 <div className="group p-5 bg-zen-cream/30 rounded-3xl border border-zen-brown/15 hover:bg-white transition-all duration-500">
-                    <div className="flex justify-between items-center mb-1">
-                       <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Ritual Leave</span>
-                       <span className="text-lg font-serif font-bold text-zen-brown">8</span>
-                    </div>
-                    <div className="h-1 bg-zen-brown/5 rounded-full overflow-hidden">
-                       <div className="h-full bg-zen-sand w-[60%] rounded-full" />
-                    </div>
-                 </div>
-                 
-                 <div className="group p-5 bg-zen-leaf/5 rounded-3xl border border-zen-leaf/10 hover:bg-white transition-all duration-500">
-                    <div className="flex justify-between items-center mb-1">
-                       <span className="text-[10px] font-bold text-zen-leaf/60 uppercase tracking-widest">Wellness Period</span>
-                       <span className="text-lg font-serif font-bold text-zen-leaf">4</span>
-                    </div>
-                    <div className="h-1 bg-zen-leaf/10 rounded-full overflow-hidden">
-                       <div className="h-full bg-zen-leaf w-[30%] rounded-full" />
-                    </div>
-                 </div>
+         <div className="lg:col-span-1 space-y-8">
+            <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm group hover:translate-y-[-4px] transition-all duration-700 relative overflow-hidden">
+               <div className="absolute -right-4 -bottom-4 opacity-[0.03] text-zen-brown group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-1000">
+                  <CalendarDays size={120} />
+               </div>
+               <h3 className="text-lg font-serif font-black text-zen-brown mb-6 flex items-center gap-3 relative z-10">
+                  <CalendarDays size={20} className="text-zen-sand" />
+                  Pause Balances
+               </h3>
+               <div className="space-y-4 relative z-10">
+                  <div className="group p-5 bg-zen-cream/30 rounded-2xl border border-zen-brown/15 hover:bg-white transition-all duration-500">
+                     <div className="flex justify-between items-center mb-1">
+                        <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">Service Leave</span>
+                        <span className="text-base font-serif font-black text-zen-brown">08</span>
+                     </div>
+                     <div className="h-1 bg-zen-brown/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-zen-sand w-[60%] rounded-full" />
+                     </div>
+                  </div>
+                  
+                  <div className="group p-5 bg-zen-leaf/5 rounded-2xl border border-zen-leaf/10 hover:bg-white transition-all duration-500">
+                     <div className="flex justify-between items-center mb-1">
+                        <span className="text-[9px] font-bold text-zen-leaf/40 uppercase tracking-[0.2em]">Wellness Period</span>
+                        <span className="text-base font-serif font-black text-zen-leaf">04</span>
+                     </div>
+                     <div className="h-1 bg-zen-leaf/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-zen-leaf w-[30%] rounded-full" />
+                     </div>
+                  </div>
 
-                 <div className="group p-5 bg-zen-brown/5 rounded-3xl border border-zen-brown/25 hover:bg-white transition-all duration-500">
-                    <div className="flex justify-between items-center mb-1">
-                       <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Casual Drift</span>
-                       <span className="text-lg font-serif font-bold text-zen-brown">2</span>
-                    </div>
-                    <div className="h-1 bg-zen-brown/10 rounded-full overflow-hidden">
-                       <div className="h-full bg-zen-brown w-[15%] rounded-full" />
-                    </div>
-                 </div>
-              </div>
-           </div>
+                  <div className="group p-5 bg-zen-brown/5 rounded-2xl border border-zen-brown/15 hover:bg-white transition-all duration-500">
+                     <div className="flex justify-between items-center mb-1">
+                        <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">Casual Drift</span>
+                        <span className="text-base font-serif font-black text-zen-brown">02</span>
+                     </div>
+                     <div className="h-1 bg-zen-brown/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-zen-brown w-[15%] rounded-full" />
+                     </div>
+                  </div>
+               </div>
+            </div>
 
-           <div className="bg-zen-brown p-10 rounded-[3.5rem] text-white shadow-sm relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
-              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-1000">
-                 <Sparkles size={120} />
-              </div>
-              <p className="text-[10px] font-bold opacity-40 uppercase tracking-[0.4em] mb-4">Quick Fact</p>
-              <h4 className="text-lg font-serif font-bold mb-2">Rest is Productive</h4>
-              <p className="text-sm opacity-60 font-medium leading-relaxed">Sustainable presence requires periods of retreat. Use your balance to recharge the sanctuary's energy.</p>
-           </div>
-        </div>
+            <div className="bg-zen-brown p-8 rounded-2xl text-white shadow-sm relative overflow-hidden group transition-all duration-700 hover:translate-y-[-4px]">
+               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-1000">
+                  <Sparkles size={100} />
+               </div>
+               <p className="text-[9px] font-bold opacity-40 uppercase tracking-[0.4em] mb-4">Quick Fact</p>
+               <h4 className="text-base font-serif font-black mb-2">Rest is Productive</h4>
+               <p className="text-xs opacity-60 font-medium leading-relaxed">Sustainable presence requires periods of retreat. Use your balance to recharge the workspace's energy.</p>
+            </div>
+         </div>
 
-        <div className="lg:col-span-3">
-           <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-white overflow-hidden shadow-sm h-full flex flex-col">
-              <div className="px-10 py-10 border-b border-zen-brown/15 flex justify-between items-center bg-white/40">
-                 <div>
-                    <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Pause Registry</h3>
-                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Active and Historical Applications</p>
-                 </div>
-              </div>
+         <div className="lg:col-span-3">
+            <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700 h-fit">
+               <div className="hidden sm:block">
+                  <table className="w-full text-center border-collapse min-w-[800px]">
+                     <thead>
+                        <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S No</th>
+                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Ambassador</th>
+                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Pause Type</th>
+                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Service Date</th>
+                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">State</th>
+                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Actions</th>
+                        </tr>
+                     </thead>
+                     <tbody>
+                        {(!filteredRequests || filteredRequests.length === 0) && (
+                           <tr>
+                              <td colSpan={6} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">No registry data available</td>
+                           </tr>
+                        )}
 
-              <div className="hidden sm:block overflow-x-auto">
-                 <table className="w-full text-left border-separate border-spacing-0">
-                    <thead>
-                       <tr className="bg-zen-cream/10">
-                          <th className="px-8 py-6 text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em]">Ambassador</th>
-                          <th className="px-8 py-6 text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em]">Pause Type</th>
-                          <th className="px-8 py-6 text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em]">Ritual Date</th>
-                          <th className="px-8 py-6 text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em]">State</th>
-                          <th className="px-8 py-6 text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] text-right">Actions</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zen-brown/15">
-                       {filteredRequests.map((req) => (
-                          <tr key={req._id} className="group hover:bg-white transition-all duration-500">
-                             <td className="px-8 py-8">
-                                <span className="font-serif text-lg text-zen-brown font-bold tracking-tight">{req.employeeName}</span>
-                             </td>
-                             <td className="px-8 py-8">
-                                <div className="flex items-center gap-3">
-                                   {req.type === 'Full Day' ? <Calendar size={14} className="text-zen-sand" /> : <Clock size={14} className="text-zen-brown/40" />}
-                                   <span className="text-sm text-zen-brown/60 font-bold">{req.type}</span>
-                                </div>
-                             </td>
-                             <td className="px-8 py-8">
-                                <span className="text-sm text-zen-brown/60 font-bold">{dayjs(req.date).format('MMM DD, YYYY')}</span>
-                             </td>
-                             <td className="px-8 py-8">
-                                <ZenBadge variant={
-                                   req.status === 'Approved' ? 'leaf' : 
-                                   req.status === 'Rejected' ? 'danger' : 'sand'
-                                }>
-                                   {req.status}
-                                </ZenBadge>
-                             </td>
-                             <td className="px-8 py-8 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                   {(req.status === 'Pending' && (user?.role === 'Admin' || user?.role === 'Manager')) && (
-                                      <>
-                                         <ZenIconButton 
-                                           icon={CheckCircle2} 
-                                           variant="cream" 
-                                           onClick={() => handleStatusChange(req._id, 'Approved')}
-                                         />
-                                         <ZenIconButton 
-                                           icon={XCircle} 
-                                           variant="danger" 
-                                           onClick={() => handleStatusChange(req._id, 'Rejected')}
-                                         />
-                                      </>
-                                   )}
-                                   {(user?.role === 'Admin' || user?.role === 'Manager') && (
-                                      <ZenIconButton 
-                                        icon={Trash2} 
-                                        variant="outline" 
-                                        onClick={() => { setRequestToDelete(req._id); setIsConfirmOpen(true); }}
-                                      />
-                                   )}
-                                </div>
-                             </td>
-                          </tr>
-                       ))}
+                        {filteredRequests.map((req, idx) => (
+                           <tr key={req._id} className="transition-all group border-b border-black/[0.02]">
+                              <td className="text-center italic opacity-40 text-[11px]">
+                                {(idx + 1).toString().padStart(2, '0')}
+                              </td>
+                              <td>
+                                 <span className="zen-table-primary">{req.employeeName}</span>
+                              </td>
+                              <td>
+                                 <div className="flex items-center justify-center gap-2">
+                                    {req.type === 'Full Day' ? <Calendar size={12} className="text-zen-sand" /> : <Clock size={12} className="text-zen-brown/40" />}
+                                    <span className="text-xs text-zen-brown/60 font-bold">{req.type}</span>
+                                 </div>
+                              </td>
+                              <td>
+                                 <span className="text-xs text-zen-brown/60 font-bold">{dayjs(req.date).format('MMM DD, YYYY')}</span>
+                              </td>
+                              <td>
+                                 <div className="flex justify-center">
+                                    <ZenBadge variant={
+                                       req.status === 'Approved' ? 'leaf' : 
+                                       req.status === 'Rejected' ? 'danger' : 'sand'
+                                    } className="scale-90 font-bold uppercase tracking-widest px-4 py-1.5">
+                                       {req.status}
+                                    </ZenBadge>
+                                 </div>
+                              </td>
+                              <td>
+                                 <div className="flex items-center justify-center gap-2">
+                                    {(req.status === 'Pending' && (user?.role === 'Admin' || user?.role === 'Manager')) && (
+                                       <>
+                                          <ZenIconButton 
+                                            icon={CheckCircle2} 
+                                            onClick={() => handleStatusChange(req._id, 'Approved')}
+                                          />
+                                          <ZenIconButton 
+                                            icon={XCircle} 
+                                            variant="danger" 
+                                            onClick={() => handleStatusChange(req._id, 'Rejected')}
+                                          />
+                                       </>
+                                    )}
+                                    {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                                       <ZenIconButton 
+                                         icon={Trash2} 
+                                         variant="danger" 
+                                         onClick={() => { setRequestToDelete(req._id); setIsConfirmOpen(true); }}
+                                       />
+                                    )}
+                                 </div>
+                              </td>
+                           </tr>
+                        ))}
                        {filteredRequests.length === 0 && (
                           <tr>
                              <td colSpan={5} className="py-20 text-center italic font-serif text-zen-brown/20 text-lg">
-                                No absence records found in the current sequence
+                                No absence records found in the current record
                              </td>
                           </tr>
                        )}
@@ -350,7 +357,7 @@ const Leave = () => {
               />
               <ZenInput
                 type="date"
-                label="Ritual Date"
+                label="Service Date"
                 required
                 value={formData.date}
                 onChange={(e: any) => setFormData({...formData, date: e.target.value})}
@@ -379,7 +386,7 @@ const Leave = () => {
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={executeDelete}
         title="Purge Application?"
-        message="Are you certain you wish to remove this absence record from the sanctuary's history?"
+        message="Are you certain you wish to remove this absence record from the workspace's history?"
       />
     </ZenPageLayout>
   );

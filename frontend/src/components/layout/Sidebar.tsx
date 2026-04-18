@@ -1,37 +1,14 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Users,
-  Calendar,
-  Bed,
-  UserRound,
-  CalendarDays,
-  Sparkles,
-  Receipt,
-  Wallet, 
-  Package, 
-  MessageSquare,
-  BarChart3,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  Settings as SettingsIcon,
-  Shield,
-  Building2,
-  Crown,
-  Tag,
-  DoorOpen,
-  TrendingUp,
-  Landmark,
-  Coins,
-  Percent,
-  UserCheck,
-  Repeat
+  LayoutGrid, Users, CalendarClock, DoorOpen, Briefcase, Plane,
+  Gem, FileText, Landmark, Boxes, MessageCircle, TrendingUp,
+  LogOut, ChevronRight, Settings2, ShieldCheck,
+  MapPin, Award, Layers, CreditCard, Percent,
+  Fingerprint, Timer, Shapes, Key, UserRound, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
-
 import { useSettings } from '../../context/SettingsContext';
 
 const Sidebar = ({
@@ -60,65 +37,65 @@ const Sidebar = ({
   }, []);
 
   const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', permission: 'dashboard' },
-    { name: 'Appointments', icon: Calendar, path: '/appointments', permission: 'appointments' },
-    { name: 'Billing', icon: Coins, path: '/billing', permission: 'billing' },
+    { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard', permission: 'dashboard' },
+    { name: 'Appointments', icon: CalendarClock, path: '/appointments', permission: 'appointments' },
+    { name: 'Billing', icon: CreditCard, path: '/billing', permission: 'billing' },
     { name: 'Clients', icon: Users, path: '/clients', permission: 'clients' },
-    { name: 'Memberships', icon: Crown, path: '/memberships', permission: 'billing' },
+    { name: 'Memberships', icon: Gem, path: '/memberships', permission: 'billing' },
     { name: 'Services', icon: Sparkles, path: '/services', permission: 'services' },
-    { name: 'Rooms', icon: Bed, path: '/rooms', permission: 'rooms' },
-    { name: 'Employees', icon: UserRound, path: '/employees', permission: 'employees' },
-    { name: 'Attendance', icon: UserCheck, path: '/attendance', permission: 'attendance' },
-    { name: 'Shifts', icon: Repeat, path: '/shifts', permission: 'settings' },
-    { name: 'Payroll', icon: TrendingUp, path: '/payroll', permission: 'finance' },
-    { name: 'Leave', icon: CalendarDays, path: '/leave', permission: 'leave' },
-    { name: 'Finance', icon: Wallet, path: '/finance', permission: 'finance' },
-    { name: 'Transactions', icon: Receipt, path: '/transactions', permission: 'finance' },
-    { name: 'Inventory', icon: Package, path: '/inventory', permission: 'inventory' },
-    { name: 'WhatsApp', icon: MessageSquare, path: '/whatsapp', permission: 'whatsapp' },
-    { name: 'Reports', icon: BarChart3, path: '/reports', permission: 'reports' },
-    { name: 'Branches', icon: Building2, path: '/branches', permission: 'settings' },
-    { name: 'Room Category', icon: DoorOpen, path: '/room-categories', permission: 'settings' },
-    { name: 'Service Category', icon: Sparkles, path: '/service-categories', permission: 'settings' },
-    { name: 'Admins', icon: UserRound, path: '/admins', permission: 'roles' },
-    { name: 'Roles', icon: Shield, path: '/roles', permission: 'roles' },
+    { name: 'Rooms', icon: DoorOpen, path: '/rooms', permission: 'rooms' },
+    { name: 'Employees', icon: Briefcase, path: '/employees', permission: 'employees' },
+    { name: 'Attendance', icon: Fingerprint, path: '/attendance', permission: 'attendance' },
+    { name: 'Shifts', icon: Timer, path: '/shifts', permission: 'settings' },
+    { name: 'Payroll', icon: Landmark, path: '/payroll', permission: 'finance' },
+    { name: 'Leave', icon: Plane, path: '/leave', permission: 'leave' },
+    { name: 'Finance', icon: Landmark, path: '/finance', permission: 'finance' },
+    { name: 'Transactions', icon: FileText, path: '/transactions', permission: 'finance' },
+    { name: 'Inventory', icon: Boxes, path: '/inventory', permission: 'inventory' },
+    { name: 'WhatsApp', icon: MessageCircle, path: '/whatsapp', permission: 'whatsapp' },
+    { name: 'Reports', icon: TrendingUp, path: '/reports', permission: 'reports' },
+    { name: 'Branches', icon: MapPin, path: '/branches', permission: 'settings' },
+    { name: 'Room Category', icon: Layers, path: '/room-categories', permission: 'settings' },
+    { name: 'Service Category', icon: Shapes, path: '/service-categories', permission: 'settings' },
+    { name: 'Admins', icon: ShieldCheck, path: '/admins', permission: 'roles' },
+    { name: 'Roles', icon: Key, path: '/roles', permission: 'roles' },
     { name: 'Tax', icon: Percent, path: '/tax', permission: 'settings' },
-    { name: 'Settings', icon: SettingsIcon, path: '/settings', permission: 'settings' },
+    { name: 'Settings', icon: Settings2, path: '/settings', permission: 'settings' },
   ];
 
   const filteredItems = menuItems.filter(item => hasPermission(item.permission));
 
   return (
-    <aside className={`zen-sidebar-gradient text-zen-cream h-full transition-all duration-300 ease-in-out flex flex-col z-20 rounded-[2.5rem] relative overflow-hidden ${isCollapsed ? 'lg:w-20 w-64 md:w-64' : 'w-64'}`}>
-      <div className={`p-6 flex items-center border-b border-zen-cream/5 ${isCollapsed && !isMobile ? 'justify-center' : 'justify-between'}`}>
+    <aside className={`bg-white border-r border-gray-100 h-full transition-all duration-300 ease-in-out flex flex-col z-20 rounded-none relative overflow-hidden ${isCollapsed ? 'lg:w-[75px] w-64 md:w-64' : 'w-[240px]'}`}>
+      
+      {/* Top Logo Section: Black Background */}
+      <div className={`h-16 flex items-center bg-[#0B0F19] text-white ${isCollapsed && !isMobile ? 'justify-center px-0' : 'justify-start px-3.5'}`}>
         {(!isCollapsed || isMobile) ? (
           <div className="flex items-center gap-3">
             {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="w-10 h-10 object-contain rounded-xl bg-white/10 p-1.5" />
+              <img src={logoUrl} alt="Logo" className="w-8 h-8 object-contain rounded-md bg-white/10 p-0.5" />
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                 <Sparkles className="text-zen-sand" size={20} />
+              <div className="w-8 h-8 rounded-md bg-white/10 flex items-center justify-center">
+                 <Sparkles className="text-white" size={16} />
               </div>
             )}
             <div className="flex flex-col">
-              <span className="text-xl font-serif font-bold tracking-tighter text-white truncate max-w-[120px]">
-                {settings?.general?.siteName || 'Spa'}
-              </span>
-              <span className="text-[8px] uppercase tracking-[0.2em] text-zen-leaf font-bold whitespace-nowrap">
-                Premium Wellness
+              <span className="text-sm font-bold tracking-wide text-white truncate max-w-[110px]">
+                {settings?.general?.siteName || 'Settings'}
               </span>
             </div>
           </div>
         ) : (
           logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="w-8 h-8 object-contain rounded-lg bg-white/5 p-1" />
+            <img src={logoUrl} alt="Logo" className="w-8 h-8 object-contain rounded-md bg-white/10 p-0.5" />
           ) : (
-            <Landmark className="text-zen-sand" size={20} />
+            <Sparkles className="text-white" size={18} />
           )
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 scrollbar-hide">
+      {/* Navigation Menu */}
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-hide">
         {filteredItems.map((item) => (
           <NavLink
             key={item.name}
@@ -126,22 +103,23 @@ const Sidebar = ({
             onClick={() => {
               if (window.innerWidth < 1024 && onClose) onClose();
             }}
+            style={({ isActive }) => ({
+               backgroundColor: isActive ? 'var(--zen-sand)' : 'transparent',
+               opacity: isActive ? 0.95 : 1
+            })}
             className={({ isActive }) =>
-              `flex items-center rounded-2xl transition-all duration-300 group ${
-                isCollapsed ? 'justify-center p-3' : 'px-4 py-3.5 hover:translate-x-1'
-              } ${isActive
-                ? 'bg-zen-sand text-white shadow-lg shadow-black/20'
-                : 'text-zen-cream/60 hover:bg-white/5 hover:text-white'
-              }`
+              `flex items-center rounded-xl transition-all duration-300 group ${
+                isCollapsed ? 'justify-center p-2.5 mx-auto w-10 h-10' : 'px-3.5 py-2.5 hover:bg-gray-50'
+              } ${isActive ? 'text-white shadow-md shadow-zen-sand/20' : 'text-slate-500 hover:text-slate-900'}`
             }
           >
             {({ isActive }) => (
               <>
-                <div className={`transition-transform duration-300 group-hover:scale-110 flex items-center justify-center`}>
-                  <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                <div className={`flex items-center justify-center`}>
+                  <item.icon size={18} strokeWidth={isActive ? 1.75 : 1.5} className={isActive ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]' : ''} />
                 </div>
                 {(!isCollapsed || isMobile) && (
-                  <span className={`ml-4 text-sm font-semibold tracking-wide ${isActive ? 'translate-x-1' : ''} transition-transform`}>
+                  <span className={`ml-3 text-[13px] font-bold tracking-wide flex-1 ${isActive ? 'text-white' : 'text-slate-600 group-hover:text-slate-900'}`}>
                     {item.name}
                   </span>
                 )}
@@ -151,18 +129,30 @@ const Sidebar = ({
         ))}
       </nav>
 
-      <div className="p-4 border-t border-zen-cream/5">
-        <button
-          onClick={() => setShowLogoutConfirm(true)}
-          className={`flex items-center w-full text-[#FF6B6B] hover:bg-red-500/10 transition-all duration-300 rounded-2xl group ${
-            isCollapsed ? 'justify-center p-3' : 'px-4 py-3.5'
-          }`}
-        >
-          <div className="group-hover:rotate-12 transition-transform">
-            <LogOut size={20} />
-          </div>
-          {(!isCollapsed || isMobile) && <span className="ml-4 text-sm font-bold uppercase tracking-widest">Logout</span>}
-        </button>
+  <div className="p-3 border-t border-gray-100 relative group cursor-pointer" onClick={() => setShowLogoutConfirm(true)}>
+     <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-red-50 transition-colors">
+        <div className="flex items-center gap-2.5">
+           <div className="relative w-8 h-8 rounded-md bg-slate-900 text-white flex items-center justify-center shrink-0">
+              <UserRound size={15} />
+              <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
+           </div>
+               {(!isCollapsed || isMobile) && (
+                  <div className="flex flex-col">
+                     <span className="text-[13px] font-bold text-slate-900 truncate max-w-[100px]">{user?.name || 'Admin'}</span>
+                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-red-500 transition-colors">Logout Account</span>
+                  </div>
+               )}
+            </div>
+            {(!isCollapsed || isMobile) && (
+               <LogOut size={16} className="text-slate-400 group-hover:text-red-500 transition-colors shrink-0" />
+            )}
+         </div>
+         {isCollapsed && !isMobile && (
+            <div className="absolute inset-0 bg-red-50/0 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+               <LogOut size={18} className="text-red-500 hidden group-hover:block z-10" />
+               <div className="absolute bg-white/80 inset-2 backdrop-blur-sm z-0 hidden group-hover:block rounded-md"></div>
+            </div>
+         )}
       </div>
 
       <ConfirmDialog
@@ -170,13 +160,12 @@ const Sidebar = ({
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={logout}
         title="Confirm Logout"
-        message="Are you sure you want to securely conclude your current session?"
+        message="Are you sure you want to log out of your session?"
         confirmText="Logout Now"
-        cancelText="Preserve Session"
+        cancelText="Cancel"
         type="danger"
       />
     </aside>
-
   );
 };
 

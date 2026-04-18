@@ -3,6 +3,18 @@ const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
 
 
+// @desc    Get public branches
+// @route   GET /api/branches/public
+// @access  Public
+const getPublicBranches = async (req, res) => {
+  try {
+    const { data, pagination } = await paginateModelQuery(Branch, { isActive: true }, req);
+    res.json(pagination ? { data, pagination } : data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get all branches
 // @route   GET /api/branches
 // @access  Private
@@ -124,6 +136,7 @@ const deleteBranch = async (req, res) => {
 };
 
 module.exports = {
+  getPublicBranches,
   getBranches,
   createBranch,
   updateBranch,

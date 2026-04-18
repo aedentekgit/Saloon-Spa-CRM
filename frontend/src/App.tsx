@@ -7,6 +7,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import { SettingsProvider } from './context/SettingsContext';
 
+import { BranchProvider } from './context/BranchContext';
+import { CategoryProvider } from './context/CategoryContext';
+
 // Components
 import Sidebar from './components/layout/Sidebar';
 import Navbar from './components/layout/Navbar';
@@ -62,7 +65,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const { loading: dataLoading } = useData();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [isCollapsed, setIsCollapsed] = React.useState(() => {
+    return localStorage.getItem('zen_sidebar_collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('zen_sidebar_collapsed', next.toString());
+      return next;
+    });
+  };
 
   if (authLoading || dataLoading) {
     return <ZenLoadingBarrier />;
@@ -72,15 +85,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex p-0 lg:p-4 gap-0 lg:gap-4 h-[100dvh] bg-zen-cream overflow-hidden font-sans text-zen-brown relative">
+    <div className="flex p-0 gap-0 h-[100dvh] bg-zen-cream overflow-hidden font-sans text-zen-brown relative">
       <div className={`
         fixed inset-y-0 left-0 z-[100] transform lg:relative lg:translate-x-0 transition-all duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        ${isCollapsed ? 'lg:w-24 w-64' : 'w-64'}
+        ${isCollapsed ? 'lg:w-[75px] w-64' : 'w-[240px]'}
       `}>
         <Sidebar 
           isCollapsed={isCollapsed} 
-          setIsCollapsed={setIsCollapsed} 
+          setIsCollapsed={toggleSidebar} 
           onClose={() => setIsMobileMenuOpen(false)} 
         />
       </div>
@@ -92,12 +105,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         />
       )}
 
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scrollbar-hide bg-white/80 backdrop-blur-xl rounded-none lg:rounded-[3rem] border border-zen-brown/15 scroll-smooth relative pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
+      <div className="flex-1 flex flex-col min-w-0 relative bg-[#F9FAFB]">
+        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scrollbar-hide rounded-none scroll-smooth relative pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
           <Navbar 
             onMenuClick={() => setIsMobileMenuOpen(true)} 
             isCollapsed={isCollapsed}
-            setIsCollapsed={setIsCollapsed}
+            setIsCollapsed={toggleSidebar}
           />
           <AnimatePresence mode="wait">
             <motion.div
@@ -106,7 +119,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
-              className="min-h-full w-full lg:rounded-[3rem]"
+              className="min-h-full w-full rounded-none"
             >
               <ErrorBoundary>
                 {children}
@@ -168,8 +181,6 @@ const AppRoutes = () => {
   );
 };
 
-import { BranchProvider } from './context/BranchContext';
-import { CategoryProvider } from './context/CategoryContext';
 
 export default function App() {
   return (

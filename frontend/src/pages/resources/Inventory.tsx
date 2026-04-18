@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'motion/react';
 import { 
   Package, 
   Plus, 
@@ -16,7 +17,10 @@ import {
   ChevronRight,
   Camera,
   Upload,
-  X
+  X,
+  MapPin,
+  Grid,
+  List
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -24,6 +28,7 @@ import { useBranches } from '../../context/BranchContext';
 import { useCategories } from '../../context/CategoryContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
 import { ZenInput, ZenDropdown } from '../../components/zen/ZenInputs';
 import { Modal } from '../../components/shared/Modal';
@@ -44,7 +49,7 @@ interface InventoryItem {
 const Inventory = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const { branches, selectedBranch } = useBranches();
+  const { branches, selectedBranch, setSelectedBranch } = useBranches();
   const { getInventoryCategories } = useCategories();
   const inventoryCategories = getInventoryCategories();
 
@@ -126,7 +131,7 @@ const Inventory = () => {
         setTotalPages(1);
       }
     } catch (error) {
-      notify('error', 'Sync Failure', 'Failed to synchronize material sanctuary records');
+      notify('error', 'Sync Failure', 'Failed to synchronize inventory records');
     } finally {
       setLoading(false);
     }
@@ -183,12 +188,12 @@ const Inventory = () => {
       });
 
       if (response.ok) {
-        notify('success', 'Resource Purged', 'The item has been removed from the material sanctuary.');
+        notify('success', 'Item Removed', 'The item has been removed from inventory.');
         setIsConfirmOpen(false);
         fetchInventory();
       }
     } catch (error) {
-      notify('error', 'Removal Error', 'Failed to purge material record.');
+      notify('error', 'Removal Error', 'Failed to delete inventory record.');
     }
   };
 
@@ -207,7 +212,7 @@ const Inventory = () => {
       });
 
       if (response.ok) {
-        notify('info', 'Stock Resonance', `Inventory adjusted by ${amount > 0 ? '+' : ''}${amount} units.`);
+        notify('info', 'Stock Update', `Inventory adjusted by ${amount > 0 ? '+' : ''}${amount} units.`);
         fetchInventory();
       }
     } catch (error) {
@@ -243,7 +248,7 @@ const Inventory = () => {
       });
 
       if (response.ok) {
-        notify('success', editingItem ? 'Record Refined' : 'Resource Recorded', editingItem ? 'Material details archived successfully.' : 'New material joined the sanctuary.');
+        notify('success', editingItem ? 'Inventory Updated' : 'Resource Recorded', editingItem ? 'Item details saved successfully.' : 'New item added to inventory.');
         setIsModalOpen(false);
         fetchInventory();
       }
@@ -254,261 +259,268 @@ const Inventory = () => {
 
   return (
     <ZenPageLayout
-      title="Material Sanctuary"
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
+      title="Inventory"
+      hideSearch
+      hideBranchSelector
+      hideViewToggle
       viewMode={viewMode}
       onViewModeChange={setViewMode}
-      addButtonLabel="Enroll Material"
-      onAddClick={() => handleOpenModal()}
-      headerActions={
-        <div className="shrink-0 min-w-[200px]">
-           <ZenDropdown
-             label="Sector Filter"
-             options={[
-               { value: 'All', label: 'All Sectors' },
-               ...inventoryCategories.map((c: string) => ({ value: c, label: c }))
-             ]}
-             value={selectedCategory}
-             onChange={setSelectedCategory}
-             icon={Boxes}
-           />
-        </div>
-      }
     >
-
-      <div className="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-4 sm:gap-8 mb-8 sm:mb-12 pb-4 group/metrics custom-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="min-w-[280px] lg:min-w-0 flex-1 bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-sm group transition-all duration-700 hover:-translate-y-2">
-           <div className="flex justify-between items-start mb-6">
-              <div className="p-4 sm:p-5 bg-zen-cream/50 text-zen-brown rounded-2xl sm:rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
-                 <Boxes size={24} className="sm:w-7 sm:h-7" />
-              </div>
-           </div>
-           <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[.4em]">Resource Volume</p>
-           <h3 className="text-3xl font-serif font-bold text-zen-brown mt-2">{metrics.totalItems} <span className="text-lg font-sans opacity-20">Items</span></h3>
+      <div className="space-y-10 pb-20">
+        {/* Dynamic Summary Cards */}
+        <div className="flex overflow-x-auto pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+          {[
+            { label: 'Inventory Volume', value: metrics.totalItems, trend: 'Items in workspace', icon: Boxes, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20' },
+            { label: 'Critical Levels', value: metrics.lowStockCount, trend: 'Replenish required', icon: AlertTriangle, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20' },
+            { label: 'Flow Categories', value: metrics.categoryCount, trend: 'Resource types', icon: Truck, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20' },
+            { label: 'Stock Health', value: metrics.lowStockCount === 0 ? 'Pure Harmony' : 'Replenish Required', trend: 'System status', icon: Sparkles, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20' }
+          ].map((stat, i) => (
+            <ZenStatCard key={i} {...stat} delay={i * 0.2} />
+          ))}
         </div>
 
-        <div className="min-w-[280px] lg:min-w-0 flex-1 bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-sm group transition-all duration-700 hover:-translate-y-2">
-           <div className="flex justify-between items-start mb-6">
-              <div className="p-4 sm:p-5 bg-orange-50 text-orange-600 rounded-2xl sm:rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
-                 <AlertTriangle size={24} className="sm:w-7 sm:h-7" />
-              </div>
-           </div>
-           <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[.4em]">Critical Levels</p>
-           <h3 className="text-3xl font-serif font-bold text-orange-600 mt-2">{metrics.lowStockCount} <span className="text-lg font-sans opacity-40">Alerts</span></h3>
+        {/* Global Filter Bar */}
+        <div className="bg-white/80 backdrop-blur-xl px-4 sm:px-6 py-4 sm:py-5 rounded-2xl border border-zen-brown/15 shadow-sm">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
+            {/* Search */}
+            <div className="relative group flex-1 w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={15} />
+              <input 
+                type="text"
+                placeholder="Search inventory..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
+              />
+            </div>
+
+            {/* Right Controls */}
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full lg:w-auto mt-4 lg:mt-0">
+
+            {/* Branch Filter */}
+            <div className="w-[170px] shrink-0">
+              <ZenDropdown
+                label=""
+                options={['All Branches', ...branches.filter(b => b.isActive).map(b => b.name)]}
+                value={branches.find(b => b._id === selectedBranch)?.name || 'All Branches'}
+                onChange={(val) => {
+                  if (val === 'All Branches') {
+                    setSelectedBranch('all');
+                  } else {
+                    const branch = branches.find(b => b.name === val);
+                    if (branch) setSelectedBranch(branch._id);
+                  }
+                }}
+                icon={MapPin}
+                className="w-full"
+              />
+            </div>
+
+            <div className="flex flex-col gap-3">
+               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
+               {/* View Mode Toggle */}
+               <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner shrink-0">
+                 <button 
+                   onClick={() => setViewMode('grid')}
+                   className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
+                 >
+                   <Grid size={15} />
+                 </button>
+                 <button 
+                   onClick={() => setViewMode('table')}
+                   className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
+                 >
+                   <List size={15} />
+                 </button>
+               </div>
+            </div>
+
+            <div className="flex flex-col gap-3 w-full lg:w-auto">
+               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Management</label>
+               {/* Enroll Button */}
+               <ZenButton onClick={() => handleOpenModal()} variant="primary" className="w-full sm:w-auto px-6 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
+                 <Plus size={15} className="group-hover:rotate-90 transition-transform duration-500" />
+                 <span className="uppercase tracking-[0.2em] text-[10px] font-black whitespace-nowrap">Enroll Material</span>
+               </ZenButton>
+            </div>
+            </div>
+          </div>
         </div>
 
-        <div className="min-w-[280px] lg:min-w-0 flex-1 bg-white/80 backdrop-blur-xl p-8 rounded-[3.5rem] border border-white shadow-sm group transition-all duration-700 hover:-translate-y-2">
-           <div className="flex justify-between items-start mb-6">
-              <div className="p-4 sm:p-5 bg-zen-leaf/10 text-zen-leaf rounded-2xl sm:rounded-[1.5rem] group-hover:scale-110 transition-transform duration-500">
-                 <Truck size={24} className="sm:w-7 sm:h-7" />
-              </div>
-           </div>
-           <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[.4em]">Flow Categories</p>
-           <h3 className="text-3xl font-serif font-bold text-zen-brown mt-2">{metrics.categoryCount} <span className="text-lg font-sans opacity-20">Sectors</span></h3>
-        </div>
+        {viewMode === 'grid' ? (
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredInventory.map((item, i) => {
+                const imgUrl = getImageUrl(item.image);
+                const branchName = (item as any).branch?.name || 'Main Registry';
 
-        <div className="min-w-[280px] lg:min-w-0 flex-1 bg-zen-brown p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-sm border border-white relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
-           <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-1000">
-              <Sparkles size={120} />
-           </div>
-           <div className="relative z-10">
-              <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.4em] mb-4">Sanctuary Health</p>
-              <h4 className="text-xl font-serif font-bold text-white mb-2">
-                {lowStockCount === 0 ? 'Pure Harmony' : 'Urgent Replenish'}
-              </h4>
-              <p className="text-xs text-white/50 leading-relaxed font-medium capitalize prose">
-                {lowStockCount === 0 
-                  ? 'The material resonance is stable across all sectors.' 
-                  : `Attention required for ${lowStockCount} critical materials.`}
-              </p>
-           </div>
-        </div>
-      </div>
+                return (
+                  <div 
+                    key={item._id} 
+                    className="group relative bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-zen-brown/15 overflow-hidden flex flex-col transition-all duration-700 hover:shadow-xl hover:translate-y-[-4px]"
+                    style={{ animationDelay: `${i * 50}ms` }}
+                  >
+                    {/* Visual Frame */}
+                    <div className="aspect-[16/10] relative overflow-hidden bg-zen-cream/50">
+                      {imgUrl ? (
+                        <img 
+                          src={imgUrl} 
+                          alt={item.name}
+                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zen-brown/10">
+                          <Package size={48} strokeWidth={0.5} />
+                        </div>
+                      )}
 
-      {viewMode === 'grid' ? (
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-10">
-            {filteredInventory.map((item, i) => {
-              const imgUrl = getImageUrl(item.image);
-              const branchName = (item as any).branch?.name || 'Main Sanctuary';
-
-              return (
-                <div 
-                  key={item._id} 
-                  className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[4rem] shadow-sm border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8"
-                  style={{ animationDelay: `${i * 50}ms` }}
-                >
-                  {/* Visual Frame */}
-                  <div className="aspect-[16/9] sm:aspect-[4/3] relative overflow-hidden bg-white">
-                    {imgUrl ? (
-                      <img 
-                        src={imgUrl} 
-                        alt={item.name}
-                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.2] group-hover:grayscale-0"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-zen-cream flex items-center justify-center text-zen-brown/10">
-                        <Package size={48} strokeWidth={0.5} />
-                      </div>
-                    )}
-
-                    {/* Dynamic Badges */}
-                    <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex flex-col items-end gap-2">
-                      <div className={`px-3 py-1 sm:px-5 sm:py-2 backdrop-blur-3xl rounded-full text-[9px] sm:text-[10px] font-bold tracking-widest flex items-center gap-2 shadow-lg border border-white/20 ${
-                        item.status === 'Low Stock' ? 'bg-red-400 text-white' : 'bg-white/80 text-zen-brown'
-                      }`}>
-                        {item.status === 'Low Stock' ? <AlertTriangle size={10} className="sm:w-3 sm:h-3" /> : <Box size={10} className="sm:w-3 sm:h-3" />}
-                        {item.status === 'Low Stock' ? 'CRITICAL' : 'STABLE'}
-                      </div>
-                      <div className="px-3 py-1 sm:px-5 sm:py-2 backdrop-blur-3xl bg-zen-brown/90 rounded-full text-[9px] sm:text-[10px] font-bold tracking-widest text-white flex items-center gap-1.5 shadow-lg">
-                        <span className="text-white/40">AVAILABLE</span>
-                        {item.stock} {item.unit || 'Nos'}
-                      </div>
-                    </div>
-
-                    {/* Branch Label */}
-                    <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 flex flex-col gap-2">
-                      <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[8px] sm:text-[9px] font-bold tracking-widest text-white uppercase border border-white/40 shadow-sm">
-                         {branchName}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="p-6 sm:p-8 flex flex-col flex-1 gap-4 sm:gap-6">
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-2 text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.3em] text-zen-brown/40">
-                        <Zap size={10} />
-                        {item.category} Registry
-                      </div>
-                      <h3 className="text-2xl sm:text-3xl font-serif font-bold text-zen-brown leading-tight truncate-2-lines">{item.name}</h3>
-                    </div>
-
-                    <div className="bg-zen-cream/5 rounded-3xl p-4 sm:p-6 border border-zen-brown/5">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Resonance Stability</span>
-                          <span className="text-[10px] font-serif italic text-zen-brown/60">Material levels monitored</span>
+                      {/* Status Badges */}
+                      <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+                        <div className={`px-3 py-1 rounded-full text-[8px] font-black tracking-widest border border-white/20 shadow-lg ${
+                          item.status === 'Low Stock' ? 'bg-red-500 text-white' : 'bg-white/90 text-zen-brown'
+                        }`}>
+                          {item.status === 'Low Stock' ? 'CRITICAL' : 'STABLE'}
                         </div>
                       </div>
                     </div>
                     
-                    <div className="mt-auto pt-4 sm:pt-6 flex items-center justify-between border-t border-zen-brown/5">
-                      <div>
-                        <p className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-widest mb-0.5">Primary Source</p>
-                        <p className="text-[10px] font-bold text-zen-brown/60 uppercase">{item.vendor || 'Aris Sanctuary'}</p>
+                    <div className="p-6 flex flex-col flex-1">
+                      <div className="mb-4">
+                         <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">{item.category}</span>
+                         <h3 className="text-xl font-serif font-black text-zen-brown leading-tight truncate-2-lines">{item.name}</h3>
                       </div>
 
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(item)} size="sm" title="Refine Material" />
-                        <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setItemToDelete(item._id); setIsConfirmOpen(true); }} size="sm" title="Deplete" />
+                      <div className="mt-auto pt-4 flex flex-col gap-4">
+                         <div className="flex items-center justify-between">
+                            <div className="flex flex-col">
+                               <span className="text-[18px] font-serif font-black text-zen-brown leading-none">
+                                  {item.stock} <span className="text-[10px] font-sans opacity-40 uppercase font-bold">{item.unit || 'Nos'}</span>
+                               </span>
+                               <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">On Hand</span>
+                            </div>
+                            <ZenBadge variant="sand" className="text-[8px] font-bold uppercase py-1">{branchName}</ZenBadge>
+                         </div>
+                         
+                         <div className="flex items-center justify-between gap-2 pt-4 border-t border-black/[0.03]">
+                            <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-wider">{item.vendor || 'Inventory'}</span>
+                            <div className="flex items-center gap-2">
+                               <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(item)} />
+                               <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setItemToDelete(item._id); setIsConfirmOpen(true); }} />
+                            </div>
+                         </div>
                       </div>
                     </div>
                   </div>
+                );
+              })}
+              {filteredInventory.length === 0 && (
+                <div className="col-span-full py-40 text-center italic font-serif text-zen-brown/20 text-2xl">
+                   No items found for the current filters.
                 </div>
-              );
-            })}
-            {filteredInventory.length === 0 && (
-               <div className="col-span-full py-40 text-center opacity-20 italic font-serif text-2xl">
-                  No materials found in the current sequence.
-               </div>
-            )}
-         </div>
-      ) : (
-         <div className="bg-white/70 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[3.5rem] shadow-2xl shadow-zen-brown/15 border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
-            <table className="w-full text-center border-collapse min-w-[1000px]">
-               <thead>
-                  <tr className="bg-zen-brown border-b border-zen-brown/15">
-                     <th className="px-10">S No</th>
-                     <th className="px-10">Image</th>
-                     <th className="text-left">Item Name</th>
-                     <th>Category</th>
-                     <th>Branch</th>
-                     <th>Stock</th>
-                     <th className="text-right">Actions</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-zen-brown/15">
-                     {filteredInventory.map((item, index) => (
-                        <tr key={item._id} className="group transition-all duration-500">
-                           <td className="text-center italic opacity-40">
-                              {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
-                           </td>
-                           <td>
-                              <div className="flex justify-center">
-                                 <div className="w-14 h-10 rounded-2xl bg-zen-cream overflow-hidden border-2 border-white shadow-sm group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
-                                    {item.image ? (
-                                    <img src={getImageUrl(item.image)} className="w-full h-full object-cover" />
-                                    ) : (
-                                    <Package size={16} className="text-zen-brown/20" />
-                                    )}
-                                 </div>
-                              </div>
-                           </td>
-                           <td>
-                              <div className="flex flex-col items-start text-left">
-                                 <span className="zen-table-primary">{item.name}</span>
-                                 <span className="zen-table-meta">{item.vendor || 'N/A'}</span>
-                              </div>
-                           </td>
-                           <td className="px-8 py-5 text-center">
-                              <ZenBadge variant="sand" className="px-4 py-1">{item.category}</ZenBadge>
-                           </td>
-                           <td className="px-8 py-5 text-center">
-                              <ZenBadge variant="sand" className="px-4 py-1 font-bold">{(item as any).branch?.name || 'Main Registry'}</ZenBadge>
-                           </td>
-                           <td className="px-8 py-5 text-center">
-                              <div className="flex items-center justify-center gap-4">
-                                 <div className="flex flex-col items-center">
-                                    <span className={`text-xl font-serif font-black leading-none ${item.stock <= item.lowStock ? 'text-red-500' : 'text-zen-brown'}`}>{item.stock} <span className="text-[10px] font-sans opacity-40 ml-0.5">{item.unit || 'Nos'}</span></span>
-                                    <span className="text-[8px] font-black opacity-30 uppercase tracking-widest mt-1">Available</span>
-                                 </div>
-                                 {item.stock <= item.lowStock && (
-                                    <div className="p-2 bg-red-50 text-red-500 rounded-lg animate-pulse border border-red-100 shadow-sm">
-                                       <AlertTriangle size={14} />
-                                    </div>
-                                 )}
-                              </div>
-                           </td>
-                           <td className="px-8 py-5 text-right">
-                              <div className="flex items-center justify-end gap-2.5">
-                                 <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(item)} size="sm" />
-                                 <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setItemToDelete(item._id); setIsConfirmOpen(true); }} size="sm" />
-                              </div>
-                           </td>
-                        </tr>
-                     ))}
-                     {filteredInventory.length === 0 && (
-                        <tr>
-                           <td colSpan={6} className="py-40 text-center text-zen-brown/20 italic font-serif text-2xl border-none">
-                              No materials found in the current resonance.
-                           </td>
-                        </tr>
-                     )}
-                  </tbody>
-               </table>
-               <div className="flex justify-center p-4">
-                 <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-               </div>
-         </div>
-      )}
+              )}
+           </div>
+        ) : (
+           <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+              <table className="w-full text-center border-collapse min-w-[1000px]">
+                 <thead>
+                    <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                       <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S No</th>
+                       <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Visual</th>
+                       <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Material</th>
+                       <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Sector</th>
+                       <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Branch</th>
+                       <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Stock Level</th>
+                       <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Actions</th>
+                    </tr>
+                 </thead>
+                 <tbody>
+                       {(!filteredInventory || filteredInventory.length === 0) && (
+                          <tr>
+                             <td colSpan={7} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">No items recorded yet</td>
+                          </tr>
+                       )}
+
+                       {filteredInventory.map((item, index) => (
+                          <tr key={item._id} className="transition-all group border-b border-black/[0.02]">
+                             <td className="text-center italic opacity-40 text-[11px]">
+                                {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
+                             </td>
+                             <td>
+                                <div className="flex justify-center">
+                                   <div className="w-12 h-10 rounded-xl bg-zen-cream overflow-hidden border border-zen-brown/10 shadow-sm group-hover:scale-110 transition-transform duration-500 flex items-center justify-center shrink-0">
+                                      {item.image ? (
+                                      <img src={getImageUrl(item.image)} className="w-full h-full object-cover" />
+                                      ) : (
+                                      <Package size={16} className="text-zen-brown/20" />
+                                      )}
+                                   </div>
+                                </div>
+                             </td>
+                             <td>
+                                <div className="flex flex-col items-center px-6">
+                                   <span className="zen-table-primary">{item.name}</span>
+                                   <span className="zen-table-meta">{item.vendor || 'Inventory'}</span>
+                                </div>
+                             </td>
+                             <td>
+                                <div className="flex justify-center">
+                                   <ZenBadge variant="sand" className="text-[8px] font-black uppercase tracking-widest py-1 scale-90">{item.category}</ZenBadge>
+                                </div>
+                             </td>
+                             <td>
+                                <div className="flex justify-center">
+                                   <ZenBadge variant="sand" className="text-[8px] font-black uppercase tracking-widest py-1 scale-90">{(item as any).branch?.name || 'Main Registry'}</ZenBadge>
+                                </div>
+                             </td>
+                             <td>
+                                <div className="flex items-center justify-center gap-4">
+                                   <div className="flex flex-col items-center">
+                                      <span className={`text-base font-serif font-black leading-none ${item.stock <= item.lowStock ? 'text-red-500' : 'text-zen-brown'}`}>
+                                         {item.stock} <span className="text-[10px] font-sans opacity-40 uppercase font-bold">{item.unit || 'Nos'}</span>
+                                      </span>
+                                      <span className="text-[8px] font-black opacity-30 uppercase tracking-widest mt-1">In Reserve</span>
+                                   </div>
+                                   {item.stock <= item.lowStock && (
+                                      <div className="p-1.5 bg-red-50 text-red-500 rounded-lg animate-pulse border border-red-100 shadow-sm">
+                                         <AlertTriangle size={12} />
+                                      </div>
+                                   )}
+                                </div>
+                             </td>
+                             <td>
+                                <div className="flex items-center justify-center gap-2">
+                                   <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(item)} />
+                                   <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setItemToDelete(item._id); setIsConfirmOpen(true); }} />
+                                </div>
+                             </td>
+                          </tr>
+                       ))}
+                    </tbody>
+              </table>
+           </div>
+        )}
+
+        <div className="flex justify-center pt-8">
+           <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      </div>
 
 
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        title={editingItem ? 'Refine Material' : 'Enroll Material'}
-        subtitle="Material Sanctuary Record"
+        title={editingItem ? 'Edit Inventory Item' : 'New Inventory Item'}
+        subtitle="Manage stock records"
         maxWidth="max-w-4xl"
         headerIcon={Sparkles}
         footer={
           <div className="flex gap-6">
-            <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Discard</ZenButton>
+            <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Cancel</ZenButton>
             <ZenButton 
               type="submit" 
               form="inventory-form"
               className="flex-[2] shadow-sm shadow-zen-brown/20 flex items-center justify-center gap-3"
             >
-               <span>{editingItem ? 'Archive Refinement' : 'Commit Resource'}</span>
+               <span>{editingItem ? 'Save Item' : 'Create Item'}</span>
                <Sparkles size={18} />
             </ZenButton>
           </div>
@@ -529,9 +541,9 @@ const Inventory = () => {
               </div>
               <div className="flex-1">
                  <ZenInput
-                   label="Material Identity"
+                   label="Item Name"
                    required
-                   placeholder="e.g. Essential Healing Essence"
+                   placeholder="e.g. 24K Gold Facial Serum"
                    value={formData.name}
                    onChange={(e: any) => setFormData({...formData, name: e.target.value})}
                  />
@@ -540,20 +552,20 @@ const Inventory = () => {
 
            <div className="grid grid-cols-2 gap-8">
               <ZenDropdown
-                label="Tactical Sector"
+                label="Category"
                 value={formData.category}
                 onChange={val => setFormData({...formData, category: val})}
                 options={['None', ...inventoryCategories]}
               />
               <ZenInput
                 type="number"
-                label="Exchange Base"
+                label="Opening Stock"
                 required
                 value={formData.stock}
                 onChange={(e: any) => setFormData({...formData, stock: parseInt(e.target.value)})}
               />
               <ZenDropdown
-                label="Unit Descriptor"
+                label="Unit"
                 value={formData.unit}
                 onChange={val => setFormData({...formData, unit: val})}
                 options={['Nos', 'kg', 'gm', 'L', 'ml', 'Pack', 'Bottle']}
@@ -563,7 +575,7 @@ const Inventory = () => {
            <div className="grid grid-cols-2 gap-8">
               <ZenInput
                 type="number"
-                label="Critical Threshold"
+                label="Reorder Level"
                 required
                 value={formData.lowStock}
                 onChange={(e: any) => setFormData({...formData, lowStock: parseInt(e.target.value)})}
@@ -580,8 +592,8 @@ const Inventory = () => {
            </div>
            <div className="grid grid-cols-1 gap-8">
               <ZenInput
-                label="Resource Source (Branch)"
-                placeholder="Vendor Identity"
+                label="Supplier / Source"
+                placeholder="Supplier name"
                 value={formData.vendor}
                 onChange={(e: any) => setFormData({...formData, vendor: e.target.value})}
               />
@@ -590,19 +602,19 @@ const Inventory = () => {
            <div className="space-y-4 bg-zen-cream/10 p-6 rounded-3xl border border-zen-brown/15">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">Asset Management</label>
-                  <h4 className="text-sm font-serif font-bold text-zen-brown mt-0.5">Physical Representation</h4>
+                  <label className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">Visual Asset</label>
+                  <h4 className="text-sm font-serif font-bold text-zen-brown mt-0.5">Item image</h4>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-zen-brown/15">
                   <Upload size={10} className="text-zen-brown/40" />
-                  <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">{settings?.upload.provider === 'cloudinary' ? 'Aether Sync' : 'Local Disk'}</span>
+                  <span className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest">{settings?.upload.provider === 'cloudinary' ? 'Cloud Storage' : 'Local Storage'}</span>
                 </div>
               </div>
               
               <div className="flex items-center gap-4">
                 <label htmlFor="inventory-image-footer" className="flex-1 h-12 bg-white border border-zen-brown/25 rounded-xl flex items-center justify-center gap-3 cursor-pointer hover:bg-zen-brown hover:text-white hover:border-zen-brown transition-all group/btn shadow-sm">
                    <Camera size={16} className="text-zen-brown/30 group-hover/btn:text-white transition-colors" />
-                   <span className="text-[10px] font-bold uppercase tracking-widest">Update Visual</span>
+                   <span className="text-[10px] font-bold uppercase tracking-widest">Replace Image</span>
                 </label>
                 <input type="file" id="inventory-image-footer" className="hidden" onChange={e => setImageFile(e.target.files?.[0] || null)} />
                 
@@ -621,8 +633,8 @@ const Inventory = () => {
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={executeDelete}
-        title="Purge Resource?"
-        message="Are you certain you wish to remove this material from the sanctuary's reserves?"
+        title="Delete item?"
+        message="Are you sure you want to remove this item from inventory?"
       />
     </ZenPageLayout>
   );

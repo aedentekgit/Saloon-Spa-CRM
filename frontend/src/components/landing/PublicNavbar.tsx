@@ -2,10 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, Sparkles, User, ArrowUpRight } from 'lucide-react';
+import { usePublicSettings } from './usePublicSettings';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const BASE_URL = API_URL.replace('/api', '');
+
+function getImageUrl(path?: string): string {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const clean = path.replace(/^\.?\/?/, '');
+  return `${BASE_URL}/${clean}`;
+}
 
 const PublicNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { settings } = usePublicSettings();
+  const siteName = settings.general.siteName;
+  const logoUrl = getImageUrl(settings.general.logo);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,7 +41,7 @@ const PublicNavbar = () => {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-[100] border-b border-zen-primary/10 transition-all duration-500 ${
-        scrolled ? 'bg-[#FAF9F6]/95 backdrop-blur-2xl shadow-lg shadow-zen-primary/5' : 'bg-[#FAF9F6]/90 backdrop-blur-xl'
+        scrolled ? 'bg-zen-cream/95 backdrop-blur-2xl shadow-lg shadow-zen-primary/5' : 'bg-zen-cream/90 backdrop-blur-xl'
       }`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -35,10 +49,14 @@ const PublicNavbar = () => {
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-3 group shrink-0">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zen-primary text-zen-contrast shadow-lg transition-transform duration-500 group-hover:scale-110">
-              <Sparkles size={18} />
+              {logoUrl ? (
+                <img src={logoUrl} alt={siteName} className="h-full w-full rounded-full object-cover" />
+              ) : (
+                <Sparkles size={18} />
+              )}
             </div>
             <span className="hidden sm:block font-serif text-lg font-bold tracking-[0.2em] uppercase text-black">
-              ZenSpa
+              {siteName}
             </span>
           </NavLink>
 
@@ -111,10 +129,14 @@ const PublicNavbar = () => {
             {/* Elegant Header Area */}
             <div className="flex h-24 shrink-0 items-center justify-between px-8 bg-[#FDFCFB] border-b border-zen-primary/5">
               <NavLink to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zen-primary text-zen-contrast shadow-xl shadow-zen-primary/20">
-                  <Sparkles size={20} />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zen-primary text-zen-contrast shadow-xl shadow-zen-primary/20">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt={siteName} className="h-full w-full rounded-full object-cover" />
+                  ) : (
+                    <Sparkles size={20} />
+                  )}
                 </div>
-                <span className="font-serif text-xl font-bold tracking-[0.2em] uppercase text-black">ZenSpa</span>
+                <span className="font-serif text-xl font-bold tracking-[0.2em] uppercase text-black">{siteName}</span>
               </NavLink>
               <button
                 onClick={() => setIsOpen(false)}

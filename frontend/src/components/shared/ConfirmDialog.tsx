@@ -40,7 +40,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             initial={{ scale: 0.9, opacity: 0, y: 30 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 30 }}
-            className="relative w-full max-w-lg bg-white/90 backdrop-blur-2xl rounded-[4rem] shadow-2xl overflow-hidden border border-white"
+            className="relative w-full max-w-lg bg-white/90 backdrop-blur-2xl rounded-[1.5rem] shadow-2xl overflow-hidden border border-white"
           >
             {/* Background Decor */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-zen-sand/5 rounded-full blur-3xl -z-0 pointer-events-none" />
@@ -50,7 +50,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               type === 'danger' ? 'bg-red-50/20' : 
               type === 'warning' ? 'bg-orange-50/20' : 'bg-zen-cream/10'
             }`}>
-              <div className={`w-24 h-24 rounded-[2rem] flex items-center justify-center mb-10 shadow-2xl border border-white ${
+              <div className={`w-24 h-24 rounded-[1rem] flex items-center justify-center mb-10 shadow-2xl border border-white ${
                 type === 'danger' ? 'bg-white text-red-500 shadow-red-500/10' : 
                 type === 'warning' ? 'bg-white text-orange-500 shadow-orange-500/10' : 'bg-white text-zen-brown shadow-zen-brown/10'
               }`}>
@@ -73,7 +73,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                    onConfirm();
                    onClose();
                 }}
-                className={`flex-[2] py-4 rounded-[2.5rem] font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-2xl flex items-center justify-center gap-2 ${
+                className={`flex-[2] py-4 rounded-[1rem] font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-2xl flex items-center justify-center gap-2 ${
                    type === 'danger' ? 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/20' : 
                    type === 'warning' ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-500/20' : 
                    'bg-zen-brown text-white hover:bg-zen-brown/90 shadow-zen-brown/20'

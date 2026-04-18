@@ -37,7 +37,7 @@ export const BranchSelector = ({
   return (
     <div className={`min-w-[180px] sm:min-w-[220px] ${className}`}>
       <ZenDropdown
-        label="Select Sanctuary"
+        label="Select Branch"
         hideLabel={hideLabel}
         variant={variant}
         icon={GitBranch}

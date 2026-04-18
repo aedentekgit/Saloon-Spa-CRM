@@ -41,8 +41,8 @@ const LandingRooms = () => {
       try {
         setLoading(true);
         const [roomRes, branchRes] = await Promise.all([
-          fetch(`${API_URL}/rooms`),
-          fetch(`${API_URL}/branches`)
+          fetch(`${API_URL}/rooms/public`),
+          fetch(`${API_URL}/branches/public`)
         ]);
 
         if (!roomRes.ok || !branchRes.ok) throw new Error('Sanctuary records unavailable');
@@ -75,13 +75,13 @@ const LandingRooms = () => {
   }, [rooms, selectedBranch]);
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#32172A]">
+    <div className="min-h-screen bg-zen-cream text-zen-primary">
       {/* Hero Section */}
       <section className="px-6 lg:px-24 mb-16 pt-12">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-end">
           <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
-             <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-[#4A2C40]/60">
-                <span className="w-8 h-[1px] bg-[#4A2C40]/30" />
+             <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-zen-brown/60">
+                <span className="w-8 h-[1px] bg-zen-primary/30" />
                 Private Sanctuaries
              </div>
              <h1 className="text-6xl lg:text-7xl font-serif font-bold leading-tight">
@@ -90,7 +90,7 @@ const LandingRooms = () => {
              </h1>
           </div>
           <div className="pb-4 animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">
-             <p className="text-xl text-[#32172A]/70 leading-relaxed font-sans max-w-md">
+             <p className="text-xl text-zen-primary/70 leading-relaxed font-sans max-w-md">
                 Each chamber is a cocoon of silence, meticulously designed to facilitate your journey back to yourself.
              </p>
           </div>
@@ -100,13 +100,13 @@ const LandingRooms = () => {
       {/* Branch Tabs */}
       <section className="px-6 lg:px-24 mb-16">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap items-center gap-4 lg:gap-8 pb-8 border-b border-[#32172A]/5 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap items-center gap-4 lg:gap-8 px-4 -mx-4 pt-4 -mt-4 pb-8 border-b border-zen-primary/5 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setSelectedBranch('all')}
               className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap
                 ${selectedBranch === 'all' 
-                  ? 'bg-[#32172A] text-[#FAF9F6] shadow-xl scale-105' 
-                  : 'bg-white text-[#32172A]/40 hover:text-[#32172A] border border-[#32172A]/5'}
+                  ? 'bg-zen-primary text-white shadow-xl scale-105' 
+                  : 'bg-white text-zen-primary/40 hover:text-zen-primary border border-zen-primary/5'}
               `}
             >
               All Sanctuaries
@@ -117,8 +117,8 @@ const LandingRooms = () => {
                 onClick={() => setSelectedBranch(branch._id)}
                 className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap
                   ${selectedBranch === branch._id 
-                    ? 'bg-[#32172A] text-[#FAF9F6] shadow-xl scale-105' 
-                    : 'bg-white text-[#32172A]/40 hover:text-[#32172A] border border-[#32172A]/5'}
+                    ? 'bg-zen-primary text-white shadow-xl scale-105' 
+                    : 'bg-white text-zen-primary/40 hover:text-zen-primary border border-zen-primary/5'}
                 `}
               >
                 {branch.name}
@@ -133,16 +133,16 @@ const LandingRooms = () => {
          <div className="max-w-7xl mx-auto">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-40 gap-6">
-                <Loader2 className="w-12 h-12 text-[#4A2C40]/20 animate-spin" />
-                <p className="text-[10px] font-bold text-[#4A2C40]/30 uppercase tracking-[0.4em]">Illuminating Sacred Chambers...</p>
+                <Loader2 className="w-12 h-12 text-zen-brown/20 animate-spin" />
+                <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em]">Illuminating Sacred Chambers...</p>
               </div>
             ) : error ? (
               <div className="text-center py-40">
-                <p className="text-[#32172A]/40 italic">{error}</p>
+                <p className="text-zen-primary/40 italic">{error}</p>
               </div>
             ) : filteredRooms.length === 0 ? (
               <div className="text-center py-40 animate-in fade-in duration-700">
-                 <h3 className="text-2xl font-serif text-[#32172A]/40">No chambers found in this sanctuary</h3>
+                 <h3 className="text-2xl font-serif text-zen-primary/40">No chambers found in this sanctuary</h3>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-16">
@@ -153,16 +153,16 @@ const LandingRooms = () => {
                   return (
                     <div 
                       key={room._id} 
-                      className="group flex flex-col space-y-8 animate-in fade-in slide-in-from-bottom-12 duration-1000"
+                      className="group relative bg-white rounded-[1.5rem] overflow-hidden border border-zen-primary/5 hover:shadow-2xl hover:shadow-zen-primary/5 transition-all duration-700 animate-in fade-in slide-in-from-bottom-12 flex flex-col"
                       style={{ animationDelay: `${idx * 150}ms` }}
                     >
                       {/* Image Frame */}
-                      <div className="aspect-[4/5] rounded-[4rem] overflow-hidden shadow-sm relative">
+                      <div className="aspect-[3/2] md:aspect-[16/10] overflow-hidden relative">
                         {roomImg ? (
                           <img 
                             src={roomImg.src} 
                             alt={room.name} 
-                            className="w-full h-full object-cover grayscale-[0.2] transition-all duration-1000 group-hover:scale-110 group-hover:grayscale-0"
+                            className="w-full h-full object-cover grayscale-[0.2] transition-transform duration-1000 group-hover:scale-110 group-hover:grayscale-0"
                             style={{ objectPosition: roomImg.objectPosition }}
                             onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -173,42 +173,45 @@ const LandingRooms = () => {
                         ) : null}
                         {/* Fallback pattern */}
                         <div 
-                           className="w-full h-full bg-gradient-to-br from-[#4A2C40]/5 to-[#4A2C40]/15 flex items-center justify-center"
+                           className="absolute inset-0 bg-gradient-to-br from-zen-primary/5 to-zen-primary/15 flex items-center justify-center"
                            style={{ display: roomImg ? 'none' : 'flex' }}
                         >
-                           <DoorOpen size={64} className="text-[#4A2C40]/10" strokeWidth={0.5} />
+                           <DoorOpen size={64} className="text-zen-brown/10" strokeWidth={0.5} />
                         </div>
+                        
+                        {/* Dark Gradient Overlay for legible badge */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-zen-primary/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
                         {/* Status Badge */}
-                        <div className="absolute top-8 right-8 px-4 py-1.5 bg-white/30 backdrop-blur-md rounded-full text-[8px] font-bold uppercase tracking-[0.3em] text-white">
+                        <div className="absolute top-6 right-6 px-4 py-2 backdrop-blur-3xl bg-white/80 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] text-zen-primary shadow-lg">
                            {room.status === 'Free' ? 'Available' : 'Occupied'}
                         </div>
                       </div>
 
                       {/* Info */}
-                      <div className="space-y-6 px-4">
-                        <div className="flex items-center justify-between items-start">
-                           <div className="space-y-1">
-                              <h3 className="text-3xl font-serif font-bold text-[#32172A]">{room.name}</h3>
-                              <p className="text-[10px] font-bold text-[#4A2C40]/40 uppercase tracking-widest flex items-center gap-2">
+                      <div className="p-6 xl:p-8 flex flex-col">
+                        <div className="flex items-start justify-between mb-5">
+                           <div className="space-y-2">
+                              <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest flex items-center gap-2">
                                 <MapPin size={10} /> {branchName}
                               </p>
+                              <h3 className="text-2xl font-serif font-bold text-zen-primary leading-tight group-hover:text-zen-brown transition-colors">{room.name}</h3>
                            </div>
-                           <span className="text-[8px] font-black uppercase tracking-[0.3em] bg-[#32172A] text-[#FAF9F6] px-3 py-1 rounded-sm shadow-lg">
+                           <span className="text-[8px] font-black uppercase tracking-[0.3em] bg-zen-primary text-white px-3 py-1.5 rounded-[0.4rem] shadow-sm shrink-0">
                               {room.type}
                            </span>
                         </div>
 
-                        <div className="flex flex-wrap gap-4 pt-2 border-t border-[#32172A]/5">
+                        <div className="flex flex-wrap gap-x-5 gap-y-3 pt-4 pb-5 border-t border-zen-primary/5">
                             {amenities.map((item, i) => (
-                               <div key={i} className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-[#32172A]/30">
+                               <div key={i} className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-zen-primary/40 group-hover:text-zen-primary/60 transition-colors">
                                   {item.icon}
                                   {item.label}
                                </div>
                             ))}
                         </div>
                         
-                        <button className="w-full py-5 border border-[#32172A]/10 rounded-3xl text-[9px] font-bold uppercase tracking-[0.3em] hover:bg-[#32172A] hover:text-[#FAF9F6] transition-all duration-500">
+                        <button className="w-full py-3.5 border border-zen-primary/10 rounded-full text-[9px] font-bold uppercase tracking-[0.3em] hover:bg-zen-primary hover:text-white text-zen-brown transition-all duration-500 mt-2">
                            Reserve Chamber
                         </button>
                       </div>
@@ -223,10 +226,10 @@ const LandingRooms = () => {
       {/* Philosophy Section */}
       <section className="px-6 lg:px-24 pb-32">
          <div className="max-w-4xl mx-auto text-center space-y-12">
-            <div className="w-20 h-[1px] bg-[#32172A]/20 mx-auto" />
-            <Sparkles className="mx-auto text-[#4A2C40]" size={32} strokeWidth={1} />
-            <h2 className="text-4xl font-serif font-bold italic text-[#4A2C40]/80">"Architecture should speak of its time and place, but yearn for timelessness."</h2>
-            <p className="text-sm font-bold uppercase tracking-[0.3em] text-[#32172A]/30 leading-loose">
+            <div className="w-20 h-[1px] bg-zen-primary/20 mx-auto" />
+            <Sparkles className="mx-auto text-zen-brown" size={32} strokeWidth={1} />
+            <h2 className="text-4xl font-serif font-bold italic text-zen-brown/80">"Architecture should speak of its time and place, but yearn for timelessness."</h2>
+            <p className="text-sm font-bold uppercase tracking-[0.3em] text-zen-primary/30 leading-loose">
                Each sacred chamber is attuned to specific vibrational frequencies,<br /> ensure peak atmospheric harmony for your ritual.
             </p>
          </div>

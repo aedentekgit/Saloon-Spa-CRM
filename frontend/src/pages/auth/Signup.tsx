@@ -48,130 +48,99 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#FAF9F6] flex overflow-hidden font-sans">
-      {/* Cinematic Left Side - Same as Login but different text */}
-      <div className="hidden lg:flex w-1/2 relative">
-        <img 
-          src="/login-bg.png" 
-          alt="Sanctuary" 
-          className="w-full h-full object-cover opacity-90"
-        />
-        <div className="absolute inset-0 bg-[#1A1816]/40" />
-        <div className="absolute inset-0 flex flex-col justify-end p-24">
-           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-12 duration-1000">
-              <div className="flex items-center gap-4">
-                 <div className="h-[1px] w-12 bg-[#B4A596]" />
-                 <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-[#B4A596]">Member Registration</span>
-              </div>
-              <h1 className="text-7xl font-serif text-white tracking-tighter leading-none italic">Begin Your<br />Journey.</h1>
-              <p className="text-sm text-white/50 max-w-sm font-light leading-relaxed uppercase tracking-widest">
-                Join our collective of mindful individuals. Create your registry to begin orchestrating your wellness rituals.
-              </p>
-           </div>
-        </div>
-      </div>
-
-      {/* Elegant Form Side */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-24 relative overflow-y-auto">
-        <div className="absolute top-12 left-12 lg:hidden">
-            <span className="font-serif text-2xl text-[#1A1816] tracking-tighter uppercase">Zen<span className="text-[#B4A596]">Sanctuary</span></span>
-        </div>
-
-        <div className="w-full max-w-md space-y-10 my-auto">
-          <div className="space-y-4">
-            <h2 className="text-5xl font-serif text-[#1A1816] tracking-tight">Create Registry</h2>
-            <p className="text-xs font-bold text-[#B4A596] uppercase tracking-[0.3em] pb-6 border-b border-[#1A1816]/5">MEMBERSHIP ENROLLMENT</p>
+    <div className="min-h-screen w-full bg-[#f4f5f9] flex items-center justify-center p-4 sm:p-8 font-sans">
+       <div className="w-full max-w-[1000px] bg-[#f8f9fe] rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.03)] flex flex-col lg:flex-row min-h-[600px] border-[4px] border-white/40">
+          
+          {/* Left side Image */}
+          <div className="hidden lg:block w-1/2 p-3 relative">
+             <div className="w-full h-full rounded-[2.5rem] overflow-hidden relative shadow-inner">
+                <img 
+                  src="/login-bg.png" 
+                  alt="Sanctuary" 
+                  className="w-full h-full object-cover"
+                />
+             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {error && (
-              <div className="text-[10px] font-bold text-red-500 uppercase tracking-widest border border-red-500/20 bg-red-50/50 p-4 text-center">
-                {error}
-              </div>
-            )}
+          {/* Right side Form */}
+          <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative">
+             <div className="w-full max-w-sm space-y-8">
+                <div className="space-y-3">
+                   <h1 className="text-[2.75rem] font-black text-[#1e1b4b] tracking-tight leading-none">Create account.</h1>
+                   <p className="text-sm font-medium text-[#8b87a1] italic mt-2">Join us and start your journey today</p>
+                </div>
 
-            <div className="space-y-6">
-               {/* Full Name */}
-               <div className="space-y-3">
-                  <label className="text-[9px] font-bold text-[#B4A596] uppercase tracking-[0.4em]">Given Identity (Full Name)</label>
-                  <div className="relative border-b border-[#1A1816]/10 pb-2 focus-within:border-[#B4A596] transition-all">
-                     <input
-                       type="text"
-                       value={formData.name}
-                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                       placeholder="Enter your full name"
-                       className="w-full bg-transparent text-sm font-medium focus:outline-none placeholder:text-[#1A1816]/10"
-                       required
-                     />
-                     <User size={16} strokeWidth={1} className="absolute right-0 top-0 text-[#1A1816]/40" />
-                  </div>
-               </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {error && (
+                      <div className="text-[10px] font-bold text-red-500 uppercase tracking-widest bg-red-50 p-4 rounded-2xl text-center">
+                        {error}
+                      </div>
+                    )}
+                    
+                    <div className="space-y-4">
+                       <div className="relative">
+                          <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="Full Name"
+                            className="w-full bg-[#efedfa] text-[#4b4566] text-sm font-bold placeholder:text-[#a09cba] placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-[#4c35de]/30 transition-all border border-transparent"
+                            required
+                          />
+                          <User size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-[#a09cba]" />
+                       </div>
 
-               {/* Email */}
-               <div className="space-y-3">
-                  <label className="text-[9px] font-bold text-[#B4A596] uppercase tracking-[0.4em]">Signal Node (Email)</label>
-                  <div className="relative border-b border-[#1A1816]/10 pb-2 focus-within:border-[#B4A596] transition-all">
-                     <input
-                       type="email"
-                       value={formData.email}
-                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                       placeholder="your@email.com"
-                       className="w-full bg-transparent text-sm font-medium focus:outline-none placeholder:text-[#1A1816]/10"
-                       required
-                     />
-                     <Mail size={16} strokeWidth={1} className="absolute right-0 top-0 text-[#1A1816]/40" />
-                  </div>
-               </div>
+                       <div className="relative">
+                          <input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            placeholder="Mail id"
+                            className="w-full bg-[#efedfa] text-[#4b4566] text-sm font-bold placeholder:text-[#a09cba] placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-[#4c35de]/30 transition-all border border-transparent"
+                            required
+                          />
+                          <Mail size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-[#a09cba]" />
+                       </div>
 
-               {/* Passkey */}
-               <div className="space-y-3">
-                  <label className="text-[9px] font-bold text-[#B4A596] uppercase tracking-[0.4em]">Passkey</label>
-                  <div className="relative border-b border-[#1A1816]/10 pb-2 focus-within:border-[#B4A596] transition-all">
-                     <input
-                       type={showPassword ? "text" : "password"}
-                       value={formData.password}
-                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                       placeholder="Minimum 6 characters"
-                       className="w-full bg-transparent text-sm font-medium focus:outline-none placeholder:text-[#1A1816]/10"
-                       required
-                       minLength={6}
-                     />
-                     <button 
-                       type="button"
-                       onClick={() => setShowPassword(!showPassword)}
-                       className="absolute right-0 top-0 text-[#1A1816]/40 hover:text-[#B4A596] transition-colors"
-                     >
-                       {showPassword ? <EyeOff size={16} strokeWidth={1} /> : <Eye size={16} strokeWidth={1} />}
-                     </button>
-                  </div>
-               </div>
-            </div>
+                       <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            placeholder="Password"
+                            className="w-full bg-[#efedfa] text-[#4b4566] text-sm font-bold placeholder:text-[#a09cba] placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-[#4c35de]/30 transition-all border border-transparent"
+                            required
+                            minLength={6}
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-6 top-1/2 -translate-y-1/2 text-[#a09cba] hover:text-[#4c35de] transition-colors"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                       </div>
+                    </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-6 bg-[#1A1816] text-[#FAF9F6] text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-[#B4A596] transition-all flex items-center justify-center gap-4 group disabled:opacity-50"
-            >
-              {loading ? 'Processing...' : 'Engage Enrollment'}
-              {!loading && <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />}
-            </button>
+                    <div className="pt-2">
+                       <button
+                         type="submit"
+                         disabled={loading}
+                         className="w-full py-4 bg-[#392994] hover:bg-[#2a1d70] disabled:opacity-50 text-white text-[13px] font-bold shadow-[0_8px_20px_rgba(57,41,148,0.3)] hover:shadow-[0_10px_25px_rgba(57,41,148,0.4)] rounded-3xl transition-all flex items-center justify-center gap-2 group"
+                       >
+                         {loading ? 'Processing...' : 'Sign up now'} {!loading && <span className="w-1.5 h-1.5 rounded-full bg-white ml-2 opacity-80 group-hover:opacity-100"></span>}
+                       </button>
+                    </div>
 
-            <div className="pt-4 text-center">
-               <p className="text-[10px] font-bold text-[#B4A596] uppercase tracking-widest">
-                  Already registered? <Link to="/login" className="text-[#1A1816] hover:underline">Access Portal</Link>
-               </p>
-            </div>
-
-            <div className="pt-10 text-center opacity-40">
-               <p className="text-[8px] font-bold uppercase tracking-[0.5em] flex items-center justify-center gap-4">
-                  <div className="w-8 h-[1px] bg-[#1A1816]" />
-                  Zen Sanctuary Client registry
-                  <div className="w-8 h-[1px] bg-[#1A1816]" />
-               </p>
-            </div>
-          </form>
-        </div>
-      </div>
+                    <div className="text-center pt-6">
+                       <p className="text-[11px] font-bold text-[#a09cba]">
+                          Already registered? <Link to="/login" className="text-[#392994] hover:underline">Sign in</Link>
+                       </p>
+                    </div>
+                </form>
+             </div>
+          </div>
+       </div>
     </div>
   );
 };

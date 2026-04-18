@@ -3,16 +3,16 @@
 
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Italiana", serif;
+  --font-serif: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   
-  /* Sacred Zen Palette - Extracted from Image */
-  --color-zen-cream: var(--zen-cream, #FDFCFB); /* Pure Alabaster Background */
-  --color-zen-brown: #000000; /* Deep Black for Text by default across the project */
-  --color-zen-primary: var(--zen-primary, #2D1622); /* The dynamic Primary Theme color */
-  --color-zen-sand: var(--zen-sand, #2D1622);  /* Consistent Deep Plum for Buttons */
-  --color-zen-leaf: var(--zen-leaf, #B08968);  /* Soft Golden Earth for Accents */
-  --color-zen-stone: var(--zen-stone, #E8E2DE); /* Neutral Stone for subtle backgrounds */
-  --color-zen-contrast: var(--zen-contrast-text, #FFFFFF); /* Contrast text color based on primary theme */
+  /* Modern Purple & Slate Palette - Requested Theme */
+  --color-zen-cream: #FDFEFE; /* Pure cleaner background */
+  --color-zen-brown: #1E293B; /* Deep slate for Text */
+  --color-zen-primary: #332766; /* Deep Indigo Sidebar Background */
+  --color-zen-sand: #8B5CF6;  /* Bright Purple for Buttons/Active states */
+  --color-zen-leaf: #10B981;  /* Emerald Green Accents */
+  --color-zen-stone: #E2E8F0; /* Slate 200 */
+  --color-zen-contrast: #FFFFFF;
   
   /* Extended Lavender Palette */
   --color-lavender-50: #F5F3FF;
@@ -42,13 +42,13 @@
     font-weight: 700;
   }
 
-  /* Hide Scrollbars Globally */
-  * {
+  /* Hide Scrollbars Globally but allow local overrides */
+  html, body {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
   }
 
-  ::-webkit-scrollbar {
+  html::-webkit-scrollbar, body::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
@@ -95,8 +95,8 @@
   .zen-sidebar-gradient {
     background: linear-gradient(
       135deg,
-      var(--sidebar-gradient-start, #2D1622) 0%,
-      var(--sidebar-gradient-end, #3D2632) 100%
+      var(--sidebar-gradient-start, #332766) 0%,
+      var(--sidebar-gradient-end, #241A4E) 100%
     );
     background-size: 180% 180%;
     animation: sidebar-gradient-shift 18s ease-in-out infinite;
@@ -109,13 +109,7 @@
   /* Responsive table container */
   .table-container {
     @apply w-full overflow-x-auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
     -webkit-overflow-scrolling: touch;
-  }
-
-  .table-container::-webkit-scrollbar {
-    display: none;
   }
 
   .scrollbar-hide {
@@ -136,28 +130,17 @@
     @apply p-4 sm:p-6 lg:p-8;
   }
 
-  .custom-scrollbar {
-    -ms-overflow-style: auto !important;
-    scrollbar-width: thin !important;
+  .custom-scrollbar, 
+  .overflow-x-auto,
+  .table-container {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
   }
 
-  .custom-scrollbar::-webkit-scrollbar {
-    display: block !important;
-    height: 4px !important;
-    width: 4px !important;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 20px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.1);
+  .custom-scrollbar::-webkit-scrollbar,
+  .overflow-x-auto::-webkit-scrollbar,
+  .table-container::-webkit-scrollbar {
+    display: none !important;
   }
 }
 
@@ -204,8 +187,8 @@
   color: transparent !important;
   animation: text-shine 3s linear infinite;
   display: inline-block;
-  padding: 0 0.15em;
-  margin: 0 -0.15em;
+  padding: 0.2em 0.15em;
+  margin: -0.2em -0.15em;
 }
 
 .animate-float {
@@ -235,51 +218,65 @@
   animation: bounce-slow 3s infinite;
 }
 
-/* Global Tabular Theme Styles - Standardized Professional Look */
 @layer base {
   table {
-    @apply w-full border-collapse overflow-hidden;
+    @apply w-full border-collapse border-spacing-0;
   }
 
   table thead tr {
-    @apply border-none transition-all duration-500;
+    @apply border-none;
   }
 
   table thead th {
     background-color: var(--zen-primary) !important;
-    color: var(--zen-contrast-text) !important;
-    @apply py-5 px-8 text-[11px] font-extrabold uppercase tracking-[0.25em] font-sans text-center;
+    color: rgba(255, 255, 255, 0.94) !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.16em !important;
+    line-height: 1.2 !important;
+    padding: 1.35rem 1.75rem !important;
+    font-family: var(--font-sans) !important;
+    text-align: center !important;
     border: none !important;
+    white-space: nowrap !important;
+    opacity: 1 !important;
   }
 
-  /* Extreme Sacred Geometry - Rounded Header Corners */
-  table thead tr th:first-child {
-    @apply rounded-none px-10 text-center;
-  }
-
+  table thead tr th:first-child,
   table thead tr th:last-child {
-    @apply rounded-none px-10 text-center;
+    border-radius: 0;
   }
 
   table tbody tr {
-    @apply border-b border-black/[0.03] last:border-none transition-all duration-300;
+    @apply border-b border-black/[0.04] bg-white transition-colors duration-300;
   }
 
   table tbody td {
-    @apply py-5 px-10 text-[14px] text-zen-brown/70 font-medium align-middle text-center transition-all;
+    @apply py-5 px-8 text-[14px] text-black/70 font-medium align-middle text-center;
   }
 
-  /* Utility for standardized primary identity within cells */
   .zen-table-primary {
-    @apply font-serif text-[16px] font-black text-zen-brown tracking-tight leading-tight;
+    @apply block font-serif text-[16px] font-black text-zen-brown tracking-tight leading-tight;
   }
 
-  /* Utility for standardized metadata within cells */
   .zen-table-meta {
-    @apply text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0.5 block;
+    @apply block mt-0.5 text-[10px] font-bold text-zen-brown/35 uppercase tracking-widest;
   }
 
   table tbody tr:hover {
-    @apply bg-black/[0.015] translate-x-1;
+    @apply bg-black/[0.015];
+  }
+
+  table tbody td:first-child {
+    @apply whitespace-nowrap font-sans text-[11px] font-semibold text-black/40;
+  }
+
+  table tbody td .zen-badge {
+    margin: 0 auto;
+  }
+
+  table tbody td .zen-icon-button {
+    flex-shrink: 0;
   }
 }

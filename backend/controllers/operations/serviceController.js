@@ -2,13 +2,30 @@ const Service = require('../../models/operations/Service');
 const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
 
+// @desc    Get public services
+// @route   GET /api/services/public
+// @access  Public
+const getPublicServices = async (req, res) => {
+  try {
+    const { data, pagination } = await paginateModelQuery(
+      Service,
+      { status: 'Active' },
+      req,
+      { populate: 'branch' }
+    );
+    res.json(pagination ? { data, pagination } : data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get all services
 // @route   GET /api/services
 // @access  Private/Public
 const getServices = async (req, res) => {
   try {
     const { data, pagination } = await paginateModelQuery(Service, {}, req, {
-      populate: { path: 'branch', select: 'name' }
+      populate: 'branch'
     });
     res.json(pagination ? { data, pagination } : data);
   } catch (error) {
@@ -138,6 +155,7 @@ const deleteService = async (req, res) => {
 };
 
 module.exports = {
+  getPublicServices,
   getServices,
   createService,
   updateService,

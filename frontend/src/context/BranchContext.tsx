@@ -58,6 +58,17 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     fetchBranches();
   }, [user]);
 
+  // Validation: If selected branch is not 'all' and not found in branches, reset to 'all'
+  useEffect(() => {
+    if (branches.length > 0 && selectedBranch !== 'all') {
+      const exists = branches.some(b => b._id === selectedBranch);
+      if (!exists && user?.role === 'Admin') {
+        setSelectedBranchState('all');
+        localStorage.setItem('zen_selected_branch', 'all');
+      }
+    }
+  }, [branches, selectedBranch, user]);
+
   const setSelectedBranch = (id: string) => {
     setSelectedBranchState(id);
     localStorage.setItem('zen_selected_branch', id);

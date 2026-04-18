@@ -23,8 +23,8 @@ export const ZenLoadingBarrier: React.FC = () => {
         transition={{ delay: 0.5 }}
         className="mt-8 text-center"
       >
-        <h2 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Handshaking with Sanctuary</h2>
-        <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Synchronizing Global Resonance</p>
+        <h2 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Loading workspace</h2>
+        <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Syncing system data</p>
       </motion.div>
       
       <div className="absolute bottom-12 flex items-center gap-2 px-6 py-2 bg-white rounded-full border border-zen-brown/5 shadow-sm">

@@ -16,6 +16,7 @@ const staffUploads = upload.fields([
   { name: 'profilePic', maxCount: 1 }
 ]);
 
+router.get('/public', getEmployees);
 router.get('/', getEmployees);
 router.post('/', protect, manager, staffUploads, createEmployee);
 router.put('/:id', protect, manager, staffUploads, updateEmployee);

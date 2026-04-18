@@ -5,11 +5,13 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { 
   Plus, Edit2, Trash2, Clock, Coins, Sparkles, X, 
-  Upload, Camera, Search, User, Info, FileText, MapPin, Zap
+  Upload, Camera, Search, User, Info, FileText, MapPin, Zap,
+  Grid, List
 } from 'lucide-react';
 import { Modal } from '../../components/shared/Modal';
 import { notify } from '../../components/shared/ZenNotification';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ZenDropdown, ZenInput, ZenTextarea } from '../../components/zen/ZenInputs';
 import { useSettings } from '../../context/SettingsContext';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
@@ -40,7 +42,7 @@ interface Service {
 const Services = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const { branches, selectedBranch } = useBranches();
+  const { branches, selectedBranch, setSelectedBranch } = useBranches();
   const { getServiceCategories } = useCategories();
   const serviceCategories = getServiceCategories();
   const [services, setServices] = useState<Service[]>([]);
@@ -90,18 +92,25 @@ const Services = () => {
 
   const fetchServices = async () => {
     try {
+      setLoading(true);
+      console.log('Fetching services from:', `${API_URL}/services?page=${page}&limit=${PAGE_LIMIT}`);
       const response = await fetch(`${API_URL}/services?page=${page}&limit=${PAGE_LIMIT}`, {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
+        headers: {
+          'Authorization': `Bearer ${user?.token}`
+        }
       });
+      console.log('Fetch response status:', response.status);
       const data = await response.json();
+      console.log('Fetch response data:', data);
       if (data.data) {
-        setServices(data.data);
-        setTotalPages(data.pagination.pages);
+        setServices(Array.isArray(data.data) ? data.data : []);
+        setTotalPages(data.pagination?.pages || 1);
       } else if (Array.isArray(data)) {
         setServices(data);
         setTotalPages(1);
       }
     } catch (error) {
+      console.error('Fetch error:', error);
       notify('error', 'Error', 'Failed to load services');
     } finally {
       setLoading(false);
@@ -110,14 +119,17 @@ const Services = () => {
 
   useEffect(() => {
     fetchServices();
-  }, [page]);
+  }, [page, selectedBranch]);
 
   const filteredServices = useMemo(() => {
     let filtered = services;
 
     // Filter by Branch
-    if (selectedBranch !== 'all') {
-      filtered = filtered.filter(service => service.branch?._id === selectedBranch || (service as any).branch === selectedBranch);
+    if (selectedBranch && selectedBranch !== 'all') {
+      filtered = filtered.filter(service => {
+        const branchId = service.branch?._id || (typeof service.branch === 'string' ? service.branch : (service as any).branchId);
+        return branchId === selectedBranch;
+      });
     }
 
     // Filter by Search Term
@@ -211,7 +223,7 @@ const Services = () => {
       });
 
       if (response.ok) {
-        notify('success', 'Refined', editingService ? 'Service updated' : 'Service curated');
+         notify('success', 'Service Saved', editingService ? 'Service updated successfully' : 'Service created successfully');
         setIsModalOpen(false);
         fetchServices();
       } else {
@@ -226,7 +238,7 @@ const Services = () => {
   const handleDelete = async (id: string) => {
     openConfirm(
       'Remove Service',
-      'Remove this service from menu? This will delist the offering from the registry.',
+      'Are you sure you want to remove this service? This will delete the service from the system.',
       async () => {
         try {
           const response = await fetch(`${API_URL}/services/${id}`, {
@@ -268,195 +280,260 @@ const Services = () => {
   return (
     <ZenPageLayout
       title="Services"
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      viewMode={viewMode}
-      onViewModeChange={setViewMode}
-      addButtonLabel="Craft New Service"
-      addButtonIcon={<Plus size={18} />}
+      hideSearch
+      hideBranchSelector
+      hideViewToggle
+      hideAddButton
       onAddClick={() => handleOpenModal()}
     >
-      {loading ? (
-        <div className="flex flex-col items-center justify-center min-h-[400px]">
-          <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
+      <div className="space-y-10 pb-20">
+        {/* Dynamic Summary Cards */}
+        <div className="flex overflow-x-auto pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+          {[
+            { label: 'Total Services', value: services.length, icon: Sparkles, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Catalog size' },
+            { label: 'Active Presence', value: services.filter(s => s.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live services' },
+            { label: 'System Inactive', value: services.filter(s => s.status !== 'Active').length, icon: X, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Offline services' },
+            { label: 'Service Categories', value: serviceCategories.length, icon: Info, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'Service groups' }
+          ].map((stat, i) => (
+            <ZenStatCard key={i} {...stat} delay={i * 0.2} />
+          ))}
         </div>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-10">
-          {filteredServices.map((service, i) => {
-            const imgUrl = getImageUrl(service.image);
-            const branchName = service.branch?.name || 'Sanctuary HQ';
 
-            return (
-              <div 
-                key={service._id} 
-                className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[4rem] shadow-sm border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8"
-                style={{ animationDelay: `${i * 50}ms` }}
-              >
-                {/* Visual Frame */}
-                <div className="aspect-[16/9] sm:aspect-[4/3] relative overflow-hidden">
-                  {imgUrl ? (
-                    <img 
-                      src={imgUrl} 
-                      alt={service.name}
-                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.2] group-hover:grayscale-0"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-zen-cream flex items-center justify-center text-zen-brown/10">
-                      <Sparkles size={48} strokeWidth={0.5} />
-                    </div>
-                  )}
+        {/* Global Filter Bar */}
+        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-8 items-end">
+            <div className="flex-1 w-full flex flex-col gap-3">
+               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Service Search</label>
+               <div className="relative group">
+                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
+                  <input 
+                    type="text"
+                    placeholder="Search services by name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-14 pr-6 py-3.5 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
+                  />
+               </div>
+            </div>
 
-                  {/* Dynamic Badges */}
-                  <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex flex-col items-end gap-2">
-                    <div className="px-3 py-1 sm:px-5 sm:py-2 backdrop-blur-3xl bg-white/80 rounded-full text-[9px] sm:text-[10px] font-bold tracking-widest text-zen-brown flex items-center gap-2 shadow-lg border border-white/20">
-                      <Clock size={10} className="sm:w-3 sm:h-3 text-zen-brown/40" />
-                      {service.duration} MIN
-                    </div>
-                    <div className="px-3 py-1 sm:px-5 sm:py-2 backdrop-blur-3xl bg-zen-brown/90 rounded-full text-[9px] sm:text-[10px] font-bold tracking-widest text-white flex items-center gap-2 shadow-lg">
-                      <Coins size={10} className="sm:w-3 sm:h-3 text-white/40" />
-                      {settings?.general?.currencySymbol || 'QR'} {service.price}
-                    </div>
+            <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
+               <div className="flex items-center gap-4">
+                  <div className="w-full lg:w-[240px]">
+                     <ZenDropdown 
+                       label="Active Branch"
+                       options={['All Branches', ...branches.map(b => b.name)]}
+                       value={branches.find(b => b._id === selectedBranch)?.name || 'All Branches'}
+                       onChange={(val: any) => {
+                         if (val === 'All Branches') {
+                           setSelectedBranch('all');
+                         } else {
+                           const branch = branches.find(b => b.name === val);
+                           if (branch) setSelectedBranch(branch._id);
+                         }
+                       }}
+                       className="w-full"
+                     />
                   </div>
 
-                  {/* Branch & Status Labels */}
-                  <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 flex flex-col gap-2">
-                    <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[8px] sm:text-[9px] font-bold tracking-widest text-white uppercase border border-white/40 shadow-sm">
-                       {branchName}
-                    </span>
+                  <div className="flex flex-col gap-3">
+                     <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
+                     <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner">
+                        <button 
+                          onClick={() => setViewMode('grid')}
+                          className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
+                        >
+                          <Grid size={16} />
+                        </button>
+                        <button 
+                          onClick={() => setViewMode('table')}
+                          className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
+                        >
+                          <List size={16} />
+                        </button>
+                     </div>
                   </div>
-                </div>
-                
-                <div className="p-6 sm:p-8 flex flex-col flex-1 gap-4 sm:gap-6">
-                  <div className="space-y-1 sm:space-y-2">
-                    <div className="flex items-center gap-2 text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.3em] text-zen-brown/40">
-                      <Sparkles size={10} />
-                      {service.category || 'Wellness Ritual'}
-                    </div>
-                    <h3 className="text-2xl sm:text-3xl font-serif font-bold text-zen-brown leading-tight truncate-2-lines">{service.name}</h3>
-                  </div>
+               </div>
 
-                  {service.description && (
-                    <p className="text-zen-brown/60 text-xs sm:text-sm leading-relaxed italic line-clamp-2">
-                      {service.description}
-                    </p>
-                  )}
-                  
-                  <div className="mt-auto pt-4 sm:pt-6 flex items-center justify-between border-t border-zen-brown/5">
-                    <div className="flex items-center gap-2">
-                      <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'} className="lowercase italic font-serif text-[10px] sm:text-xs">
-                        {service.status}
-                      </ZenBadge>
-                    </div>
+               <div className="flex flex-col gap-3 w-full lg:w-auto">
+                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Action</label>
+                  <ZenButton onClick={() => handleOpenModal()} variant="primary" className="w-full sm:w-auto px-8 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
+                     <Plus size={16} className="group-hover:rotate-90 transition-transform duration-500" />
+                     <span className="uppercase tracking-[0.2em] text-[10px] font-black">Enroll Service</span>
+                  </ZenButton>
+               </div>
+            </div>
+          </div>
+        </div>
 
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <ZenIconButton 
-                         icon={Zap} 
-                         variant={service.status === 'Active' ? 'leaf' : 'sand'} 
-                         onClick={() => toggleStatus(service)} 
-                         className={service.status === 'Active' ? 'text-zen-leaf' : 'text-zen-sand'}
-                         size="sm"
-                         title="Toggle Presence"
+        {loading ? (
+          <div className="flex flex-col items-center justify-center min-h-[400px]">
+            <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredServices.map((service, i) => {
+              const imgUrl = getImageUrl(service.image);
+              const branchName = service.branch?.name || 'Main Registry';
+
+              return (
+                <div 
+                  key={service._id} 
+                  className="group relative bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-zen-brown/15 overflow-hidden flex flex-col transition-all duration-700 hover:shadow-xl hover:translate-y-[-4px]"
+                  style={{ animationDelay: `${i * 50}ms` }}
+                >
+                  {/* Visual Frame */}
+                  <div className="aspect-[16/10] relative overflow-hidden bg-zen-cream/50">
+                    {imgUrl ? (
+                      <img 
+                        src={imgUrl} 
+                        alt={service.name}
+                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                       />
-                      <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} size="sm" title="Refine Ritual" />
-                      <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} size="sm" title="Decommission" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] shadow-sm border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
-          <table className="w-full text-center border-collapse min-w-[800px]">
-            <thead>
-              <tr className="bg-zen-brown border-b border-zen-brown/15">
-                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Visual</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Branch</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Service Name</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Duration</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Price</th>
-                <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Status</th>
-                <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zen-brown/15">
-              {filteredServices.map((service, index) => (
-                <tr key={service._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
-                  <td className="px-8 py-5 text-center">
-                    <span className="font-serif text-xl text-zen-brown/40">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
-                  </td>
-                  <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <div className="flex justify-center">
-                      <div className="w-12 lg:w-16 h-10 lg:h-12 rounded-xl overflow-hidden bg-zen-cream border-2 border-white shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
-                        {service.image ? (
-                          <img src={getImageUrl(service.image)} className="w-full h-full object-cover" />
-                        ) : (
-                          <Sparkles className="text-zen-brown/20" size={16} />
-                        )}
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-zen-brown/10">
+                        <Sparkles size={48} strokeWidth={0.5} />
+                      </div>
+                    )}
+
+                    {/* Status Badges */}
+                    <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+                      <div className="px-3 py-1 rounded-full text-[9px] font-black tracking-widest bg-white/90 text-zen-brown border border-white/20 shadow-lg">
+                        {service.duration} MIN
                       </div>
                     </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <span className="text-[10px] font-black text-zen-brown/60 uppercase tracking-widest">{service.branch?.name || 'H.Q'}</span>
-                  </td>
-                  <td className="px-10 py-5 text-left">
-                    <div className="flex flex-col items-center">
-                      <p className="font-serif text-lg text-zen-brown font-black tracking-tight leading-tight whitespace-nowrap">{service.name}</p>
-                      <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">Premium Offering</p>
+                  </div>
+                  
+                  <div className="p-6 flex flex-col flex-1">
+                    <div className="mb-4">
+                       <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">{service.category || 'General Service'}</span>
+                       <h3 className="text-xl font-serif font-black text-zen-brown leading-tight truncate-2-lines">{service.name}</h3>
                     </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center justify-center gap-2 text-[10px] text-zen-brown/70 italic font-black uppercase tracking-widest">
-                      <Clock size={12} className="text-zen-sand" />
-                      {service.duration} Min
+
+                    <div className="mt-auto pt-4 flex flex-col gap-4">
+                       <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                             <span className="text-[18px] font-serif font-black text-zen-brown leading-none">
+                                {settings?.general?.currencySymbol || 'QR'} {service.price}
+                             </span>
+                             <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Rate</span>
+                          </div>
+                          <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'} className="text-[8px] font-bold uppercase py-1">{branchName}</ZenBadge>
+                       </div>
+                       
+                       <div className="flex items-center justify-between gap-2 pt-4 border-t border-black/[0.03]">
+                          <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'} className="text-[8px] font-black uppercase tracking-widest px-3">{service.status}</ZenBadge>
+                          <div className="flex items-center gap-2">
+                             <ZenIconButton 
+                                icon={Zap} 
+                                variant={service.status === 'Active' ? 'leaf' : 'sand'} 
+                                onClick={() => toggleStatus(service)} 
+                             />
+                             <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} />
+                             <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} />
+                          </div>
+                       </div>
                     </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex flex-col items-center">
-                      <p className="font-serif text-lg text-zen-brown font-black tracking-tight leading-tight whitespace-nowrap">{settings?.general?.currencySymbol || 'QR'} {service.price}</p>
-                      <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">Energy Exchange</p>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 text-center">
-                    <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'} className="uppercase font-black tracking-widest">{service.status}</ZenBadge>
-                  </td>
-                  <td className="px-10 py-8 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                       <ZenIconButton 
-                          icon={Sparkles} 
-                          variant={service.status === 'Active' ? 'leaf' : 'sand'} 
-                          onClick={() => toggleStatus(service)} 
-                          className={service.status === 'Active' ? 'text-zen-leaf' : 'text-zen-sand'}
-                       />
-                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} />
-                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} />
-                    </div>
-                  </td>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+            <table className="w-full text-center border-collapse min-w-[1000px]">
+              <thead>
+                <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                  <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S No</th>
+                  <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Visual</th>
+                  <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Protocol Details</th>
+                  <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Metrics</th>
+                  <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Mechanism & Status</th>
+                  <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {(!filteredServices || filteredServices.length === 0) && (
+                   <tr>
+                      <td colSpan={6} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">No services recorded in the workspace</td>
+                   </tr>
+                )}
+
+                {filteredServices.map((service, index) => {
+                  const branchName = service.branch?.name || 'Main Registry';
+                  return (
+                    <tr key={service._id} className="transition-all group border-b border-black/[0.02]">
+                      <td className="text-center italic opacity-40 text-[11px]">
+                        {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
+                      </td>
+                      <td>
+                        <div className="flex justify-center">
+                          <div className="w-12 h-10 rounded-xl overflow-hidden bg-zen-cream border border-zen-brown/10 shadow-sm shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
+                            {service.image ? (
+                              <img src={getImageUrl(service.image)} className="w-full h-full object-cover" />
+                            ) : (
+                              <Sparkles className="text-zen-brown/20" size={16} />
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex flex-col items-center px-6">
+                          <span className="zen-table-primary">{service.name}</span>
+                          <span className="zen-table-meta">{branchName} • {service.category || 'General'}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex flex-col items-center">
+                          <span className="text-base font-serif font-black text-zen-brown leading-none">
+                            {settings?.general?.currencySymbol || 'QR'} {service.price}
+                          </span>
+                          <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">{service.duration} MIN</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex justify-center">
+                          <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'}>
+                            {service.status}
+                          </ZenBadge>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex items-center justify-center gap-2">
+                          <ZenIconButton 
+                            icon={Zap} 
+                            variant={service.status === 'Active' ? 'leaf' : 'sand'} 
+                            onClick={() => toggleStatus(service)} 
+                          />
+                          <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} />
+                          <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
 
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+    </div>
 
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         maxWidth="max-w-4xl"
-        title={editingService ? "Update Offering" : "Curate New Service"}
-        subtitle="Premium Offering Registry"
+        title={editingService ? "Edit Service" : "New Service"}
+        subtitle="Create and update service definitions"
         footer={
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full">
-             <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="order-2 sm:order-1 flex-1 text-lg">Discard</ZenButton>
+             <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="order-2 sm:order-1 flex-1 text-lg">Cancel</ZenButton>
              <ZenButton onClick={(e) => {
                const form = document.getElementById('serviceForm') as HTMLFormElement;
                form?.requestSubmit();
              }} className="order-1 sm:order-2 flex-[2] text-lg">
-                <span>{editingService ? 'Finalize Masterpiece' : 'Establish Offering'}</span>
+                <span>{editingService ? 'Save Service' : 'Create Service'}</span>
                 <Sparkles size={18} />
              </ZenButton>
           </div>
@@ -465,7 +542,7 @@ const Services = () => {
         <form id="serviceForm" onSubmit={handleSubmit} className="space-y-12">
            <div className="flex items-center gap-8 sm:gap-12">
               <div className="relative w-24 sm:w-40 h-24 sm:h-40 group cursor-pointer shrink-0">
-                 <div className="w-full h-full rounded-[2.5rem] ring-4 ring-zen-sand/20 ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-xl relative">
+                 <div className="w-full h-full rounded-[1rem] ring-4 ring-zen-sand/20 ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-xl relative">
                     {(imageFile || (editingService && editingService.image)) ? (
                       <img 
                         src={imageFile ? URL.createObjectURL(imageFile) : getImageUrl(editingService?.image)} 
@@ -489,78 +566,78 @@ const Services = () => {
                  <div className="absolute bottom-1 right-1 p-3 bg-zen-brown text-white rounded-full shadow-lg scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={16} /></div>
               </div>
 
-              <div className="flex-1">
-                 <ZenInput label="Offered Name" placeholder="E.g. Himalayan Salt Therapy" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-5xl border-none p-0 h-auto font-bold tracking-tighter" />
-                 <p className="mt-4 text-[11px] font-bold text-zen-brown/20 uppercase tracking-[0.5em]">Identity & Recognition</p>
-              </div>
-           </div>
+                  <div className="flex-1">
+                     <ZenInput label="Service Name" placeholder="E.g. Himalayan Salt Therapy" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-5xl border-none p-0 h-auto font-bold tracking-tighter" />
+                     <p className="mt-4 text-[11px] font-bold text-zen-brown/20 uppercase tracking-[0.5em]">Core identity</p>
+                  </div>
+               </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 sm:gap-x-16 gap-y-10 sm:gap-y-14 animate-in fade-in duration-500">
-              <ZenInput 
-                label={`Price (${settings?.general.currencySymbol || 'QR'})`} 
-                icon={Coins} 
-                type="number"
-                placeholder="0"
-                value={formData.price} 
-                onChange={(e: any) => setFormData({...formData, price: parseInt(e.target.value) || 0})} 
-              />
-              <ZenInput 
-                label="Sacred Duration (Minutes)" 
-                icon={Clock} 
-                type="number"
-                placeholder="60"
-                value={formData.duration} 
-                onChange={(e: any) => setFormData({...formData, duration: parseInt(e.target.value) || 0})} 
-              />
-              
-              <ZenDropdown 
-                 label="Assigned Branch" 
-                 options={['None', ...branches.filter(b => b.isActive).map(b => b.name)]} 
-                 value={branches.find(b => b._id === formData.branch)?.name || 'None'} 
-                 onChange={(val) => {
-                   const branch = branches.filter(b => b.isActive).find(b => b.name === val);
-                   setFormData({...formData, branch: branch ? branch._id : ''});
-                 }} 
-              />
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 sm:gap-x-16 gap-y-10 sm:gap-y-14 animate-in fade-in duration-500">
+                  <ZenInput 
+                    label={`Price (${settings?.general?.currencySymbol || 'QR'})`} 
+                    icon={Coins} 
+                    type="number"
+                    placeholder="0.00"
+                    value={formData.price} 
+                    onChange={(e: any) => setFormData({...formData, price: parseInt(e.target.value) || 0})} 
+                  />
+                  <ZenInput 
+                    label="Duration (Minutes)" 
+                    icon={Clock} 
+                    type="number"
+                    placeholder="60"
+                    value={formData.duration} 
+                    onChange={(e: any) => setFormData({...formData, duration: parseInt(e.target.value) || 0})} 
+                  />
+                  
+                  <ZenDropdown 
+                     label="Primary Branch" 
+                     options={['None', ...branches.filter(b => b.isActive).map(b => b.name)]} 
+                     value={branches.find(b => b._id === formData.branch)?.name || 'None'} 
+                     onChange={(val) => {
+                       const branch = branches.filter(b => b.isActive).find(b => b.name === val);
+                       setFormData({...formData, branch: branch ? branch._id : ''});
+                     }} 
+                  />
 
-              <ZenDropdown 
-                 label="Service Category" 
-                 options={['None', ...serviceCategories]} 
-                 value={formData.category} 
-                 onChange={(val: any) => setFormData({...formData, category: val})} 
-              />
-              
-              <ZenDropdown 
-                 label="Initial State"
-                 options={['Active', 'Inactive']}
-                 value={formData.status}
-                 onChange={(val: any) => setFormData({...formData, status: val})}
-              />
-              
-              <div className="md:col-span-2">
-                 <ZenTextarea 
-                   label="Ritual Description & Inner Resonance" 
-                   placeholder="Describe the soul of this service, its benefits, and sensory journey..." 
-                   value={formData.description}
-                   onChange={(e: any) => setFormData({...formData, description: e.target.value})}
-                 />
-              </div>
+                  <ZenDropdown 
+                     label="Service Category" 
+                     options={['None', ...serviceCategories]} 
+                     value={formData.category} 
+                     onChange={(val: any) => setFormData({...formData, category: val})} 
+                  />
+                  
+                  <ZenDropdown 
+                     label="Availability Status"
+                     options={['Active', 'Inactive']}
+                     value={formData.status}
+                     onChange={(val: any) => setFormData({...formData, status: val})}
+                  />
+                  
+                  <div className="md:col-span-2">
+                     <ZenTextarea 
+                       label="Service Description" 
+                       placeholder="Provide a detailed description of the service, including benefits and protocols..." 
+                       value={formData.description}
+                       onChange={(e: any) => setFormData({...formData, description: e.target.value})}
+                     />
+                  </div>
 
-               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-10 p-10 bg-zen-sand/5 rounded-[3rem] border border-zen-sand/10 shadow-inner">
+               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-10 p-10 bg-zen-sand/5 rounded-[1.5rem] border border-zen-sand/10 shadow-inner">
                   <div className="md:col-span-2 pb-4 border-b border-zen-brown/10 flex items-center justify-between">
                      <p className="text-[11px] font-bold text-zen-brown/40 uppercase tracking-[0.4em] flex items-center gap-3">
-                        <Zap size={14} className="text-zen-sand" /> Commission Configuration
+                        <Zap size={14} className="text-zen-sand" /> Commission Rules
                      </p>
-                     <ZenBadge variant="sand" className="scale-90 opacity-40">Golden Intelligence</ZenBadge>
+                     <ZenBadge variant="sand" className="scale-90 opacity-40">Commission Setup</ZenBadge>
                   </div>
                   <ZenDropdown 
-                     label="Reward Logic" 
+                     label="Commission Type" 
                      options={['Percentage', 'Fixed']} 
                      value={formData.commissionType} 
                      onChange={(val: any) => setFormData({...formData, commissionType: val})} 
                   />
                   <ZenInput 
-                     label={formData.commissionType === 'Percentage' ? "Reward Value (%)" : `Reward Value (${settings?.general.currencySymbol || 'QR'})`} 
+                     label={formData.commissionType === 'Percentage' ? "Commission Value (%)" : `Commission Value (${settings?.general?.currencySymbol || 'QR'})`} 
                      icon={Sparkles} 
                      type="number"
                      placeholder="e.g. 10"

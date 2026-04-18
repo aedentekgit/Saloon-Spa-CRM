@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Clock, Zap, Wallet2,
-  Download
+  Download, Search
 } from 'lucide-react';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -71,111 +72,128 @@ const Payroll = () => {
 
   return (
     <ZenPageLayout
-      title="Payroll Sanctuary"
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      addButtonLabel="Export Ledger"
-      onAddClick={handleExport}
-      addButtonIcon={<Download size={18} />}
-      headerActions={
-        <ZenMonthPicker 
-          value={selectedMonth} 
-          onChange={setSelectedMonth}
-          className="shrink-0 w-48 sm:w-56"
-          hideLabel
-        />
-      }
+      title="Payroll"
+      hideSearch
       hideBranchSelector
       hideViewToggle
+      hideAddButton
     >
-      <div className="flex overflow-x-auto pb-8 gap-6 md:grid md:grid-cols-3 md:gap-8 mb-4 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
-        <div className="flex-shrink-0 w-[280px] sm:w-auto bg-white/80 backdrop-blur-md p-6 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
-           <div className="w-16 h-16 rounded-2xl bg-zen-brown text-white flex items-center justify-center shadow-lg"><Wallet2 size={32} /></div>
-           <div>
-              <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Total Monthly Disbursement</p>
-              <h4 className="text-2xl sm:text-3xl font-serif font-bold text-zen-brown">{settings?.general?.currencySymbol} {stats.total.toLocaleString()}</h4>
-           </div>
-        </div>
-        <div className="flex-shrink-0 w-[280px] sm:w-auto bg-white/80 backdrop-blur-md p-6 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
-           <div className="w-16 h-16 rounded-2xl bg-red-400 text-white flex items-center justify-center shadow-lg"><Zap size={32} /></div>
-           <div>
-              <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Overtime Premiums</p>
-              <h4 className="text-2xl sm:text-3xl font-serif font-bold text-zen-brown">{settings?.general?.currencySymbol} {stats.ot.toLocaleString()}</h4>
-           </div>
-        </div>
-        <div className="flex-shrink-0 w-[280px] sm:w-auto bg-white/80 backdrop-blur-md p-6 rounded-[2.5rem] border border-zen-brown/15 shadow-xl flex items-center gap-6">
-           <div className="w-16 h-16 rounded-2xl bg-zen-leaf text-white flex items-center justify-center shadow-lg"><Clock size={32} /></div>
-           <div>
-              <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Accumulated Labor Hours</p>
-              <h4 className="text-2xl sm:text-3xl font-serif font-bold text-zen-brown">{stats.hours.toLocaleString()} hrs</h4>
-           </div>
-        </div>
+      <div className="flex overflow-x-auto pb-8 gap-6 md:grid md:grid-cols-3 md:gap-8 mb-4 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 w-full">
+         {[
+           { label: 'Payroll Disbursement', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.total.toLocaleString()}`, unit: '', icon: Wallet2, color: 'text-zen-brown', bg: 'bg-zen-brown/[0.03]', watermark: Wallet2 },
+           { label: 'Overtime', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.ot.toLocaleString()}`, unit: '', icon: Zap, color: 'text-red-500', bg: 'bg-red-500/[0.03]', watermark: Zap },
+           { label: 'Total Hours', value: `${stats.hours.toLocaleString()}`, unit: 'Hrs', icon: Clock, color: 'text-slate-500', bg: 'bg-slate-500/[0.03]', watermark: Clock }
+         ].map((stat, i) => (
+           <ZenStatCard key={stat.label} {...stat} index={i} />
+         ))}
       </div>
 
-      <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-sm border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
-          <table className="w-full text-center border-collapse min-w-[1000px]">
-             <thead>
-                <tr className="bg-zen-brown border-b border-zen-brown/15">
-                   <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">S No</th>
-                   <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Specialist</th>
-                   <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Protocol</th>
-                   <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Attendance</th>
-                   <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">Base Remuneration</th>
-                   <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap">OT Premium</th>
-                   <th className="px-10 py-8 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] whitespace-nowrap text-right">Final Payout</th>
-                </tr>
-             </thead>
-             <tbody className="divide-y divide-zen-brown/15">
-                {filteredData.map((row, index) => (
-                   <tr key={row.employeeId} className="hover:bg-zen-cream/5 transition-all duration-500 group">
-                      <td className="px-8 py-8">
-                         <span className="font-serif text-lg text-zen-brown/40 font-bold tracking-tight">{(index + 1).toString().padStart(2, '0')}</span>
-                      </td>
-                         <td className="px-8 py-8">
-                            <div className="flex flex-col items-center">
-                               <span className="font-serif text-lg text-zen-brown font-bold tracking-tight">{row.name}</span>
-                               <span className="text-[10px] text-zen-brown/30 uppercase tracking-widest">{row.role}</span>
-                            </div>
-                         </td>
-                         <td className="px-8 py-8">
-                            <div className="flex justify-center">
-                               <ZenBadge variant="sand" className="italic tracking-widest uppercase text-[8px]">{row.payType} Logic</ZenBadge>
-                            </div>
-                         </td>
-                         <td className="px-8 py-8">
-                            <div className="flex flex-col items-center">
-                               <span className="font-serif font-bold text-zen-brown">{row.daysWorked} Days</span>
-                               <span className="text-[10px] text-zen-brown/30 uppercase tracking-widest">{row.totalHours} Total Hrs</span>
-                            </div>
-                         </td>
-                         <td className="px-8 py-8">
-                            <span className="font-serif text-lg text-zen-brown/60 font-medium">{settings?.general.currencySymbol} {row.basePay.toLocaleString()}</span>
-                         </td>
-                         <td className="px-8 py-8">
-                            <div className="flex flex-col items-center">
-                               <span className="font-serif text-lg text-red-400 font-bold">+{settings?.general.currencySymbol} {row.otPay.toLocaleString()}</span>
-                               <p className="text-[9px] text-zen-brown/20 uppercase tracking-[0.2em] font-bold mt-1">{row.otHours} OT Hrs</p>
-                            </div>
-                         </td>
-                      <td className="px-8 py-8 text-right">
-                         <div className="flex justify-end">
-                            <div className="bg-zen-leaf/10 py-5 px-8 rounded-2xl border border-zen-leaf/20 shadow-sm shadow-zen-leaf/5">
-                               <span className="font-serif text-2xl text-zen-leaf font-bold tracking-tighter">{settings?.general?.currencySymbol} {row.totalPay.toLocaleString()}</span>
-                            </div>
-                         </div>
-                      </td>
-                      </tr>
-                   ))}
-                  {filteredData.length === 0 && (
-                     <tr>
-                        <td colSpan={7} className="py-24 text-center text-zen-brown/20 italic font-serif text-2xl">
-                           No financial records found for the selected lunar cycle.
-                        </td>
-                     </tr>
-                  )}
-               </tbody>
-            </table>
-         </div>
+       {/* Global Filter Bar */}
+       <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm mb-10">
+          <div className="flex flex-col lg:flex-row gap-8 items-end">
+             <div className="flex-1 w-full flex flex-col gap-3">
+                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Employee Search</label>
+                <div className="relative group">
+                   <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
+                   <input 
+                     type="text"
+                     placeholder="Search by specialist..."
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                     className="w-full pl-14 pr-6 py-3.5 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
+                   />
+                </div>
+             </div>
+
+             <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
+                <div className="flex items-center gap-4">
+                   <div className="flex flex-col gap-3">
+                      <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Time Window</label>
+                      <div className="flex items-center h-[48px] bg-white rounded-xl border border-zen-brown/10 shadow-sm shrink-0">
+                         <ZenMonthPicker 
+                           value={selectedMonth} 
+                           onChange={setSelectedMonth}
+                           className="w-48 sm:w-56 h-full !border-none !shadow-none !bg-transparent"
+                           hideLabel
+                         />
+                      </div>
+                   </div>
+                </div>
+
+                <div className="flex flex-col gap-3 w-full lg:w-auto">
+                   <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Management</label>
+                   <ZenButton onClick={handleExport} variant="primary" className="w-full sm:w-auto px-8 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
+                      <Download size={16} className="group-hover:rotate-12 transition-transform duration-500" />
+                      <span className="uppercase tracking-[0.2em] text-[10px] font-black">Export Report</span>
+                   </ZenButton>
+                </div>
+             </div>
+          </div>
+       </div>
+
+      <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+           <table className="w-full text-center border-collapse min-w-[1000px]">
+              <thead>
+                 <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S No</th>
+                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Specialist</th>
+                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Protocol</th>
+                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Attendance</th>
+                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Base Reward</th>
+                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">OT Premium</th>
+                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Final Payout</th>
+                 </tr>
+              </thead>
+              <tbody>
+                 {(!filteredData || filteredData.length === 0) && (
+                    <tr>
+                       <td colSpan={7} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">No financial nodes found for this cycle</td>
+                    </tr>
+                 )}
+
+                 {filteredData.map((row, index) => (
+                    <tr key={row.employeeId} className="transition-all group border-b border-black/[0.02]">
+                       <td className="text-center italic opacity-40 text-[11px]">
+                         {(index + 1).toString().padStart(2, '0')}
+                       </td>
+                       <td>
+                          <div className="flex flex-col items-center">
+                             <span className="zen-table-primary">{row.name}</span>
+                             <span className="zen-table-meta">{row.role}</span>
+                          </div>
+                       </td>
+                       <td>
+                          <div className="flex justify-center">
+                             <ZenBadge variant="sand" className="font-black tracking-widest uppercase text-[8px] scale-90">{row.payType}</ZenBadge>
+                          </div>
+                       </td>
+                       <td>
+                          <div className="flex flex-col items-center">
+                             <span className="font-bold text-zen-brown text-sm">{row.daysWorked} Days</span>
+                             <span className="text-[8px] text-zen-brown/30 font-bold uppercase tracking-widest">{row.totalHours} Hours</span>
+                          </div>
+                       </td>
+                       <td>
+                          <span className="text-sm text-zen-brown/60 font-bold">{settings?.general?.currencySymbol} {row.basePay.toLocaleString()}</span>
+                       </td>
+                       <td>
+                          <div className="flex flex-col items-center">
+                             <span className="text-sm text-red-500 font-bold">+{settings?.general?.currencySymbol} {row.otPay.toLocaleString()}</span>
+                             <p className="text-[7px] text-red-500/40 uppercase tracking-[0.2em] font-bold">{row.otHours} OT Hrs</p>
+                          </div>
+                       </td>
+                       <td>
+                          <div className="flex justify-center">
+                             <div className="bg-zen-leaf/5 py-3 px-6 rounded-xl border border-zen-leaf/10 shadow-sm">
+                                <span className="font-black text-zen-leaf text-base tracking-tight">{settings?.general?.currencySymbol} {row.totalPay.toLocaleString()}</span>
+                             </div>
+                          </div>
+                       </td>
+                    </tr>
+                 ))}
+              </tbody>
+           </table>
+        </div>
     </ZenPageLayout>
   );
 };

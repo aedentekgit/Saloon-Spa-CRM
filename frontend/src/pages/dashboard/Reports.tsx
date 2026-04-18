@@ -76,11 +76,11 @@ const Reports = () => {
     }));
   }, [services, appointments]);
 
-  const COLORS = ['#4A3728', '#C1D0B5', '#D4B996', '#947E6E', '#22c55e'];
+  const COLORS = ['#332766', '#8B5CF6', '#10B981', '#E2E8F0', '#1E293B'];
 
   return (
     <ZenPageLayout
-      title="Insight Sanctuary"
+      title="Reports & Analytics"
       hideSearch
       hideAddButton
       hideBranchSelector
@@ -88,27 +88,27 @@ const Reports = () => {
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">
         <div>
-           <h2 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Business Resonance</h2>
+           <h2 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Business Overview</h2>
            <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Analytical Insights & Performance Dynamics</p>
         </div>
         <div className="flex gap-4">
            <ZenButton variant="secondary" className="px-6 py-4 flex items-center gap-3">
               <Calendar size={18} />
-              <span className="text-[10px] uppercase font-bold tracking-widest">Ritual Cycle</span>
+              <span className="text-[10px] uppercase font-bold tracking-widest">Service Cycle</span>
            </ZenButton>
            <ZenButton variant="primary" className="px-8 py-4 flex items-center gap-3">
               <Download size={18} />
-              <span className="text-[10px] uppercase font-bold tracking-widest text-white">Export Decree</span>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-white">Export Report</span>
            </ZenButton>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-10">
-        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-sm group">
+        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[1.5rem] border border-zen-brown/15 shadow-sm group">
            <div className="flex items-center justify-between mb-10">
               <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight flex items-center gap-4">
                  <Activity size={24} className="text-zen-sand" />
-                 Growth Resonance
+                 Growth Overview
               </h3>
               <ZenBadge variant="leaf">Live Data</ZenBadge>
            </div>
@@ -117,8 +117,8 @@ const Reports = () => {
                  <AreaChart data={revenueData}>
                     <defs>
                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4A3728" stopOpacity={0.1}/>
-                          <stop offset="95%" stopColor="#4A3728" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#332766" stopOpacity={0.1}/>
+                          <stop offset="95%" stopColor="#332766" stopOpacity={0}/>
                        </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
@@ -126,27 +126,27 @@ const Reports = () => {
                        dataKey="name" 
                        axisLine={false} 
                        tickLine={false} 
-                       tick={{fill: '#4A3728', fontSize: 10, fontWeight: 700}} 
+                       tick={{fill: '#332766', fontSize: 10, fontWeight: 700}} 
                     />
                     <YAxis 
                        axisLine={false} 
                        tickLine={false} 
-                       tick={{fill: '#4A3728', fontSize: 10, fontWeight: 700}} 
+                       tick={{fill: '#332766', fontSize: 10, fontWeight: 700}} 
                     />
                     <Tooltip 
                        contentStyle={{backgroundColor: '#fff', borderRadius: '1.5rem', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.05)', padding: '1.5rem'}}
                     />
-                    <Area type="monotone" dataKey="revenue" stroke="#4A3728" fillOpacity={1} fill="url(#colorRev)" strokeWidth={4} />
+                    <Area type="monotone" dataKey="revenue" stroke="#332766" fillOpacity={1} fill="url(#colorRev)" strokeWidth={4} />
                  </AreaChart>
               </ResponsiveContainer>
            </div>
         </div>
 
-        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-sm">
+        <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
            <div className="flex items-center justify-between mb-10">
               <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight flex items-center gap-4">
                  <PieIcon size={24} className="text-zen-sand" />
-                 Ritual Popularity
+                 Service Popularity
               </h3>
               <ZenBadge variant="sand">Top Categories</ZenBadge>
            </div>
@@ -172,7 +172,7 @@ const Reports = () => {
                  </PieChart>
               </ResponsiveContainer>
               <div className="absolute flex flex-col items-center">
-                 <span className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest">Total Rituals</span>
+                 <span className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest">Total Services</span>
                  <span className="text-3xl font-serif font-bold text-zen-brown">{appointments.length}</span>
               </div>
            </div>
@@ -180,7 +180,7 @@ const Reports = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 bg-white/60 backdrop-blur-sm p-10 rounded-[3rem] border border-zen-brown/15 shadow-sm">
+        <div className="lg:col-span-2 bg-white/60 backdrop-blur-sm p-10 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
            <div className="flex items-center justify-between mb-10">
               <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight flex items-center gap-4">
                  <BarChart3 size={24} className="text-zen-sand" />
@@ -196,29 +196,29 @@ const Reports = () => {
                        dataKey="name" 
                        axisLine={false} 
                        tickLine={false} 
-                       tick={{fill: '#4A3728', fontSize: 10, fontWeight: 700}} 
+                       tick={{fill: '#332766', fontSize: 10, fontWeight: 700}} 
                     />
                     <YAxis 
                        axisLine={false} 
                        tickLine={false} 
-                       tick={{fill: '#4A3728', fontSize: 10, fontWeight: 700}} 
+                       tick={{fill: '#332766', fontSize: 10, fontWeight: 700}} 
                     />
                     <Tooltip 
                        cursor={{fill: '#f5f5f5'}}
                        contentStyle={{backgroundColor: '#fff', borderRadius: '1.5rem', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.05)', padding: '1.5rem'}}
                     />
-                    <Bar dataKey="revenue" fill="#D4B996" radius={[10, 10, 0, 0]} barSize={40} />
+                    <Bar dataKey="revenue" fill="#8B5CF6" radius={[10, 10, 0, 0]} barSize={40} />
                  </BarChart>
               </ResponsiveContainer>
            </div>
         </div>
 
-        <div className="bg-zen-brown p-10 rounded-[3rem] shadow-sm relative overflow-hidden group">
+        <div className="bg-zen-brown p-10 rounded-[1.5rem] shadow-sm relative overflow-hidden group">
            <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-125 transition-transform duration-1000">
               <Sparkles size={160} />
            </div>
            
-           <h3 className="text-2xl font-serif font-bold text-white mb-10 relative z-10">Sanctuary Vitals</h3>
+           <h3 className="text-2xl font-serif font-bold text-white mb-10 relative z-10">Key Metrics</h3>
            
            <div className="space-y-10 relative z-10">
               <div>
@@ -238,7 +238,7 @@ const Reports = () => {
 
               <div>
                  <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest mb-3">
-                    <span className="text-white/40">Ritual Mastery</span>
+                    <span className="text-white/40">Service Mastery</span>
                     <span className="text-white">92%</span>
                  </div>
                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -267,12 +267,12 @@ const Reports = () => {
               </div>
 
               <div className="pt-8 border-t border-white/5">
-                 <div className="flex items-center gap-4 p-6 bg-white/5 rounded-[2rem] border border-white/5">
+                 <div className="flex items-center gap-4 p-6 bg-white/5 rounded-[1rem] border border-white/5">
                     <div className="p-4 bg-emerald-500 rounded-2xl text-white shadow-sm shadow-emerald-500/20">
                        <TrendingUp size={24} />
                     </div>
                     <div>
-                       <p className="text-[9px] font-bold text-white/30 uppercase tracking-[.3em]">Resonance Lift</p>
+                       <p className="text-[9px] font-bold text-white/30 uppercase tracking-[.3em]">Growth Lift</p>
                        <p className="text-xl font-serif font-bold text-white">+12.4% <span className="text-xs font-sans font-medium text-emerald-400">Monthly</span></p>
                     </div>
                  </div>

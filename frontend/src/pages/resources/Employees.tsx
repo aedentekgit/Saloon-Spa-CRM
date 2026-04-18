@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
-import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { 
-  UserPlus, Mail, Phone, Edit2, Trash2, User,
-  UserCircle, Lock, Eye, EyeOff, Sparkles, X, Calendar, Info,
-  FileText, Upload, Download, File, Loader2, Cloud, Clock, Zap, Shield
+  UserPlus, Mail, Phone, Edit2, Trash2, User, Search,
+  UserCircle, Lock, Eye, EyeOff, Sparkles, Calendar, Info,
+  FileText, Upload, Download, File, Loader2, Cloud, Clock, Zap, Shield,
+  Grid, List
 } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 import { validatePhoneNumber, getPhoneValidationProtocol } from '../../utils/validation';
@@ -20,6 +20,7 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenDropdown, ZenInput, ZenTextarea, ZenDatePicker } from '../../components/zen/ZenInputs';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useBranches } from '../../context/BranchContext';
 import { useData } from '../../context/DataContext';
@@ -75,7 +76,7 @@ interface Employee {
 const Employees = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const { branches, selectedBranch } = useBranches();
+  const { branches, selectedBranch, setSelectedBranch } = useBranches();
   const { services, appointments: allAppointments } = useData();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -130,7 +131,7 @@ const Employees = () => {
     checkOut: ''
   });
 
-  const payrollResonance = useMemo(() => {
+  const payrollPayroll = useMemo(() => {
     if (!formData.name) return { commissionTotal: 0, totalEarnings: 0, monthApts: [] };
 
     const monthApts = allAppointments.filter(a => a.employee === formData.name && a.date?.startsWith(historyMonth));
@@ -244,7 +245,7 @@ const Employees = () => {
         // Prevent simulating across month boundaries if we only want this month
         if (date.format('YYYY-MM') !== historyMonth) break;
         // We still don't want to simulate future if they are logging real attendance, 
-        // but for "Establish Flow" we might want the whole month.
+        // but for sample generation we may want the whole month.
         // Let's allow full month for simulation.
 
         const dateStr = date.format('YYYY-MM-DD');
@@ -275,7 +276,7 @@ const Employees = () => {
         }));
       }
       await Promise.all(promises);
-      notify('success', 'Roster Established', `Generated ${cycleDays} nodes based on ${editingEmp.shiftType} sequence`);
+      notify('success', 'Roster Created', `Generated ${cycleDays} schedule entries based on ${editingEmp.shiftType} shift.`);
       
       // Force refresh activity data
       const res = await fetch(`${API_URL}/attendance`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
@@ -286,7 +287,7 @@ const Employees = () => {
         setEmployeeAttendance(history);
       }
     } catch (e) {
-      notify('error', 'Simulation Failed', 'Could not establish temporal sequence');
+      notify('error', 'Simulation Failed', 'Could not create schedule');
     } finally {
       setLoading(false);
     }
@@ -311,8 +312,8 @@ const Employees = () => {
 
    const deleteAttendance = async (id: string) => {
      openConfirm(
-       'Obliterate Record?',
-       'This action will permanently remove this temporal node from the registry.',
+       'Delete Attendance Record?',
+       'This action will permanently remove this attendance entry.',
        async () => {
          try {
            setLoading(true);
@@ -320,10 +321,10 @@ const Employees = () => {
              method: 'DELETE',
              headers: { 'Authorization': `Bearer ${user?.token}` }
            });
-           notify('success', 'Registry Purged', 'The node has been removed');
+           notify('success', 'Attendance Removed', 'The record has been removed');
            setEmployeeAttendance(prev => prev.filter(a => a._id !== id));
          } catch (e) {
-           notify('error', 'Erasure Failed', 'Could not remove the record');
+           notify('error', 'Delete Failed', 'Could not remove the record');
          } finally {
            setLoading(false);
          }
@@ -343,11 +344,11 @@ const Employees = () => {
          },
          body: JSON.stringify(attendanceFormData)
        });
-       notify('success', 'Sequence Updated', 'Temporal node refined');
+       notify('success', 'Schedule Updated', 'Schedule updated');
        setEmployeeAttendance(prev => prev.map(a => a._id === editingAttendance._id ? { ...a, ...attendanceFormData } : a));
        setIsAttendanceModalOpen(false);
      } catch (e) {
-       notify('error', 'Adjustment Failed', 'Could not refine the record');
+       notify('error', 'Update Failed', 'Could not refine the record');
      } finally {
        setLoading(false);
      }
@@ -360,8 +361,8 @@ const Employees = () => {
       });
       const data = await response.json();
       if (data.data) {
-        setEmployees(data.data);
-        setTotalPages(data.pagination.pages);
+        setEmployees(Array.isArray(data.data) ? data.data : []);
+        setTotalPages(data.pagination?.pages || 1);
       } else if (Array.isArray(data)) {
         setEmployees(data);
         setTotalPages(1);
@@ -375,8 +376,11 @@ const Employees = () => {
 
   const filteredEmployees = useMemo(() => {
     let filtered = employees;
-    if (selectedBranch !== 'all') {
-      filtered = filtered.filter(emp => emp.branch?._id === selectedBranch || (emp as any).branch === selectedBranch);
+    if (selectedBranch && selectedBranch !== 'all') {
+      filtered = filtered.filter(emp => {
+        const branchId = emp.branch?._id || (typeof emp.branch === 'string' ? emp.branch : (emp as any).branchId);
+        return branchId === selectedBranch;
+      });
     }
     return filtered.filter(emp => 
       emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -396,8 +400,8 @@ const Employees = () => {
     }
   };
 
-  const toggleStatus = async (emp: Employee) => {
-    const newStatus = emp.status === 'Active' ? 'Inactive' : 'Active';
+  const togglePayroll = async (emp: Employee) => {
+    const newPayroll = emp.status === 'Active' ? 'Inactive' : 'Active';
     try {
       const response = await fetch(`${API_URL}/employees/${emp._id}`, {
         method: 'PUT',
@@ -405,10 +409,10 @@ const Employees = () => {
           'Authorization': `Bearer ${user?.token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newPayroll })
       });
       if (response.ok) {
-        notify('success', 'Refined', `Specialist ${newStatus}`);
+        notify('success', 'Updated', `Employee ${newPayroll}`);
         fetchEmployees();
       }
     } catch (error) {
@@ -465,7 +469,7 @@ const Employees = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      return notify('error', 'Validation Error', 'Full Identity is required');
+      return notify('error', 'Validation Error', 'Full name is required');
     }
     if (!editingEmp && formData.password !== formData.confirmPassword) {
       return notify('error', 'Validation', 'Passwords do not match');
@@ -500,7 +504,7 @@ const Employees = () => {
         body: data
       });
       if (response.ok) {
-        notify('success', 'Refined', `Specialist record updated`);
+        notify('success', 'Updated', `Employee record updated`);
         setIsModalOpen(false);
         fetchEmployees();
       } else {
@@ -514,8 +518,8 @@ const Employees = () => {
 
   const handleDelete = async (id: string) => {
     openConfirm(
-      'Archive Specialist',
-      'Archive this specialist profile? They will be moved to the historical registry.',
+      'Archive Employee',
+      'Archive this employee profile? They will be moved to the historical registry.',
       async () => {
         try {
           const response = await fetch(`${API_URL}/employees/${id}`, {
@@ -540,186 +544,300 @@ const Employees = () => {
     return `${API_URL.replace('/api', '')}/${cleanPath}`;
   };
 
+  const employeeModalTabs = [
+    { id: 'profile' as const, label: 'Profile' },
+    { id: 'config' as const, label: 'Schedule' },
+    { id: 'payroll' as const, label: 'Payroll' },
+    { id: 'activity' as const, label: 'Attendance' },
+    { id: 'documents' as const, label: 'Documents' },
+  ];
+
   return (
     <ZenPageLayout
       title="Specialists"
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      viewMode={viewMode}
-      onViewModeChange={setViewMode}
-      addButtonLabel="Add Specialist"
-      addButtonIcon={<UserPlus size={18} />}
+      hideSearch
+      hideBranchSelector
+      hideViewToggle
+      hideAddButton
       onAddClick={() => handleOpenModal()}
     >
-      {loading ? (
-        <div className="flex flex-col items-center justify-center min-h-[400px]">
-          <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
+      <div className="space-y-10 pb-20">
+        {/* Dynamic Summary Cards */}
+        <div className="flex overflow-x-auto pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+          {[
+            { label: 'Total Specialists', value: employees.length, icon: UserCircle, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Roster size' },
+            { label: 'Active Staff', value: employees.filter(e => e.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live nodes' },
+            { label: 'Inactive Staff', value: employees.filter(e => e.status !== 'Active').length, icon: Shield, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Inactive personnel' },
+            { label: 'Total Earnings', value: `${settings?.general?.currencySymbol || 'QR'} ${employees.reduce((acc, e) => acc + (e.earnings || 0), 0).toLocaleString()}`, icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', trend: 'Overall value' }
+          ].map((stat, i) => (
+            <ZenStatCard key={i} {...stat} delay={i * 0.2} />
+          ))}
         </div>
-      ) : (
-        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-10" : "bg-white/70 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] shadow-sm border border-white overflow-hidden overflow-x-auto"}>
-          {viewMode === 'grid' ? (
-            filteredEmployees.map((emp) => (
-              <div key={emp._id} className={`group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-sm border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${emp.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}>
-                 <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
-                 <div className="relative z-10">
-                    <div className="flex items-center gap-4 lg:gap-6 mb-4 lg:mb-6">
-                       <div className="relative w-16 lg:w-20 h-16 lg:h-20 rounded-full overflow-hidden border-4 border-zen-cream bg-zen-cream flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700 shadow-xl">
-                          {emp.profilePic ? (<img src={getImageUrl(emp.profilePic)} alt={emp.name} className="w-full h-full object-cover" />) : (<User size={32} className="text-zen-brown/10" strokeWidth={1} />)}
-                       </div>
-                       <div className="min-w-0 flex-1">
-                          <h3 className="text-2xl sm:text-3xl font-serif font-black text-zen-brown tracking-tighter leading-none mb-1 truncate">{emp.name}</h3>
-                          <div className="flex items-center gap-2 mt-2 flex-wrap">
-                             <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.4em]">{emp.role}</p>
-                             {(emp as any).branch?.name && (
-                               <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded-md">
-                                 {(emp as any).branch.name}
-                               </span>
-                             )}
-                          </div>
-                          <div className="mt-2 text-[9px] font-serif font-black uppercase tracking-widest text-zen-brown/20 flex items-center gap-1.5">
-                             <Zap size={10} className="text-zen-sand" /> {emp.payroll?.type || 'Monthly'} Sequence
-                          </div>
-                       </div>
-                       <div className="flex flex-col sm:flex-row gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
-                          <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} size="sm" />
-                          <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} size="sm" />
-                       </div>
+
+        {/* Global Filter Bar */}
+        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-8 items-end">
+            <div className="flex-1 w-full flex flex-col gap-3">
+               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Specialist Search</label>
+               <div className="relative group">
+                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
+                  <input 
+                    type="text"
+                    placeholder="Search specialists by name or role..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-14 pr-6 py-3.5 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
+                  />
+               </div>
+            </div>
+
+            <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
+               <div className="flex items-center gap-4">
+                  <div className="w-full lg:w-[240px]">
+                     <ZenDropdown 
+                       label="Active Branch"
+                       options={['All Branches', ...(branches || []).map(b => b.name)]}
+                       value={selectedBranch === 'all' ? 'All Branches' : ((branches || []).find(b => b._id === selectedBranch)?.name || 'All Branches')}
+                       onChange={(val: any) => {
+                         if (val === 'All Branches') {
+                           setSelectedBranch('all');
+                         } else {
+                           const b = branches.find(br => br.name === val);
+                           if (b) setSelectedBranch(b._id);
+                         }
+                       }}
+                       className="w-full"
+                     />
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                     <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
+                     <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner">
+                        <button 
+                          onClick={() => setViewMode('grid')}
+                          className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
+                        >
+                          <Grid size={16} />
+                        </button>
+                        <button 
+                          onClick={() => setViewMode('table')}
+                          className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
+                        >
+                          <List size={16} />
+                        </button>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="flex flex-col gap-3 w-full lg:w-auto">
+                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Management</label>
+                  <ZenButton onClick={() => handleOpenModal()} variant="primary" className="w-full sm:w-auto px-8 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
+                     <UserPlus size={16} className="group-hover:rotate-12 transition-transform duration-500" />
+                     <span className="uppercase tracking-[0.2em] text-[10px] font-black">Add Specialist</span>
+                  </ZenButton>
+               </div>
+            </div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center min-h-[400px]">
+            <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredEmployees.map((emp) => (
+              <div key={emp._id} className={`group relative bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-zen-brown/15 flex flex-col transition-all duration-500 hover:shadow-xl hover:translate-y-[-4px] ${emp.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
+                 <div className="flex items-center gap-4 mb-6">
+                    <div className="relative w-16 h-16 rounded-full overflow-hidden bg-zen-cream border-2 border-white shadow-md shrink-0 transition-transform duration-700 group-hover:scale-105">
+                       {emp.profilePic ? (
+                         <img src={getImageUrl(emp.profilePic)} alt={emp.name} className="w-full h-full object-cover" />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-zen-brown/20 uppercase font-serif font-black text-2xl">
+                           {emp.name.charAt(0)}
+                         </div>
+                       )}
+                    </div>
+                    <div className="min-w-0">
+                       <h3 className="text-xl font-serif font-black text-zen-brown truncate leading-tight mb-1">{emp.name}</h3>
+                       <p className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest">{emp.role}</p>
                     </div>
                  </div>
-                 <div className="relative z-10 pt-4 border-t border-zen-brown/15 flex items-center justify-between">
-                    <ZenBadge variant={emp.status === 'Active' ? 'leaf' : 'inactive'}>{emp.status === 'Inactive' ? 'Deactive' : emp.status}</ZenBadge>
-                    <div className="flex items-center gap-2 text-zen-brown/20 italic text-[10px] font-medium font-serif">
-                       Earnings: {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
+
+                 <div className="space-y-4 mb-6">
+                    <div className="flex items-center justify-between text-[10px]">
+                       <span className="text-zen-brown/40 font-bold uppercase tracking-wider">Operational ID</span>
+                       <span className="font-serif italic font-medium text-zen-brown/60">#{emp._id.slice(-6).toUpperCase()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                       <span className="text-[10px] text-zen-brown/40 font-bold uppercase tracking-wider">Branch</span>
+                       <ZenBadge variant="sand" className="text-[8px] uppercase font-bold">{emp.branch?.name || 'Main Registry'}</ZenBadge>
+                    </div>
+                 </div>
+
+                 <div className="mt-auto pt-4 border-t border-black/[0.03] flex items-center justify-between">
+                    <div className="flex flex-col">
+                       <span className="text-[16px] font-serif font-black text-zen-brown leading-none">
+                          {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
+                       </span>
+                       <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Total Earnings</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-bold">
+                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} />
+                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} />
                     </div>
                  </div>
               </div>
-            ))
-          ) : (
-            <table className="w-full text-center border-collapse min-w-[800px]">
+            ))}
+          </div>
+        ) : (
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+            <table className="w-full text-center border-collapse min-w-[1000px]">
                <thead>
-                  <tr className="bg-zen-brown border-b border-zen-brown/15">
-                     <th className="px-10">S No</th>
-                     <th className="px-10">Specialist</th>
-                     <th>Payroll</th>
-                     <th>Shift</th>
-                     <th>Earnings</th>
-                     <th className="text-right">Actions</th>
+                  <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S No</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Portrait</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Identity & Role</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Mechanism</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Payroll</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Presence</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Actions</th>
                   </tr>
                </thead>
-               <tbody className="divide-y divide-zen-brown/15">
-                  {filteredEmployees.map((emp, idx) => (
-                    <tr key={emp._id} className="transition-all group">
-                      <td className="text-center italic opacity-40">
+               <tbody>
+                  {(!filteredEmployees || filteredEmployees.length === 0) && (
+                     <tr>
+                        <td colSpan={7} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">No employees recorded yet</td>
+                     </tr>
+                  )}
+
+                   {filteredEmployees.map((emp, idx) => (
+                    <tr key={emp._id} className="transition-all group border-b border-black/[0.02]">
+                      <td className="text-center italic opacity-40 text-[11px]">
                         {((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}
                       </td>
-                     <td>
-                        <div className="flex flex-col items-center">
-                           <span className="zen-table-primary">{emp.name}</span>
-                           <span className="zen-table-meta">{emp.role}</span>
-                        </div>
-                     </td>
                       <td>
-                         <div className="flex items-center justify-center gap-2 text-[10px] text-zen-brown/40 italic font-black uppercase tracking-widest">
-                            <Zap size={10} className="text-zen-sand" />
-                            {emp.payroll?.type || 'Monthly'}
-                         </div>
-                      </td>
-                      <td>
-                         <div className="flex items-center justify-center gap-2 text-[10px] text-zen-brown/40 font-black uppercase tracking-widest">
-                            {emp.shifts && emp.shifts.length > 0 ? (
-                               <span>{emp.shifts[0].startTime} - {emp.shifts[0].endTime}</span>
+                         <div className="w-12 h-12 rounded-full overflow-hidden mx-auto bg-stone-50 border border-black/5 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
+                            {emp.profilePic ? (
+                               <img src={getImageUrl(emp.profilePic)} alt={emp.name} className="w-full h-full object-cover" />
                             ) : (
-                               <span>No Shift</span>
+                               <User size={18} className="text-black/10" strokeWidth={1} />
                             )}
                          </div>
                       </td>
                       <td>
-                         <ZenBadge variant="sand" className="scale-90 font-black tracking-widest">
-                            {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
-                         </ZenBadge>
+                         <div className="flex flex-col items-center px-6">
+                            <span className="zen-table-primary">{emp.name}</span>
+                            <span className="zen-table-meta">{emp.role} • {emp.branch?.name || 'H.Q'}</span>
+                         </div>
                       </td>
-                      <td className="px-10 py-8 text-right">
-                         <div className="flex items-center justify-end gap-3">
+                      <td>
+                         <div className="flex flex-col items-center">
+                            <span className="text-[10px] text-zen-brown/50 font-black uppercase tracking-widest">{emp.payroll?.type || 'Monthly'}</span>
+                            <span className="text-[9px] font-bold text-zen-brown/20 italic mt-0.5">{emp.shift || 'Flexible'} Record</span>
+                         </div>
+                      </td>
+                      <td>
+                        <div className="flex flex-col items-center">
+                           <span className="text-base font-serif font-black text-zen-brown leading-none">
+                              {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
+                           </span>
+                           <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Total Earnings</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex justify-center">
+                           <ZenBadge variant={emp.status === 'Active' ? 'leaf' : 'sand'}>
+                              {emp.status}
+                           </ZenBadge>
+                        </div>
+                      </td>
+                      <td>
+                         <div className="flex items-center justify-center gap-2">
                             <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} />
                             <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} />
                          </div>
                       </td>
                    </tr>
-                 ))}
-               </tbody>
+                   ))}
+                </tbody>
             </table>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+
 
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+    </div>
 
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        maxWidth="max-w-4xl"
-        header={
-          <div className="flex flex-col shrink-0">
-            <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-10 border-b border-zen-brown/15 bg-white/95 backdrop-blur-sm z-[60]">
-               <div className="flex items-center gap-4 sm:gap-8 flex-1">
-                  <div className="relative w-20 sm:w-28 h-20 sm:h-28 group cursor-pointer shrink-0">
-                     <div className="w-full h-full rounded-full ring-4 ring-zen-cream overflow-hidden bg-zen-cream flex items-center justify-center transition-all group-hover:ring-zen-brown/20 shadow-xl">
-                        {(profilePicFile || (editingEmp && editingEmp.profilePic)) ? (
-                          <img src={profilePicFile ? URL.createObjectURL(profilePicFile) : getImageUrl(editingEmp?.profilePic)} className="w-full h-full object-cover" />
-                        ) : <UserCircle className="text-zen-brown/10" size={56} />}
-                     </div>
-                     <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e => setProfilePicFile(e.target.files?.[0] || null)} />
-                  </div>
-                  <div className="flex-1">
-                     <ZenInput label="Full Identity" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-xl sm:text-3xl pb-2 sm:pb-4 focus:border-zen-brown transition-all duration-500" />
-                     <div className="w-full sm:w-72 mt-1 sm:mt-2">
-                        <ZenDropdown label="Vocation" options={roles.filter(r => r.status === 'Active' || r.isActive).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} />
-                     </div>
-                  </div>
-               </div>
-               <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} className="self-start mt-2" />
-            </div>
-
-            <div className="flex items-center gap-4 sm:gap-8 px-6 sm:px-12 border-b border-zen-brown/15 bg-white/50 backdrop-blur-sm z-50 overflow-x-auto scrollbar-hide">
-               {['profile', 'config', 'payroll', 'activity', 'documents'].map(tab => (
-                  <button key={tab} type="button" onClick={() => setActiveTab(tab as any)} className={`py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] relative transition-all min-w-max ${activeTab === tab ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/60'}`}>
-                     {tab === 'profile' ? 'Matrix' : tab === 'config' ? 'Logic' : tab === 'payroll' ? 'Resonance' : tab === 'activity' ? 'History' : 'Archives'}
-                     {activeTab === tab && <motion.div layoutId="modalTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-zen-brown" />}
-                  </button>
-               ))}
-            </div>
-          </div>
-        }
+        maxWidth="max-w-5xl"
+        title={editingEmp ? 'Edit Employee Profile' : 'New Employee Profile'}
+        subtitle="Manage profile, schedule, payroll, documents, and attendance"
+        headerIcon={UserCircle}
         footer={
           <div className="flex gap-6">
-             <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Discard</ZenButton>
+             <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Cancel</ZenButton>
              <ZenButton type="submit" form="employee-form" className="flex-[2] py-5">
-                <span>Save Configuration</span>
+                <span>Save Employee</span>
                 <Sparkles size={18} />
              </ZenButton>
           </div>
         }
       >
-        <form id="employee-form" onSubmit={handleSubmit} className="w-full relative">
+        <form id="employee-form" onSubmit={handleSubmit} className="w-full space-y-10">
+          <section className="grid grid-cols-1 lg:grid-cols-[168px_minmax(0,1fr)] gap-8 items-start">
+            <div className="relative mx-auto lg:mx-0 w-36 h-36 sm:w-40 sm:h-40 group cursor-pointer shrink-0">
+              <div className="w-full h-full rounded-full ring-4 ring-zen-cream overflow-hidden bg-zen-cream flex items-center justify-center transition-all group-hover:ring-zen-brown/20 shadow-xl">
+                {(profilePicFile || (editingEmp && editingEmp.profilePic)) ? (
+                  <img src={profilePicFile ? URL.createObjectURL(profilePicFile) : getImageUrl(editingEmp?.profilePic)} className="w-full h-full object-cover" />
+                ) : <UserCircle className="text-zen-brown/10" size={56} />}
+              </div>
+              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e => setProfilePicFile(e.target.files?.[0] || null)} />
+            </div>
+
+            <div className="space-y-5">
+              <ZenInput label="Full Name" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-4xl border-none p-0 h-auto font-bold tracking-tighter" />
+              <div className="w-full sm:w-80">
+                <ZenDropdown label="Role" options={roles.filter(r => r.status === 'Active' || r.isActive).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} />
+              </div>
+              <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.5em]">Core identity</p>
+            </div>
+          </section>
+
+          <div className="flex flex-wrap gap-2 p-2 bg-zen-brown/5 rounded-[1.5rem] border border-zen-brown/10">
+            {employeeModalTabs.map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 sm:px-6 py-3 rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.25em] transition-all duration-500 ${activeTab === tab.id ? 'bg-zen-brown text-white shadow-sm' : 'text-zen-brown/35 hover:text-zen-brown hover:bg-white'}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           <div className={`space-y-6 ${activeTab === 'activity' ? 'overflow-hidden' : ''}`}>
               {activeTab === 'profile' ? (
                  <div className="grid grid-cols-2 gap-x-16 gap-y-10 animate-in fade-in duration-500 py-12">
-                     <ZenInput label="Email Port" icon={Mail} value={formData.email} onChange={(e: any) => setFormData({...formData, email: e.target.value})} />
-                     <ZenInput label="Contact Line" icon={Phone} prefix={settings?.general?.dialingCode} value={formData.phone} onChange={(e: any) => setFormData({...formData, phone: e.target.value})} />
-                     <ZenInput label={`Security Key ${editingEmp ? '(Optional)' : ''}`} icon={Lock} type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} />
-                     <ZenInput label="Confirm Key" icon={Lock} type="password" value={formData.confirmPassword} onChange={(e: any) => setFormData({...formData, confirmPassword: e.target.value})} />
-                     <ZenDropdown label="Branch Node" options={['None', ...branches.filter(b => b.isActive).map(b => b.name)]} value={branches.find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: branches.filter(b => b.isActive).find(b => b.name === val)?._id || ''})} />
-                     <ZenDropdown label="Operational Status" options={['Active', 'Deactive']} value={formData.status === 'Inactive' ? 'Deactive' : formData.status} onChange={(val) => setFormData({...formData, status: val === 'Deactive' ? 'Inactive' : val})} />
+                     <ZenInput label="Email Address" icon={Mail} value={formData.email} onChange={(e: any) => setFormData({...formData, email: e.target.value})} />
+                     <ZenInput label="Phone Number" icon={Phone} prefix={settings?.general?.dialingCode} value={formData.phone} onChange={(e: any) => setFormData({...formData, phone: e.target.value})} />
+                     <ZenInput label={`Password ${editingEmp ? '(Optional)' : ''}`} icon={Lock} type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} />
+                     <ZenInput label="Confirm Password" icon={Lock} type="password" value={formData.confirmPassword} onChange={(e: any) => setFormData({...formData, confirmPassword: e.target.value})} />
+                     <ZenDropdown label="Branch" options={['None', ...(branches || []).filter(b => b.isActive).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: (branches || []).filter(b => b.isActive).find(b => b.name === val)?._id || ''})} />
+                     <ZenDropdown label="Employment Status" options={['Active', 'Inactive']} value={formData.status} onChange={(val) => setFormData({...formData, status: val as 'Active' | 'Inactive'})} />
                      <div className="col-span-2">
-                        <ZenDatePicker label="Commencement Date" value={formData.joiningDate} onChange={val => setFormData({...formData, joiningDate: val})} />
+                        <ZenDatePicker label="Start Date" value={formData.joiningDate} onChange={val => setFormData({...formData, joiningDate: val})} />
                      </div>
-                      <div className="col-span-2"><ZenTextarea label="Resident Residence" value={formData.address} onChange={(e: any) => setFormData({...formData, address: e.target.value})} /></div>
+                      <div className="col-span-2"><ZenTextarea label="Address" value={formData.address} onChange={(e: any) => setFormData({...formData, address: e.target.value})} /></div>
                  </div>
               ) : activeTab === 'config' ? (
                 <div className="grid grid-cols-2 gap-x-16 gap-y-10 animate-in fade-in duration-500 h-full py-12">
                     <div className="col-span-1">
                       <ZenDropdown 
-                        label="Calculation Mode" 
+                        label="Payroll Type" 
                         options={['Monthly', 'Hourly']} 
                         value={formData.payroll.type} 
                         onChange={(val: any) => setFormData({...formData, payroll: {...formData.payroll, type: val}})} 
@@ -749,7 +867,7 @@ const Employees = () => {
                     
                     <div className="col-span-1">
                        <ZenDropdown 
-                          label="Sequence Cycle" 
+                          label="Schedule Cycle" 
                           options={['Day', 'Week', 'Month']} 
                           value={formData.shiftType} 
                           onChange={(val: any) => setFormData({...formData, shiftType: val})} 
@@ -759,7 +877,7 @@ const Employees = () => {
                     
                     <div className="flex items-center justify-between p-6 bg-zen-sand/5 rounded-2xl border border-zen-sand/10">
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-zen-brown uppercase tracking-widest">Reward Eligibility</span>
+                        <span className="text-[10px] font-bold text-zen-brown uppercase tracking-widest">Commission Eligibility</span>
                         <span className="text-xs text-zen-brown/40 mt-0.5">Allow automated commissions</span>
                       </div>
                       <button 
@@ -772,20 +890,20 @@ const Employees = () => {
                     </div>
 
                     <ZenInput 
-                      label={formData.payroll.type === 'Monthly' ? "Retainer Salary" : "Hourly Resonance Rate"} 
+                      label={formData.payroll.type === 'Monthly' ? "Base Salary" : "Hourly Rate"} 
                       prefix={settings?.general?.currencySymbol || 'QR'} 
                       type="number" 
                       value={formData.payroll.baseAmount || formData.salary} 
                       onChange={(e: any) => setFormData({...formData, payroll: {...formData.payroll, baseAmount: parseInt(e.target.value)}})} 
                     />
-                    <ZenInput label="Overtime Premium (Rate/Hr)" icon={Zap} type="number" value={formData.payroll.otRate} onChange={(e: any) => setFormData({...formData, payroll: {...formData.payroll, otRate: parseInt(e.target.value)}})} />
+                    <ZenInput label="Overtime Rate (per hour)" icon={Zap} type="number" value={formData.payroll.otRate} onChange={(e: any) => setFormData({...formData, payroll: {...formData.payroll, otRate: parseInt(e.target.value)}})} />
                     <ZenInput label="Shift Duration (Hours)" icon={Clock} type="number" value={formData.payroll.shiftHours} onChange={(e: any) => setFormData({...formData, payroll: {...formData.payroll, shiftHours: parseInt(e.target.value)}})} disabled />
                     
                     <div className="p-8 bg-zen-leaf/5 rounded-[2rem] border border-zen-leaf/10 flex flex-col justify-center">
-                       <h5 className="text-[10px] font-bold text-zen-leaf uppercase tracking-widest">Projection Logic</h5>
+                       <h5 className="text-[10px] font-bold text-zen-leaf uppercase tracking-widest">Payroll Summary</h5>
                        <p className="font-serif italic text-zen-brown/60 text-sm mt-3 leading-relaxed">
-                          Staff will be paid {settings?.general?.currencySymbol} {formData.payroll.baseAmount} {formData.payroll.type === 'Monthly' ? 'per month' : 'per hour'}. 
-                          Work exceeding {formData.payroll.shiftHours} hours will earn {settings?.general?.currencySymbol} {formData.payroll.otRate}/hr bonus.
+                          Base pay is {settings?.general?.currencySymbol} {formData.payroll.baseAmount} {formData.payroll.type === 'Monthly' ? 'per month' : 'per hour'}.
+                          Any work beyond {formData.payroll.shiftHours} hours is paid at {settings?.general?.currencySymbol} {formData.payroll.otRate}/hr overtime.
                        </p>
                     </div>
                 </div>
@@ -793,20 +911,20 @@ const Employees = () => {
                  <div className="flex-1 pb-10 custom-scrollbar animate-in slide-in-from-right-4 duration-500 py-6 space-y-10">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                        <div className="bg-zen-cream/30 p-8 rounded-[2.5rem] border border-zen-brown/15">
-                          <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">Base Retainer</p>
+                          <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">Base Salary</p>
                           <h4 className="text-2xl font-serif font-black text-zen-brown">{settings?.general?.currencySymbol} {(formData.payroll.baseAmount || 0).toLocaleString()}</h4>
-                          <span className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-widest leading-none italic">{formData.payroll.type === 'Monthly' ? 'FIXED MONTHLY' : 'ESTIMATED HOURLY'}</span>
+                          <span className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-widest leading-none italic">{formData.payroll.type === 'Monthly' ? 'FIXED MONTHLY' : 'HOURLY RATE'}</span>
                        </div>
 
                         <div className="bg-zen-sand/10 p-8 rounded-[2.5rem] border border-zen-sand/20">
-                           <p className="text-[10px] font-bold text-zen-sand uppercase tracking-widest mb-1">Accrued Rewards</p>
-                           <h4 className="text-2xl font-serif font-black text-zen-sand">{settings?.general?.currencySymbol} {payrollResonance.commissionTotal.toLocaleString()}</h4>
-                           <span className="text-[9px] font-bold text-zen-sand/40 uppercase tracking-widest leading-none italic">{payrollResonance.monthApts.length} SERVICES COMPLETED</span>
+                           <p className="text-[10px] font-bold text-zen-sand uppercase tracking-widest mb-1">Commission Earned</p>
+                           <h4 className="text-2xl font-serif font-black text-zen-sand">{settings?.general?.currencySymbol} {payrollPayroll.commissionTotal.toLocaleString()}</h4>
+                           <span className="text-[9px] font-bold text-zen-sand/40 uppercase tracking-widest leading-none italic">{payrollPayroll.monthApts.length} SERVICES COMPLETED</span>
                         </div>
                         <div className="bg-zen-brown p-8 rounded-[2.5rem] shadow-xl shadow-zen-brown/20 text-white relative overflow-hidden">
                            <div className="absolute top-0 right-0 p-4 opacity-5"><Zap size={40} /></div>
-                           <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Total Resonance</p>
-                           <h4 className="text-2xl font-serif font-black">{settings?.general?.currencySymbol} {payrollResonance.totalEarnings.toLocaleString()}</h4>
+                           <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Total Compensation</p>
+                           <h4 className="text-2xl font-serif font-black">{settings?.general?.currencySymbol} {payrollPayroll.totalEarnings.toLocaleString()}</h4>
                            <div className="flex items-center gap-2 mt-2">
                               <div className={`w-1.5 h-1.5 rounded-full bg-white animate-pulse`} />
                               <span className="text-[9px] font-black uppercase tracking-widest text-white/60">Estimated for {dayjs(historyMonth).format('MMMM')}</span>
@@ -816,17 +934,17 @@ const Employees = () => {
 
                     <div className="space-y-6">
                        <h5 className="text-[11px] font-bold text-zen-brown uppercase tracking-[0.3em] px-2 flex items-center justify-between">
-                          <span>Service Reward Registry</span>
-                          <span className="text-zen-brown/20 italic font-serif normal-case tracking-normal">Breakdown per ritual</span>
+                          <span>Commission Breakdown</span>
+                          <span className="text-zen-brown/20 italic font-serif normal-case tracking-normal">Breakdown per service</span>
                        </h5>
-                       <div className="bg-white/40 rounded-[2rem] border border-zen-brown/15 overflow-hidden">
-                          <table className="w-full text-left">
+                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+                          <table className="w-full text-center border-collapse min-w-[800px]">
                              <thead>
-                                <tr className="bg-zen-cream/10 text-[9px] font-black text-zen-brown/30 uppercase tracking-widest border-b border-zen-brown/15">
-                                   <th className="px-8 py-4">Temporal Node</th>
-                                   <th className="px-8 py-4">Ritual</th>
-                                   <th className="px-8 py-4">Client</th>
-                                   <th className="px-8 py-4 text-right">Reward</th>
+                                <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Date</th>
+                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Service</th>
+                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Client</th>
+                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Commission</th>
                                 </tr>
                              </thead>
                              <tbody className="divide-y divide-zen-brown/15">
@@ -854,7 +972,7 @@ const Employees = () => {
                                    })}
                                 {allAppointments.filter(a => a.employee === formData.name && a.date.startsWith(historyMonth)).length === 0 && (
                                    <tr>
-                                      <td colSpan={4} className="py-12 text-center text-zen-brown/20 italic font-serif">No rewards recorded for this resonance period.</td>
+                                      <td colSpan={4} className="py-12 text-center text-zen-brown/20 italic font-serif">No rewards recorded for this period.</td>
                                    </tr>
                                 )}
                              </tbody>
@@ -877,7 +995,7 @@ const Employees = () => {
                                 </div>
                                 <div className="flex items-center gap-2">
                                    {employeeAttendance.length === 0 && (
-                                     <ZenButton onClick={simulateAttendance} variant="ghost" className="text-[10px] py-4 px-8 rounded-2xl border-dashed border-zen-brown/25">Establish Flow</ZenButton>
+                                     <ZenButton onClick={simulateAttendance} variant="ghost" className="text-[10px] py-4 px-8 rounded-2xl border-dashed border-zen-brown/25">Generate Sample Data</ZenButton>
                                    )}
                                 </div>
                              </div>
@@ -890,7 +1008,7 @@ const Employees = () => {
                                     className={`px-8 py-3 rounded-xl text-[10px] font-extrabold uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-2 ${historyView === 'calendar' ? 'bg-white text-zen-brown shadow-xl' : 'text-zen-brown/30 hover:text-zen-brown/50'}`}
                                   >
                                      <Calendar size={12} />
-                                     Monthly Pulse
+                                     Calendar View
                                   </button>
                                   <button 
                                     type="button"
@@ -898,7 +1016,7 @@ const Employees = () => {
                                     className={`px-8 py-3 rounded-xl text-[10px] font-extrabold uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-2 ${historyView === 'list' ? 'bg-white text-zen-brown shadow-xl' : 'text-zen-brown/30 hover:text-zen-brown/50'}`}
                                   >
                                      <Shield size={12} />
-                                     History Logs
+                                     Log View
                                   </button>
                                </div>
                                
@@ -909,15 +1027,15 @@ const Employees = () => {
                        employeeAttendance.length > 0 ? (
                           <div className="p-6 bg-white/40 rounded-[2rem] border border-zen-brown/15 animate-in zoom-in-95 duration-700 shadow-sm">
                              <div className="flex items-center justify-between mb-6">
-                                <h4 className="text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Temporal Matrix · {dayjs(historyMonth).format('MMM YYYY')}</h4>
+                                <h4 className="text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Attendance Overview · {dayjs(historyMonth).format('MMM YYYY')}</h4>
                                 <div className="flex gap-4">
                                    <div className="flex items-center gap-2">
                                       <div className="w-2 h-2 rounded-full bg-zen-leaf shadow-sm shadow-zen-leaf/40" />
-                                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Normal Cycles</span>
+                                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Regular Hours</span>
                                    </div>
                                    <div className="flex items-center gap-2">
                                       <div className="w-2 h-2 rounded-full bg-red-400 shadow-sm shadow-red-400/40" />
-                                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Extended Hours</span>
+                                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Overtime</span>
                                    </div>
                                 </div>
                              </div>
@@ -986,18 +1104,18 @@ const Employees = () => {
                              <div className="w-24 h-24 rounded-full border-2 border-dashed border-zen-brown/25 flex items-center justify-center text-zen-brown/20 mb-6">
                                 <Calendar size={40} strokeWidth={1} />
                              </div>
-                             <p className="font-serif italic text-lg text-zen-brown/40">No celestial activity recorded for this lunar phase</p>
+                             <p className="font-serif italic text-lg text-zen-brown/40">No activity recorded for this period</p>
                           </div>
                        )
                      ) : (
-                       <div className="bg-white/40 rounded-[2.5rem] border border-zen-brown/15 overflow-hidden shadow-sm animate-in slide-in-from-bottom-10 duration-700">
-                          <table className="w-full text-left border-collapse">
+                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+                          <table className="w-full text-center border-collapse min-w-[800px]">
                              <thead>
-                                <tr className="bg-zen-cream/20 border-b border-zen-brown/15">
-                                    <th className="px-8 py-5 text-[9px] font-black text-zen-brown/40 uppercase tracking-[0.3em] w-[25%]">Temporal Node</th>
-                                    <th className="px-8 py-5 text-[9px] font-black text-zen-brown/40 uppercase tracking-[0.3em] text-center w-[25%]">Sequence / Status</th>
-                                    <th className="px-8 py-5 text-[9px] font-black text-zen-brown/40 uppercase tracking-[0.3em] text-center w-[30%]">Execution / Overtime</th>
-                                    <th className="px-8 py-5 text-[9px] font-black text-zen-brown/40 uppercase tracking-[0.3em] text-right w-[20%]">Actions</th>
+                                <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Date</th>
+                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Record / Status</th>
+                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Duration / Overtime</th>
+                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Actions</th>
                                 </tr>
                              </thead>
                              <tbody className="divide-y divide-zen-brown/15">
@@ -1066,7 +1184,7 @@ const Employees = () => {
                                 <div className="w-20 h-20 rounded-[2.5rem] border border-dashed border-zen-brown/25 flex items-center justify-center">
                                    <Shield size={28} strokeWidth={1} />
                                  </div>
-                                <p className="font-serif italic text-base opacity-50">Log registry empty for this cycle</p>
+                                <p className="font-serif italic text-base opacity-50">No attendance records found for this period.</p>
                              </div>
                           )}
                        </div>
@@ -1082,8 +1200,8 @@ const Employees = () => {
                           <Upload size={28} />
                         </div>
                         <div className="text-center">
-                          <p className="font-serif font-bold text-zen-brown/60">Upload a Document</p>
-                          <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mt-1">Contracts, IDs, Certifications, etc.</p>
+                          <p className="font-serif font-bold text-zen-brown/60">Upload Document</p>
+                          <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mt-1">Contracts, IDs, certifications, and more.</p>
                         </div>
                         <div className="flex items-center gap-4 w-full max-w-sm">
                           <input
@@ -1150,7 +1268,7 @@ const Employees = () => {
                     {editingEmp?.documents && editingEmp.documents.length > 0 ? (
                       <div className="space-y-3">
                         <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest px-1">
-                          Archived Records · {editingEmp.documents.length} File{editingEmp.documents.length !== 1 ? 's' : ''}
+                          Documents · {editingEmp.documents.length} File{editingEmp.documents.length !== 1 ? 's' : ''}
                         </p>
                         {editingEmp.documents.map((doc: any) => (
                           <div key={doc._id} className="group flex items-center justify-between p-5 bg-white rounded-[1.5rem] border border-zen-brown/15 shadow-sm hover:shadow-md transition-all duration-300">
@@ -1189,7 +1307,7 @@ const Employees = () => {
                                       headers: { 'Authorization': `Bearer ${user?.token}` }
                                     });
                                     if (res.ok) {
-                                      notify('success', 'Document Removed', 'File purged from the registry');
+                                      notify('success', 'Document Removed', 'Document removed successfully');
                                       fetchEmployees();
                                       setEditingEmp(prev => prev ? { ...prev, documents: prev.documents.filter((d: any) => d._id !== doc._id) } : null);
                                     }
@@ -1219,34 +1337,42 @@ const Employees = () => {
 
       <ConfirmDialog isOpen={confirmState.isOpen} onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))} onConfirm={confirmState.onConfirm} title={confirmState.title} message={confirmState.message} />
 
-       <Modal isOpen={isAttendanceModalOpen} onClose={() => setIsAttendanceModalOpen(false)} title="Refine Attendance">
-          <div className="space-y-8 p-4">
+       <Modal 
+        isOpen={isAttendanceModalOpen} 
+        onClose={() => setIsAttendanceModalOpen(false)} 
+        title="Edit Attendance Record"
+        subtitle="Update check-in and check-out times"
+        headerIcon={Clock}
+        maxWidth="max-w-2xl"
+        footer={
+          <div className="flex items-center gap-4">
+            <ZenButton onClick={() => setIsAttendanceModalOpen(false)} variant="secondary" className="flex-1 py-5">
+               Cancel
+            </ZenButton>
+            <ZenButton type="submit" form="attendance-form" className="flex-[2] py-5">
+               Save Attendance
+            </ZenButton>
+          </div>
+        }
+      >
+          <form id="attendance-form" onSubmit={(e) => { e.preventDefault(); updateAttendance(); }} className="space-y-8">
              <div className="grid grid-cols-2 gap-8">
                 <ZenInput 
-                  label="Arrival (Check-In)" 
+                  label="Check-in Time" 
                   icon={Clock}
                   placeholder="09:00 AM"
                   value={attendanceFormData.checkIn}
                   onChange={(e: any) => setAttendanceFormData(prev => ({ ...prev, checkIn: e.target.value }))}
                 />
                 <ZenInput 
-                  label="Departure (Check-Out)" 
+                  label="Check-out Time" 
                   icon={Clock}
                   placeholder="06:00 PM"
                   value={attendanceFormData.checkOut}
                   onChange={(e: any) => setAttendanceFormData(prev => ({ ...prev, checkOut: e.target.value }))}
                 />
              </div>
-             
-             <div className="flex items-center gap-4 pt-4">
-                <ZenButton onClick={() => setIsAttendanceModalOpen(false)} variant="secondary" className="flex-1 py-5">
-                   Abandon
-                </ZenButton>
-                <ZenButton onClick={updateAttendance} className="flex-[2] py-5">
-                   Refine Node
-                </ZenButton>
-             </div>
-          </div>
+          </form>
        </Modal>
     </ZenPageLayout>
   );

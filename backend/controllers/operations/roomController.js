@@ -2,6 +2,23 @@ const Room = require('../../models/operations/Room');
 const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
 
+// @desc    Get public rooms
+// @route   GET /api/rooms/public
+// @access  Public
+const getPublicRooms = async (req, res) => {
+  try {
+    const { data, pagination } = await paginateModelQuery(
+      Room,
+      { isActive: true },
+      req,
+      { populate: 'branch' }
+    );
+    res.json(pagination ? { data, pagination } : data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get all rooms
 // @route   GET /api/rooms
 // @access  Private
@@ -146,6 +163,7 @@ const deleteRoom = async (req, res) => {
 };
 
 module.exports = {
+  getPublicRooms,
   getRooms,
   createRoom,
   updateRoom,

@@ -58,7 +58,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -117,7 +117,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       const headers = { 'Authorization': `Bearer ${user.token}` };
-      const [invRes, expRes, cliRes, empRes, serRes, appRes, invenRes] = await Promise.all([
+      const responses = await Promise.all([
         fetch(`${API_URL}/invoices`, { headers }),
         fetch(`${API_URL}/expenses`, { headers }),
         fetch(`${API_URL}/clients`, { headers }),
@@ -127,9 +127,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fetch(`${API_URL}/inventory`, { headers })
       ]);
 
-      const [invData, expData, cliData, empData, serData, appData, invenData] = await Promise.all([
-        invRes.json(), expRes.json(), cliRes.json(), empRes.json(), serRes.json(), appRes.json(), invenRes.json()
-      ]);
+      // Handle Unauthorized (Session Expired)
+      if (responses.some(res => res.status === 401)) {
+        console.warn('Session expired. Logging out...');
+        logout();
+        return;
+      }
+
+      const [invData, expData, cliData, empData, serData, appData, invenData] = await Promise.all(
+        responses.map(res => res.json())
+      );
 
       if (Array.isArray(invData)) setInvoices(invData);
       if (Array.isArray(expData)) setExpenses(expData);
@@ -150,6 +157,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       refreshData();
     }
   }, [user?.token]);
+
 
   // Persistence (Cache for instant initial load)
   useEffect(() => localStorage.setItem('zen_clients', JSON.stringify(clients)), [clients]);

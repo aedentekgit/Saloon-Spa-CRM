@@ -44,7 +44,7 @@ interface SettingsContextType {
   updateSettings: (newData: Partial<SettingsData>) => Promise<void>;
 }
 
-const DEFAULT_SIDEBAR_START = '#2D1622';
+const DEFAULT_SIDEBAR_START = '#332766';
 const DEFAULT_SIDEBAR_END = '#3D2632';
 
 const normalizeHexColor = (color: string) => {
@@ -120,7 +120,7 @@ const deriveSidebarGradient = (primaryColor?: string) => {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -135,6 +135,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const response = await fetch(`${API_URL}/settings`, {
         headers: { 'Authorization': `Bearer ${user.token}` }
       });
+
+      if (response.status === 401) {
+        logout();
+        return;
+      }
+
       const data = await response.json();
       setSettings(data);
     } catch (error) {
@@ -194,26 +200,69 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       root.style.setProperty('--sidebar-gradient-end', sidebarGradient.end);
 
       if (settings.theme.headingFont || settings.theme.bodyFont) {
-        const hFont = settings.theme.headingFont || 'Italiana';
+        const hFont = settings.theme.headingFont || 'Plus Jakarta Sans';
         const bFont = settings.theme.bodyFont || 'Plus Jakarta Sans';
         
-        root.style.setProperty('--font-serif', `"${hFont}", serif`);
-        root.style.setProperty('--font-sans', `"${bFont}", sans-serif`);
+        let dynamicStyle = document.getElementById('dynamic-custom-fonts') as HTMLStyleElement;
+        if (!dynamicStyle) {
+          dynamicStyle = document.createElement('style');
+          dynamicStyle.id = 'dynamic-custom-fonts';
+          document.head.appendChild(dynamicStyle);
+        }
+        
+        let styleContent = '';
+        let googleFontsToLoad: string[] = [];
+        
+        const isCustomFont = (fName: string) => fName.match(/\.(woff|woff2|ttf|otf|zip)$/i) || fName.startsWith('uploads/');
+        const getFontUrl = (fName: string) => fName.startsWith('http') ? fName : `${API_URL.split('/api')[0]}/${fName.replace(/^\.?\//, '')}`;
+        
+        if (isCustomFont(hFont)) {
+           styleContent += `
+             @font-face {
+                font-family: 'ZenCustomHeading';
+                src: url('${getFontUrl(hFont)}');
+                font-display: swap;
+             }
+           `;
+           root.style.setProperty('--font-serif', `"ZenCustomHeading", serif`);
+        } else {
+           root.style.setProperty('--font-serif', `"${hFont}", serif`);
+           googleFontsToLoad.push(hFont);
+        }
+
+        if (isCustomFont(bFont)) {
+           styleContent += `
+             @font-face {
+                font-family: 'ZenCustomBody';
+                src: url('${getFontUrl(bFont)}');
+                font-display: swap;
+             }
+           `;
+           root.style.setProperty('--font-sans', `"ZenCustomBody", sans-serif`);
+        } else {
+           root.style.setProperty('--font-sans', `"${bFont}", sans-serif`);
+           googleFontsToLoad.push(bFont);
+        }
+        
+        dynamicStyle.innerHTML = styleContent;
 
         // Dynamically load Google Fonts
         const fontLink = document.getElementById('dynamic-google-fonts') as HTMLLinkElement;
-        const fontsToLoad = [hFont, bFont].filter(Boolean);
-        const fontQuery = fontsToLoad.map(f => `family=${f.replace(/\s+/g, '+')}:wght@300;400;500;600;700;800`).join('&');
-        const url = `https://fonts.googleapis.com/css2?${fontQuery}&display=swap`;
+        if (googleFontsToLoad.length > 0) {
+           const fontQuery = googleFontsToLoad.map(f => `family=${f.replace(/\s+/g, '+')}:wght@300;400;500;600;700;800`).join('&');
+           const url = `https://fonts.googleapis.com/css2?${fontQuery}&display=swap`;
 
-        if (fontLink) {
-          fontLink.href = url;
-        } else {
-          const link = document.createElement('link');
-          link.id = 'dynamic-google-fonts';
-          link.rel = 'stylesheet';
-          link.href = url;
-          document.head.appendChild(link);
+           if (fontLink) {
+             fontLink.href = url;
+           } else {
+             const link = document.createElement('link');
+             link.id = 'dynamic-google-fonts';
+             link.rel = 'stylesheet';
+             link.href = url;
+             document.head.appendChild(link);
+           }
+        } else if (fontLink) {
+           fontLink.href = '';
         }
       }
     } else {

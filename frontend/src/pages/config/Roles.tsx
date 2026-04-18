@@ -28,21 +28,21 @@ interface Role {
 }
 
 const ALL_PAGES = [
-  { id: 'dashboard', name: 'Dashboard Sanctuary' },
-  { id: 'clients', name: 'Ambassador Registry' },
-  { id: 'appointments', name: 'Sacred Appointments' },
-  { id: 'rooms', name: 'Treatment Rooms' },
-  { id: 'employees', name: 'Specialist Collective' },
-  { id: 'attendance', name: 'Presence Logs' },
-  { id: 'leave', name: 'Departure Rituals' },
-  { id: 'services', name: 'Sanctuary Rituals' },
-  { id: 'billing', name: 'Financial Sanctuary' },
-  { id: 'finance', name: 'Sacred Ledger' },
-  { id: 'inventory', name: 'Material Sanctuary' },
-  { id: 'whatsapp', name: 'Messaging Sanctuary' },
-  { id: 'reports', name: 'Insight Sanctuary' },
-  { id: 'settings', name: 'Global Calibration' },
-  { id: 'roles', name: 'Authority Sanctuary' }
+  { id: 'dashboard', name: 'Dashboard' },
+  { id: 'clients', name: 'Clients' },
+  { id: 'appointments', name: 'Appointments' },
+  { id: 'rooms', name: 'Rooms' },
+  { id: 'employees', name: 'Employees' },
+  { id: 'attendance', name: 'Attendance' },
+  { id: 'leave', name: 'Leave' },
+  { id: 'services', name: 'Services' },
+  { id: 'billing', name: 'Billing' },
+  { id: 'finance', name: 'Finance' },
+  { id: 'inventory', name: 'Inventory' },
+  { id: 'whatsapp', name: 'WhatsApp' },
+  { id: 'reports', name: 'Reports' },
+  { id: 'settings', name: 'Settings' },
+  { id: 'roles', name: 'Roles' }
 ];
 
 const Roles = () => {
@@ -94,7 +94,7 @@ const Roles = () => {
         setTotalPages(1);
       }
     } catch (error) {
-      notify('error', 'Sync Failure', 'Failed to synchronize authority records');
+      notify('error', 'Sync Failure', 'Failed to load role records.');
     } finally {
       setLoading(false);
     }
@@ -158,12 +158,12 @@ const Roles = () => {
       });
 
       if (response.ok) {
-        notify('success', editingRole ? 'Authority Refined' : 'Authority Established', editingRole ? 'Role permissions updated in the sanctuary.' : 'New authority level established.');
+        notify('success', editingRole ? 'Role saved' : 'Role created', editingRole ? 'Role permissions updated.' : 'New role created.');
         setIsModalOpen(false);
         fetchRoles();
       }
     } catch (error) {
-      notify('error', 'Calibration Error', 'Failed to conclude the authority establishment.');
+      notify('error', 'Save Error', 'Failed to save the role.');
     }
   };
 
@@ -179,11 +179,11 @@ const Roles = () => {
         body: JSON.stringify({ status: newStatus })
       });
       if (response.ok) {
-        notify('success', 'Authority Refined', `Authority level ${newStatus === 'Active' ? 'Activated' : 'Deactivated'}`);
+        notify('success', 'Role updated', `Role ${newStatus === 'Active' ? 'activated' : 'deactivated'}`);
         fetchRoles();
       }
     } catch (error) {
-      notify('error', 'Toggle Error', 'Failed to update authority status.');
+      notify('error', 'Toggle Error', 'Failed to update role status.');
     }
   };
 
@@ -195,23 +195,23 @@ const Roles = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       if (response.ok) {
-        notify('success', 'Authority Purged', 'The role has been removed from the sanctuary.');
+        notify('success', 'Role deleted', 'The role has been removed.');
         setIsConfirmOpen(false);
         fetchRoles();
       }
     } catch (error) {
-      notify('error', 'Removal Error', 'Failed to purge authority record.');
+      notify('error', 'Removal Error', 'Failed to delete the role.');
     }
   };
 
   return (
     <ZenPageLayout
-      title="Authority Sanctuary"
+      title="Role Management"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
-      addButtonLabel="Establish Authority"
+      addButtonLabel="Create Role"
       onAddClick={() => handleOpenModal()}
       addButtonIcon={<Plus size={18} />}
     >
@@ -229,7 +229,7 @@ const Roles = () => {
                     <h3 className="text-2xl font-serif font-bold text-zen-brown mb-2 tracking-tight transition-colors group-hover:text-zen-sand">{role.name}</h3>
                      <div className="flex items-center gap-2">
                         <Shield size={10} className="text-zen-sand" />
-                        <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">Authority_{role._id.slice(-4)}</p>
+                        <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">Role ID_{role._id.slice(-4)}</p>
                      </div>
                  </div>
                     <div className="flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
@@ -245,7 +245,7 @@ const Roles = () => {
 
               <div className="flex-1 relative z-10">
                  <div className="flex items-center justify-between mb-6">
-                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest ">Authority Sectors ({role.permissions.length})</p>
+                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest ">Page access ({role.permissions.length})</p>
                     <Key size={14} className="text-zen-sand opacity-30" />
                  </div>
                  <div className="flex flex-wrap gap-2">
@@ -266,7 +266,7 @@ const Roles = () => {
                        onClick={() => toggleStatus(role)}
                        className={`flex items-center gap-2 px-6 py-2 rounded-full border transition-all duration-500 hover:scale-105 active:scale-95 shadow-sm ${role.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20' : 'bg-red-50 text-red-400 border-red-100'}`}
                      >
-                        <span className="text-[10px] font-bold uppercase tracking-widest leading-none">{role.status === 'Inactive' ? 'Deactive' : 'Active'}</span>
+                       <span className="text-[10px] font-bold uppercase tracking-widest leading-none">{role.status === 'Inactive' ? 'Inactive' : 'Active'}</span>
                      </button>
                      <div className="flex items-center gap-2 text-zen-sand/40 italic text-[10px] font-medium uppercase tracking-[0.2em] transition-opacity duration-700 opacity-50 group-hover:opacity-100">
                         Secured
@@ -277,81 +277,76 @@ const Roles = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] shadow-sm border border-zen-brown/15 overflow-hidden">
-           <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left border-separate border-spacing-0">
-                 <thead>
-                    <tr className="bg-zen-cream/10">
-                       <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] whitespace-nowrap">S NO</th>
-                       <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Authority Mandate</th>
-                       <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Sector Summary</th>
-                       <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Status</th>
-                       <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-right">Ritual Actions</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-zen-brown/15">
-                    {filteredRoles.map((role, index) => (
-                       <tr key={role._id} className="group hover:bg-white transition-all duration-500">
-                          <td className="px-10 py-8">
-                             <span className="font-serif text-lg text-zen-brown/60 font-bold">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
-                          </td>
-                          <td className="px-10 py-8">
-                             <div className="flex items-center gap-4">
-                                <div className="p-3 bg-zen-cream/30 rounded-xl text-zen-sand">
-                                   <Shield size={18} />
-                                </div>
-                                <div>
-                                   <p className="font-serif text-lg text-zen-brown font-bold tracking-tight">{role.name}</p>
-                                   <p className="text-[8px] font-bold text-zen-brown/20 uppercase tracking-widest mt-0.5">ID_{role._id.slice(-6)}</p>
-                                </div>
-                             </div>
-                          </td>
-                          <td className="px-10 py-8">
-                             <div className="flex items-center gap-3">
-                                <ZenBadge variant="sand" className="bg-zen-cream/30 border-none">{role.permissions.length} Sectors</ZenBadge>
-                                <div className="flex -space-x-2">
-                                   {role.permissions.slice(0, 3).map((p, i) => (
-                                      <div key={i} className="w-6 h-6 rounded-full bg-white border border-zen-brown/15 flex items-center justify-center shadow-sm" title={ALL_PAGES.find(pg => pg.id === p)?.name}>
-                                         <Lock size={10} className="text-zen-brown/20" />
-                                      </div>
-                                   ))}
-                                </div>
-                             </div>
-                          </td>
-                          <td className="px-10 py-8">
-                             <button 
-                               onClick={() => toggleStatus(role)}
-                               className={`px-6 py-2 rounded-full border transition-all duration-500 hover:scale-105 active:scale-95 shadow-sm whitespace-nowrap ${role.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20' : 'bg-red-50 text-red-400 border-red-100'}`}
-                             >
-                                <span className="text-[10px] font-bold uppercase tracking-widest">{role.status === 'Inactive' ? 'Deactive' : 'Active'}</span>
-                             </button>
-                          </td>
-                          <td className="px-10 py-8 text-right">
-                             <div className="flex items-center justify-end gap-3 transition-all duration-500">
-                                <ZenIconButton 
-                                  icon={Edit} 
-                                  onClick={() => handleOpenModal(role)} 
-                                />
-                                <ZenIconButton 
-                                  icon={Trash2} 
-                                  variant="danger" 
-                                  onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} 
-                                />
-                             </div>
-                          </td>
-                       </tr>
-                    ))}
-                 </tbody>
-              </table>
-           </div>
+        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+          <table className="w-full text-center border-collapse min-w-[800px]">
+            <thead>
+              <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Role Name</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Page Access</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Status</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(!filteredRoles || filteredRoles.length === 0) && (
+                 <tr>
+                    <td colSpan={5}>
+                       <span className="text-[13px] font-sans text-gray-400 italic">No records available.</span>
+                    </td>
+                 </tr>
+              )}
+
+              {filteredRoles.map((role, index) => (
+                <tr key={role._id} className="transition-all group border-b border-black/[0.02]">
+                  <td className="text-center italic opacity-40 text-[11px]">
+                    {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
+                  </td>
+                  <td>
+                    <div className="flex items-center justify-center gap-4">
+                      <div className="p-3 bg-zen-cream/30 rounded-xl text-zen-sand">
+                        <Shield size={18} />
+                      </div>
+                      <div>
+                        <p className="zen-table-primary">{role.name}</p>
+                        <p className="text-[8px] font-bold text-zen-brown/20 uppercase tracking-widest mt-0.5">ID_{role._id.slice(-6)}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex items-center justify-center gap-3">
+                      <ZenBadge variant="sand" className="bg-zen-cream/30 border-none">{role.permissions.length} Pages</ZenBadge>
+                      <div className="flex -space-x-2">
+                        {role.permissions.slice(0, 3).map((p, i) => (
+                           <div key={i} className="w-6 h-6 rounded-full bg-white border border-zen-brown/15 flex items-center justify-center shadow-sm" title={ALL_PAGES.find(pg => pg.id === p)?.name}>
+                              <Lock size={10} className="text-zen-brown/20" />
+                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <button 
+                      onClick={() => toggleStatus(role)}
+                      className={`px-6 py-2 rounded-full border transition-all duration-500 hover:scale-105 active:scale-95 shadow-sm whitespace-nowrap ${role.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20' : 'bg-red-50 text-red-400 border-red-100'}`}
+                    >
+                       <span className="text-[10px] font-bold uppercase tracking-widest">{role.status === 'Inactive' ? 'Inactive' : 'Active'}</span>
+                    </button>
+                  </td>
+                  <td>
+                    <div className="flex items-center justify-center gap-2 transition-all duration-500">
+                       <ZenIconButton icon={Edit} onClick={() => handleOpenModal(role)} />
+                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {filteredRoles.length === 0 && (
-          <div className="py-40 text-center">
-             <p className="text-2xl font-serif text-zen-brown/20 italic">No authority records resonance in this sector.</p>
-          </div>
-      )}
+      
 
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
 
@@ -359,8 +354,8 @@ const Roles = () => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         maxWidth="max-w-4xl"
-        title={editingRole ? 'Refine Authority' : 'Establish Authority'}
-        subtitle="Foundational Access Calibration"
+        title={editingRole ? 'Edit Role' : 'New Role'}
+        subtitle="Configure access and account status"
         headerIcon={Shield}
         footer={
           <div className="flex w-full gap-6">
@@ -370,41 +365,41 @@ const Roles = () => {
               className="flex-1 py-5 rounded-[2rem]"
               onClick={() => setIsModalOpen(false)}
             >
-              Discard
+              Cancel
             </ZenButton>
             <ZenButton 
               type="submit"
               form="role-modal-form"
               className="flex-[2] py-5 rounded-[2rem] shadow-sm"
             >
-              {editingRole ? 'Archive Refinement' : 'Commit Authority'}
+              {editingRole ? 'Save Role' : 'Create Role'}
             </ZenButton>
           </div>
         }
       >
-        <form id="role-modal-form" onSubmit={handleSubmit} className="px-6 sm:px-10 py-8 sm:py-12 space-y-12">
+        <form id="role-modal-form" onSubmit={handleSubmit} className="px-6 sm:px-10 py-8 sm:py-12 space-y-10">
            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 animate-in fade-in duration-500">
               <ZenInput 
-                label="Authority Mandate"
+                label="Role Name"
                 required
                 disabled={!!editingRole && ['Admin', 'Manager', 'Employee', 'Client'].includes(editingRole.name)}
                 value={formData.name}
                 onChange={(e: any) => setFormData({...formData, name: e.target.value})}
-                placeholder="e.g. Master Specialist"
+                placeholder="e.g. Front desk manager"
               />
               <ZenDropdown 
-                label="Authority State"
-                options={['Active', 'Deactive']}
-                value={formData.status === 'Inactive' ? 'Deactive' : formData.status}
-                onChange={(val) => setFormData({...formData, status: val === 'Deactive' ? 'Inactive' : val as 'Active' | 'Inactive'})}
+                label="Status"
+                options={['Active', 'Inactive']}
+                value={formData.status}
+                onChange={(val) => setFormData({...formData, status: val as 'Active' | 'Inactive'})}
               />
            </div>
 
            <div>
               <div className="flex items-center justify-between mb-8 px-2">
                  <div>
-                    <h3 className="text-xl font-serif font-bold text-zen-brown tracking-tight">Access Sectors</h3>
-                    <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[.3em] mt-1">Foundational Permission Calibration</p>
+                    <h3 className="text-xl font-serif font-bold text-zen-brown tracking-tight">Permissions</h3>
+                    <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[.3em] mt-1">Assign pages this role can access</p>
                  </div>
                  <div className="flex items-center gap-6">
                     <button
@@ -416,11 +411,11 @@ const Roles = () => {
                         {formData.permissions.length === ALL_PAGES.length && <CheckCircle2 size={12} className="text-zen-sand" />}
                       </div>
                       <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
-                        {formData.permissions.length === ALL_PAGES.length ? 'Rescind All' : 'Select All'}
+                        {formData.permissions.length === ALL_PAGES.length ? 'Clear all permissions' : 'Select all permissions'}
                       </span>
                     </button>
                     <div className="flex items-center gap-2 border-l border-zen-brown/25 pl-6">
-                       <span className="text-[10px] font-bold text-zen-brown/30 uppercase mr-2 tracking-widest">Selected</span>
+                       <span className="text-[10px] font-bold text-zen-brown/30 uppercase mr-2 tracking-widest">Selected permissions</span>
                        <ZenBadge variant="leaf" className="px-4 py-1.5 shadow-lg shadow-zen-leaf/10">{formData.permissions.length}</ZenBadge>
                     </div>
                  </div>
@@ -442,14 +437,14 @@ const Roles = () => {
                     >
                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                       <div className="flex items-center gap-4 relative z-10">
-                         <div className={`w-12 h-12 rounded-full transition-all duration-700 flex items-center justify-center relative ${isActive ? 'bg-white/20 text-white shadow-inner' : 'bg-zen-cream text-zen-brown/20 border border-zen-brown/15'}`}>
+                        <div className={`w-12 h-12 rounded-full transition-all duration-700 flex items-center justify-center relative ${isActive ? 'bg-white/20 text-white shadow-inner' : 'bg-zen-cream text-zen-brown/20 border border-zen-brown/15'}`}>
                             {isActive ? (
                                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
                                   <CheckCircle2 size={24} />
                                </motion.div>
                             ) : (
                                <Circle size={20} strokeWidth={1.5} />
-                            )}
+                           )}
                          </div>
                          <span className="text-sm font-bold tracking-tight">{page.name}</span>
                       </div>
@@ -475,8 +470,8 @@ const Roles = () => {
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={executeDelete}
-        title="Purge Authority?"
-        message="Are you certain you wish to dissolve this authority level? This ritual cannot be undone."
+        title="Delete role?"
+        message="Are you sure you want to delete this role? This action cannot be undone."
       />
     </ZenPageLayout>
   );

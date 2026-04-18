@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getPublicBranches,
   getBranches,
   createBranch,
   updateBranch,
@@ -8,6 +9,9 @@ const {
 } = require('../../controllers/operations/branchController');
 const { protect, admin } = require('../../middleware/authMiddleware');
 const { upload } = require('../../middleware/uploadMiddleware');
+
+router.route('/public')
+  .get(getPublicBranches);
 
 router.route('/')
   .get(getBranches)

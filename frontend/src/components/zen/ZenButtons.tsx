@@ -1,15 +1,15 @@
 import React from 'react';
 
 export const ZenButton = ({ children, variant = 'primary', className = '', ...props }: any) => {
-  const base = "flex items-center justify-center gap-3 py-3.5 px-8 rounded-2xl font-bold transition-all duration-300 text-xs uppercase tracking-widest";
+  const base = "flex items-center justify-center gap-3 py-3.5 px-8 rounded-2xl font-bold transition-all duration-300 text-xs uppercase tracking-widest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zen-sand/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white active:scale-[0.98]";
   const variants: any = {
-    primary: "bg-zen-brown text-zen-cream hover:bg-black hover:shadow-2xl",
-    secondary: "bg-zen-stone text-zen-brown hover:bg-zen-sand/10 hover:shadow-lg",
-    outline: "bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-brown hover:text-white shadow-sm"
+    primary: "bg-zen-brown text-zen-cream hover:bg-black",
+    secondary: "bg-zen-stone text-zen-brown hover:bg-zen-sand/10",
+    outline: "bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-brown hover:text-white"
   };
 
   return (
-    <button className={`${base} ${variants[variant]} ${className}`} {...props}>
+    <button className={`${base} ${variants[variant] || variants.primary} ${className}`} {...props}>
       {children}
     </button>
   );
@@ -37,7 +37,11 @@ export const ZenIconButton = ({ icon: Icon, variant = 'outline', className = '',
   };
 
   return (
-    <button type={type} className={`${sizes[size]} rounded-full shadow-sm transition-all duration-300 ${variants[variant]} ${className}`} {...props}>
+    <button
+      type={type}
+      className={`zen-icon-button ${sizes[size]} rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zen-sand/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white active:scale-[0.98] ${variants[variant] || variants.outline} ${className}`}
+      {...props}
+    >
       <Icon size={iconSizes[size]} />
     </button>
   );
@@ -45,14 +49,17 @@ export const ZenIconButton = ({ icon: Icon, variant = 'outline', className = '',
 
 export const ZenBadge = ({ children, variant = 'leaf', className = '', ...props }: any) => {
   const variants: any = {
-    leaf: "bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-sm",
+    leaf: "bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20",
     sand: "bg-zen-sand/10 text-zen-brown border-zen-sand/20",
     danger: "bg-red-50 text-red-500 border-red-100",
-    inactive: "bg-slate-50 text-slate-400 border-slate-100"
+    inactive: "bg-slate-50 text-slate-400 border-slate-100",
+    secondary: "bg-slate-100 text-slate-600 border-slate-200",
+    default: "bg-zen-cream text-zen-brown border-zen-brown/10",
+    ocean: "bg-sky-50 text-sky-600 border-sky-100"
   };
 
   return (
-    <span className={`inline-flex items-center justify-center whitespace-nowrap text-[9px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border ${variants[variant]} ${className}`} {...props}>
+    <span className={`zen-badge inline-flex items-center justify-center whitespace-nowrap text-[9px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border ${variants[variant] || variants.default} ${className}`} {...props}>
       {children}
     </span>
   );

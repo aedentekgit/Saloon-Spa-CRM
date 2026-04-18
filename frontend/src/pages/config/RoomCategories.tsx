@@ -32,7 +32,6 @@ const RoomCategories = () => {
   const [formData, setFormData] = useState({
     name: '',
     type: 'room' as const,
-    description: '',
     isActive: true
   });
 
@@ -46,12 +45,11 @@ const RoomCategories = () => {
       setFormData({
         name: cat.name,
         type: 'room',
-        description: cat.description || '',
         isActive: cat.isActive !== undefined ? cat.isActive : true
       });
     } else {
       setEditingCategory(null);
-      setFormData({ name: '', type: 'room', description: '', isActive: true });
+      setFormData({ name: '', type: 'room', isActive: true });
     }
     setIsModalOpen(true);
   };
@@ -66,7 +64,7 @@ const RoomCategories = () => {
     }
 
     if (success) {
-      notify('success', 'Registry Updated', editingCategory ? 'Room category refined.' : 'New room category joined the resonance.');
+      notify('success', 'Category saved', editingCategory ? 'Room category updated.' : 'New room category created.');
       setIsModalOpen(false);
     } else {
       notify('error', 'Update Failed', 'Could not synchronize category records.');
@@ -89,7 +87,7 @@ const RoomCategories = () => {
     if (!itemToDelete) return;
     const success = await deleteCategory(itemToDelete);
     if (success) {
-      notify('success', 'Record Purged', 'Category removed from the sanctuary.');
+      notify('success', 'Category deleted', 'Category removed from the registry.');
       setIsConfirmOpen(false);
     } else {
       notify('error', 'Purge Failed', 'Could not remove category record.');
@@ -105,7 +103,7 @@ const RoomCategories = () => {
 
   return (
     <ZenPageLayout
-      title="Room Sanctuary Registry"
+      title="Room Category Registry"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
@@ -146,9 +144,6 @@ const RoomCategories = () => {
 
                  <div className="mb-6">
                     <h3 className="text-xl lg:text-2xl font-serif text-zen-brown tracking-tight mb-2">{cat.name}</h3>
-                    <p className="text-xs text-zen-brown/60 leading-relaxed line-clamp-3 italic">
-                      {cat.description || "No specialized essence defined for this sanctuary category."}
-                    </p>
                  </div>
                </div>
 
@@ -164,120 +159,160 @@ const RoomCategories = () => {
           ))}
           {filteredCategories.length === 0 && (
              <div className="col-span-full py-32 text-center text-zen-brown/20 italic font-serif text-2xl border-2 border-dashed border-zen-brown/15 rounded-[3rem]">
-                No room categories found in the sanctuary registry.
+                No room categories found in the registry.
              </div>
           )}
         </div>
       ) : (
-        <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full border-separate border-spacing-0">
-              <thead>
-                <tr className="bg-zen-cream/10">
-                  <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center w-24 whitespace-nowrap">S NO</th>
-                  <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Identity</th>
-                  <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Essence Description</th>
-                  <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Status</th>
-                  <th className="px-10 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em] text-center">Ritual Actions</th>
+        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+          <table className="w-full text-center border-collapse min-w-[800px]">
+            <thead>
+              <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Identity</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Status</th>
+                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(!filteredCategories || filteredCategories.length === 0) && (
+                 <tr>
+                    <td colSpan={4}>
+                       <span className="text-[13px] font-sans text-gray-400 italic">No records available.</span>
+                    </td>
+                 </tr>
+              )}
+
+              {filteredCategories.map((cat, index) => (
+                <tr key={cat._id} className="transition-all group border-b border-black/[0.02]">
+                  <td className="text-center italic opacity-40 text-[11px]">
+                    {(index + 1).toString().padStart(2, '0')}
+                  </td>
+                  <td>
+                     <div className="flex flex-col items-center px-6">
+                        <span className="zen-table-primary">{cat.name}</span>
+                        <span className="zen-table-meta">Room Type Registry</span>
+                     </div>
+                  </td>
+                  <td>
+                     <div className="flex justify-center">
+                        <button 
+                          onClick={() => toggleStatus(cat)}
+                          className="group/status transition-transform active:scale-95"
+                        >
+                           <ZenBadge variant={cat.isActive ? 'leaf' : 'sand'}>
+                             <div className={`w-1 h-1 rounded-full mr-1.5 ${cat.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-zen-sand'}`}></div>
+                             {cat.isActive ? 'Active' : 'Paused'}
+                           </ZenBadge>
+                        </button>
+                     </div>
+                  </td>
+                  <td>
+                    <div className="flex items-center justify-center gap-3">
+                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(cat)} />
+                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteClick(cat._id)} />
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-zen-brown/15">
-                {filteredCategories.map((cat, index) => (
-                  <tr key={cat._id} className="group hover:bg-white transition-all duration-500">
-                    <td className="px-10 py-8 text-center">
-                      <span className="font-serif text-lg text-zen-brown/40">{(index + 1).toString().padStart(2, '0')}</span>
-                    </td>
-                    <td className="px-10 py-8 text-center">
-                      <p className="font-serif text-lg text-zen-brown font-bold tracking-tight">{cat.name}</p>
-                    </td>
-                    <td className="px-10 py-8 text-center">
-                      <p className="text-[10px] text-zen-brown/30 italic truncate max-w-[200px]">{cat.description || 'General sanctuary'}</p>
-                    </td>
-                    <td className="px-10 py-8 text-center">
-                       <ZenBadge variant={cat.isActive ? 'leaf' : 'inactive'}>{cat.isActive ? 'Active' : 'Inactive'}</ZenBadge>
-                    </td>
-                    <td className="px-10 py-8 text-center">
-                      <div className="flex items-center justify-center gap-3 transition-all duration-500">
-                         <ZenIconButton 
-                           icon={Sparkles} 
-                           variant={cat.isActive ? 'leaf' : 'inactive'} 
-                           onClick={() => toggleStatus(cat)} 
-                         />
-                         <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(cat)} />
-                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteClick(cat._id)} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredCategories.length === 0 && (
-                  <tr>
-                     <td colSpan={5} className="py-24 text-center text-zen-brown/20 italic font-serif text-xl border-none">
-                        No room categories found in the registry.
-                     </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title={editingCategory ? 'Refine Room Category' : 'Enroll Room Category'}
-        maxWidth="max-w-2xl"
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        maxWidth="max-w-3xl"
+        header={
+          <div className="flex items-start justify-between gap-6 px-6 sm:px-10 py-6 sm:py-8">
+            <div className="flex items-start gap-4 sm:gap-5 min-w-0">
+              <div className="w-12 h-12 rounded-2xl bg-zen-brown text-white flex items-center justify-center shadow-sm shrink-0">
+                <DoorOpen size={22} strokeWidth={1.75} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Room category</p>
+                <h3 className="mt-1 text-xl sm:text-2xl font-semibold text-zen-brown truncate">
+                  {editingCategory ? 'Edit room category' : 'New room category'}
+                </h3>
+                <p className="mt-2 text-sm text-zen-brown/60 max-w-2xl">
+                  Group treatment spaces clearly for scheduling and reporting.
+                </p>
+              </div>
+            </div>
+            <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} size="md" />
+          </div>
+        }
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4">
+            <p className="text-xs text-zen-brown/40">
+              {editingCategory
+                ? 'Updates apply to rooms using this category immediately.'
+                : 'The new room category will be available for room setup.'}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <ZenButton
+                type="button"
+                variant="secondary"
+                onClick={() => setIsModalOpen(false)}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </ZenButton>
+              <ZenButton
+                type="submit"
+                form="room-category-modal-form"
+                className="w-full sm:w-auto"
+              >
+                {editingCategory ? 'Save category' : 'Create category'}
+              </ZenButton>
+            </div>
+          </div>
+        }
       >
-        <form onSubmit={handleSubmit} className="flex flex-col h-auto w-full relative bg-white">
-           <div className="px-10 py-8 border-b border-zen-brown/15 flex justify-between items-center">
+        <form id="room-category-modal-form" onSubmit={handleSubmit} className="space-y-6">
+          <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
+            <div className="flex items-start justify-between gap-4 mb-6">
               <div>
-                <h3 className="font-serif text-2xl text-zen-brown">{editingCategory ? 'Refine Resonance' : 'New Essence Type'}</h3>
-                <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Sanctuary Registry Enrollment</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Category details</p>
+                <h4 className="mt-1 text-lg font-semibold text-zen-brown">Name and availability</h4>
               </div>
-              <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} />
-           </div>
+              <ZenBadge variant={formData.isActive ? 'leaf' : 'inactive'}>
+                {formData.isActive ? 'Active' : 'Inactive'}
+              </ZenBadge>
+            </div>
 
-           <div className="px-10 py-12 space-y-10">
-              <ZenInput 
-                label="Room Type Identity" 
-                placeholder="e.g. Traditional Thai Suite" 
-                required 
-                value={formData.name}
-                onChange={(e: any) => setFormData({...formData, name: e.target.value})}
-              />
-              
-              <ZenTextarea 
-                label="Essence Description" 
-                placeholder="Define the unique aura and sensory purpose of this room type..." 
-                value={formData.description}
-                onChange={(e: any) => setFormData({...formData, description: e.target.value})}
-              />
+            <ZenInput
+              label="Category name"
+              placeholder="e.g. Traditional Thai suite"
+              required
+              value={formData.name}
+              onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
+            />
+          </div>
 
-              <div className="flex items-center gap-4 p-6 bg-zen-cream/20 rounded-[1.5rem] border border-zen-brown/15">
-                 <div className={`w-3 h-3 rounded-full ${formData.isActive ? 'bg-zen-leaf shadow-[0_0_10px_rgba(107,138,122,0.5)]' : 'bg-slate-300'}`}></div>
-                 <div className="flex-1">
-                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Resonance Status</p>
-                    <p className="text-sm font-serif text-zen-brown italic">{formData.isActive ? 'Currently pulsating through the sanctuary' : 'Temporarily withdrawn from resonance'}</p>
-                 </div>
-                 <button 
-                   type="button" 
-                   onClick={() => setFormData({...formData, isActive: !formData.isActive})}
-                   className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${formData.isActive ? 'bg-zen-leaf text-white' : 'bg-slate-400 text-white'}`}
-                 >
-                    {formData.isActive ? 'Active' : 'Deactive'}
-                 </button>
+          <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Availability</p>
+                <h4 className="mt-1 text-lg font-semibold text-zen-brown">Category status</h4>
+                <p className="mt-2 text-sm text-zen-brown/55">
+                  {formData.isActive
+                    ? 'Visible when creating rooms.'
+                    : 'Hidden from new room assignments until reactivated.'}
+                </p>
               </div>
-           </div>
-
-           <div className="px-10 py-8 border-t border-zen-brown/15 bg-zen-cream/5 flex gap-4">
-              <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">
-                Discard
-              </ZenButton>
-              <ZenButton type="submit" className="flex-[2] py-5 shadow-sm">
-                 <span>{editingCategory ? 'Update Resonance' : 'Establish Type'}</span>
-                 <Sparkles size={18} className="ml-2" />
-              </ZenButton>
-           </div>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+                className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+                  formData.isActive ? 'bg-zen-leaf text-white' : 'bg-slate-200 text-slate-600'
+                }`}
+              >
+                {formData.isActive ? 'Active' : 'Inactive'}
+              </button>
+            </div>
+          </div>
         </form>
       </Modal>
 
@@ -285,8 +320,8 @@ const RoomCategories = () => {
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={executeDelete}
-        title="Delete Room Type?"
-        message="Are you certain you wish to purge this room identity from the resonance? This action cannot be reversed."
+        title="Delete room category?"
+        message="Are you sure you want to delete this room category? Rooms using it may need to be updated."
       />
     </ZenPageLayout>
   );

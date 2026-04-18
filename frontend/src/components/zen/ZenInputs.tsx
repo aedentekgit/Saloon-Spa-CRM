@@ -45,8 +45,8 @@ export const ZenDropdown = ({
       <div 
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={variant === 'pill' 
-          ? "bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-zen-brown/15 flex items-center justify-between gap-3 shadow-md group-hover:border-zen-brown/30 transition-all cursor-pointer hover:shadow-lg"
-          : "w-full pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between cursor-pointer group-focus-within:border-zen-brown transition-all"
+          ? "h-[48px] sm:h-[52px] bg-white/95 backdrop-blur-md px-5 rounded-[1rem] border border-zen-brown/15 flex items-center justify-between gap-3 group-hover:border-zen-brown/30 transition-all cursor-pointer"
+          : "w-full px-1 pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/40 group-focus-within:border-zen-brown transition-all"
         }
       >
         <div className="flex items-center gap-3">
@@ -64,8 +64,8 @@ export const ZenDropdown = ({
       {isOpen && createPortal(
         <div 
           ref={listRef}
-          className={`fixed bg-white shadow-[-10px_20px_60px_-15px_rgba(74,55,40,0.2)] border border-zen-brown/15 animate-in fade-in slide-in-from-top-2 duration-300 z-[99999] overflow-y-auto
-            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[2.5rem] max-h-[70vh]' : 'rounded-[2rem] max-h-60'}
+          className={`fixed bg-white border border-zen-brown/15 animate-in fade-in slide-in-from-top-2 duration-300 z-[99999] overflow-y-auto
+            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[1rem] max-h-[70vh]' : 'rounded-[1rem] max-h-60'}
           `}
           style={window.innerWidth >= 640 ? {
             minWidth: Math.max(160, dropdownRef.current?.getBoundingClientRect().width || 0),
@@ -143,7 +143,7 @@ export const ZenAutocomplete = ({
   return (
     <div className={`space-y-1 relative group ${className} ${disabled ? 'opacity-40 pointer-events-none' : ''}`} ref={containerRef}>
       <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>
-      <div className="w-full pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between group-focus-within:border-zen-brown transition-all">
+      <div className="w-full px-1 pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between group-hover:border-zen-brown/40 group-focus-within:border-zen-brown transition-all">
         <div className="flex items-center gap-3 flex-1">
           {Icon && <Icon size={16} className="text-zen-brown/20 group-focus-within:text-zen-brown" />}
           <input 
@@ -164,8 +164,8 @@ export const ZenAutocomplete = ({
       {isOpen && filteredOptions.length > 0 && createPortal(
         <div 
           ref={listRef}
-          className={`fixed bg-white/95 backdrop-blur-xl shadow-[-20px_40px_80px_-20px_rgba(74,55,40,0.15)] border border-zen-brown/15 animate-in fade-in slide-in-from-top-2 duration-500 z-[99999] overflow-y-auto
-            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[3rem] max-h-[60vh]' : 'rounded-[2.5rem] max-h-[320px] border border-zen-brown/15'}
+          className={`fixed bg-white/95 backdrop-blur-xl border border-zen-brown/15 animate-in fade-in slide-in-from-top-2 duration-500 z-[99999] overflow-y-auto
+            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[1.5rem] max-h-[60vh]' : 'rounded-[1rem] max-h-[320px] border border-zen-brown/15'}
           `}
           style={window.innerWidth >= 640 ? {
             width: containerRef.current?.getBoundingClientRect().width,
@@ -183,7 +183,7 @@ export const ZenAutocomplete = ({
                   setSearchTerm(opt.name);
                   setIsOpen(false);
                 }}
-                className="px-6 py-4 rounded-[1.8rem] transition-all cursor-pointer hover:bg-zen-cream group/item flex flex-col"
+                className="px-6 py-4 rounded-[1rem] transition-all cursor-pointer hover:bg-zen-cream group/item flex flex-col"
               >
                 <span className="text-sm font-serif font-black text-zen-brown group-hover/item:text-zen-sand transition-colors">{opt.name}</span>
                 {opt[subtextKey] && (
@@ -206,17 +206,17 @@ export const ZenInput = ({ label, icon: Icon, prefix, variant = 'light', type, .
   return (
     <div className={`space-y-2 group ${props.containerClassName || ''}`}>
       <label className={`text-[9px] font-bold uppercase tracking-widest ml-1 ${variant === 'dark' ? 'text-white/40' : 'text-zen-brown/30'}`}>{label}</label>
-      <div className="relative flex items-center">
-        {Icon && <Icon className={`absolute left-0 bottom-3 transition-colors ${variant === 'dark' ? 'text-white/20' : 'text-zen-brown/10'} group-focus-within:text-zen-brown`} size={16} />}
+      <div className="relative flex items-center px-1">
+        {Icon && <Icon className={`absolute left-1 bottom-3 transition-colors ${variant === 'dark' ? 'text-white/20' : 'text-zen-brown/10'} group-focus-within:text-zen-brown`} size={16} />}
         {prefix && (
-          <span className={`absolute ${Icon ? 'left-7' : 'left-1'} bottom-3 text-sm font-bold border-r border-zen-brown/25 pr-2 mr-2 whitespace-nowrap ${variant === 'dark' ? 'text-white/60' : 'text-zen-brown/40'}`}>
+          <span className={`absolute ${Icon ? 'left-8' : 'left-2'} bottom-3 text-sm font-bold border-r border-zen-brown/25 pr-2 mr-2 whitespace-nowrap ${variant === 'dark' ? 'text-white/60' : 'text-zen-brown/40'}`}>
             {prefix}
           </span>
         )}
         <input 
           {...props}
           type={isPassword ? (showPassword ? 'text' : 'password') : type}
-          className={`w-full pb-2 ${Icon ? 'pl-7' : 'pl-1'} bg-transparent border-b border-zen-brown/25 outline-none transition-all font-medium text-sm sm:text-base placeholder:text-zen-brown/30 ${prefix ? (Icon ? 'pl-16' : 'pl-12') : ''} ${variant === 'dark' ? 'text-white focus:border-white/40' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''} ${isPassword ? 'pr-8' : ''}`}
+          className={`w-full pb-2 ${Icon ? 'pl-8' : 'pl-1'} bg-transparent border-b border-zen-brown/25 outline-none transition-all font-medium text-sm sm:text-base placeholder:text-zen-brown/30 ${prefix ? (Icon ? 'pl-16' : 'pl-12') : ''} ${variant === 'dark' ? 'text-white focus:border-white/40' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''} ${isPassword ? 'pr-8' : ''} group-hover:border-zen-brown/40`}
           style={prefix ? { paddingLeft: Icon ? `calc(1.75rem + ${prefix.length * 0.6}rem + 1rem)` : `calc(0.25rem + ${prefix.length * 0.6}rem + 1rem)` } : {}}
         />
         {isPassword && (
@@ -297,7 +297,7 @@ export const ZenDatePicker = ({ label, value, onChange, className = "", icon: Ic
       <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between cursor-pointer group-focus-within:border-zen-brown transition-all group/input"
+        className="w-full px-1 pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/40 group-focus-within:border-zen-brown transition-all group/input"
       >
         <div className="flex items-center gap-3">
           <Icon size={16} className="text-zen-brown/20 group-hover/input:text-zen-brown/40 transition-colors" />
@@ -311,8 +311,8 @@ export const ZenDatePicker = ({ label, value, onChange, className = "", icon: Ic
       {isOpen && createPortal(
         <div 
           ref={calendarRef}
-          className={`fixed bg-white/95 backdrop-blur-xl shadow-[-20px_40px_80px_-20px_rgba(74,55,40,0.2)] border border-white/80 animate-in zoom-in-95 fade-in duration-300 z-[99999] min-w-[320px]
-            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[3rem] p-8' : 'rounded-[2.5rem] p-6'}
+          className={`fixed bg-white/95 backdrop-blur-xl border border-white/80 animate-in zoom-in-95 fade-in duration-300 z-[99999] min-w-[320px]
+            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[1.5rem] p-8' : 'rounded-[1rem] p-6'}
           `}
           style={window.innerWidth >= 640 ? {
             left: Math.min(window.innerWidth - 350, containerRef.current?.getBoundingClientRect().left || 0),
@@ -382,7 +382,7 @@ export const ZenTextarea = ({ label, ...props }: any) => (
     <label className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>
     <textarea 
       {...props}
-      className={`w-full p-4 sm:p-6 bg-zen-cream/5 border border-zen-brown/15 rounded-[1.5rem] sm:rounded-[2rem] outline-none focus:bg-white focus:border-zen-brown/30 transition-all font-serif text-base sm:text-lg text-zen-brown h-28 sm:h-32 resize-none shadow-inner ${props.className || ''}`}
+      className={`w-full p-4 sm:p-6 bg-zen-cream/5 border border-zen-brown/15 rounded-[1.5rem] sm:rounded-[1rem] outline-none focus:bg-white focus:border-zen-brown/30 transition-all font-serif text-base sm:text-lg text-zen-brown h-28 sm:h-32 resize-none shadow-inner ${props.className || ''}`}
     />
   </div>
 );
@@ -445,8 +445,8 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLab
       {isOpen && createPortal(
         <div 
           ref={dropdownRef}
-          className={`fixed bg-white/95 backdrop-blur-2xl shadow-[-20px_40px_80px_-20px_rgba(74,55,40,0.15)] border border-white/80 overflow-hidden animate-in zoom-in-95 fade-in duration-500 z-[99999] p-4 min-w-[280px]
-            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[3rem]' : 'rounded-[2.5rem]'}
+          className={`fixed bg-white/95 backdrop-blur-2xl border border-white/80 overflow-hidden animate-in zoom-in-95 fade-in duration-500 z-[99999] p-4 min-w-[280px]
+            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[1.5rem]' : 'rounded-[1rem]'}
           `}
           style={window.innerWidth >= 640 ? {
             left: Math.min(window.innerWidth - 300, containerRef.current?.getBoundingClientRect().left || 0),
@@ -461,7 +461,7 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLab
                   onChange(m.value);
                   setIsOpen(false);
                 }}
-                className={`px-8 py-5 rounded-[1.8rem] text-sm font-serif transition-all duration-300 cursor-pointer flex items-center justify-between group/item
+                className={`px-8 py-5 rounded-[1rem] text-sm font-serif transition-all duration-300 cursor-pointer flex items-center justify-between group/item
                   ${value === m.value 
                     ? 'bg-zen-brown text-white shadow-xl scale-[1.02]' 
                     : 'text-zen-brown/40 hover:bg-zen-cream/40 hover:text-zen-brown hover:translate-x-1'

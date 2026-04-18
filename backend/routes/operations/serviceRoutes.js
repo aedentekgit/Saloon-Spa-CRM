@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getPublicServices,
   getServices,
   createService,
   updateService,
@@ -10,8 +11,11 @@ const { protect, manager } = require('../../middleware/authMiddleware');
 
 const { upload } = require('../../middleware/uploadMiddleware');
 
+router.route('/public')
+  .get(getPublicServices);
+
 router.route('/')
-  .get(getServices) // Public-ish or protected by protect depending on FE requirements.
+  .get(protect, getServices) // Public-ish or protected by protect depending on FE requirements.
   .post(protect, manager, upload.single('serviceImage'), createService);
 
 router.route('/:id')

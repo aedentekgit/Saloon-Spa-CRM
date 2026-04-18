@@ -33,7 +33,7 @@ const ZenNotification: React.FC<NotificationProps> = ({ id, type, title, message
       animate={{ x: 0, opacity: 1, scale: 1, rotate: 0 }}
       exit={{ x: 100, opacity: 0, scale: 0.8 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className={`relative w-80 sm:w-96 flex items-start gap-5 p-6 rounded-[2.5rem] shadow-2xl bg-white/80 backdrop-blur-xl border border-zen-brown/15 overflow-hidden group`}
+      className={`relative w-80 sm:w-96 flex items-start gap-5 p-6 rounded-[1rem] shadow-2xl bg-white/80 backdrop-blur-xl border border-zen-brown/15 overflow-hidden group`}
     >
       <div className={`absolute left-0 top-0 bottom-0 w-2 ${bg.replace('/10', '')}`} />
       

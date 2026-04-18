@@ -12,6 +12,7 @@ import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenButton, ZenBadge, ZenIconButton } from '../../components/zen/ZenButtons';
 import { ZenAutocomplete, ZenDatePicker, ZenDropdown } from '../../components/zen/ZenInputs';
 import { useBranches } from '../../context/BranchContext';
+import { useSettings } from '../../context/SettingsContext';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
@@ -30,6 +31,7 @@ interface Appointment {
 const Appointments = () => {
   const { user } = useAuth();
   const { selectedBranch, branches } = useBranches();
+  const { settings } = useSettings();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,7 +74,7 @@ const Appointments = () => {
   }, [formData.client, rawClients]);
 
   const serviceOptions = useMemo(() => {
-    // If a membership is selected, show EXACTLY its covered rituals
+    // If a membership is selected, show EXACTLY its covered services
     if (formData.membershipId) {
       const selectedMembership = activeMemberships.find((m: any) => 
         (m._id || m).toString() === formData.membershipId.toString()
@@ -378,7 +380,7 @@ const Appointments = () => {
       });
 
       if (response.ok) {
-        notify('success', 'Acknowledged', editingApt ? 'Session refined' : 'New session scheduled');
+        notify('success', 'Acknowledged', editingApt ? 'Session updated' : 'New session scheduled');
         setIsModalOpen(false);
         fetchData();
       } else {
@@ -427,24 +429,25 @@ const Appointments = () => {
       addButtonIcon={<Plus size={18} />}
       onAddClick={() => handleOpenModal()}
     >
-      <div className="flex flex-col lg:flex-row gap-10">
-        <div className="flex-1 space-y-8">
+      <div style={{ '--theme-primary': settings?.theme?.primaryColor || '#8B5CF6' } as React.CSSProperties} className="contents font-sans">
+        <div className="flex flex-col lg:flex-row gap-10">
+          <div className="flex-1 space-y-8">
            {/* Calendar Controls - Now visible in both Grid and Table view */}
-            <div className="bg-white/80 backdrop-blur-xl p-4 sm:p-8 rounded-[1.5rem] sm:rounded-[3.5rem] border border-zen-brown/25 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full xl:w-auto">
-                  <div className="flex items-center gap-2 sm:gap-3 bg-zen-cream/30 p-1.5 sm:p-2 rounded-full w-full xl:w-auto justify-between sm:justify-start">
+                  <div className="flex items-center gap-2 sm:gap-3 bg-gray-50/50 p-1.5 sm:p-2 rounded-[1.25rem] w-full xl:w-auto justify-between sm:justify-start">
                      <ZenIconButton icon={ChevronLeft} onClick={handlePrev} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
-                     <h2 className="text-base sm:text-lg font-serif font-bold text-zen-brown tracking-tight sm:min-w-[150px] text-center px-2 sm:px-4">{getDateDisplay()}</h2>
+                     <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight sm:min-w-[150px] text-center px-2 sm:px-4">{getDateDisplay()}</h2>
                      <ZenIconButton icon={ChevronRight} onClick={handleNext} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
                   </div>
                </div>
-               <div className="flex bg-zen-cream/30 rounded-2xl sm:rounded-[2rem] p-1.5 w-full xl:w-auto border border-zen-brown/25">
+               <div className="flex bg-gray-50/50 rounded-[1.25rem] p-1.5 w-full xl:w-auto border border-gray-100">
                   {(['Day', 'Week', 'Month'] as const).map(type => (
                      <button 
                        key={type}
                        onClick={() => setViewType(type)}
-                       className={`flex-1 xl:flex-none px-4 sm:px-8 py-2.5 sm:py-3 transition-all duration-500 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-xl sm:rounded-3xl ${
-                         viewType === type ? 'bg-white text-zen-brown shadow-xl scale-105' : 'text-zen-brown/30 hover:text-zen-brown'
+                       className={`flex-1 xl:flex-none px-4 sm:px-8 py-2.5 sm:py-3 transition-all duration-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-[1rem] ${
+                         viewType === type ? 'bg-white text-gray-900 shadow-md scale-105' : 'text-gray-400 hover:text-gray-900'
                        }`}
                      >
                        {type}
@@ -457,7 +460,7 @@ const Appointments = () => {
              <>
 
                {/* Calendar View Area */}
-               <div className="bg-white/70 backdrop-blur-xl rounded-[4rem] border border-zen-brown/25 overflow-hidden shadow-sm min-h-[500px]">
+               <div className="bg-white rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden min-h-[500px]">
                   {loading ? (
                      <div className="flex flex-col items-center justify-center h-[500px]">
                         <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
@@ -521,19 +524,19 @@ const Appointments = () => {
                   ) : (
                      <div className="p-4 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 animate-in fade-in zoom-in duration-1000 pb-20 sm:pb-8">
                         {filteredAppointments.map((apt) => (
-                           <div key={apt._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-8 shadow-sm border border-zen-brown/25 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
+                           <div key={apt._id} className="group relative bg-white border border-gray-100 p-6 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] transition-all duration-500 hover:border-[color:var(--theme-primary)] hover:shadow-lg hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
                               <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                               
                               <div className="relative z-10">
-                                  <div className="flex items-center justify-between mb-4 sm:mb-6">
-                                    <div className="flex items-center gap-3 sm:gap-4">
-                                       <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-zen-cream border-2 border-white shadow-lg flex flex-col items-center justify-center shrink-0 group-hover:bg-zen-brown group-hover:text-white transition-all duration-500">
+                                  <div className="flex items-center justify-between mb-4 sm:mb-6 gap-4">
+                                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                       <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-zen-cream border-2 border-white shadow-lg flex flex-col items-center justify-center shrink-0 group-hover:bg-zen-brown group-hover:text-white transition-all duration-500 text-center px-2">
                                           <p className="text-[7px] sm:text-[8px] font-bold uppercase tracking-widest opacity-40 mb-0.5">Time</p>
-                                          <p className="text-[10px] sm:text-xs font-serif font-black">{apt.time || '--:--'}</p>
+                                          <p className="text-[10px] sm:text-xs font-black leading-[1.1] sm:leading-tight">{apt.time || '--:--'}</p>
                                        </div>
                                        <div className="min-w-0">
-                                          <h3 className="text-2xl sm:text-3xl font-serif font-black text-zen-brown tracking-tighter leading-none group-hover:translate-x-1 transition-transform duration-500 truncate">{apt.client}</h3>
-                                          <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[.4em] mt-2 italic truncate">{apt.employee}</p>
+                                          <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tighter leading-none group-hover:translate-x-1 transition-transform duration-500 truncate">{apt.client}</h3>
+                                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 truncate">{apt.employee}</p>
                                        </div>
                                     </div>
                                     <div className="flex gap-1.5 sm:gap-2 shrink-0">
@@ -579,38 +582,46 @@ const Appointments = () => {
              </>
            ) : (
              /* Table View Area */
-             <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-sm border border-zen-brown/25 overflow-hidden overflow-x-auto">
+            <div className="table-container w-full bg-white rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto">
                <table className="w-full text-center border-collapse min-w-[800px]">
                  <thead>
-                   <tr className="bg-zen-brown border-b border-zen-brown/15">
+                   <tr className="border-b border-gray-100">
                      <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
                      <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Identity</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Ritual</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Sanctuary</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Temporal Index</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Service</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Workspace</th>
+                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Time Index</th>
                      <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Actions</th>
                    </tr>
                  </thead>
-                 <tbody className="divide-y divide-zen-brown/15">
+                 <tbody className="">
+                    {(!filteredAppointments || filteredAppointments.length === 0) && (
+
+                       <tr>
+                          <td colSpan={12} className="px-6 py-16 text-center text-[13px] text-gray-400 bg-gray-50/30">No registry data available</td>
+                       </tr>
+
+                    )}
+
                     {filteredAppointments.map((apt, idx) => (
-                       <tr key={apt._id} className="hover:bg-zen-cream/5 transition-all group">
-                         <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</td>
+                       <tr key={apt._id} className="hover:bg-gray-50/50 transition-all group">
+                         <td className="px-6 py-6 text-gray-400 font-bold">{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</td>
                          <td className="px-10 py-5">
                            <div className="flex flex-col items-center">
-                             <span className="font-serif text-lg text-zen-brown font-black tracking-tight leading-tight">{apt.client}</span>
-                             <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">{apt.employee}</span>
+                             <span className="zen-table-primary">{apt.client}</span>
+                             <span className="zen-table-meta">{apt.employee}</span>
                            </div>
                          </td>
                          <td className="px-6 py-6">
                            <ZenBadge variant="leaf">{apt.service}</ZenBadge>
                          </td>
-                         <td className="px-6 py-6 font-serif italic text-zen-brown/40 text-sm">
+                         <td className="px-6 py-6 text-gray-400 font-medium text-[13px]">
                            {apt.room || 'General Area'}
                          </td>
                          <td className="px-6 py-6">
                            <div className="flex flex-col items-center">
-                             <span className="text-sm font-serif font-bold text-zen-brown">{dayjs(apt.date).format('MMM DD, YYYY')}</span>
-                             <span className="text-[10px] text-zen-brown/30 uppercase tracking-widest">{apt.time}</span>
+                             <span className="text-[13px] font-bold text-gray-900">{dayjs(apt.date).format('MMM DD, YYYY')}</span>
+                             <span className="text-[10px] text-gray-400 uppercase tracking-widest">{apt.time}</span>
                            </div>
                          </td>
                          <td className="px-6 py-6">
@@ -628,7 +639,7 @@ const Appointments = () => {
                </table>
                {appointments.length === 0 && (
                  <div className="p-20 text-center">
-                   <p className="text-sm font-serif italic text-zen-brown/20">Registry is currently void of sequences</p>
+                   <p className="text-sm font-serif italic text-zen-brown/20">Registry is currently void of records</p>
                  </div>
                )}
              </div>
@@ -637,33 +648,33 @@ const Appointments = () => {
 
         {/* Sidebar */}
         <div className="w-full lg:w-96 space-y-6 sm:space-y-10">
-           <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border border-zen-brown/25 shadow-sm transition-all duration-700 hover:-translate-y-2">
-              <h3 className="text-xl sm:text-2xl font-serif font-bold text-zen-brown mb-6 sm:mb-10 tracking-tight">Daily Insight</h3>
+           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:border-[color:var(--theme-primary)] transition-all duration-300">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 tracking-tight">Daily Insight</h3>
               <div className="space-y-6 sm:space-y-8">
-                 <div className="bg-zen-cream/30 p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-zen-brown/25 group hover:bg-white transition-all duration-500">
-                    <p className="text-[10px] font-black text-zen-brown/20 uppercase tracking-[0.4em] mb-2 sm:mb-3">Booked Energy</p>
-                    <p className="text-3xl sm:text-4xl font-serif font-bold text-zen-brown tracking-tighter">{filteredAppointments.filter(a => a.date && dayjs(a.date).isSame(dayjs(), 'day')).length}</p>
-                    <p className="text-[9px] font-bold text-zen-brown/30 uppercase mt-1 sm:mt-2">Active Sequences</p>
+                  <div className="bg-gray-50/50 p-6 sm:p-8 rounded-2xl border border-gray-100 group transition-all duration-500">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 sm:mb-3">Booked Energy</p>
+                    <p className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tighter">{filteredAppointments.filter(a => a.date && dayjs(a.date).isSame(dayjs(), 'day')).length}</p>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 sm:mt-2">Active Records</p>
                  </div>
               </div>
            </div>
 
-           <div className="bg-zen-brown p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] text-white shadow-sm relative overflow-hidden group transition-all duration-700 hover:-translate-y-2">
+           <div style={{ backgroundColor: 'var(--theme-primary)' }} className="p-8 rounded-3xl text-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
               <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-125 transition-transform duration-1000">
                  <Sparkles size={150} />
               </div>
-              <h3 className="text-xl sm:text-2xl font-serif font-bold mb-6 sm:mb-10 tracking-tight relative z-10">Global Stats</h3>
-              <div className="space-y-6 sm:space-y-10 relative z-10">
+              <h3 className="text-xl sm:text-2xl font-bold mb-6 sm:mb-8 tracking-tight relative z-10">Overview</h3>
+              <div className="space-y-6 sm:space-y-8 relative z-10">
                  <div>
-                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mb-2 sm:mb-3">Registry Volume</p>
-                    <p className="text-2xl sm:text-3xl font-serif font-bold tracking-tighter">{filteredAppointments.length}</p>
+                    <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-2 sm:mb-3">Registry Volume</p>
+                    <p className="text-2xl sm:text-3xl font-bold tracking-tighter">{filteredAppointments.length}</p>
                     <div className="w-full h-1 bg-white/5 rounded-full mt-3 sm:mt-4 overflow-hidden">
                        <div className="h-full bg-zen-sand w-2/3 rounded-full" />
                     </div>
                  </div>
                  <div>
-                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mb-2 sm:mb-3">Ambassadors</p>
-                    <p className="text-2xl sm:text-3xl font-serif font-bold tracking-tighter">{staffOptions.length - 1}</p>
+                    <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-2 sm:mb-3">Ambassadors</p>
+                    <p className="text-2xl sm:text-3xl font-bold tracking-tighter">{staffOptions.length - 1}</p>
                  </div>
               </div>
            </div>
@@ -671,136 +682,215 @@ const Appointments = () => {
       </div>
 
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+      </div>
 
       {/* Appointment Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} hideHeader maxWidth="max-w-4xl">
-         <form onSubmit={handleSubmit} className="flex flex-col relative">
-            <div className="px-10 py-10 border-b border-zen-brown/15 flex justify-between items-center">
-               <div>
-                  <h2 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">{editingApt ? 'Edit Appointment' : 'New Appointment'}</h2>
-                  <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.4em] mt-2">Appointment Details</p>
-               </div>
-               <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} />
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        maxWidth="max-w-5xl"
+        header={
+          <div className="flex items-start justify-between gap-6 px-6 sm:px-10 py-6 sm:py-8">
+            <div className="flex items-start gap-4 sm:gap-5 min-w-0">
+              <div className="w-12 h-12 rounded-2xl bg-zen-brown text-white flex items-center justify-center shadow-sm shrink-0">
+                <Calendar size={24} strokeWidth={1.75} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Appointment record</p>
+                <h3 className="mt-1 text-xl sm:text-2xl font-semibold text-zen-brown truncate">
+                  {editingApt ? 'Edit appointment' : 'New appointment'}
+                </h3>
+                <p className="mt-2 text-sm text-zen-brown/60 max-w-2xl">
+                  Schedule a visit, assign staff and room, and confirm the service time.
+                </p>
+              </div>
             </div>
+            <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} size="md" />
+          </div>
+        }
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4">
+            <p className="text-xs text-zen-brown/40">
+              {editingApt
+                ? 'Changes are applied as soon as you save the appointment.'
+                : 'The booking will appear in the calendar after confirmation.'}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <ZenButton
+                type="button"
+                variant="secondary"
+                onClick={() => setIsModalOpen(false)}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </ZenButton>
+              <ZenButton
+                type="submit"
+                form="appointment-modal-form"
+                className="w-full sm:w-auto"
+              >
+                {editingApt ? 'Save appointment' : 'Confirm appointment'}
+              </ZenButton>
+            </div>
+          </div>
+        }
+      >
+         <form id="appointment-modal-form" onSubmit={handleSubmit} className="space-y-6">
+            <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Booking details</p>
+                  <h4 className="mt-1 text-lg font-semibold text-zen-brown">Client, branch, and date</h4>
+                </div>
+                <ZenBadge variant="secondary">{viewType}</ZenBadge>
+              </div>
 
-            <div className="p-6 sm:p-10 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 pb-40">
+              <div className="grid gap-5 lg:grid-cols-2">
                 {user?.role === 'Admin' ? (
-                   <ZenDropdown 
-                     label="Selective Branch" 
-                     options={branchOptions} 
-                     value={branches.find(b => b._id === formData.branch)?.name || 'None'} 
-                     onChange={val => {
-                        const b = branches.find(b => b.name === val);
-                        setFormData({...formData, branch: b?._id || '', employee: '', service: '', room: '', time: ''});
-                     }} 
-                   />
+                  <ZenDropdown
+                    label="Branch"
+                    options={branchOptions}
+                    value={branches.find(b => b._id === formData.branch)?.name || 'None'}
+                    onChange={val => {
+                      const b = branches.find(b => b.name === val);
+                      setFormData({ ...formData, branch: b?._id || '', employee: '', service: '', room: '', time: '' });
+                    }}
+                  />
                 ) : (
-                   <div className="bg-zen-cream/5 p-6 rounded-[2.5rem] border border-dashed border-zen-brown/25 flex flex-col justify-center">
-                      <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">Assigned Sanctuary</p>
-                      <p className="text-sm font-serif font-bold text-zen-brown">{branches.find(b => b._id === formData.branch)?.name || 'Central Haven'}</p>
-                   </div>
+                  <div className="rounded-2xl border border-dashed border-zen-brown/15 bg-zen-cream/20 p-5 flex flex-col justify-center">
+                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mb-1">Assigned branch</p>
+                    <p className="text-sm font-semibold text-zen-brown">{branches.find(b => b._id === formData.branch)?.name || 'Central branch'}</p>
+                  </div>
                 )}
-                <ZenDatePicker label="Calendar Date" value={formData.date} onChange={val => setFormData({...formData, date: val})} />
-                 <ZenAutocomplete 
-                    label="Client Registry" 
-                    placeholder="Search name or email..."
-                    options={clientSearchOptions} 
-                    subtextKey="email"
-                    value={formData.client} 
-                    onChange={(val: any) => setFormData({...formData, client: val, membershipId: '', bookingType: 'Normal'})} 
-                    icon={Search}
-                 />
-                
-                 {formData.client && activeMemberships.length > 0 && (
-                    <ZenDropdown
-                       label="Booking Type"
-                       options={['Normal', 'Membership']}
-                       value={formData.bookingType || 'Normal'}
-                       onChange={val => setFormData({...formData, bookingType: val, membershipId: val === 'Normal' ? '' : formData.membershipId, service: val === 'Normal' ? '' : formData.service})}
-                    />
-                 )}
-                 
-                {formData.client && formData.bookingType === 'Membership' && activeMemberships.length > 0 ? (
-                   <ZenDropdown 
-                     label="Membership Benefit" 
-                     options={['None', ...activeMemberships.map((m: any) => m.plan?.name || 'Sanctuary Plan')]} 
-                     value={activeMemberships.find((m: any) => m._id === formData.membershipId)?.plan?.name || 'None'} 
-                     onChange={val => {
-                        const m = activeMemberships.find((m: any) => m.plan?.name === val);
-                        setFormData({...formData, membershipId: m?._id || '', service: ''});
-                     }}
-                   />
-                ) : formData.client && formData.bookingType === 'Membership' && activeMemberships.length === 0 ? (
-                   <div className="bg-zen-cream/5 p-6 rounded-[2.5rem] border border-dashed border-zen-brown/25 flex flex-col justify-center">
-                      <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">Membership Benefit</p>
-                      <p className="text-sm font-serif font-bold text-zen-brown">No active memberships found</p>
-                   </div>
-                ) : null}
-
-                 {/* Membership Detail Indicator removed as per user request */}
-
-                <ZenDropdown label="Service Selection" options={serviceOptions} value={formData.service || 'None'} onChange={val => setFormData({...formData, service: val})} />
-                <ZenDropdown label="Therapist" options={staffOptions} value={formData.employee || 'None'} onChange={val => setFormData({...formData, employee: val})} />
-                <ZenDropdown label="Room Selection" options={roomOptions} value={formData.room || 'None'} onChange={val => setFormData({...formData, room: val})} />
-               
-               {/* Available Slots Section */}
-               <div className="md:col-span-2 space-y-4">
-                  <div className="flex items-center justify-between">
-                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em]">Available Sequences</p>
-                     <div className="flex gap-4">
-                        {formData.employee && formData.employee !== 'None' && (
-                           <span className="text-[9px] font-bold text-zen-leaf/60 uppercase italic">
-                              {rawShifts.find(s => s.name === rawStaff.find(e => e.name === formData.employee)?.shift)?.startTime} - {rawShifts.find(s => s.name === rawStaff.find(e => e.name === formData.employee)?.shift)?.endTime}
-                           </span>
-                        )}
-                        {formData.room && formData.room !== 'None' && (
-                           <span className="text-[9px] font-bold text-zen-brown/40 uppercase italic">
-                              Cleaning: {rawRooms.find(r => r.name === formData.room)?.cleaningDuration || 0}m
-                           </span>
-                        )}
-                     </div>
+                <ZenDatePicker
+                  label="Appointment date"
+                  value={formData.date}
+                  onChange={val => setFormData({ ...formData, date: val })}
+                />
+                <ZenAutocomplete
+                  label="Client"
+                  placeholder="Search by name or email"
+                  options={clientSearchOptions}
+                  subtextKey="email"
+                  value={formData.client}
+                  onChange={(val: any) => setFormData({ ...formData, client: val, membershipId: '', bookingType: 'Normal' })}
+                  icon={Search}
+                />
+                {formData.client && activeMemberships.length > 0 ? (
+                  <ZenDropdown
+                    label="Booking type"
+                    options={['Normal', 'Membership']}
+                    value={formData.bookingType || 'Normal'}
+                    onChange={val => setFormData({ ...formData, bookingType: val, membershipId: val === 'Normal' ? '' : formData.membershipId, service: val === 'Normal' ? '' : formData.service })}
+                  />
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-zen-brown/15 bg-zen-cream/20 p-5 flex flex-col justify-center">
+                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mb-1">Booking type</p>
+                    <p className="text-sm font-semibold text-zen-brown">Select a client to continue</p>
                   </div>
-                  
-                  <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 gap-3 sm:gap-4">
-                     {availableSlots.map((slot) => (
-                        <button
-                           key={slot.time}
-                           type="button"
-                           disabled={slot.isBooked}
-                           onClick={() => setFormData({...formData, time: slot.time})}
-                           className={`py-3 px-1 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black transition-all duration-300 border ${
-                              formData.time === slot.time 
-                                 ? 'bg-zen-brown text-white border-zen-brown shadow-lg scale-105' 
-                                 : slot.isBooked 
-                                     ? 'bg-zen-cream/10 text-zen-brown/10 border-zen-brown/15 cursor-not-allowed line-through' 
-                                     : 'bg-white text-zen-brown/60 border-zen-brown/25 hover:border-zen-brown hover:text-zen-brown'
-                           }`}
-                        >
-                           {slot.display}
-                        </button>
-                     ))}
-                     {availableSlots.length === 0 && (
-                        <div className="col-span-full py-8 bg-zen-cream/5 rounded-[2rem] border border-dashed border-zen-brown/25 flex flex-col items-center justify-center gap-3">
-                           <div className="w-10 h-10 rounded-full bg-zen-brown/5 flex items-center justify-center text-zen-brown/10">
-                              <Calendar size={18} />
-                           </div>
-                           <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest text-center px-10 leading-relaxed">
-                              {(!formData.employee || formData.employee === 'None' || !formData.room || formData.room === 'None') 
-                                 ? 'Initiate selection of specialist & sanctuary to reveal flow' 
-                                 : 'No sequences available for this temporal node'}
-                           </p>
-                        </div>
-                     )}
-                  </div>
-               </div>
+                )}
+              </div>
             </div>
 
-            <div className="px-10 py-10 border-t border-zen-brown/15 bg-zen-cream/10 flex gap-6">
-               <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Discard</ZenButton>
-               <ZenButton type="submit" className="flex-[2]">
-                  <span>{editingApt ? 'Save Changes' : 'Confirm Appointment'}</span>
-                  <Sparkles size={18} />
-               </ZenButton>
+            {formData.client && formData.bookingType === 'Membership' && (
+              <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
+                <div className="flex items-start justify-between gap-4 mb-6">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Membership usage</p>
+                    <h4 className="mt-1 text-lg font-semibold text-zen-brown">Apply a membership benefit</h4>
+                  </div>
+                  {activeMemberships.length > 0 && (
+                    <ZenBadge variant="sand">{activeMemberships.length} active</ZenBadge>
+                  )}
+                </div>
+
+                {activeMemberships.length > 0 ? (
+                  <ZenDropdown
+                    label="Membership plan"
+                    options={['None', ...activeMemberships.map((m: any) => m.plan?.name || 'Plan')]}
+                    value={activeMemberships.find((m: any) => m._id === formData.membershipId)?.plan?.name || 'None'}
+                    onChange={val => {
+                      const m = activeMemberships.find((m: any) => m.plan?.name === val);
+                      setFormData({ ...formData, membershipId: m?._id || '', service: '' });
+                    }}
+                  />
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-zen-brown/15 bg-zen-cream/20 p-5">
+                    <p className="text-sm font-semibold text-zen-brown">No active memberships found for this client.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Service assignment</p>
+                  <h4 className="mt-1 text-lg font-semibold text-zen-brown">Select service, staff, room, and time</h4>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 justify-end">
+                  {formData.employee && formData.employee !== 'None' && (
+                    <span className="text-[10px] font-bold text-zen-leaf/60 uppercase tracking-[0.2em]">
+                      {rawShifts.find(s => s.name === rawStaff.find(e => e.name === formData.employee)?.shift)?.startTime} - {rawShifts.find(s => s.name === rawStaff.find(e => e.name === formData.employee)?.shift)?.endTime}
+                    </span>
+                  )}
+                  {formData.room && formData.room !== 'None' && (
+                    <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.2em]">
+                      Cleaning: {rawRooms.find(r => r.name === formData.room)?.cleaningDuration || 0}m
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-5 lg:grid-cols-3">
+                <ZenDropdown label="Service" options={serviceOptions} value={formData.service || 'None'} onChange={val => setFormData({ ...formData, service: val })} />
+                <ZenDropdown label="Staff member" options={staffOptions} value={formData.employee || 'None'} onChange={val => setFormData({ ...formData, employee: val })} />
+                <ZenDropdown label="Room" options={roomOptions} value={formData.room || 'None'} onChange={val => setFormData({ ...formData, room: val })} />
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Availability</p>
+                  <h4 className="mt-1 text-lg font-semibold text-zen-brown">Choose a time slot</h4>
+                </div>
+                <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.25em]">
+                  {availableSlots.length} slots available
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 gap-3 sm:gap-4">
+                {availableSlots.map((slot) => (
+                  <button
+                    key={slot.time}
+                    type="button"
+                    disabled={slot.isBooked}
+                    onClick={() => setFormData({ ...formData, time: slot.time })}
+                    className={`py-3 px-1 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black transition-all duration-300 border ${
+                      formData.time === slot.time
+                        ? 'bg-zen-brown text-white border-zen-brown shadow-lg scale-105'
+                        : slot.isBooked
+                          ? 'bg-zen-cream/10 text-zen-brown/10 border-zen-brown/15 cursor-not-allowed line-through'
+                          : 'bg-white text-zen-brown/60 border-zen-brown/25 hover:border-zen-brown hover:text-zen-brown'
+                    }`}
+                  >
+                    {slot.display}
+                  </button>
+                ))}
+                {availableSlots.length === 0 && (
+                  <div className="col-span-full py-10 bg-zen-cream/20 rounded-[1.5rem] border border-dashed border-zen-brown/15 flex flex-col items-center justify-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-zen-brown/5 flex items-center justify-center text-zen-brown/20">
+                      <Calendar size={18} />
+                    </div>
+                    <p className="text-[10px] font-bold text-zen-brown/25 uppercase tracking-[0.3em] text-center px-10 leading-relaxed">
+                      {(!formData.employee || formData.employee === 'None' || !formData.room || formData.room === 'None')
+                        ? 'Select staff and room to reveal available time slots.'
+                        : 'No time slots are available for this combination.'}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
          </form>
       </Modal>
@@ -810,7 +900,7 @@ const Appointments = () => {
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={executeDelete}
         title="Archive Session?"
-        message="Are you sure you want to remove this sequence from the registry?"
+        message="Are you sure you want to remove this record from the registry?"
         confirmText="Archive"
         cancelText="Preserve"
       />
