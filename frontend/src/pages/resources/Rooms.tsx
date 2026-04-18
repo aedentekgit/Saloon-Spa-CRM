@@ -603,14 +603,7 @@ const Rooms = () => {
                   onChange={(e: any) => setFormData({...formData, cleaningDuration: parseInt(e.target.value) || 0})} 
                />
 
-              <div className="md:col-span-1">
-                 <div className="p-10 bg-zen-sand/5 rounded-[1.5rem] border border-zen-sand/10 shadow-inner flex flex-col items-center justify-center text-center">
-                    <Sparkles size={24} className="text-zen-sand mb-4 opacity-40" />
-                    <p className="text-[11px] text-zen-brown/40 font-bold uppercase tracking-widest leading-relaxed">
-                       Room status and image are managed centrally.
-                    </p>
-                 </div>
-              </div>
+
            </div>
         </form>
       </Modal>
