@@ -232,11 +232,13 @@ const Roles = () => {
                  </div>
                     <div className="flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
                        <ZenIconButton icon={Edit} onClick={() => handleOpenModal(role)} />
-                       <ZenIconButton 
-                         icon={Trash2} 
-                         variant="danger" 
-                         onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} 
-                       />
+                       {role.name !== 'Admin' && (
+                         <ZenIconButton 
+                           icon={Trash2} 
+                           variant="danger" 
+                           onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} 
+                         />
+                       )}
                     </div>
                  </div>
               </div>
@@ -334,7 +336,9 @@ const Roles = () => {
                   <td>
                     <div className="flex items-center justify-center gap-2 transition-all duration-500">
                        <ZenIconButton icon={Edit} onClick={() => handleOpenModal(role)} />
-                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} />
+                       {role.name !== 'Admin' && (
+                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} />
+                       )}
                     </div>
                   </td>
                 </tr>
