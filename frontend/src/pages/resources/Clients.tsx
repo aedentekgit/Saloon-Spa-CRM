@@ -524,15 +524,15 @@ const Clients = () => {
           <div className="table-container">
             <table className="w-full text-center border-collapse min-w-[800px]">
               <thead>
-                <tr className="border-none">
-                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Portrait</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Client</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Contact & Email</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Membership</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Spending</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Actions</th>
+                <tr>
+                <th>S NO</th>
+                <th>Portrait</th>
+                <th>Client</th>
+                <th>Contact & Email</th>
+                <th>Membership</th>
+                <th>Spending</th>
+                <th>Status</th>
+                <th>Actions</th>
                 </tr>
               </thead>
               <tbody className="">
@@ -872,11 +872,11 @@ const Clients = () => {
                         <table className="w-full min-w-[640px] text-left">
                           <thead>
                             <tr className="border-b border-zen-brown/10 bg-zen-cream/30">
-                              <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/45 uppercase tracking-[0.22em] whitespace-nowrap">S No</th>
-                              <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/45 uppercase tracking-[0.22em]">Date</th>
-                              <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/45 uppercase tracking-[0.22em]">Branch</th>
-                              <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/45 uppercase tracking-[0.22em]">Service</th>
-                              <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/45 uppercase tracking-[0.22em]">Time</th>
+                              <th>S No</th>
+                              <th>Date</th>
+                              <th>Branch</th>
+                              <th>Service</th>
+                              <th>Time</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-zen-brown/5">
@@ -1022,12 +1022,12 @@ const Clients = () => {
                       <table className="w-full min-w-[720px] text-left">
                         <thead>
                           <tr className="border-b border-zen-brown/10 bg-zen-cream/30">
-                            <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/45 uppercase tracking-[0.22em] whitespace-nowrap">S No</th>
-                            <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/45 uppercase tracking-[0.22em]">Date</th>
-                            <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/45 uppercase tracking-[0.22em]">Branch</th>
-                            <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/45 uppercase tracking-[0.22em]">Service</th>
-                            <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/45 uppercase tracking-[0.22em]">Staff</th>
-                            <th className="px-8 py-5 text-[10px] font-bold text-zen-brown/45 uppercase tracking-[0.22em]">Time</th>
+                            <th>S No</th>
+                            <th>Date</th>
+                            <th>Branch</th>
+                            <th>Service</th>
+                            <th>Staff</th>
+                            <th>Time</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zen-brown/5">

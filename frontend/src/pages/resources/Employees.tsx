@@ -703,17 +703,17 @@ const Employees = () => {
             ))}
           </div>
         ) : (
-          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
             <table className="w-full text-center border-collapse min-w-[1000px]">
                <thead>
-                  <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S No</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Portrait</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Identity & Role</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Mechanism</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Payroll</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Presence</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Actions</th>
+                  <tr>
+                     <th>S No</th>
+                     <th>Portrait</th>
+                     <th>Identity & Role</th>
+                     <th>Mechanism</th>
+                     <th>Payroll</th>
+                     <th>Presence</th>
+                     <th>Actions</th>
                   </tr>
                </thead>
                <tbody>
@@ -949,14 +949,14 @@ const Employees = () => {
                           <span>Commission Breakdown</span>
                           <span className="text-zen-brown/20 italic font-serif normal-case tracking-normal">Breakdown per service</span>
                        </h5>
-                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
                           <table className="w-full text-center border-collapse min-w-[800px]">
                              <thead>
-                                <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Date</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Service</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Client</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Commission</th>
+                                <tr>
+                                   <th>Date</th>
+                                   <th>Service</th>
+                                   <th>Client</th>
+                                   <th>Commission</th>
                                 </tr>
                              </thead>
                              <tbody className="divide-y divide-zen-brown/15">
@@ -1120,14 +1120,14 @@ const Employees = () => {
                           </div>
                        )
                      ) : (
-                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
                           <table className="w-full text-center border-collapse min-w-[800px]">
                              <thead>
-                                <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Date</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Record / Status</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Duration / Overtime</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Actions</th>
+                                <tr>
+                                   <th>Date</th>
+                                   <th>Record / Status</th>
+                                   <th>Duration / Overtime</th>
+                                   <th>Actions</th>
                                 </tr>
                              </thead>
                              <tbody className="divide-y divide-zen-brown/15">

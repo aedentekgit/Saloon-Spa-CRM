@@ -420,17 +420,17 @@ const Rooms = () => {
           })}
         </div>
       ) : (
-        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-               <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                 <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] whitespace-nowrap">S No</th>
-                 <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] whitespace-nowrap">Visual</th>
-                 <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] whitespace-nowrap">Branch</th>
-                 <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] whitespace-nowrap">Room Name</th>
-                 <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] whitespace-nowrap">Category</th>
-                 <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] whitespace-nowrap">Cleaning</th>
-                 <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] whitespace-nowrap">Status</th>
+               <tr>
+                 <th>S No</th>
+                 <th>Visual</th>
+                 <th>Branch</th>
+                 <th>Room Name</th>
+                 <th>Category</th>
+                 <th>Cleaning</th>
+                 <th>Status</th>
                      <th>Actions</th>
                   </tr>
                </thead>

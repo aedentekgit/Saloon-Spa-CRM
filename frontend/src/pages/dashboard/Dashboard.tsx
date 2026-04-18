@@ -42,6 +42,7 @@ import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButt
 import { useBranches } from '../../context/BranchContext';
 import { useSettings } from '../../context/SettingsContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -80,48 +81,44 @@ const AdminDashboard = () => {
 
   const cards = [
     { 
-      title: 'TOTAL REVENUE', 
+      label: 'TOTAL REVENUE', 
       value: `${settings?.general?.currencySymbol || 'QR'} ${displayRevenue.toLocaleString()}`, 
-      trend: stats?.revenue?.trend?.length > 0 ? '+Active' : '+0.0%', 
+      trend: stats?.revenue?.trend?.length > 0 ? 'Active Stream' : 'Initial Phase', 
       icon: Coins, 
       color: 'text-emerald-500', 
-      bg: 'bg-emerald-50/[0.03]', 
-      trendColor: 'text-emerald-600', 
-      trendBg: 'bg-emerald-50',
-      watermark: Coins
+      bg: 'bg-emerald-500/10', 
+      glow: 'bg-emerald-500/20',
+      delay: 0
     },
     { 
-      title: 'DAILY REVENUE', 
+      label: 'DAILY REVENUE', 
       value: `${settings?.general?.currencySymbol || 'QR'} ${displayExpenses.toLocaleString()}`, 
-      trend: stats?.revenue?.today > 0 ? 'Live' : 'Steady', 
-      icon: ArrowDownRight, 
+      trend: stats?.revenue?.today > 0 ? 'Operating Today' : 'System Ready', 
+      icon: Activity, 
       color: 'text-rose-500', 
-      bg: 'bg-rose-50/[0.03]', 
-      trendColor: 'text-rose-500', 
-      trendBg: 'bg-rose-50',
-      watermark: Activity
+      bg: 'bg-rose-500/10', 
+      glow: 'bg-rose-500/20',
+      delay: 0.2
     },
     { 
-      title: 'NET PROFIT', 
+      label: 'NET PROFIT', 
       value: `${settings?.general?.currencySymbol || 'QR'} ${displayProfit.toLocaleString()}`, 
-      trend: 'Calculated', 
+      trend: 'Final Calculation', 
       icon: TrendingUp, 
-      color: 'text-blue-500', 
-      bg: 'bg-blue-50/[0.03]', 
-      trendColor: 'text-emerald-600', 
-      trendBg: 'bg-emerald-50',
-      watermark: TrendingUp 
+      color: 'text-sky-500', 
+      bg: 'bg-sky-500/10', 
+      glow: 'bg-sky-500/20',
+      delay: 0.4
     },
     { 
-      title: 'TOTAL CLIENTS', 
+      label: 'TOTAL CLIENTS', 
       value: displayClients, 
-      trend: stats?.clients?.newToday > 0 ? `+${stats.clients.newToday} New` : '+0 New', 
+      trend: stats?.clients?.newToday > 0 ? `${stats.clients.newToday} New Registries` : 'Steady Base', 
       icon: Users, 
       color: 'text-fuchsia-500', 
-      bg: 'bg-fuchsia-50/[0.03]', 
-      trendColor: 'text-emerald-600', 
-      trendBg: 'bg-emerald-50',
-      watermark: Users
+      bg: 'bg-fuchsia-500/10', 
+      glow: 'bg-fuchsia-500/20',
+      delay: 0.6
     },
   ];
 
@@ -177,35 +174,9 @@ const AdminDashboard = () => {
          ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="flex overflow-x-auto pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
         {cards.map((card, i) => (
-          <motion.div
-            key={card.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-zen-brown/15 shadow-sm group hover:translate-y-[-4px] transition-all duration-500 relative overflow-hidden"
-          >
-            <div className="absolute -right-4 -bottom-4 opacity-[0.03] text-zen-brown group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-1000">
-               <card.watermark size={120} />
-            </div>
-            
-            <div className="flex justify-between items-start mb-6 relative z-10">
-              <div className={`w-10 h-10 rounded-xl bg-zen-brown/[0.03] border border-zen-brown/10 flex items-center justify-center text-zen-brown group-hover:bg-zen-brown group-hover:text-white transition-all duration-700 shadow-inner`}>
-                 <card.icon size={18} />
-              </div>
-              <div className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest ${card.trendColor} ${card.trendBg}`}>
-                 {card.trend}
-              </div>
-            </div>
-
-            <div className="relative z-10">
-               <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[.2em] mb-1">{card.title}</p>
-               <h3 className="text-2xl font-serif font-black text-zen-brown tracking-tighter leading-none">
-                 {card.value}
-               </h3>
-            </div>
-          </motion.div>
+           <ZenStatCard key={i} {...card} />
         ))}
       </div>
 
@@ -360,15 +331,15 @@ const AdminDashboard = () => {
                <ZenButton size="sm" variant="ghost" icon={ChevronRight}>View All Directory</ZenButton>
             </div>
 
-            <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+            <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
                <table className="w-full text-center border-collapse min-w-[1000px]">
                   <thead>
-                    <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                      <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S No</th>
-                      <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Ritual Participant</th>
-                      <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Sanctuary Role</th>
-                      <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Service Scope</th>
-                      <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Status & Action</th>
+                    <tr>
+                      <th>S No</th>
+                      <th>Ritual Participant</th>
+                      <th>Sanctuary Role</th>
+                      <th>Service Scope</th>
+                      <th>Status & Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -462,27 +433,17 @@ const EmployeeDashboard = () => {
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div></div>;
 
   const cards = [
-    { title: "Today's Rituals", value: (stats?.performance?.today || 0).toString(), icon: Calendar, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-    { title: 'Rituals Completed', value: (stats?.performance?.completed || 0).toString(), icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    { title: 'Est. Earnings', value: `QR ${stats?.performance?.earnings || 0}`, icon: Coins, color: 'text-orange-500', bg: 'bg-orange-50' },
-    { title: 'Zen Score', value: `${stats?.performance?.score || 0} pts`, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
+    { label: "Today's Rituals", value: (stats?.performance?.today || 0).toString(), icon: Calendar, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'Sanctuary Load', delay: 0 },
+    { label: 'Rituals Completed', value: (stats?.performance?.completed || 0).toString(), icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Mission Status', delay: 0.2 },
+    { label: 'Est. Earnings', value: `QR ${stats?.performance?.earnings || 0}`, icon: Coins, color: 'text-orange-500', bg: 'bg-orange-500/10', glow: 'bg-orange-500/20', trend: 'Value Created', delay: 0.4 },
+    { label: 'Zen Score', value: `${stats?.performance?.score || 0} pts`, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', trend: 'Harmony Metric', delay: 0.6 },
   ];
 
   return (
     <div className="space-y-12 pb-20">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-10 overflow-visible">
-        {cards.map((card) => (
-          <motion.div 
-            key={card.title} 
-            whileHover={{ y: -18, zIndex: 50 }}
-            className="bg-white p-10 rounded-[1.5rem] border border-zen-brown/15 shadow-sm group transition-all duration-500 relative"
-          >
-            <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
-              <card.icon size={26} />
-            </div>
-            <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mb-2">{card.title}</p>
-            <h3 className="text-3xl font-serif font-bold text-black tracking-tighter">{card.value}</h3>
-          </motion.div>
+      <div className="flex overflow-x-auto pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+        {cards.map((card, i) => (
+           <ZenStatCard key={i} {...card} />
         ))}
       </div>
 
@@ -571,27 +532,17 @@ const ClientDashboard = () => {
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div></div>;
 
   const cards = [
-    { title: 'Zen Affinity Points', value: `${stats?.loyalty?.points || 0} pts`, icon: Sparkles, color: 'text-yellow-500', bg: 'bg-yellow-50' },
-    { title: 'Upcoming Ritual', value: stats?.nextAppointment ? stats.nextAppointment.date : 'Discovery Phase', icon: Clock, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    { title: 'Sanctuary Visits', value: (stats?.visits?.total || 0).toString(), icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-    { title: 'Loyalty Tier', value: stats?.loyalty?.tier || 'Silver', icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
+    { label: 'Zen Affinity Points', value: `${stats?.loyalty?.points || 0} pts`, icon: Sparkles, color: 'text-yellow-500', bg: 'bg-yellow-500/10', glow: 'bg-yellow-500/20', trend: 'Loyalty Reward', delay: 0 },
+    { label: 'Upcoming Ritual', value: stats?.nextAppointment ? stats.nextAppointment.date : 'Discovery', icon: Clock, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Next Sanctuary', delay: 0.2 },
+    { label: 'Sanctuary Visits', value: (stats?.visits?.total || 0).toString(), icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'History Log', delay: 0.4 },
+    { label: 'Loyalty Tier', value: stats?.loyalty?.tier || 'Silver', icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', trend: 'Status Level', delay: 0.6 },
   ];
 
   return (
     <div className="space-y-12 pb-20">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-10 overflow-visible">
-        {cards.map((card) => (
-          <motion.div 
-            key={card.title} 
-            whileHover={{ y: -18, zIndex: 50 }}
-            className="bg-white p-10 rounded-[1.5rem] border border-zen-brown/15 shadow-sm group transition-all duration-500 relative"
-          >
-            <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
-              <card.icon size={26} />
-            </div>
-            <p className="text-[10px] font-bold text-black/20 uppercase tracking-widest mb-2">{card.title}</p>
-            <h3 className="text-3xl font-serif font-bold text-black tracking-tighter">{card.value}</h3>
-          </motion.div>
+      <div className="flex overflow-x-auto pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+        {cards.map((card, i) => (
+           <ZenStatCard key={i} {...card} />
         ))}
       </div>
 

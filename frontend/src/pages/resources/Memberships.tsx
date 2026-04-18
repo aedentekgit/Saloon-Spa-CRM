@@ -415,8 +415,9 @@ title="Membership Management"
                                           <ZenIconButton icon={Edit3} onClick={() => {
                                              setEditingPlan(plan);
                                              setPlanFormData({
-                                               ...plan as any,
-                                               isUnlimited: plan.durationDays >= 36500
+                                                ...plan as any,
+                                                applicableServices: plan.applicableServices?.map((s: any) => typeof s === 'string' ? s : s._id) || [],
+                                                isUnlimited: plan.durationDays >= 36500
                                              });
                                              setIsPlanModalOpen(true);
                                           }} />
@@ -472,58 +473,83 @@ title="Membership Management"
                         </div>
                      ))}
                   </div>
-                 ) : (
-                    <div className="bg-white/70 backdrop-blur-xl rounded-[3.5rem] shadow-sm border border-white overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in slide-in-from-bottom-4 duration-700">
-                       <table className="w-full text-center border-collapse min-w-[900px]">
+                  ) : (
+                    <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in slide-in-from-bottom-4 duration-700">
+                       <div className="table-container">
+                          <table className="w-full min-w-[900px]">
                           <thead>
-                             <tr className="bg-zen-brown border-b border-zen-brown/15">
-                                <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Index</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Plan Identity</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Pricing (QR)</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Duration (Days)</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Benefit (Sessions)</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Status</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Controls</th>
+                             <tr>
+                                <th>S NO</th>
+                                <th>VISUAL</th>
+                                <th>IDENTITY</th>
+                                <th>METRICS</th>
+                                <th>DURATION</th>
+                                <th>BENEFIT</th>
+                                <th>STATUS</th>
+                                <th>ACTIONS</th>
                              </tr>
                           </thead>
-                          <tbody className="divide-y divide-zen-brown/15">
+                          <tbody>
                              {plans.map((plan, idx) => (
-                                <tr key={plan._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
-                                   <td className="px-8 py-6 text-zen-brown/40 font-serif text-lg">{(idx + 1).toString().padStart(2, '0')}</td>
-                                   <td className="px-8 py-6">
-                                      <div className="flex items-center justify-center gap-4">
-                                         <div className="w-10 h-10 rounded-xl bg-zen-sand/10 flex items-center justify-center text-zen-sand shadow-sm group-hover:scale-110 transition-transform">
-                                            <Crown size={18} />
-                                         </div>
-                                         <span className="font-serif font-black text-lg text-zen-brown">{plan.name}</span>
+                                <tr key={plan._id} className="transition-all group border-b border-black/[0.02]">
+                                   <td className="text-center italic opacity-40 text-[11px]">{(idx + 1).toString().padStart(2, '0')}</td>
+                                   <td>
+                                       <div className="flex justify-center">
+                                          <div className="w-10 h-10 rounded-xl bg-zen-sand/10 flex items-center justify-center text-zen-sand shadow-sm group-hover:scale-110 transition-transform">
+                                             <Crown size={18} />
+                                          </div>
+                                       </div>
+                                   </td>
+                                   <td>
+                                       <div className="flex flex-col items-center px-6">
+                                          <span className="zen-table-primary">{plan.name}</span>
+                                          <span className="zen-table-meta">Membership Plan</span>
+                                       </div>
+                                   </td>
+                                   <td>
+                                      <div className="flex flex-col items-center">
+                                         <span className="zen-table-primary">QR {plan.price}</span>
+                                         <span className="zen-table-meta">Renewal Rate</span>
                                       </div>
                                    </td>
-                                   <td className="px-8 py-6">
-                                      <span className="font-serif font-black text-xl text-zen-brown">QR {plan.price}</span>
+                                   <td>
+                                      <div className="flex flex-col items-center">
+                                         <span className="text-sm font-serif font-black text-zen-brown leading-none">
+                                            {plan.durationDays >= 36500 ? 'Infinite' : plan.durationDays}
+                                         </span>
+                                         <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Days</span>
+                                      </div>
                                    </td>
-                                   <td className="px-8 py-6">
-                                      <span className="text-[11px] font-black text-zen-brown/60 uppercase tracking-widest">{plan.durationDays >= 36500 ? 'Infinite' : `${plan.durationDays} Days`}</span>
+                                   <td>
+                                      <div className="flex flex-col items-center">
+                                         <span className="text-sm font-serif font-black text-zen-brown leading-none">{plan.maxSessions}</span>
+                                         <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Credits</span>
+                                      </div>
                                    </td>
-                                   <td className="px-8 py-6">
-                                      <ZenBadge variant="leaf">{plan.maxSessions} Service Credits</ZenBadge>
+                                   <td>
+                                      <div className="flex justify-center">
+                                         <ZenBadge variant={plan.isActive ? 'sand' : 'default'}>{plan.isActive ? 'OPERATIONAL' : 'RETIRED'}</ZenBadge>
+                                      </div>
                                    </td>
-                                   <td className="px-8 py-6">
-                                      <ZenBadge variant={plan.isActive ? 'sand' : 'default'}>{plan.isActive ? 'Operational' : 'Retired'}</ZenBadge>
-                                   </td>
-                                   <td className="px-8 py-6">
+                                   <td>
                                       <div className="flex items-center justify-center gap-2">
                                          <ZenIconButton icon={Edit3} onClick={() => {
                                             setEditingPlan(plan);
-                                            setPlanFormData({ ...plan as any, isUnlimited: plan.durationDays >= 36500 });
+                                            setPlanFormData({ 
+                                               ...plan as any, 
+                                               applicableServices: plan.applicableServices?.map((s: any) => typeof s === 'string' ? s : s._id) || [],
+                                               isUnlimited: plan.durationDays >= 36500 
+                                            });
                                             setIsPlanModalOpen(true);
                                          }} />
-                                         <ZenIconButton icon={Trash2} onClick={() => handleDeletePlan(plan._id)} />
+                                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeletePlan(plan._id)} />
                                       </div>
                                    </td>
                                 </tr>
                              ))}
                           </tbody>
-                       </table>
+                          </table>
+                       </div>
                     </div>
                  )}
               </div>
@@ -546,49 +572,56 @@ title="Membership Management"
 
 
                     {viewMode === 'table' ? (
-                       <div className="bg-white/70 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[3.5rem] border border-white overflow-hidden overflow-x-auto custom-scrollbar">
-                          <table className="w-full text-center border-collapse min-w-[1000px]">
+                       <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container">
+                          <div className="table-container">
+                          <table className="w-full min-w-[1000px]">
                              <thead>
-                                 <tr className="bg-zen-brown border-b border-zen-brown/15">
-                                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">No</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Client</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Plan Subscribed</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Validity Period</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Usage (Sessions)</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Status</th>
-                                   {user?.role !== 'Client' && <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Actions</th>}
+                                 <tr>
+                                   <th>S NO</th>
+                                   <th>CLIENT IDENTITY</th>
+                                   <th>PLAN SUBSCRIBED</th>
+                                   <th>METRICS & CYCLE</th>
+                                   <th>USAGE (SESS.)</th>
+                                   <th>STATUS</th>
+                                   {user?.role !== 'Client' && <th>ACTIONS</th>}
                                 </tr>
                              </thead>
-                             <tbody className="divide-y divide-zen-brown/15">
+                             <tbody>
                                 {filteredMemberships.map((m, index) => (
-                                  <tr key={m._id} className="hover:bg-zen-cream/5 transition-all duration-500 group">
-                                     <td className="px-6 py-6 text-zen-brown/40 font-serif">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</td>
-                                     <td className="px-10 py-5">
+                                  <tr key={m._id} className="transition-all group border-b border-black/[0.02]">
+                                     <td className="text-center italic opacity-40 text-[11px]">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</td>
+                                     <td>
+                                        <div className="flex flex-col items-center px-6">
+                                           <span className="zen-table-primary">{m.client?.name}</span>
+                                           <span className="zen-table-meta">{m.client?.phone}</span>
+                                        </div>
+                                     </td>
+                                     <td>
+                                        <div className="flex justify-center">
+                                           <ZenBadge variant="sand" className="uppercase font-black tracking-widest px-4">{m.plan?.name}</ZenBadge>
+                                        </div>
+                                     </td>
+                                     <td>
                                         <div className="flex flex-col items-center">
-                                           <span className="font-serif text-lg text-zen-brown font-black tracking-tight leading-tight">{m.client?.name}</span>
-                                           <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">{m.client?.phone}</span>
+                                           <div className="flex items-center gap-2 text-[11px] font-black text-zen-brown uppercase tracking-widest">
+                                              {dayjs(m.startDate).format('DD/MM')} — {dayjs(m.endDate).format('DD/MM')}
+                                           </div>
+                                           <span className="zen-table-meta mt-1">Validity Cycle</span>
                                         </div>
                                      </td>
-                                     <td className="px-8 py-5">
-                                        <ZenBadge variant="sand" className="uppercase font-black tracking-widest">{m.plan?.name}</ZenBadge>
-                                     </td>
-                                     <td className="px-8 py-5">
-                                        <div className="flex items-center justify-center gap-2 text-[10px] text-zen-brown/70 italic font-black uppercase tracking-widest">
-                                           <Calendar size={12} className="text-zen-sand" />
-                                           {dayjs(m.startDate).format('DD/MM')} - {dayjs(m.endDate).format('DD/MM')}
-                                        </div>
-                                     </td>
-                                     <td className="px-8 py-5">
+                                     <td>
                                         <div className="flex flex-col items-center">
-                                           <p className="font-serif text-lg text-zen-brown font-black tracking-tighter leading-none">{(m.totalSessions || 0) - (m.remainingSessions || 0)} / {m.totalSessions || 0}</p>
-                                           <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-0.5">Sessions Utilized</p>
+                                           <p className="zen-table-primary">{(m.totalSessions || 0) - (m.remainingSessions || 0)} / {m.totalSessions || 0}</p>
+                                           <p className="zen-table-meta">Sessions Utilized</p>
                                         </div>
                                      </td>
-                                     <td className="px-8 py-5 text-center">
-                                        <ZenBadge variant={m.status === 'Active' ? 'leaf' : 'sand'} className="uppercase font-black tracking-widest">{m.status}</ZenBadge>
+                                     <td>
+                                        <div className="flex justify-center">
+                                           <ZenBadge variant={m.status === 'Active' ? 'leaf' : 'sand'} className="uppercase font-black tracking-widest">{m.status}</ZenBadge>
+                                        </div>
                                      </td>
                                      {user?.role !== 'Client' && (
-                                        <td className="px-6 py-6">
+                                        <td>
                                            <div className="flex items-center justify-center gap-2">
                                               <ZenIconButton icon={History} onClick={() => {
                                                  setSelectedHistory(m);
@@ -613,6 +646,7 @@ title="Membership Management"
                                 ))}
                              </tbody>
                           </table>
+                          </div>
                        </div>
                     ) : (
                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -892,38 +926,46 @@ title="Membership Management"
       >
          <div className="space-y-10">
 
-            <div className="bg-white rounded-[2.5rem] border border-zen-brown/15 overflow-hidden shadow-sm">
-               <table className="w-full text-left">
-                  <thead className="bg-zen-brown border-b border-zen-brown/15">
+            <div className="bg-white/70 rounded-[2.5rem] border border-white overflow-hidden shadow-sm">
+               <div className="table-container">
+               <table className="w-full min-w-[760px]">
+                  <thead>
                      <tr>
-                        <th className="px-8 py-5 text-[10px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">S No</th>
-                        <th className="px-8 py-5 text-[10px] font-bold text-white/40 uppercase tracking-widest">Date</th>
-                        <th className="px-8 py-5 text-[10px] font-bold text-white/40 uppercase tracking-widest">Branch</th>
-                        <th className="px-8 py-5 text-[10px] font-bold text-white/40 uppercase tracking-widest">Service</th>
-                        <th className="px-8 py-5 text-[10px] font-bold text-white/40 uppercase tracking-widest">Time</th>
+                        <th>S No</th>
+                        <th>Date</th>
+                        <th>Branch</th>
+                        <th>Service</th>
+                        <th>Time</th>
                      </tr>
                   </thead>
-                  <tbody className="divide-y divide-zen-brown/15">
+                  <tbody>
                      {selectedHistory?.usageHistory?.length > 0 ? selectedHistory.usageHistory.map((usage: any, idx: number) => (
-                        <tr key={idx} className="hover:bg-zen-cream/5 transition-colors duration-300">
-                           <td className="px-8 py-5 text-[11px] font-serif font-bold text-zen-brown/40">{(idx + 1).toString().padStart(2, '0')}</td>
-                           <td className="px-8 py-5 text-[11px] font-bold text-zen-brown">{new Date(usage.usedAt).toLocaleDateString()}</td>
-                           <td className="px-8 py-5 text-[11px] font-bold text-zen-brown">
+                        <tr key={idx}>
+                           <td>{(idx + 1).toString().padStart(2, '0')}</td>
+                           <td>
+                              <span className="zen-table-primary">{new Date(usage.usedAt).toLocaleDateString()}</span>
+                           </td>
+                           <td>
                               <div className="flex items-center gap-2">
                                  <MapPin size={10} className="text-zen-sand" />
                                  {usage.branch?.name || 'Main Branch'}
                               </div>
                            </td>
-                           <td className="px-8 py-5 text-[11px] font-bold text-zen-brown">{usage.service?.name || usage.serviceId}</td>
-                           <td className="px-8 py-5 text-[10px] font-bold text-zen-brown/40 uppercase">{new Date(usage.usedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                           <td>
+                              <span className="zen-table-primary">{usage.service?.name || usage.serviceId}</span>
+                           </td>
+                           <td>
+                              <span className="zen-table-meta">{new Date(usage.usedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                           </td>
                         </tr>
                      )) : (
                         <tr>
-                           <td colSpan={5} className="px-8 py-12 text-center text-sm font-serif italic text-zen-brown/30">No redemption records found for this membership</td>
+                           <td colSpan={5} className="py-12 text-center text-sm font-serif italic text-zen-brown/30">No redemption records found for this membership</td>
                         </tr>
                      )}
                   </tbody>
                </table>
+               </div>
             </div>
 
             <div className="flex justify-center pt-4">

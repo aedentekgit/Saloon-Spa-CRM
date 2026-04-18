@@ -367,11 +367,11 @@ const Billing = () => {
             <div className="table-container p-0 overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/50">
-                    <th className="px-8 py-4 text-[10px] font-bold text-black/30 uppercase tracking-[0.2em] text-left">Internal Reference</th>
-                    <th className="px-8 py-4 text-[10px] font-bold text-black/30 uppercase tracking-[0.2em] text-right">Energy Value</th>
-                    <th className="px-8 py-4 text-[10px] font-bold text-black/30 uppercase tracking-[0.2em] text-right">Settlement Logic</th>
-                    <th className="px-8 py-4 text-[10px] font-bold text-black/30 uppercase tracking-[0.2em] text-center w-24">Actions</th>
+                  <tr>
+                    <th>Internal Reference</th>
+                    <th>Energy Value</th>
+                    <th>Settlement Logic</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5">

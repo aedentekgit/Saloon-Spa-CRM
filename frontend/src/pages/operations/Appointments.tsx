@@ -466,7 +466,7 @@ const Appointments = () => {
                         <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
                      </div>
                   ) : viewType === 'Month' ? (
-                     <div className="p-4 sm:p-8 overflow-x-auto custom-scrollbar">
+                     <div className="p-4 sm:p-8 table-container">
                         <div className="min-w-[600px] lg:min-w-full">
                            <div className="grid grid-cols-7 mb-6">
                               {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day, i) => (
@@ -582,23 +582,23 @@ const Appointments = () => {
              </>
            ) : (
              /* Table View Area */
-            <div className="table-container w-full bg-white rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto">
+            <div className="table-container w-full bg-white rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container">
                <table className="w-full text-center border-collapse min-w-[800px]">
                  <thead>
-                   <tr className="border-b border-gray-100">
-                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center whitespace-nowrap">S NO</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Identity</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Service</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Workspace</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Time Index</th>
-                     <th className="px-6 py-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Actions</th>
+                   <tr>
+                     <th>S NO</th>
+                     <th>Identity</th>
+                     <th>Service</th>
+                     <th>Workspace</th>
+                     <th>Time Index</th>
+                     <th>Actions</th>
                    </tr>
                  </thead>
                  <tbody className="">
                     {(!filteredAppointments || filteredAppointments.length === 0) && (
 
                        <tr>
-                          <td colSpan={12} className="px-6 py-16 text-center text-[13px] text-gray-400 bg-gray-50/30">No registry data available</td>
+                          <td colSpan={6} className="px-6 py-16 text-center text-[13px] text-gray-400 bg-gray-50/30">No registry data available</td>
                        </tr>
 
                     )}

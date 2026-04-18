@@ -16,9 +16,13 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
-  ChevronLeft,
   ChevronRight,
-  FilterX
+  FilterX,
+  Edit2,
+  Trash2,
+  X,
+  AlertCircle,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
@@ -29,6 +33,8 @@ import { ZenInput, ZenDropdown } from '../../components/zen/ZenInputs';
 import { useSettings } from '../../context/SettingsContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { notify } from '../../components/shared/ZenNotification';
+import { Modal } from '../../components/shared/Modal';
+import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 
 dayjs.extend(isBetween);
 
@@ -55,6 +61,10 @@ const Transactions = () => {
   const [dateRange, setDateRange] = useState<'All' | 'Today' | 'Week' | 'Month'>('All');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -162,6 +172,70 @@ const Transactions = () => {
     return filteredTransactions.slice(start, start + PAGE_LIMIT);
   }, [filteredTransactions, page]);
 
+  const handleDelete = async () => {
+    if (!selectedTransaction) return;
+    try {
+      setIsSubmitting(true);
+      const endpoint = selectedTransaction.type === 'Inflow' ? 'invoices' : 'expenses';
+      const response = await fetch(`${API_URL}/${endpoint}/${selectedTransaction.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      
+      if (response.ok) {
+        notify('success', 'Registry Purged', 'Transaction has been successfully removed from logs.');
+        fetchData();
+        setIsConfirmOpen(false);
+      } else {
+        throw new Error('Deletion failed');
+      }
+    } catch (error) {
+      notify('error', 'Purge Unsuccessful', 'System could not process the deletion request.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTransaction) return;
+    try {
+      setIsSubmitting(true);
+      const endpoint = selectedTransaction.type === 'Inflow' ? 'invoices' : 'expenses';
+      const response = await fetch(`${API_URL}/${endpoint}/${selectedTransaction.id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${user?.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: selectedTransaction.title,
+          amount: selectedTransaction.amount,
+          status: selectedTransaction.status,
+          paymentMode: selectedTransaction.method
+        })
+      });
+      
+      if (response.ok) {
+        notify('success', 'Registry Updated', 'Transaction details have been harmonized.');
+        fetchData();
+        setIsEditModalOpen(false);
+      } else {
+        throw new Error('Update failed');
+      }
+    } catch (error) {
+      notify('error', 'Sync Error', 'Failed to synchronize transaction updates.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const statusColors: any = {
+    'Completed': 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+    'Pending': 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+    'Failed': 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+  };
+
   const getMethodIcon = (method: string) => {
     switch (method.toLowerCase()) {
       case 'card': return CreditCard;
@@ -243,21 +317,31 @@ const Transactions = () => {
         </div>
 
         {/* Immersive Transaction Table */}
-        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
           <div className="min-w-[1000px]">
             <table className="w-full text-center border-collapse">
               <thead>
-                 <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                  <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S No</th>
-                  <th className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Protocol Details</th>
-                  <th className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Classification</th>
-                  <th className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Volume</th>
-                  <th className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Mechanism & Status</th>
+                <tr>
+                  <th>S NO</th>
+                  <th>VISUAL</th>
+                  <th>PROTOCOL DETAILS</th>
+                  <th>CLASSIFICATION</th>
+                  <th>VOLUME</th>
+                  <th>MECHANISM</th>
+                  <th>STATUS</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
                 <AnimatePresence mode="popLayout">
-                  {paginatedTransactions.map((t, idx) => (
+                  {filteredTransactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-32 text-center text-[10px] uppercase font-black tracking-[0.4em] text-zen-brown/30 bg-gray-50/30">
+                        No transactions found for the current filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedTransactions.map((t, idx) => (
                     <motion.tr 
                       key={t.id}
                       initial={{ opacity: 0 }}
@@ -269,19 +353,21 @@ const Transactions = () => {
                         {((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}
                       </td>
                       <td>
-                        <div className="flex items-center justify-center gap-4">
+                        <div className="flex justify-center">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform duration-500 shrink-0 ${
                             t.type === 'Inflow' ? 'bg-emerald-50 text-emerald-500 border-emerald-100' : 'bg-rose-50 text-rose-500 border-rose-100'
                           }`}>
                             {t.type === 'Inflow' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
                           </div>
-                          <div className="text-left">
-                            <span className="zen-table-primary">{t.title}</span>
-                            <div className="flex items-center gap-2">
-                               <span className="zen-table-meta">{t.id}</span>
-                               <span className="w-0.5 h-0.5 rounded-full bg-zen-brown/10" />
-                               <span className="zen-table-meta">{dayjs(t.date).format('MMM DD, YYYY')}</span>
-                            </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex flex-col items-center justify-center px-6">
+                          <span className="zen-table-primary">{t.title}</span>
+                          <div className="flex items-center justify-center gap-2 mt-1">
+                             <span className="zen-table-meta">{t.id}</span>
+                             <span className="w-0.5 h-0.5 rounded-full bg-zen-brown/10" />
+                             <span className="zen-table-meta">{dayjs(t.date).format('MMM DD, YYYY')}</span>
                           </div>
                         </div>
                       </td>
@@ -299,24 +385,32 @@ const Transactions = () => {
                         </p>
                       </td>
                       <td>
-                        <div className="flex justify-center items-center gap-4">
-                           <div className="flex items-center gap-2 px-2.5 py-1 bg-zen-brown/[0.03] rounded-lg border border-zen-brown/5">
-                             {React.createElement(getMethodIcon(t.method), { size: 12, className: 'text-zen-brown/30' })}
-                             <span className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest">{t.method}</span>
-                           </div>
-
-                           <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest scale-90 ${
-                             t.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 
-                             t.status === 'Pending' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 
-                             'bg-rose-500/10 text-rose-600 border border-rose-500/20'
-                           }`}>
-                             {t.status}
-                           </div>
-                           <ZenIconButton icon={ExternalLink} />
-                        </div>
+                         <div className="flex justify-center">
+                            <div className="w-9 h-9 rounded-xl bg-zen-brown/[0.03] border border-zen-brown/5 flex items-center justify-center text-zen-brown/30 group-hover:bg-white group-hover:scale-110 transition-all duration-500">
+                              {React.createElement(getMethodIcon(t.method), { size: 14 })}
+                            </div>
+                         </div>
+                      </td>
+                      <td>
+                         <div className="flex justify-center">
+                            <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest scale-90 ${
+                              t.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 
+                              t.status === 'Pending' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 
+                              'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                            }`}>
+                              {t.status}
+                            </div>
+                         </div>
+                      </td>
+                      <td>
+                         <div className="flex justify-center items-center gap-2">
+                            <ZenIconButton icon={ExternalLink} onClick={() => notify('info', 'Protocol Report', `Preparing comprehensive report for ${t.id}`)} />
+                            <ZenIconButton icon={Edit2} onClick={() => { setSelectedTransaction(t); setIsEditModalOpen(true); }} />
+                            <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setSelectedTransaction(t); setIsConfirmOpen(true); }} />
+                         </div>
                       </td>
                     </motion.tr>
-                  ))}
+                  )))}
                 </AnimatePresence>
               </tbody>
             </table>
@@ -335,6 +429,76 @@ const Transactions = () => {
           currentPage={page} 
           totalPages={totalPages} 
           onPageChange={setPage} 
+        />
+
+        {/* Update Protocol Modal */}
+        <Modal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          title="Harmonize Protocol"
+          subtitle={`Adjusting Registry ${selectedTransaction?.id}`}
+          headerIcon={Receipt}
+          footer={
+            <div className="flex gap-6">
+              <ZenButton 
+                variant="secondary" 
+                className="flex-1 text-[10px] tracking-[0.2em] font-black" 
+                onClick={() => setIsEditModalOpen(false)}
+                type="button"
+              >
+                CANCEL
+              </ZenButton>
+              <ZenButton 
+                variant="primary" 
+                className="flex-[2] bg-zen-sand hover:bg-zen-sand/90 shadow-lg shadow-zen-sand/20 flex items-center justify-center gap-3 text-[10px] tracking-[0.2em] font-black" 
+                type="submit"
+                form="update-transaction-form"
+                disabled={isSubmitting}
+              >
+                <span>{isSubmitting ? 'SYNCHRONIZING...' : 'UPDATE REGISTRY'}</span>
+                <Sparkles size={16} className="opacity-80" />
+              </ZenButton>
+            </div>
+          }
+        >
+          {selectedTransaction && (
+            <form id="update-transaction-form" onSubmit={handleUpdate} className="space-y-8">
+              <ZenInput 
+                label="Protocol Title"
+                value={selectedTransaction.title}
+                onChange={(e) => setSelectedTransaction({...selectedTransaction, title: e.target.value})}
+                placeholder="e.g., Boutique Maintenance"
+              />
+              
+              <div className="grid grid-cols-2 gap-8">
+                <ZenInput 
+                  label="Volume Value"
+                  type="number"
+                  value={selectedTransaction.amount}
+                  onChange={(e) => setSelectedTransaction({...selectedTransaction, amount: parseFloat(e.target.value)})}
+                />
+                <ZenDropdown 
+                  label="Current Status"
+                  value={selectedTransaction.status}
+                  onChange={(val: any) => setSelectedTransaction({...selectedTransaction, status: val})}
+                  options={['Completed', 'Pending', 'Failed']}
+                />
+              </div>
+            </form>
+          )}
+        </Modal>
+
+        {/* Confirmation Purge Modal */}
+        <ConfirmDialog
+          isOpen={isConfirmOpen}
+          onClose={() => setIsConfirmOpen(false)}
+          onConfirm={handleDelete}
+          title="Purge Transaction?"
+          message={`This action will permanently remove ${selectedTransaction?.id} from the sanctuary ledger. This cannot be undone.`}
+          confirmText="CONFIRM PURGE"
+          cancelText="CANCEL"
+          variant="danger"
+          isLoading={isSubmitting}
         />
       </div>
     </ZenPageLayout>

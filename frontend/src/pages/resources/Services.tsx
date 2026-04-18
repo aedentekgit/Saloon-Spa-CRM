@@ -477,16 +477,16 @@ const Services = () => {
             })}
           </div>
         ) : (
-          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
             <table className="w-full text-center border-collapse min-w-[1000px]">
               <thead>
                 <tr className="bg-zen-brown text-white/50 border-y border-zen-brown/10">
-                  <th className="px-6 py-6 text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap">S No</th>
-                  <th className="px-6 py-6 text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap">Visual</th>
-                  <th className="px-6 py-6 text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap">Protocol Details</th>
-                  <th className="px-6 py-6 text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap">Metrics</th>
-                  <th className="px-6 py-6 text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap">Mechanism & Status</th>
-                  <th className="px-6 py-6 text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap">Actions</th>
+                  <th>S No</th>
+                  <th>Visual</th>
+                  <th>Protocol Details</th>
+                  <th>Metrics</th>
+                  <th>Mechanism & Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>

@@ -89,7 +89,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <div className={`
         fixed inset-y-0 left-0 z-[100] transform lg:relative lg:translate-x-0 transition-all duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        ${isCollapsed ? 'lg:w-[75px] w-64' : 'w-[240px]'}
+        ${isCollapsed ? 'lg:w-[70px] w-60 md:w-60' : 'w-[210px]'}
       `}>
         <Sidebar 
           isCollapsed={isCollapsed} 

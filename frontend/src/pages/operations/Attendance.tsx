@@ -409,17 +409,17 @@ const Attendance = () => {
         </div>
 
         <div className="flex-1 space-y-6 sm:space-y-8">
-                <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+                <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
                   <table className="w-full text-center border-collapse min-w-[800px]">
                      <thead>
-                        <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S No</th>
-                           {isAdminOrManager && <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Specialist</th>}
-                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Record Date</th>
-                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Duration</th>
-                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Overtime</th>
-                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Earnings</th>
-                           <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Status</th>
+                        <tr>
+                           <th>S No</th>
+                           {isAdminOrManager && <th>Specialist</th>}
+                           <th>Record Date</th>
+                           <th>Duration</th>
+                           <th>Overtime</th>
+                           <th>Earnings</th>
+                           <th>Status</th>
                         </tr>
                      </thead>
                      <tbody>

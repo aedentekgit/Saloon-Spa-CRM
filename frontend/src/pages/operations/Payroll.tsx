@@ -131,17 +131,17 @@ const Payroll = () => {
           </div>
        </div>
 
-      <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+      <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
            <table className="w-full text-center border-collapse min-w-[1000px]">
               <thead>
-                 <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S No</th>
-                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Specialist</th>
-                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Protocol</th>
-                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Attendance</th>
-                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Base Reward</th>
-                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">OT Premium</th>
-                    <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Final Payout</th>
+                 <tr>
+                    <th>S No</th>
+                    <th>Specialist</th>
+                    <th>Protocol</th>
+                    <th>Attendance</th>
+                    <th>Base Reward</th>
+                    <th>OT Premium</th>
+                    <th>Final Payout</th>
                  </tr>
               </thead>
               <tbody>

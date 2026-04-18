@@ -154,7 +154,7 @@ const GST = () => {
         </div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-[2rem] border border-zen-brown/10 shadow-sm overflow-x-auto custom-scrollbar min-h-[400px]">
+          <div className="table-container bg-white rounded-[2rem] border border-zen-brown/10 shadow-sm min-h-[400px]">
 
              {loading ? (
                <div className="p-20 text-center italic opacity-20">Syncing registry...</div>
@@ -162,12 +162,12 @@ const GST = () => {
                 <table className="w-full text-center border-collapse min-w-[700px]">
 
                   <thead>
-                    <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                      <th className="px-6 py-6 text-[10px] font-bold text-neutral-400 uppercase tracking-[0.3em] text-center">S NO</th>
-                      <th className="px-6 py-6 text-[10px] font-bold text-neutral-400 uppercase tracking-[0.3em] text-center">Rate Protocol</th>
-                      <th className="px-6 py-6 text-[10px] font-bold text-neutral-400 uppercase tracking-[0.3em] text-center">Calculated Value</th>
-                      <th className="px-6 py-6 text-[10px] font-bold text-neutral-400 uppercase tracking-[0.3em] text-center">Operational Status</th>
-                      <th className="px-6 py-6 text-[10px] font-bold text-neutral-400 uppercase tracking-[0.3em] text-center">Actions</th>
+                    <tr>
+                      <th>S NO</th>
+                      <th>Rate Protocol</th>
+                      <th>Calculated Value</th>
+                      <th>Operational Status</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>

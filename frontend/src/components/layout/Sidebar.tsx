@@ -76,7 +76,7 @@ const Sidebar = ({
     });
 
   return (
-    <aside className={`bg-white border-r border-gray-100 h-full transition-all duration-300 ease-in-out flex flex-col z-20 rounded-none relative overflow-hidden ${isCollapsed ? 'lg:w-[75px] w-64 md:w-64' : 'w-[240px]'}`}>
+    <aside className={`bg-white border-r border-gray-100 h-full transition-all duration-300 ease-in-out flex flex-col z-20 rounded-none relative overflow-hidden ${isCollapsed ? 'lg:w-[70px] w-60 md:w-60' : 'w-[210px]'}`}>
       
       {/* Top Logo Section: Black Background */}
       <div className={`h-16 flex items-center bg-[#0B0F19] text-white ${isCollapsed && !isMobile ? 'justify-center px-0' : 'justify-start px-3.5'}`}>
@@ -119,7 +119,7 @@ const Sidebar = ({
             })}
             className={({ isActive }) =>
               `flex items-center rounded-xl transition-all duration-300 group ${
-                isCollapsed ? 'justify-center p-2.5 mx-auto w-10 h-10' : 'px-3.5 py-2.5 hover:bg-gray-50'
+                isCollapsed ? 'justify-center p-2.5 mx-auto w-10 h-10' : 'px-3 py-2.5 hover:bg-gray-50'
               } ${isActive ? 'text-white shadow-md shadow-zen-sand/20' : 'text-slate-500 hover:text-slate-900'}`
             }
           >
