@@ -104,6 +104,18 @@ const Signup = () => {
 
                        <div className="relative">
                           <input
+                            type="tel"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            placeholder="Phone number"
+                            className="w-full bg-[#efedfa] text-[#4b4566] text-sm font-bold placeholder:text-[#a09cba] placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-[#4c35de]/30 transition-all border border-transparent"
+                            required
+                          />
+                          <Phone size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-[#a09cba]" />
+                       </div>
+
+                       <div className="relative">
+                          <input
                             type={showPassword ? "text" : "password"}
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}

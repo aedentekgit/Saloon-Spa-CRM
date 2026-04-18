@@ -425,7 +425,7 @@ const Appointments = () => {
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
-      addButtonLabel="New Appointment"
+      addButtonLabel={user?.role === 'Client' ? "Book Ritual" : "New Appointment"}
       addButtonIcon={<Plus size={18} />}
       onAddClick={() => handleOpenModal()}
     >
@@ -767,15 +767,22 @@ const Appointments = () => {
                   value={formData.date}
                   onChange={val => setFormData({ ...formData, date: val })}
                 />
-                <ZenAutocomplete
-                  label="Client"
-                  placeholder="Search by name or email"
-                  options={clientSearchOptions}
-                  subtextKey="email"
-                  value={formData.client}
-                  onChange={(val: any) => setFormData({ ...formData, client: val, membershipId: '', bookingType: 'Normal' })}
-                  icon={Search}
-                />
+                {user?.role === 'Client' ? (
+                  <div className="rounded-2xl border border-dashed border-zen-brown/15 bg-zen-cream/20 p-5 flex flex-col justify-center">
+                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mb-1">Ritual for</p>
+                    <p className="text-sm font-semibold text-zen-brown">{user.name}</p>
+                  </div>
+                ) : (
+                  <ZenAutocomplete
+                    label="Client"
+                    placeholder="Search by name or email"
+                    options={clientSearchOptions}
+                    subtextKey="email"
+                    value={formData.client}
+                    onChange={(val: any) => setFormData({ ...formData, client: val, membershipId: '', bookingType: 'Normal' })}
+                    icon={Search}
+                  />
+                )}
                 {formData.client && activeMemberships.length > 0 ? (
                   <ZenDropdown
                     label="Booking type"

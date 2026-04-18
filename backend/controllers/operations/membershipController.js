@@ -1,6 +1,6 @@
 const MembershipPlan = require('../../models/operations/MembershipPlan');
 const Membership = require('../../models/operations/Membership');
-const Client = require('../../models/operations/Client');
+const User = require('../../models/core/User');
 const { getPaginationOptions, buildPaginationMeta } = require('../../utils/pagination');
 
 // @desc    Create a new membership plan

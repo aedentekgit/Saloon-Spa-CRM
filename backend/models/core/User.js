@@ -23,8 +23,33 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['Admin', 'Manager', 'Employee', 'Client'],
     default: 'Client'
+  },
+  phone: {
+    type: String
+  },
+  dob: {
+    type: Date
+  },
+  anniversary: {
+    type: Date
+  },
+  notes: { 
+    type: String 
+  },
+  preferences: { 
+    type: String 
+  },
+  totalSpending: { 
+    type: Number, 
+    default: 0 
+  },
+  visits: { 
+    type: Number, 
+    default: 0 
+  },
+  profilePic: { 
+    type: String 
   },
   status: {
     type: String,
@@ -60,6 +85,10 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+// Indexes for performance
+userSchema.index({ createdAt: -1 });
+userSchema.index({ name: 'text', phone: 'text' });
 
 // Encrypt password using bcrypt
 userSchema.pre('save', async function() {

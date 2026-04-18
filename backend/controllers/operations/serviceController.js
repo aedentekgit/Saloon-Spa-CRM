@@ -25,7 +25,7 @@ const getPublicServices = async (req, res) => {
 const getServices = async (req, res) => {
   try {
     const { data, pagination } = await paginateModelQuery(Service, {}, req, {
-      populate: 'branch'
+      populate: ['branch', 'inventoryUsage.inventoryItem']
     });
     res.json(pagination ? { data, pagination } : data);
   } catch (error) {
@@ -38,7 +38,17 @@ const getServices = async (req, res) => {
 // @access  Private/Manager
 const createService = async (req, res) => {
   try {
-    const { name, duration, price, branch, status, category, description, commissionType, commissionValue } = req.body;
+    const { name, duration, price, branch, status, category, description, commissionType, commissionValue, inventoryUsage } = req.body;
+    
+    // Parse inventoryUsage if it's a string
+    let parsedInventoryUsage = [];
+    if (inventoryUsage) {
+      try {
+        parsedInventoryUsage = typeof inventoryUsage === 'string' ? JSON.parse(inventoryUsage) : inventoryUsage;
+      } catch (e) {
+        console.error('Failed to parse inventoryUsage:', e);
+      }
+    }
     
     // IDOR Check
     const selectedBranch = branch || req.user.branch;
@@ -68,7 +78,8 @@ const createService = async (req, res) => {
       image,
       status: status || 'Active',
       commissionType: commissionType || 'Percentage',
-      commissionValue: commissionValue || 0
+      commissionValue: commissionValue || 0,
+      inventoryUsage: parsedInventoryUsage
     });
 
     res.status(201).json(service);
@@ -110,6 +121,16 @@ const updateService = async (req, res) => {
 
     if (isAdmin && req.body.branch) {
        service.branch = req.body.branch;
+    }
+
+    if (req.body.inventoryUsage) {
+      try {
+        service.inventoryUsage = typeof req.body.inventoryUsage === 'string' 
+          ? JSON.parse(req.body.inventoryUsage) 
+          : req.body.inventoryUsage;
+      } catch (e) {
+        console.error('Failed to parse inventoryUsage during update:', e);
+      }
     }
 
     if (req.file) {

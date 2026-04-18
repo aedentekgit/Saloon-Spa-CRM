@@ -27,7 +27,7 @@ const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
   'Admin': ['*'],
   'Manager': ['dashboard', 'appointments', 'billing', 'clients', 'services', 'rooms', 'employees', 'attendance', 'finance', 'inventory', 'whatsapp', 'reports', 'settings', 'leave'],
   'Employee': ['dashboard', 'appointments', 'clients', 'services', 'attendance', 'leave'],
-  'Client': []
+  'Client': ['dashboard', 'appointments', 'memberships', 'services']
 };
 
 // Safely access Vite environment variables

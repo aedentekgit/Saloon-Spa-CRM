@@ -330,9 +330,9 @@ const Memberships = () => {
     return (
     <ZenPageLayout 
 title="Membership Management" 
-      addButtonLabel="New Enrollment"
-      addButtonIcon={<Crown size={18} />}
-      onAddClick={() => {
+      addButtonLabel={user?.role === 'Client' ? "" : "New Enrollment"}
+      addButtonIcon={user?.role === 'Client' ? null : <Crown size={18} />}
+      onAddClick={user?.role === 'Client' ? () => {} : () => {
          setEditingEnrollmentId(null);
          setEnrollData({
             clientId: '',
@@ -351,8 +351,8 @@ title="Membership Management"
       {/* Tabs Header */}
       <div className="flex items-center gap-4 sm:gap-8 mb-8 border-b border-zen-brown/15 px-2 overflow-x-auto scrollbar-none whitespace-nowrap">
          {[
-           { id: 'registry', label: 'Memberships', icon: Users },
-           { id: 'plans', label: 'Tier Management', icon: Crown }
+           { id: 'registry', label: user?.role === 'Client' ? 'My Memberships' : 'Memberships', icon: Users },
+           ...(user?.role !== 'Client' ? [{ id: 'plans', label: 'Tier Management', icon: Crown }] : [])
          ].map((tab) => (
            <button
              key={tab.id}
@@ -556,7 +556,7 @@ title="Membership Management"
                                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Validity Period</th>
                                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Usage (Sessions)</th>
                                    <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Status</th>
-                                   <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Actions</th>
+                                   {user?.role !== 'Client' && <th className="px-6 py-6 text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Actions</th>}
                                 </tr>
                              </thead>
                              <tbody className="divide-y divide-zen-brown/15">
@@ -587,26 +587,28 @@ title="Membership Management"
                                      <td className="px-8 py-5 text-center">
                                         <ZenBadge variant={m.status === 'Active' ? 'leaf' : 'sand'} className="uppercase font-black tracking-widest">{m.status}</ZenBadge>
                                      </td>
-                                     <td className="px-6 py-6">
-                                        <div className="flex items-center justify-center gap-2">
-                                           <ZenIconButton icon={History} onClick={() => {
-                                              setSelectedHistory(m);
-                                              setIsHistoryModalOpen(true);
-                                           }} />
-                                           <ZenIconButton icon={Edit3} onClick={() => {
-                                              setEditingEnrollmentId(m._id);
-                                              setEnrollData({
-                                                 clientId: m.client?._id || '',
-                                                 planId: m.plan?._id || '',
-                                                 branchId: m.branch?._id || '',
-                                                 startDate: new Date(m.startDate).toISOString().split('T')[0],
-                                                 status: m.status
-                                              });
-                                              setIsEnrollModalOpen(true);
-                                           }} />
-                                           <ZenIconButton icon={Trash2} onClick={() => handleDeleteMembership(m._id)} />
-                                        </div>
-                                     </td>
+                                     {user?.role !== 'Client' && (
+                                        <td className="px-6 py-6">
+                                           <div className="flex items-center justify-center gap-2">
+                                              <ZenIconButton icon={History} onClick={() => {
+                                                 setSelectedHistory(m);
+                                                 setIsHistoryModalOpen(true);
+                                              }} />
+                                              <ZenIconButton icon={Edit3} onClick={() => {
+                                                 setEditingEnrollmentId(m._id);
+                                                 setEnrollData({
+                                                    clientId: m.client?._id || '',
+                                                    planId: m.plan?._id || '',
+                                                    branchId: m.branch?._id || '',
+                                                    startDate: new Date(m.startDate).toISOString().split('T')[0],
+                                                    status: m.status
+                                                 });
+                                                 setIsEnrollModalOpen(true);
+                                              }} />
+                                              <ZenIconButton icon={Trash2} onClick={() => handleDeleteMembership(m._id)} />
+                                           </div>
+                                        </td>
+                                     )}
                                   </tr>
                                 ))}
                              </tbody>
@@ -635,24 +637,26 @@ title="Membership Management"
                                             </div>
                                          </div>
                                       </div>
-                                      <div className="flex gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
-                                         <ZenIconButton icon={History} onClick={() => {
-                                               setSelectedHistory(m);
-                                               setIsHistoryModalOpen(true);
-                                            }} />
-                                         <ZenIconButton icon={Edit3} onClick={() => {
-                                               setEditingEnrollmentId(m._id);
-                                               setEnrollData({
-                                                  clientId: m.client?._id || '',
-                                                  planId: m.plan?._id || '',
-                                                  branchId: m.branch?._id || '',
-                                                  startDate: new Date(m.startDate).toISOString().split('T')[0],
-                                                  status: m.status
-                                               });
-                                               setIsEnrollModalOpen(true);
-                                            }} />
-                                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteMembership(m._id)} />
-                                      </div>
+                                      {user?.role !== 'Client' && (
+                                        <div className="flex gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
+                                           <ZenIconButton icon={History} onClick={() => {
+                                                 setSelectedHistory(m);
+                                                 setIsHistoryModalOpen(true);
+                                              }} />
+                                           <ZenIconButton icon={Edit3} onClick={() => {
+                                                 setEditingEnrollmentId(m._id);
+                                                 setEnrollData({
+                                                    clientId: m.client?._id || '',
+                                                    planId: m.plan?._id || '',
+                                                    branchId: m.branch?._id || '',
+                                                    startDate: new Date(m.startDate).toISOString().split('T')[0],
+                                                    status: m.status
+                                                 });
+                                                 setIsEnrollModalOpen(true);
+                                              }} />
+                                           <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteMembership(m._id)} />
+                                        </div>
+                                      )}
                                    </div>
 
                                    <div className="space-y-4">

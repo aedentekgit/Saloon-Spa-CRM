@@ -50,8 +50,8 @@ const createAppointment = async (req, res) => {
 
     // Auto-resolve clientId if missing but client (name) is present
     if (!appointmentData.clientId && appointmentData.client) {
-      const Client = require('../../models/operations/Client');
-      const foundClient = await Client.findOne({ name: appointmentData.client });
+      const User = require('../../models/core/User');
+      const foundClient = await User.findOne({ name: appointmentData.client, role: 'Client' });
       if (foundClient) {
         appointmentData.clientId = foundClient._id;
       }

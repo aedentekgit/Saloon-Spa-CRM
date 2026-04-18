@@ -66,13 +66,16 @@ const createInvoice = async (req, res) => {
       branch: branch || req.user.branch || undefined
     });
     
-    // Auto-update Employee Earnings based on commissions
+    // Auto-update Employee Earnings and Inventory Stock
     if (items && Array.isArray(items)) {
+      const Inventory = require('../../models/inventory/Inventory');
       for (const item of items) {
+        const service = await Service.findOne({ name: item.name }).populate('inventoryUsage.inventoryItem');
+        
+        // 1. Commission Logic
         if (item.specialist) {
            const employee = await Employee.findById(item.specialist);
            if (employee) {
-              const service = await Service.findOne({ name: item.name });
               let commission = 0;
               const itemTotal = item.price * (item.quantity || 1);
               
@@ -88,6 +91,19 @@ const createInvoice = async (req, res) => {
               
               employee.earnings = (employee.earnings || 0) + commission;
               await employee.save();
+           }
+        }
+
+        // 2. Inventory Depletion Logic
+        if (service && service.inventoryUsage && service.inventoryUsage.length > 0) {
+           for (const usage of service.inventoryUsage) {
+              const consumptionQty = (usage.quantity || 0) * (item.quantity || 1);
+              if (consumptionQty > 0) {
+                 await Inventory.findByIdAndUpdate(
+                    usage.inventoryItem._id || usage.inventoryItem,
+                    { $inc: { stock: -consumptionQty } }
+                 );
+              }
            }
         }
       }

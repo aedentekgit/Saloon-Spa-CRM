@@ -1,4 +1,4 @@
-const Client = require('../../models/operations/Client');
+const User = require('../../models/core/User');
 const Membership = require('../../models/operations/Membership');
 const Appointment = require('../../models/operations/Appointment');
 const path = require('path');
@@ -12,20 +12,13 @@ exports.getClients = async (req, res) => {
   try {
     let query = {};
     
-    // IDOR Prevention: Filter by branch for non-admins
-    if (req.user.role !== 'Admin') {
-      if (req.user.role === 'Client') {
-        // A client should only see themselves
-        query._id = req.user._id;
-      } else if (req.user.branch) {
-        // Manager/Employee see clients in their branch
-        query.branch = req.user.branch._id || req.user.branch;
-      }
-    }
-
     const { paginate, page, limit, skip } = getPaginationOptions(req);
-    const clientsQuery = Client.find(query).populate('branch').sort({ createdAt: -1 }).lean();
-    const total = paginate ? await Client.countDocuments(query) : null;
+    
+    // Unified query: filter by role: 'Client'
+    query.role = 'Client';
+    
+    const clientsQuery = User.find(query).sort({ createdAt: -1 }).lean();
+    const total = paginate ? await User.countDocuments(query) : null;
     const clients = paginate ? await clientsQuery.skip(skip).limit(limit) : await clientsQuery;
     
     // Fetch all memberships for these clients
@@ -68,7 +61,11 @@ exports.getClients = async (req, res) => {
 
     res.json(paginate ? {
       data: clientsWithData,
-      pagination: buildPaginationMeta(total || 0, page, limit)
+      pagination: {
+        ...buildPaginationMeta(total || 0, page, limit),
+        activeTotal: await User.countDocuments({ role: 'Client', status: 'Active' }),
+        membershipTotal: await Membership.distinct('client', { status: 'Active' }).then(res => res.length)
+      }
     } : clientsWithData);
   } catch (error) {
     console.error('Error in getClients:', error);
@@ -81,7 +78,7 @@ exports.getClients = async (req, res) => {
 // @access  Private
 exports.createClient = async (req, res) => {
   try {
-    const { name, phone, email, dob, anniversary, notes, preferences, branch, password } = req.body;
+    const { name, phone, email, dob, anniversary, notes, preferences, role, password } = req.body;
     
     let profilePic = '';
 
@@ -91,10 +88,7 @@ exports.createClient = async (req, res) => {
       }
     }
 
-    // Assign branch automatically if not provided and user is branch staff
-    const assignedBranch = branch || (req.user.role !== 'Admin' ? req.user.branch : undefined);
-
-    const client = await Client.create({
+    const client = await User.create({
       name,
       phone,
       email,
@@ -104,7 +98,7 @@ exports.createClient = async (req, res) => {
       preferences,
       profilePic,
       password,
-      branch: assignedBranch
+      role: 'Client' // Explicitly set to Client for this controller
     });
 
     res.status(201).json(client);
@@ -118,22 +112,13 @@ exports.createClient = async (req, res) => {
 // @access  Private
 exports.updateClient = async (req, res) => {
   try {
-    const client = await Client.findById(req.params.id);
+    const client = await User.findById(req.params.id);
 
-    if (!client) {
+    if (!client || client.role !== 'Client') {
        return res.status(404).json({ message: 'Client not found' });
     }
 
-    // IDOR Check
-    const isSelf = client._id.toString() === req.user._id.toString();
-    const isBranchStaff = req.user.branch && client.branch?.toString() === req.user.branch.toString();
-    const isAdmin = req.user.role === 'Admin';
-
-    if (!isAdmin && !isBranchStaff && !isSelf) {
-      return res.status(403).json({ message: 'Access Denied: You do not have permission to update this client' });
-    }
-
-    const { name, phone, email, dob, anniversary, notes, preferences, status, totalSpending, visits, branch, password } = req.body;
+    const { name, phone, email, dob, anniversary, notes, preferences, status, totalSpending, visits, password } = req.body;
 
     client.name = name || client.name;
     client.phone = phone || client.phone;
@@ -145,11 +130,6 @@ exports.updateClient = async (req, res) => {
     client.status = status || client.status;
     client.totalSpending = totalSpending !== undefined ? totalSpending : client.totalSpending;
     client.visits = visits !== undefined ? visits : client.visits;
-    
-    // Only Admin can change branch
-    if (isAdmin && branch) {
-      client.branch = branch;
-    }
 
     if (password) {
       client.password = password;
@@ -176,17 +156,15 @@ exports.updateClient = async (req, res) => {
 // @access  Private
 exports.deleteClient = async (req, res) => {
   try {
-    const client = await Client.findById(req.params.id);
+    const client = await User.findById(req.params.id);
     
-    if (!client) {
+    if (!client || client.role !== 'Client') {
       return res.status(404).json({ message: 'Client not found' });
     }
 
-    // IDOR Check
-    const isBranchStaff = req.user.branch && client.branch?.toString() === req.user.branch.toString();
     const isAdmin = req.user.role === 'Admin';
 
-    if (!isAdmin && !isBranchStaff) {
+    if (!isAdmin) {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to delete this client' });
     }
 

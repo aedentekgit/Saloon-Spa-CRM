@@ -42,7 +42,23 @@ const serviceSchema = mongoose.Schema({
   },
   description: {
     type: String
-  }
+  },
+  inventoryUsage: [{
+    inventoryItem: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Inventory',
+      required: true
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      default: 0
+    },
+    unit: {
+      type: String,
+      required: true
+    }
+  }]
 }, {
   timestamps: true
 });

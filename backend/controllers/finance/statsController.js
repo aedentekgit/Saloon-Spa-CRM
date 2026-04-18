@@ -1,6 +1,6 @@
 const Invoice = require('../../models/finance/Invoice');
 const Expense = require('../../models/finance/Expense');
-const Client = require('../../models/operations/Client');
+const User = require('../../models/core/User');
 const Attendance = require('../../models/human-resources/Attendance');
 const Appointment = require('../../models/operations/Appointment');
 const Inventory = require('../../models/inventory/Inventory');
@@ -73,8 +73,8 @@ exports.getDashboardStats = async (req, res) => {
     ]);
     const todayRevenue = todayRevenueResult[0]?.total || 0;
 
-    const totalClients = await Client.countDocuments(matchQuery);
-    const newClientsToday = await Client.countDocuments({ ...matchQuery, createdAt: { $gte: today } });
+    const totalClients = await User.countDocuments({ ...matchQuery, role: 'Client' });
+    const newClientsToday = await User.countDocuments({ ...matchQuery, role: 'Client', createdAt: { $gte: today } });
 
     const attendanceToday = await Attendance.countDocuments({ ...matchQuery, date: todayStr, status: 'Present' });
     

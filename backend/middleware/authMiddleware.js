@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/core/User');
 const Employee = require('../models/human-resources/Employee');
-const Client = require('../models/operations/Client');
 
 const protect = async (req, res, next) => {
   let token;
@@ -23,11 +22,6 @@ const protect = async (req, res, next) => {
       if (!req.user) {
         req.user = await Employee.findById(decoded.id).select('-password');
         if (req.user) req.user.role = 'Employee'; // Set role for middleware
-      }
-      
-      if (!req.user) {
-        req.user = await Client.findById(decoded.id).select('-password');
-        if (req.user) req.user.role = 'Client'; // Set role for middleware
       }
 
       // Check if email is verified (skip for Employees as they are often added by admin)

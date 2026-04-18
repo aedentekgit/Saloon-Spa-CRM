@@ -63,7 +63,17 @@ const Sidebar = ({
     { name: 'Settings', icon: Settings2, path: '/settings', permission: 'settings' },
   ];
 
-  const filteredItems = menuItems.filter(item => hasPermission(item.permission));
+  const filteredItems = menuItems
+    .filter(item => hasPermission(item.permission))
+    .map(item => {
+      if (user?.role === 'Client') {
+        if (item.name === 'Dashboard') return { ...item, name: 'Sanctuary Home' };
+        if (item.name === 'Appointments') return { ...item, name: 'My Rituals' };
+        if (item.name === 'Memberships') return { ...item, name: 'My Memberships' };
+        if (item.name === 'Services') return { ...item, name: 'Ritual Menu' };
+      }
+      return item;
+    });
 
   return (
     <aside className={`bg-white border-r border-gray-100 h-full transition-all duration-300 ease-in-out flex flex-col z-20 rounded-none relative overflow-hidden ${isCollapsed ? 'lg:w-[75px] w-64 md:w-64' : 'w-[240px]'}`}>

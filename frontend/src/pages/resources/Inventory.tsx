@@ -86,16 +86,22 @@ const Inventory = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+
   useEffect(() => {
     const handler = setTimeout(() => {
-      fetchInventory();
-    }, 300);
+      setDebouncedSearch(searchTerm);
+    }, 400);
     return () => clearTimeout(handler);
-  }, [page, searchTerm, selectedBranch, selectedCategory]);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchInventory();
+  }, [page, debouncedSearch, selectedBranch, selectedCategory]);
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, selectedBranch, selectedCategory]);
+  }, [debouncedSearch, selectedBranch, selectedCategory]);
 
   useEffect(() => {
     localStorage.setItem('zen_inventory_view', viewMode);
@@ -275,7 +281,7 @@ const Inventory = () => {
             { label: 'Flow Categories', value: metrics.categoryCount, trend: 'Resource types', icon: Truck, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20' },
             { label: 'Stock Health', value: metrics.lowStockCount === 0 ? 'Pure Harmony' : 'Replenish Required', trend: 'System status', icon: Sparkles, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20' }
           ].map((stat, i) => (
-            <ZenStatCard key={i} {...stat} delay={i * 0.2} />
+            <ZenStatCard key={i} {...stat} delay={i * 0.05} />
           ))}
         </div>
 

@@ -1,6 +1,5 @@
 const User = require('../../models/core/User');
 const Employee = require('../../models/human-resources/Employee');
-const Client = require('../../models/operations/Client');
 const Role = require('../../models/human-resources/Role');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -11,14 +10,13 @@ const findUserByEmail = async (email) => {
   let user = await User.findOne({ email }).select('+password');
   let type = 'User';
   
-  if (!user) {
-    user = await Employee.findOne({ email }).select('+password');
-    type = 'Employee';
+  if (user && user.role === 'Client') {
+    type = 'Client';
   }
   
   if (!user) {
-    user = await Client.findOne({ email }).select('+password');
-    type = 'Client';
+    user = await Employee.findOne({ email }).select('+password');
+    type = 'Employee';
   }
   
   return { user, type };
@@ -29,7 +27,7 @@ const findUserByEmail = async (email) => {
 // @access  Public
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, phone } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -44,7 +42,8 @@ exports.registerUser = async (req, res) => {
       name,
       email,
       password,
-      role,
+      phone,
+      role: 'Client', // Public registration is always for Clients
       verificationToken,
       verificationTokenExpires,
       isEmailVerified: false

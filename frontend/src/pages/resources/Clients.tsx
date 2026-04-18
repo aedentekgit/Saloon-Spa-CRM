@@ -7,21 +7,17 @@ import {
   UserPlus, Phone, Edit2, Trash2, User as UserIcon,
   Sparkles, X, Calendar, Camera, Mail, Info, Lock, Eye, EyeOff, MapPin, ChevronRight, History, Search, Grid, List, Zap, Users
 } from 'lucide-react';
-import { Branch } from '../../context/BranchContext';
 import { useSettings } from '../../context/SettingsContext';
 import { countries } from '../../utils/countries';
 import { validatePhoneNumber, getPhoneValidationProtocol } from '../../utils/validation';
 import { Modal } from '../../components/shared/Modal';
 import { notify } from '../../components/shared/ZenNotification';
-
-// Global Zen Components
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenDropdown, ZenInput, ZenTextarea, ZenDatePicker, ZenMonthPicker } from '../../components/zen/ZenInputs';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
-import { useBranches } from '../../context/BranchContext';
 
 
 interface MembershipPlan {
@@ -49,8 +45,8 @@ interface Client {
   totalSpending: number;
   visits: number;
   profilePic?: string;
-  branch?: Branch | any;
   status: string;
+  role: string;
   membership?: Membership | null;
   memberships?: Membership[];
   appointments?: any[];
@@ -61,8 +57,13 @@ const Clients = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { settings } = useSettings();
-  const { branches, selectedBranch, setSelectedBranch } = useBranches();
+  const [roles, setRoles] = useState<string[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [counts, setCounts] = useState({
+    total: 0,
+    active: 0,
+    membership: 0
+  });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -81,8 +82,8 @@ const Clients = () => {
     email: '',
     dob: '',
     notes: '',
-    branch: '',
     status: 'Active',
+    role: '',
     password: '',
     confirmPassword: ''
   });
@@ -147,9 +148,19 @@ const Clients = () => {
       if (data.data) {
         setClients(data.data);
         setTotalPages(data.pagination.pages);
+        setCounts({
+          total: data.pagination.total || 0,
+          active: data.pagination.activeTotal || 0,
+          membership: data.pagination.membershipTotal || 0
+        });
       } else if (Array.isArray(data)) {
         setClients(data);
         setTotalPages(1);
+        setCounts({
+          total: data.length,
+          active: data.filter((c: any) => c.status === 'Active').length,
+          membership: data.filter((c: any) => c.membership).length
+        });
       }
     } catch (error: any) {
       console.error('Error in fetchClients:', error);
@@ -159,48 +170,78 @@ const Clients = () => {
     }
   };
 
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch(`${API_URL}/roles`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const roleData = data.data || data;
+        if (Array.isArray(roleData)) {
+          const roleNames = roleData.map((r: any) => r.name);
+          setRoles(roleNames);
+          
+          // If creating new client and roles are loaded, set default to 'Client' if available
+          if (!editingClient && roleNames.includes('Client')) {
+            setFormData(prev => ({ ...prev, role: 'Client' }));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+    }
+  };
+
   useEffect(() => {
     fetchClients();
+    fetchRoles();
   }, [page]);
 
   const filteredClients = useMemo(() => {
     let filtered = clients;
 
-    // Filter by Branch
-    if (selectedBranch !== 'all') {
-      filtered = filtered.filter(client => client.branch?._id === selectedBranch || (client as any).branch === selectedBranch);
-    }
-
     // Filter by Search Term
     return filtered.filter(client => 
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      client.phone.includes(searchTerm)
+      (client.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+      (client.phone || '').includes(searchTerm)
     );
-  }, [clients, searchTerm, selectedBranch]);
+  }, [clients, searchTerm]);
 
   const handleOpenModal = (client: Client | null = null) => {
     if (client) {
       setEditingClient(client);
       // Strip dialing code for editing if it exists
       const dialingCode = settings?.general?.dialingCode || '+974';
-      const cleanPhone = client.phone.startsWith(dialingCode) 
-        ? client.phone.slice(dialingCode.length) 
-        : client.phone;
+      const rawPhone = client.phone || '';
+      const cleanPhone = rawPhone.startsWith(dialingCode) 
+        ? rawPhone.slice(dialingCode.length) 
+        : rawPhone;
 
       setFormData({
         name: client.name,
         phone: cleanPhone,
         email: client.email || '',
-        dob: client.dob ? new Date(client.dob).toISOString().split('T')[0] : '',
+        dob: client.dob ? dayjs(client.dob).format('YYYY-MM-DD') : '',
         notes: client.notes || '',
-        branch: client.branch?._id || '',
         status: client.status || 'Active',
+        role: client.role || '',
         password: '',
         confirmPassword: ''
       });
     } else {
       setEditingClient(null);
-      setFormData({ name: '', phone: '', email: '', dob: '', notes: '', branch: branches.length > 0 ? branches[0]._id : '', status: 'Active', password: '', confirmPassword: '' });
+      setFormData({ 
+        name: '', 
+        phone: '', 
+        email: '', 
+        dob: '', 
+        notes: '', 
+        status: 'Active', 
+        role: roles.includes('Client') ? 'Client' : (roles[0] || ''), 
+        password: '', 
+        confirmPassword: '' 
+      });
     }
     setProfilePicFile(null);
     setActiveTab('profile');
@@ -326,7 +367,7 @@ const Clients = () => {
   const modalTitle = editingClient ? 'Edit client profile' : 'New client profile';
   const modalSubtitle = editingClient
     ? 'Update contact details, access, memberships, and visit history.'
-    : 'Capture contact information, branch, and access details for a new client.';
+    : 'Capture contact information, client role, and access details for a new client.';
 
   return (
     <ZenPageLayout
@@ -341,10 +382,10 @@ const Clients = () => {
         {/* Summary Metrics */}
         <div className="flex overflow-x-auto pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
           {[
-            { label: 'Total Registry', value: clients.length, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', trend: 'Base population' },
-            { label: 'Active Clients', value: clients.filter(c => c.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Currently engaged' },
-            { label: 'Membership Zen', value: clients.filter(c => c.membership).length, icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', trend: 'Loyalty tier' },
-            { label: 'Full Coverage', value: branches.length, icon: Info, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'Branch network' }
+            { label: 'Total Registry', value: counts.total, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', trend: 'Base population' },
+            { label: 'Active Clients', value: counts.active, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Currently engaged' },
+            { label: 'Membership Zen', value: counts.membership, icon: Sparkles, color: 'text-amber-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Loyalty tier' },
+            { label: 'Security Roles', value: roles.length, icon: Lock, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'Access levels' }
           ].map((stat, i) => (
             <ZenStatCard key={i} {...stat} delay={i * 0.2} />
           ))}
@@ -369,25 +410,8 @@ const Clients = () => {
                </div>
             </div>
 
-            <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
-               <div className="flex items-center gap-4">
-                  <div className="w-full lg:w-[240px]">
-                     <ZenDropdown 
-                       label="Active Branch"
-                       options={['All Branches', ...branches.map(b => b.name)]}
-                       value={branches.find(b => b._id === selectedBranch)?.name || 'All Branches'}
-                       onChange={(val: any) => {
-                         if (val === 'All Branches') {
-                           setSelectedBranch('all');
-                         } else {
-                           const branch = branches.find(b => b.name === val);
-                           if (branch) setSelectedBranch(branch._id);
-                         }
-                       }}
-                       className="w-full"
-                     />
-                  </div>
-
+             <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
+                <div className="flex items-center gap-4">
                   <div className="flex flex-col gap-3">
                      <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
                      <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner">
@@ -485,9 +509,9 @@ const Clients = () => {
                               <ZenBadge variant="leaf" className="text-[9px] sm:text-[10px]">{client.visits} Visits</ZenBadge>
                             )}
                         </div>
-                        {client.branch && (
+                        {client.role && (
                            <span className="text-[8px] sm:text-[9px] font-bold text-indigo-400 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 rounded-md">
-                              {client.branch.name}
+                              {client.role}
                            </span>
                         )}
                      </div>
@@ -541,7 +565,7 @@ const Clients = () => {
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
                       <div className="flex flex-col items-center">
                         <span className="zen-table-primary">{client.name}</span>
-                        <span className="zen-table-meta">Member Since 2024</span>
+                        <span className="zen-table-meta text-[10px]">Member since {dayjs(client.createdAt).format('YYYY')}</span>
                       </div>
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
@@ -752,13 +776,11 @@ const Clients = () => {
                       />
 
                       <ZenDropdown
-                        label="Preferred branch"
-                        options={['None', ...branches.filter(b => b.isActive).map(b => b.name)]}
-                        value={branches.find(b => b._id === formData.branch)?.name || 'None'}
-                        onChange={(val) => {
-                          const branch = branches.find(b => b.name === val);
-                          setFormData({ ...formData, branch: branch ? branch._id : '' });
-                        }}
+                        label="Account Role"
+                        options={roles}
+                        value={formData.role}
+                        onChange={(val) => setFormData({ ...formData, role: val })}
+                        placeholder="Select Account Role"
                       />
 
                       <ZenDropdown
