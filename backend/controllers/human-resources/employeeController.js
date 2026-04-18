@@ -9,23 +9,32 @@ const { paginateModelQuery } = require('../../utils/pagination');
 exports.getEmployees = async (req, res) => {
   try {
     let query = {};
+
+    // Filters
+    if (req.query.branch && req.query.branch !== 'all') {
+      query.branch = req.query.branch;
+    }
     
-    // IDOR Prevention
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, 'i');
+      query.$or = [
+        { name: searchRegex },
+        { role: searchRegex },
+        { email: searchRegex }
+      ];
+    }
+    
+    // IDOR Prevention (Overrides query filter if not Admin)
     if (req.user) {
       if (req.user.role === 'Admin') {
-        // Global Admin sees all
-      } else if (req.user.role === 'Manager') {
-        // Manager sees their branch
-        if (req.user.branch) {
-          query.branch = req.user.branch;
-        }
-      } else if (req.user.role === 'Employee') {
+        // Global Admin can filter by any branch provided in req.query
+      } else if (req.user.role === 'Manager' || req.user.role === 'Employee') {
+        // Managers and Employees are locked to their branch
         if (req.user.branch) {
           query.branch = req.user.branch;
         }
       }
     } else {
-        // Public access - usually show all active
         query.status = 'Active';
     }
 

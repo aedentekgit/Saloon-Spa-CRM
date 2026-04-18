@@ -84,6 +84,7 @@ const Employees = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalEmployees, setTotalEmployees] = useState(0);
   
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_specialist_view') as 'grid' | 'table') || 'grid';
@@ -183,9 +184,22 @@ const Employees = () => {
     });
   };
 
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
   useEffect(() => {
     fetchEmployees();
-  }, [selectedBranch, page]);
+  }, [selectedBranch, page, debouncedSearch]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedBranch, debouncedSearch]);
 
   useEffect(() => {
     fetchRoles();
@@ -356,16 +370,26 @@ const Employees = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`${API_URL}/employees?page=${page}&limit=${PAGE_LIMIT}`, {
+      setLoading(true);
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: PAGE_LIMIT.toString(),
+        search: debouncedSearch,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
+      });
+
+      const response = await fetch(`${API_URL}/employees?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
       if (data.data) {
         setEmployees(Array.isArray(data.data) ? data.data : []);
         setTotalPages(data.pagination?.pages || 1);
+        setTotalEmployees(data.pagination?.total || (Array.isArray(data.data) ? data.data.length : 0));
       } else if (Array.isArray(data)) {
         setEmployees(data);
         setTotalPages(1);
+        setTotalEmployees(data.length);
       }
     } catch (error) {
       notify('error', 'Error', 'Failed to load staff');
@@ -374,19 +398,7 @@ const Employees = () => {
     }
   };
 
-  const filteredEmployees = useMemo(() => {
-    let filtered = employees;
-    if (selectedBranch && selectedBranch !== 'all') {
-      filtered = filtered.filter(emp => {
-        const branchId = emp.branch?._id || (typeof emp.branch === 'string' ? emp.branch : (emp as any).branchId);
-        return branchId === selectedBranch;
-      });
-    }
-    return filtered.filter(emp => 
-      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.role.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [employees, searchTerm, selectedBranch]);
+  const filteredEmployees = employees;
 
   const fetchRoles = async () => {
     try {
@@ -565,12 +577,12 @@ const Employees = () => {
         {/* Dynamic Summary Cards */}
         <div className="flex overflow-x-auto pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
           {[
-            { label: 'Total Specialists', value: employees.length, icon: UserCircle, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Roster size' },
+            { label: 'Total Specialists', value: totalEmployees, icon: UserCircle, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Roster size' },
             { label: 'Active Staff', value: employees.filter(e => e.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live nodes' },
             { label: 'Inactive Staff', value: employees.filter(e => e.status !== 'Active').length, icon: Shield, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Inactive personnel' },
             { label: 'Total Earnings', value: `${settings?.general?.currencySymbol || 'QR'} ${employees.reduce((acc, e) => acc + (e.earnings || 0), 0).toLocaleString()}`, icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', trend: 'Overall value' }
           ].map((stat, i) => (
-            <ZenStatCard key={i} {...stat} delay={i * 0.2} />
+            <ZenStatCard key={i} {...stat} delay={i * 0.05} />
           ))}
         </div>
 
