@@ -199,13 +199,13 @@ export const ZenAutocomplete = ({
   );
 };
 
-export const ZenInput = ({ label, icon: Icon, prefix, variant = 'light', type, hideLabel, ...props }: any) => {
+export const ZenInput = ({ label, icon: Icon, prefix, variant = 'light', type, ...props }: any) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
   
   return (
     <div className={`space-y-2 group ${props.containerClassName || ''}`}>
-      {!hideLabel && <label className={`text-[9px] font-bold uppercase tracking-widest ml-1 ${variant === 'dark' ? 'text-white/40' : 'text-zen-brown/30'}`}>{label}</label>}
+      <label className={`text-[9px] font-bold uppercase tracking-widest ml-1 ${variant === 'dark' ? 'text-white/40' : 'text-zen-brown/30'}`}>{label}</label>
       <div className="relative flex items-center px-1">
         {Icon && <Icon className={`absolute left-1 bottom-3 transition-colors ${variant === 'dark' ? 'text-white/20' : 'text-zen-brown/10'} group-focus-within:text-zen-brown`} size={16} />}
         {prefix && (
