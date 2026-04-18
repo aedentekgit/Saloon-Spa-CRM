@@ -809,14 +809,12 @@ const Employees = () => {
               <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e => setProfilePicFile(e.target.files?.[0] || null)} />
             </div>
 
-            <div className="space-y-6 flex-1">
-              <ZenInput 
-                label="Full Name" 
-                placeholder="e.g. Alexander Pierce" 
-                value={formData.name} 
-                onChange={(e: any) => setFormData({...formData, name: e.target.value})} 
-                className="font-serif text-4xl sm:text-6xl border-none p-0 h-auto font-black tracking-tight leading-none" 
-              />
+            <div className="space-y-5">
+              <ZenInput label="Full Name" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-4xl border-none p-0 h-auto font-bold tracking-tighter" />
+              <div className="w-full sm:w-80">
+                <ZenDropdown label="Role" options={roles.filter(r => r.status === 'Active' || r.isActive).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} />
+              </div>
+              <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.5em]">Core identity</p>
             </div>
           </section>
 
@@ -826,7 +824,7 @@ const Employees = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 sm:px-6 py-3 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-[0.25em] transition-all duration-500 ${activeTab === tab.id ? 'bg-zen-brown text-white shadow-sm' : 'text-zen-brown/35 hover:text-zen-brown hover:bg-white'}`}
+                className={`px-4 sm:px-6 py-3 rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.25em] transition-all duration-500 ${activeTab === tab.id ? 'bg-zen-brown text-white shadow-sm' : 'text-zen-brown/35 hover:text-zen-brown hover:bg-white'}`}
               >
                 {tab.label}
               </button>
@@ -838,11 +836,9 @@ const Employees = () => {
                  <div className="grid grid-cols-2 gap-x-16 gap-y-10 animate-in fade-in duration-500 py-12">
                      <ZenInput label="Email Address" icon={Mail} value={formData.email} onChange={(e: any) => setFormData({...formData, email: e.target.value})} />
                      <ZenInput label="Phone Number" icon={Phone} prefix={settings?.general?.dialingCode} value={formData.phone} onChange={(e: any) => setFormData({...formData, phone: e.target.value})} />
-                     <ZenDropdown label="Operational Role" options={roles.filter(r => r.status === 'Active' || r.isActive).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} />
-                     <ZenDropdown label="Branch" options={['None', ...(branches || []).filter(b => b.isActive).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: (branches || []).filter(b => b.isActive).find(b => b.name === val)?._id || ''})} />
                      <ZenInput label={`Password ${editingEmp ? '(Optional)' : ''}`} icon={Lock} type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} />
                      <ZenInput label="Confirm Password" icon={Lock} type="password" value={formData.confirmPassword} onChange={(e: any) => setFormData({...formData, confirmPassword: e.target.value})} />
-
+                     <ZenDropdown label="Branch" options={['None', ...(branches || []).filter(b => b.isActive).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: (branches || []).filter(b => b.isActive).find(b => b.name === val)?._id || ''})} />
                      <ZenDropdown label="Employment Status" options={['Active', 'Inactive']} value={formData.status} onChange={(val) => setFormData({...formData, status: val as 'Active' | 'Inactive'})} />
                      <div className="col-span-2">
                         <ZenDatePicker label="Start Date" value={formData.joiningDate} onChange={val => setFormData({...formData, joiningDate: val})} />

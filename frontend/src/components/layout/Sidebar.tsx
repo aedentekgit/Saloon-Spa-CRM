@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutGrid, Users, CalendarClock, DoorOpen, Briefcase, Plane,
+  LayoutGrid, Users, CalendarClock, DoorOpen, Briefcase, CalendarOff,
   Gem, FileText, Landmark, Boxes, MessageCircle, TrendingUp,
   LogOut, ChevronRight, Settings2, ShieldCheck,
   MapPin, Award, Layers, CreditCard, Percent,
-  Fingerprint, Timer, Shapes, Key, UserRound, Sparkles,
-  Palmtree
+  Fingerprint, Timer, Shapes, Key, UserRound, Sparkles, Scissors
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
@@ -42,14 +41,14 @@ const Sidebar = ({
     { name: 'Appointments', icon: CalendarClock, path: '/appointments', permission: 'appointments' },
     { name: 'Billing', icon: CreditCard, path: '/billing', permission: 'billing' },
     { name: 'Clients', icon: Users, path: '/clients', permission: 'clients' },
-    { name: 'Memberships', icon: Award, path: '/memberships', permission: 'billing' },
-    { name: 'Services', icon: Gem, path: '/services', permission: 'services' },
+    { name: 'Memberships', icon: Gem, path: '/memberships', permission: 'billing' },
+    { name: 'Services', icon: Scissors, path: '/services', permission: 'services' },
     { name: 'Rooms', icon: DoorOpen, path: '/rooms', permission: 'rooms' },
     { name: 'Employees', icon: Briefcase, path: '/employees', permission: 'employees' },
     { name: 'Attendance', icon: Fingerprint, path: '/attendance', permission: 'attendance' },
     { name: 'Shifts', icon: Timer, path: '/shifts', permission: 'settings' },
     { name: 'Payroll', icon: Landmark, path: '/payroll', permission: 'finance' },
-    { name: 'Leave', icon: Palmtree, path: '/leave', permission: 'leave' },
+    { name: 'Leave', icon: CalendarOff, path: '/leave', permission: 'leave' },
     { name: 'Finance', icon: Landmark, path: '/finance', permission: 'finance' },
     { name: 'Transactions', icon: FileText, path: '/transactions', permission: 'finance' },
     { name: 'Inventory', icon: Boxes, path: '/inventory', permission: 'inventory' },
