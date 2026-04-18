@@ -48,6 +48,7 @@ const AdminDashboard = () => {
   const { settings } = useSettings();
   const { employees } = useData();
   const { selectedBranch } = useBranches();
+  const navigate = useNavigate();
   const [stats, setStats] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -71,17 +72,17 @@ const AdminDashboard = () => {
     fetchStats();
   }, [selectedBranch]);
 
-  // Fallback fixed numbers to perfectly match screenshot, if API fails or is different.
-  const displayRevenue = stats?.revenue?.total || "2,395.4";
-  const displayExpenses = stats?.revenue?.today || "1,730";
-  const displayProfit = (stats?.revenue?.total || 2395.4) - (stats?.revenue?.today || 1730);
-  const displayClients = stats?.clients?.total || "6";
+  // Fully dynamic metrics mapping
+  const displayRevenue = stats?.revenue?.total || 0;
+  const displayExpenses = stats?.revenue?.today || 0;
+  const displayProfit = (stats?.revenue?.total || 0) - (stats?.revenue?.today || 0);
+  const displayClients = stats?.clients?.total || 0;
 
   const cards = [
     { 
       title: 'TOTAL REVENUE', 
-      value: `QR ${displayRevenue.toLocaleString()}`, 
-      trend: '+12.5%', 
+      value: `${settings?.general?.currencySymbol || 'QR'} ${displayRevenue.toLocaleString()}`, 
+      trend: stats?.revenue?.trend?.length > 0 ? '+Active' : '+0.0%', 
       icon: Coins, 
       color: 'text-emerald-500', 
       bg: 'bg-emerald-50/[0.03]', 
@@ -90,20 +91,20 @@ const AdminDashboard = () => {
       watermark: Coins
     },
     { 
-      title: 'TOTAL EXPENSES', 
-      value: `QR ${displayExpenses.toLocaleString()}`, 
-      trend: '+2.1%', 
+      title: 'DAILY REVENUE', 
+      value: `${settings?.general?.currencySymbol || 'QR'} ${displayExpenses.toLocaleString()}`, 
+      trend: stats?.revenue?.today > 0 ? 'Live' : 'Steady', 
       icon: ArrowDownRight, 
-      color: 'text-red-500', 
-      bg: 'bg-red-50/[0.03]', 
-      trendColor: 'text-red-500', 
-      trendBg: 'bg-red-50',
+      color: 'text-rose-500', 
+      bg: 'bg-rose-50/[0.03]', 
+      trendColor: 'text-rose-500', 
+      trendBg: 'bg-rose-50',
       watermark: Activity
     },
     { 
       title: 'NET PROFIT', 
-      value: `QR ${displayProfit.toLocaleString()}`, 
-      trend: '+15.3%', 
+      value: `${settings?.general?.currencySymbol || 'QR'} ${displayProfit.toLocaleString()}`, 
+      trend: 'Calculated', 
       icon: TrendingUp, 
       color: 'text-blue-500', 
       bg: 'bg-blue-50/[0.03]', 
@@ -114,7 +115,7 @@ const AdminDashboard = () => {
     { 
       title: 'TOTAL CLIENTS', 
       value: displayClients, 
-      trend: '+4.2%', 
+      trend: stats?.clients?.newToday > 0 ? `+${stats.clients.newToday} New` : '+0 New', 
       icon: Users, 
       color: 'text-fuchsia-500', 
       bg: 'bg-fuchsia-50/[0.03]', 
@@ -133,20 +134,48 @@ const AdminDashboard = () => {
   }
 
   const mockChartData = [
-    { name: 'Tue', revenue: 1000, expenses: 800 },
-    { name: 'Wed', revenue: 3500, expenses: 700 },
-    { name: 'Thu', revenue: 1200, expenses: 1400 },
-    { name: 'Fri', revenue: 1800, expenses: 1000 },
-    { name: 'Sat', revenue: 1500, expenses: 1300 },
-    { name: 'Sun', revenue: 200, expenses: 300 },
+    { name: 'Mon', revenue: 0, expenses: 0 },
+    { name: 'Tue', revenue: 0, expenses: 0 },
+    { name: 'Wed', revenue: 0, expenses: 0 },
+    { name: 'Thu', revenue: 0, expenses: 0 },
+    { name: 'Fri', revenue: 0, expenses: 0 },
+    { name: 'Sat', revenue: 0, expenses: 0 },
+    { name: 'Sun', revenue: 0, expenses: 0 },
   ];
 
-  // Fix: Check if dynamic data actually has values (sums > 0), otherwise fallback so graph displays nicely
-  const hasTrendData = stats?.revenue?.trend?.length > 0 && stats.revenue.trend.some((t: any) => t.revenue > 0 || t.expenses > 0);
-  const chartData = hasTrendData ? stats.revenue.trend : mockChartData;
+  const chartData = stats?.revenue?.trend?.length > 0 ? stats.revenue.trend : mockChartData;
+
+  const ritualData = stats?.topServices?.length > 0 ? stats.topServices.map((s: any, i: number) => ({
+    ...s,
+    color: i === 0 ? 'var(--theme-primary)' : i === 1 ? '#5b21b6' : '#a78bfa'
+  })) : [
+    { name: 'Loading Rituals...', value: 100, color: '#F3F4F6' }
+  ];
+
 
   return (
-    <div style={{ '--theme-primary': settings?.theme?.primaryColor || '#8B5CF6' } as React.CSSProperties} className="space-y-8 font-sans">
+    <div style={{ '--theme-primary': settings?.theme?.primaryColor || '#8B5CF6' } as React.CSSProperties} className="space-y-8 font-sans pb-20">
+
+      {/* Quick Actions Bar */}
+      <div className="flex flex-wrap items-center gap-4">
+         {[
+           { label: 'Book Ritual', icon: Sparkles, color: 'bg-zen-sand text-white', path: '/appointments' },
+           { label: 'New Artisan', icon: Users, color: 'bg-white text-zen-brown border-zen-brown/10', path: '/employees' },
+           { label: 'Inventory Restock', icon: Target, color: 'bg-white text-zen-brown border-zen-brown/10', path: '/inventory' },
+         ].map((action, i) => (
+           <motion.button
+             key={action.label}
+             initial={{ opacity: 0, x: -20 }}
+             animate={{ opacity: 1, x: 0 }}
+             transition={{ delay: i * 0.1 }}
+             onClick={() => navigate(action.path)}
+             className={`flex items-center gap-3 px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 border ${action.color}`}
+           >
+             <action.icon size={14} />
+             {action.label}
+           </motion.button>
+         ))}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {cards.map((card, i) => (
@@ -180,7 +209,7 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Analytics Overview */}
         <div className="lg:col-span-8 bg-white p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col overflow-hidden hover:-translate-y-1 hover:shadow-[0_10px_30px_rgb(0,0,0,0.08)] hover:border-[color:var(--theme-primary)] transition-all duration-300">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 z-10 relative">
@@ -201,14 +230,14 @@ const AdminDashboard = () => {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="colorRevs" x1="0" y1="0" x2="0" y2="1">
+                   <linearGradient id="colorRevs" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--theme-primary)" stopOpacity={0.15} />
                     <stop offset="95%" stopColor="var(--theme-primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis 
-                  dataKey="name" 
+                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 500 }} 
@@ -253,7 +282,7 @@ const AdminDashboard = () => {
                     <span className="font-bold text-gray-800 text-sm">Low Inventory</span>
                  </div>
                  <div className="px-3 py-1.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold">
-                    {stats?.inventory?.lowStockCount || 2} Items
+                    {stats?.inventory?.lowStockCount || 0} Items
                  </div>
               </div>
 
@@ -274,14 +303,133 @@ const AdminDashboard = () => {
                     <div className="w-10 h-10 rounded-full border border-emerald-200/50 bg-white shadow-sm flex items-center justify-center text-emerald-500">
                        <CheckCircle2 size={18} strokeWidth={2} />
                     </div>
-                    <span className="font-bold text-gray-800 text-sm">Therapists</span>
+                    <span className="font-bold text-gray-800 text-sm">Artisans</span>
                  </div>
                  <div className="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-600 text-[10px] font-bold">
-                    3 Ready
+                    {stats?.attendance?.presentToday || 0} Ready
                  </div>
+              </div>
+
+           </div>
+
+           {/* Service Matrix / Ritual Distribution */}
+           <div className="mt-12">
+              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-6">Ritual Distribution</h4>
+              <div className="flex items-center justify-between">
+                <div className="h-[140px] w-1/2">
+                   <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={ritualData}
+                          innerRadius={45}
+                          outerRadius={65}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {ritualData.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                   </ResponsiveContainer>
+                </div>
+                <div className="w-1/2 space-y-3 pl-4">
+                   {ritualData.map((s: any) => (
+                     <div key={s.name} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                           <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }}></div>
+                           <span className="text-[10px] font-bold text-gray-500 truncate">{s.name}</span>
+                        </div>
+                        <span className="text-[10px] font-black text-gray-900">{s.value}</span>
+                     </div>
+                   ))}
+                </div>
               </div>
            </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+         {/* Recent Ceremonies */}
+         <div className="lg:col-span-12 bg-white/60 backdrop-blur-xl p-10 rounded-[2.5rem] border border-gray-200/60 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between mb-10">
+               <div>
+                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Rituals</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Real-time sanctuary log</p>
+               </div>
+               <ZenButton size="sm" variant="ghost" icon={ChevronRight}>View All Directory</ZenButton>
+            </div>
+
+            <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden overflow-x-auto custom-scrollbar animate-in fade-in duration-700">
+               <table className="w-full text-center border-collapse min-w-[1000px]">
+                  <thead>
+                    <tr className="bg-slate-50 border-y border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                      <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">S No</th>
+                      <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Ritual Participant</th>
+                      <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Sanctuary Role</th>
+                      <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Service Scope</th>
+                      <th className="px-6 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">Status & Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(!stats?.appointments?.recent || stats.appointments.recent.length === 0) ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-20 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
+                           <div className="flex flex-col items-center gap-4 opacity-10">
+                              <Activity size={60} strokeWidth={0.5} />
+                              <p className="italic font-serif text-xl">Sanctuary logs are currently quiet.</p>
+                           </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      stats.appointments.recent.map((apt: any, i: number) => (
+                        <motion.tr 
+                          key={apt._id} 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="transition-all group border-b border-black/[0.02] hover:bg-black/[0.01]"
+                        >
+                          <td className="text-center italic opacity-40 text-[11px]">
+                            {(i + 1).toString().padStart(2, '0')}
+                          </td>
+                          <td>
+                             <div className="flex flex-col items-center px-6">
+                                <span className="zen-table-primary">{apt.client}</span>
+                                <span className="zen-table-meta">Verified Client</span>
+                             </div>
+                          </td>
+                          <td>
+                             <div className="flex flex-col items-center">
+                                <span className="zen-table-primary font-accent italic !text-[18px]">{apt.employee}</span>
+                                <span className="zen-table-meta">Lead Artisan</span>
+                             </div>
+                          </td>
+                          <td>
+                             <div className="flex flex-col items-center">
+                                <span className="zen-table-primary">{apt.service}</span>
+                                <span className="zen-table-meta">{apt.time || '60m Ritual'}</span>
+                             </div>
+                          </td>
+                          <td>
+                             <div className="flex items-center justify-center gap-4">
+                                <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${
+                                   apt.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' :
+                                   apt.status === 'Cancelled' ? 'bg-red-500/10 text-red-600' : 'bg-zen-sand/10 text-zen-sand'
+                                }`}>
+                                   {apt.status}
+                                </span>
+                                <ZenIconButton icon={ChevronRight} onClick={() => navigate('/appointments')} />
+                             </div>
+                          </td>
+                        </motion.tr>
+                      ))
+                    )}
+                  </tbody>
+               </table>
+            </div>
+
+         </div>
       </div>
     </div>
   );
@@ -289,46 +437,35 @@ const AdminDashboard = () => {
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
-  const [appointments, setAppointments] = React.useState<any[]>([]);
+  const [stats, setStats] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-  const fetchMyAppointments = async () => {
-    try {
-      const response = await fetch(`${API_URL}/appointments?limit=100`, { // Get recent appointments
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      const data = await response.json();
-      if (data.data) {
-        setAppointments(data.data);
-      } else if (Array.isArray(data)) {
-        setAppointments(data);
+  useEffect(() => {
+    const fetchEmployeeStats = async () => {
+      try {
+        const response = await fetch(`${API_URL}/stats/dashboard`, {
+          headers: { 'Authorization': `Bearer ${user?.token}` }
+        });
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error('Performance ingestion failure:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Sequence retrieval failure:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    fetchMyAppointments();
+    };
+    fetchEmployeeStats();
   }, [user]);
 
-  const myAppointments = useMemo(() => 
-    appointments.filter(a => a.employee === user?.name),
-    [appointments, user]
-  );
-
-  const completedCount = myAppointments.filter(a => a.status === 'Completed').length;
-  const pendingCount = myAppointments.filter(a => a.status !== 'Completed').length;
+  if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div></div>;
 
   const cards = [
-    { title: "Today's Appointments", value: myAppointments.length.toString(), icon: Calendar, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-    { title: 'Completed Appointments', value: completedCount.toString(), icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    { title: 'Pending Appointments', value: pendingCount.toString(), icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50' },
-    { title: 'Performance Score', value: '450 pts', icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
+    { title: "Today's Rituals", value: (stats?.performance?.today || 0).toString(), icon: Calendar, color: 'text-indigo-500', bg: 'bg-indigo-50' },
+    { title: 'Rituals Completed', value: (stats?.performance?.completed || 0).toString(), icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    { title: 'Est. Earnings', value: `QR ${stats?.performance?.earnings || 0}`, icon: Coins, color: 'text-orange-500', bg: 'bg-orange-50' },
+    { title: 'Zen Score', value: `${stats?.performance?.score || 0} pts`, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
   ];
 
   return (
@@ -352,8 +489,8 @@ const EmployeeDashboard = () => {
       <div className="bg-white p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
         <div className="flex items-center justify-between mb-12">
           <div>
-            <h3 className="text-3xl font-serif font-bold text-black tracking-tight">Today's Schedule</h3>
-            <p className="text-xs font-bold text-black/20 uppercase tracking-[0.4em] mt-2">Personalized Service Matrix</p>
+            <h3 className="text-3xl font-serif font-bold text-black tracking-tight">Schedule Matrix</h3>
+            <p className="text-xs font-bold text-black/20 uppercase tracking-[0.4em] mt-2">Latest Sanctuary Interactions</p>
           </div>
           <div className="px-6 py-2 bg-zen-sand/10 rounded-full border border-zen-sand/10">
              <span className="text-[10px] font-bold text-zen-sand uppercase tracking-widest">{user?.name}</span>
@@ -361,18 +498,18 @@ const EmployeeDashboard = () => {
         </div>
         
         <div className="space-y-6">
-          {myAppointments.length > 0 ? (
-            myAppointments.map((apt) => (
-              <div key={apt._id || apt.id} className="flex items-center justify-between p-8 bg-white/50 rounded-[1.5rem] border border-transparent hover:border-zen-brown/15 hover:bg-white hover:shadow-sm hover:shadow-zen-brown/15 transition-all duration-700 group">
+          {stats?.recentRituals?.length > 0 ? (
+            stats.recentRituals.map((apt: any) => (
+              <div key={apt._id} className="flex items-center justify-between p-8 bg-white/50 rounded-[1.5rem] border border-transparent hover:border-zen-brown/15 hover:bg-white hover:shadow-sm hover:shadow-zen-brown/15 transition-all duration-700 group">
                 <div className="flex items-center gap-10">
                   <div className="w-20 h-20 bg-zen-cream rounded-[1rem] flex flex-col items-center justify-center border border-white shadow-sm group-hover:bg-zen-brown group-hover:text-white transition-all duration-700">
-                    <span className="text-[10px] font-bold uppercase opacity-30 tracking-widest mb-1">Service</span>
-                    <span className="text-lg font-bold">{apt.time?.split(' ')[0]}</span>
+                    <span className="text-[10px] font-bold uppercase opacity-30 tracking-widest mb-1">Time</span>
+                    <span className="text-lg font-bold">{apt.time?.split(' ')[0] || '--'}</span>
                   </div>
                   <div>
-                    <h4 className="text-2xl font-serif font-bold text-zen-brown mb-1">{apt.client}</h4>
+                    <h4 className="text-2xl font-serif font-bold text-zen-brown mb-1">{apt.clientName || apt.client}</h4>
                     <p className="text-xs font-bold text-zen-brown/30 uppercase tracking-[0.2em] flex items-center gap-2">
-                       {apt.service} <span className="text-zen-brown/20 mx-1">|</span> Room {apt.room}
+                       {apt.serviceName || apt.service} <span className="text-zen-brown/20 mx-1">|</span> {apt.branch?.name || 'Local'}
                     </p>
                   </div>
                 </div>
@@ -392,7 +529,7 @@ const EmployeeDashboard = () => {
               <div className="w-20 h-20 bg-zen-brown/5 rounded-full flex items-center justify-center mx-auto mb-8 border border-white">
                  <Calendar size={32} className="text-zen-brown/20" />
               </div>
-              <p className="text-2xl font-serif text-zen-brown/20 italic tracking-tight">No appointments scheduled for today.</p>
+              <p className="text-2xl font-serif text-zen-brown/20 italic tracking-tight">No active rituals logged.</p>
             </div>
           )}
         </div>
@@ -401,85 +538,43 @@ const EmployeeDashboard = () => {
   );
 };
 
+
 const ManagerDashboard = () => {
-  const { settings } = useSettings();
-  const { rooms, employees, user } = useData();
-  const [appointments, setAppointments] = React.useState<any[]>([]);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-
-  useEffect(() => {
-    const fetchManagerStats = async () => {
-      try {
-        const response = await fetch(`${API_URL}/appointments?limit=100`, {
-          headers: { 'Authorization': `Bearer ${user?.token}` }
-        });
-        const data = await response.json();
-        if (data.data) setAppointments(data.data);
-        else if (Array.isArray(data)) setAppointments(data);
-      } catch (e) {}
-    };
-    fetchManagerStats();
-  }, [user]);
-
-  const freeRooms = rooms.filter(r => r.status === 'Free').length;
-  const activeStaff = employees.length;
-
-  const cards = [
-    { title: "Today's Bookings", value: appointments.length.toString(), icon: Calendar, color: 'text-sky-500', bg: 'bg-sky-50' },
-    { title: 'Room Availability', value: `${freeRooms} / ${rooms.length}`, icon: Bed, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    { title: 'Active Team', value: activeStaff.toString(), icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-    { title: 'Pending Settlement', value: `${settings?.general?.currencySymbol || 'QR'} 0`, icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50' },
-  ];
-
-  return (
-    <div className="space-y-10 pb-20">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {cards.map((card) => (
-          <div key={card.title} className="bg-white p-10 rounded-[1.5rem] border border-zen-brown/15 shadow-sm group transition-all duration-500">
-            <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-8 ${card.bg} ${card.color} group-hover:scale-110 transition-transform duration-700 shadow-sm border border-white`}>
-              <card.icon size={26} />
-            </div>
-            <p className="text-[10px] font-bold text-black/20 uppercase tracking-widest mb-2">{card.title}</p>
-            <h3 className="text-3xl font-serif font-bold text-black tracking-tighter">{card.value}</h3>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return <AdminDashboard />; // Managers now use the same dynamic Command Center as Admins
 };
+
 
 const ClientDashboard = () => {
   const { user } = useAuth();
-  const [appointments, setAppointments] = React.useState<any[]>([]);
+  const [stats, setStats] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
-    const fetchClientApts = async () => {
+    const fetchClientStats = async () => {
       try {
-        const response = await fetch(`${API_URL}/appointments?limit=50`, {
+        const response = await fetch(`${API_URL}/stats/dashboard`, {
           headers: { 'Authorization': `Bearer ${user?.token}` }
         });
         const data = await response.json();
-        if (data.data) setAppointments(data.data);
-        else if (Array.isArray(data)) setAppointments(data);
-      } catch (e) {}
+        setStats(data);
+      } catch (error) {
+        console.error('Loyalty data failure:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchClientApts();
+    fetchClientStats();
   }, [user]);
   
-  const myAppointments = useMemo(() => 
-    appointments.filter(a => a.client === user?.name),
-    [appointments, user]
-  );
-
-  const upcomingApt = myAppointments.find(a => a.status === 'Booked' || a.status === 'In Service');
+  if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div></div>;
 
   const cards = [
-    { title: 'Performance Score', value: '1,250 pts', icon: Sparkles, color: 'text-yellow-500', bg: 'bg-yellow-50' },
-    { title: 'Next Appointment', value: upcomingApt ? upcomingApt.time?.split(' ')[0] : 'None', icon: Clock, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    { title: 'Total Visits', value: myAppointments.length.toString(), icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-    { title: 'Performance Status', value: 'Platinum', icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
+    { title: 'Zen Affinity Points', value: `${stats?.loyalty?.points || 0} pts`, icon: Sparkles, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+    { title: 'Upcoming Ritual', value: stats?.nextAppointment ? stats.nextAppointment.date : 'Discovery Phase', icon: Clock, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    { title: 'Sanctuary Visits', value: (stats?.visits?.total || 0).toString(), icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-50' },
+    { title: 'Loyalty Tier', value: stats?.loyalty?.tier || 'Silver', icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50' },
   ];
 
   return (
@@ -504,19 +599,19 @@ const ClientDashboard = () => {
         <div className="lg:col-span-8 bg-white/60 backdrop-blur-xl rounded-[1.5rem] p-12 border border-white shadow-sm">
           <header className="mb-12">
             <h3 className="text-3xl font-serif font-bold text-black tracking-tight">Your Relaxation Journey</h3>
-            <p className="text-xs font-bold text-black/20 uppercase tracking-[0.4em] mt-2">Recent Activity</p>
+            <p className="text-xs font-bold text-black/20 uppercase tracking-[0.4em] mt-2">Recent Sanctuary History</p>
           </header>
           
           <div className="space-y-6">
-            {myAppointments.length > 0 ? (
-              myAppointments.map((apt) => (
-                <div key={apt.id} className="flex items-center justify-between p-8 bg-white/40 rounded-[1.5rem] border border-transparent hover:border-zen-brown/15 hover:bg-white hover:shadow-sm transition-all duration-700 group">
+            {stats?.visits?.all?.length > 0 ? (
+              stats.visits.all.map((apt: any) => (
+                <div key={apt._id} className="flex items-center justify-between p-8 bg-white/40 rounded-[1.5rem] border border-transparent hover:border-zen-brown/15 hover:bg-white hover:shadow-sm transition-all duration-700 group">
                   <div className="flex items-center gap-8">
                     <div className="w-16 h-16 bg-zen-cream rounded-[1rem] flex items-center justify-center border border-white text-zen-sand group-hover:bg-zen-sand group-hover:text-white transition-all duration-700">
                       <Calendar size={28} />
                     </div>
                     <div>
-                      <h4 className="text-2xl font-serif font-bold text-zen-brown">{apt.service}</h4>
+                      <h4 className="text-2xl font-serif font-bold text-zen-brown">{apt.serviceName || apt.service}</h4>
                       <p className="text-xs font-bold text-zen-brown/30 uppercase tracking-[0.2em] mt-1">{apt.date} • {apt.time}</p>
                     </div>
                   </div>
@@ -530,7 +625,7 @@ const ClientDashboard = () => {
               ))
             ) : (
               <div className="py-24 text-center">
-                <p className="text-2xl font-serif text-zen-brown/20 italic tracking-tight">You haven't booked any sessions yet.</p>
+                <p className="text-2xl font-serif text-zen-brown/20 italic tracking-tight">Your exploration log is waiting to be filled.</p>
               </div>
             )}
           </div>
@@ -550,7 +645,7 @@ const ClientDashboard = () => {
 
             <ZenButton 
               onClick={() => navigate('/appointments')}
-              className="relative z-10 w-full py-5 bg-white text-zen-sand rounded-[1rem] font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/5"
+              className="relative z-10 w-full py-5 bg-white text-zen-sand rounded-[1rem] font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/5 font-sans"
             >
               Book Your Next Escape
             </ZenButton>
@@ -560,6 +655,7 @@ const ClientDashboard = () => {
     </div>
   );
 };
+
 
 const Dashboard = () => {
   const { user } = useAuth();

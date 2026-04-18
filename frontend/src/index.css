@@ -4,6 +4,7 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-accent: "Italiana", serif;
   
   /* Modern Purple & Slate Palette - Requested Theme */
   --color-zen-cream: #FDFEFE; /* Pure cleaner background */

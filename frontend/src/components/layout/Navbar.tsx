@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Bell, ChevronLeft, ChevronRight, Settings, LogOut, FileText, UserRound } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, Settings, LogOut, UserRound } from 'lucide-react';
+
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -78,14 +79,12 @@ const Navbar = ({
         
         {/* Helper Icons */}
         <div className="flex items-center gap-1 mr-2 text-slate-400">
-           <button className="p-2 hover:text-slate-900 transition-colors hover:bg-gray-50 rounded-lg">
-              <FileText size={18} />
-           </button>
            <button className="relative p-2 hover:text-slate-900 transition-colors hover:bg-gray-50 rounded-lg">
               <Bell size={18} />
               <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
            </button>
         </div>
+
 
         <div className="h-6 w-px bg-gray-200 hidden sm:block mr-2"></div>
 
