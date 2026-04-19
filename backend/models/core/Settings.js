@@ -53,6 +53,11 @@ const settingsSchema = new mongoose.Schema({
     password: { type: String, default: '' },
     fromName: { type: String, default: '' },
     fromEmail: { type: String, default: '' }
+  },
+  payroll: {
+    type: { type: String, enum: ['Monthly', 'Hourly'], default: 'Monthly' },
+    allowedPaidLeaves: { type: Number, default: 1.5 },
+    allowedPaidHours: { type: Number, default: 12 }
   }
 }, { timestamps: true });
 

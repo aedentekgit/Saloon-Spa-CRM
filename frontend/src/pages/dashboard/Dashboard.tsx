@@ -55,8 +55,9 @@ const AdminDashboard = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-  const fetchStats = async () => {
+  const fetchStats = async (silent: boolean = false) => {
     try {
+      if (!silent) setLoading(true);
       const response = await fetch(`${API_URL}/stats/dashboard`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
@@ -65,12 +66,19 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Stats ingestion failure:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   React.useEffect(() => {
     fetchStats();
+    
+    // Pulse polling for real-time dashboard data
+    const interval = setInterval(() => {
+      fetchStats(true);
+    }, 15000); // 15 seconds
+
+    return () => clearInterval(interval);
   }, [selectedBranch]);
 
   // Fully dynamic metrics mapping
@@ -414,8 +422,9 @@ const EmployeeDashboard = () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
-    const fetchEmployeeStats = async () => {
+    const fetchEmployeeStats = async (silent: boolean = false) => {
       try {
+        if (!silent) setLoading(true);
         const response = await fetch(`${API_URL}/stats/dashboard`, {
           headers: { 'Authorization': `Bearer ${user?.token}` }
         });
@@ -424,10 +433,17 @@ const EmployeeDashboard = () => {
       } catch (error) {
         console.error('Performance ingestion failure:', error);
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     };
+    
     fetchEmployeeStats();
+
+    const interval = setInterval(() => {
+      fetchEmployeeStats(true);
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, [user]);
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div></div>;
@@ -513,8 +529,9 @@ const ClientDashboard = () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
-    const fetchClientStats = async () => {
+    const fetchClientStats = async (silent = false) => {
       try {
+        if (!silent) setLoading(true);
         const response = await fetch(`${API_URL}/stats/dashboard`, {
           headers: { 'Authorization': `Bearer ${user?.token}` }
         });
@@ -523,10 +540,17 @@ const ClientDashboard = () => {
       } catch (error) {
         console.error('Loyalty data failure:', error);
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     };
+    
     fetchClientStats();
+
+    const interval = setInterval(() => {
+      fetchClientStats(true);
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, [user]);
   
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div></div>;

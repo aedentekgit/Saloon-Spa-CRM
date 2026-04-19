@@ -47,6 +47,8 @@ const Appointments = () => {
     return (localStorage.getItem('zen_appointment_view') as 'grid' | 'table') || 'grid';
   });
 
+  const PAGE_LIMIT = 12;
+
   // Raw data from backend
   const [rawClients, setRawClients] = useState<any[]>([]);
   const [rawServices, setRawServices] = useState<any[]>([]);
@@ -111,40 +113,28 @@ const Appointments = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
-
-  useEffect(() => {
-    fetchAppointments();
-  }, [page]);
-
-  useEffect(() => {
-    localStorage.setItem('zen_appointment_view', viewMode);
-    setPage(1);
-  }, [viewMode]);
-
-  const PAGE_LIMIT = 12;
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = async (silent: boolean = false) => {
     try {
+      if (!silent) setLoading(true);
       const authHeader = { 'Authorization': `Bearer ${user?.token}` };
       const res = await fetch(`${API_URL}/appointments?page=${page}&limit=${PAGE_LIMIT}`, { headers: authHeader });
       const data = await res.json();
       if (data.data) {
         setAppointments(data.data);
-        setTotalPages(data.pagination.pages);
+        setTotalPages(data.pagination?.pages || 1);
       } else if (Array.isArray(data)) {
         setAppointments(data);
         setTotalPages(1);
       }
     } catch (error) {
        console.error('Appointments fetch error:', error);
+    } finally {
+      if (!silent) setLoading(false);
     }
   };
 
-  const fetchAllData = async () => {
-    setLoading(true);
+  const fetchAllData = async (silent: boolean = false) => {
+    if (!silent) setLoading(true);
     try {
       const authHeader = { 'Authorization': `Bearer ${user?.token}` };
       
@@ -164,7 +154,7 @@ const Appointments = () => {
 
       if (aptsData.data) {
         setAppointments(aptsData.data);
-        setTotalPages(aptsData.pagination.pages);
+        setTotalPages(aptsData.pagination?.pages || 1);
       } else if (Array.isArray(aptsData)) {
         setAppointments(aptsData);
         setTotalPages(1);
@@ -177,11 +167,21 @@ const Appointments = () => {
       if (Array.isArray(presence)) setRawAttendance(presence);
     } catch (error) {
       console.error('Data sync error:', error);
-      notify('error', 'Error', 'Failed to synchronize data');
+      if (!silent) notify('error', 'Error', 'Failed to synchronize data');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAllData();
+    
+    const interval = setInterval(() => {
+      fetchAllData(true);
+    }, 10000); // 10s sync
+    
+    return () => clearInterval(interval);
+  }, [user, page]);
 
   const fetchData = async () => {
     await fetchAllData();
@@ -815,7 +815,7 @@ const Appointments = () => {
                   <ZenDropdown
                     label="Membership plan"
                     options={['None', ...activeMemberships.map((m: any) => m.plan?.name || 'Plan')]}
-                    value={activeMemberships.find((m: any) => m._id === formData.membershipId)?.plan?.name || 'None'}
+                    value={activeMemberships.find((m: any) => (m._id || m).toString() === formData.membershipId?.toString())?.plan?.name || 'None'}
                     onChange={val => {
                       const m = activeMemberships.find((m: any) => m.plan?.name === val);
                       setFormData({ ...formData, membershipId: m?._id || '', service: '' });
@@ -838,7 +838,7 @@ const Appointments = () => {
                 <div className="flex flex-wrap items-center gap-2 justify-end">
                   {formData.employee && formData.employee !== 'None' && (
                     <span className="text-[10px] font-bold text-zen-leaf/60 uppercase tracking-[0.2em]">
-                      {rawShifts.find(s => s.name === rawStaff.find(e => e.name === formData.employee)?.shift)?.startTime} - {rawShifts.find(s => s.name === rawStaff.find(e => e.name === formData.employee)?.shift)?.endTime}
+                      {rawShifts.find(s => s.name === rawStaff.find(e => e.name === formData.employee)?.shift)?.startTime ?? '--:--'} - {rawShifts.find(s => s.name === rawStaff.find(e => e.name === formData.employee)?.shift)?.endTime ?? '--:--'}
                     </span>
                   )}
                   {formData.room && formData.room !== 'None' && (

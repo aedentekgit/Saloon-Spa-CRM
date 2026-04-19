@@ -106,9 +106,9 @@ const Services = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const fetchServices = async () => {
+  const fetchServices = async (silent: boolean = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const queryParams = new URLSearchParams({
         page: page.toString(),
         limit: PAGE_LIMIT.toString(),
@@ -131,19 +131,21 @@ const Services = () => {
       }
     } catch (error) {
       console.error('Fetch error:', error);
-      notify('error', 'Error', 'Failed to load services');
+      if (!silent) notify('error', 'Error', 'Failed to load services');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchServices();
-  }, [page, debouncedSearch, selectedBranch]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, selectedBranch]);
+    const interval = setInterval(() => {
+      fetchServices(true);
+    }, 10000); // 10s sync
+
+    return () => clearInterval(interval);
+  }, [page, debouncedSearch, selectedBranch, user?.token]);
 
   const fetchInventory = async () => {
     try {

@@ -19,7 +19,13 @@ import {
   ChevronRight,
   Activity,
   Info,
-  Check
+  Check,
+  CheckCircle2,
+  Percent,
+  Trash2,
+  Edit2,
+  BadgeDollarSign,
+  Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
@@ -27,6 +33,8 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
 import { ZenInput, ZenTextarea, ZenDropdown } from '../../components/zen/ZenInputs';
 import { notify } from '../../components/shared/ZenNotification';
+import { Modal } from '../../components/shared/Modal';
+import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { countries } from '../../utils/countries';
 import { validatePhoneNumber, getPhoneValidationProtocol } from '../../utils/validation';
 import { useSettings } from '../../context/SettingsContext';
@@ -85,9 +93,21 @@ interface SettingsData {
     fromName: string;
     fromEmail: string;
   };
+  payroll: {
+    type: 'Monthly' | 'Hourly';
+    allowedPaidLeaves: number;
+    allowedPaidHours: number;
+  };
 }
 
-type SettingsSection = 'foundations' | 'storage' | 'visuals' | 'alerts' | 'smtp';
+interface GSTRate {
+  _id: string;
+  name: string;
+  percentage: number;
+  isActive: boolean;
+}
+
+type SettingsSection = 'foundations' | 'storage' | 'visuals' | 'alerts' | 'smtp' | 'payroll' | 'tax';
 
 const Settings = () => {
   const { user } = useAuth();
@@ -98,11 +118,119 @@ const Settings = () => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection>('foundations');
 
+  // Tax Section States
+  const [taxRates, setTaxRates] = useState<GSTRate[]>([]);
+  const [isTaxModalOpen, setIsTaxModalOpen] = useState(false);
+  const [editingTaxRate, setEditingTaxRate] = useState<GSTRate | null>(null);
+  const [taxFormData, setTaxFormData] = useState({ name: '', percentage: 0 });
+  const [taxConfirmState, setTaxConfirmState] = useState({ isOpen: false, id: '' });
+  const [taxLoading, setTaxLoading] = useState(false);
+  const [fontConfigMode, setFontConfigMode] = useState<'heading' | 'body'>('heading');
+
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     fetchSettings();
+    fetchTaxRates();
   }, []);
+
+  const fetchTaxRates = async () => {
+    setTaxLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/gst`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const result = await response.json();
+      const rates = Array.isArray(result) ? result : (result.data || []);
+      setTaxRates(rates);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTaxLoading(false);
+    }
+  };
+
+  const handleToggleGST = async () => {
+    try {
+      if (!settings) return;
+      const newState = !settings.general.billing?.gstEnabled;
+      const updatedSettings = { 
+        ...settings, 
+        general: { 
+          ...settings.general, 
+          billing: { ...settings.general.billing, gstEnabled: newState } 
+        } 
+      };
+      setSettings(updatedSettings);
+      
+      const response = await fetch(`${API_URL}/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        body: JSON.stringify({ general: updatedSettings.general })
+      });
+
+      if (response.ok) {
+        notify('success', 'Status Updated', `Taxation mode is now ${newState ? 'active' : 'paused'}.`);
+        await refreshSettings();
+      }
+    } catch (e) {
+      notify('error', 'Error', 'Failed to update system settings.');
+    }
+  };
+
+  const handleSaveTaxRate = async () => {
+    try {
+      const url = editingTaxRate ? `${API_URL}/gst/${editingTaxRate._id}` : `${API_URL}/gst`;
+      const method = editingTaxRate ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        body: JSON.stringify(taxFormData)
+      });
+
+      if (response.ok) {
+        notify('success', 'Tax Rate Saved', editingTaxRate ? 'Tax rate updated successfully.' : 'New tax rate created successfully.');
+        setIsTaxModalOpen(false);
+        fetchTaxRates();
+      }
+    } catch (e) {
+      notify('error', 'Sync Failure', 'Failed to save tax rate.');
+    }
+  };
+
+  const handleDeleteTaxRate = async () => {
+    try {
+      const response = await fetch(`${API_URL}/gst/${taxConfirmState.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      if (response.ok) {
+        notify('success', 'Tax Rate Removed', 'Tax rate removed from the system.');
+        setTaxConfirmState({ isOpen: false, id: '' });
+        fetchTaxRates();
+      }
+    } catch (e) {
+      notify('error', 'Error', 'Failed to remove rate.');
+    }
+  };
+
+  const openTaxModal = (rate: GSTRate | null = null) => {
+    if (rate) {
+      setEditingTaxRate(rate);
+      setTaxFormData({ name: rate.name, percentage: rate.percentage });
+    } else {
+      setEditingTaxRate(null);
+      setTaxFormData({ name: '', percentage: 0 });
+    }
+    setIsTaxModalOpen(true);
+  };
 
   const fetchSettings = async () => {
     try {
@@ -118,7 +246,8 @@ const Settings = () => {
         theme: data?.theme || { primaryColor: '', darkMode: false, headingFont: '', bodyFont: '' },
         upload: data?.upload || { provider: 'local', cloudinaryCloudName: '', cloudinaryApiKey: '', cloudinaryApiSecret: '' },
         notifications: data?.notifications || { pushEnabled: false },
-        smtp: data?.smtp || { host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '' }
+        smtp: data?.smtp || { host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '' },
+        payroll: data?.payroll || { type: 'Monthly', allowedPaidLeaves: 1.5, allowedPaidHours: 12 }
       };
       
       setSettings(safeSettings);
@@ -261,6 +390,8 @@ const Settings = () => {
 
   const sidebarItems = [
     { id: 'foundations', name: 'General', icon: Map, sub: 'Business Identity' },
+    { id: 'payroll', name: 'Payroll & Leave', icon: Clock, sub: 'Leave Thresholds' },
+    { id: 'tax', name: 'Tax Protocol', icon: Percent, sub: 'Fiscal Configuration' },
     { id: 'smtp', name: 'SMTP', icon: ShieldCheck, sub: 'Outbound Configuration' },
     { id: 'alerts', name: 'Notification', icon: Bell, sub: 'System Alerts' },
     { id: 'storage', name: 'Storage', icon: Cloud, sub: 'File Management' },
@@ -285,23 +416,23 @@ const Settings = () => {
                   </h4>
               </div>
               
-               <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible gap-1 scrollbar-hide">
+               <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible gap-2 scrollbar-hide pb-4 lg:pb-0 whitespace-nowrap">
                  {sidebarItems.map((item) => (
                     <button
                        key={item.id}
                        onClick={() => setActiveSection(item.id as SettingsSection)}
-                       className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-sans font-bold text-[13px] group relative ${
+                       className={`flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all font-sans font-bold text-[12px] group relative whitespace-nowrap ${
                          activeSection === item.id 
-                           ? 'bg-purple-100/40 text-purple-800' 
-                           : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
-                       }`}
+                           ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' 
+                           : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 border border-transparent'
+                       } lg:w-full`}
                     >
-                       <item.icon size={18} className={activeSection === item.id ? 'text-purple-600' : 'text-gray-400 group-hover:text-gray-600'} />
+                       <item.icon size={16} className={activeSection === item.id ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'} />
                        <span>{item.name}</span>
                        {activeSection === item.id && (
                           <motion.div 
                              layoutId="sidebarActive"
-                             className="absolute right-3 w-1.5 h-1.5 rounded-full bg-purple-600"
+                             className="hidden lg:block absolute right-3 w-1.5 h-1.5 rounded-full bg-white/40"
                           />
                        )}
                     </button>
@@ -322,13 +453,13 @@ const Settings = () => {
               >
                   {activeSection === 'foundations' && (
                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
-                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
-                           <header className="mb-12 flex items-center justify-between">
+                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                           <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Business Profile</h3>
                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Manage your platform's public identity.</p>
                               </div>
-                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[1rem] flex items-center justify-center text-zen-sand border border-zen-brown/15">
+                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[1rem] flex items-center justify-center text-zen-sand border border-zen-brown/15 shrink-0">
                                  <Map size={28} strokeWidth={1.5} />
                               </div>
                            </header>
@@ -420,7 +551,7 @@ const Settings = () => {
                         </div>
 
                         <div className="xl:col-span-4 space-y-6">
-                           <div className="bg-zen-brown p-10 rounded-[1.5rem] text-white shadow-sm relative overflow-hidden group min-h-[400px]">
+                           <div className="bg-zen-brown p-8 sm:p-12 rounded-[1.5rem] text-white shadow-sm relative overflow-hidden group min-h-[400px]">
                               <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-150 transition-transform duration-1000">
                                  <Camera size={150} />
                               </div>
@@ -457,16 +588,16 @@ const Settings = () => {
 
                   {activeSection === 'visuals' && (
                      <div className="max-w-5xl flex flex-col gap-6 font-sans">
-                        <section className="bg-white p-10 md:p-14 rounded-[2rem] border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative">
+                        <section className="bg-white p-6 sm:p-14 rounded-[2rem] border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative">
                            
-                           <header className="flex items-center gap-5 mb-14">
-                              <div className="w-14 h-14 rounded-full flex items-center justify-center text-purple-700 bg-purple-50">
+                           <header className="flex flex-col sm:flex-row sm:items-center gap-5 mb-14">
+                              <div className="w-14 h-14 rounded-full flex items-center justify-center text-purple-700 bg-purple-50 shrink-0">
                                  <Palette size={24} strokeWidth={2} />
                               </div>
-                              <h2 className="text-[22px] font-sans font-bold text-slate-900 tracking-tight">Appearance Settings</h2>
+                              <div className="text-center sm:text-left"><h2 className="text-[22px] font-sans font-bold text-slate-900 tracking-tight">Appearance Settings</h2><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Calibrate brand visual identity.</p></div>
                            </header>
                            
-                           <div className="space-y-12 font-sans">
+                           <div className="space-y-12 font-sans text-center sm:text-left">
                               {/* Color Profile Settings */}
                               <div>
                                  <div className="flex items-center gap-6 mb-5">
@@ -522,75 +653,88 @@ const Settings = () => {
                                     <h3 className="text-[16px] font-bold text-slate-900">Typography Workshop</h3>
                                  </div>
                                  
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    {/* Heading Font Specimen */}
-                                    <div className="group relative bg-slate-50/50 rounded-3xl p-8 border border-slate-100 transition-all hover:bg-white hover:shadow-xl hover:shadow-purple-500/5">
-                                       <div className="flex items-center justify-between mb-8">
-                                          <div>
-                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Heading Specimen</label>
-                                             <p className="text-[11px] font-bold text-purple-600">Serif Presence</p>
+                                 <div className="space-y-6">
+                                    <div className="bg-slate-50/50 rounded-[2.5rem] p-6 sm:p-12 border border-slate-100 shadow-sm overflow-hidden relative group/workshop">
+                                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+                                          {/* Unified Controls Section */}
+                                          <div className="lg:col-span-5 space-y-10 lg:pr-12 lg:border-r lg:border-slate-200/50">
+                                             <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Architecture Mode</label>
+                                                   <span className="text-[10px] font-black text-purple-600 bg-purple-50 px-2.5 py-1 rounded-lg uppercase tracking-wider">Dynamic Control</span>
+                                                </div>
+                                                <div className="flex bg-white/50 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
+                                                   {(['heading', 'body'] as const).map((mode) => (
+                                                      <button
+                                                         key={mode}
+                                                         onClick={() => setFontConfigMode(mode)}
+                                                         className={`flex-1 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 ${fontConfigMode === mode ? 'bg-zen-brown text-white shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}
+                                                      >
+                                                         {mode === 'heading' ? 'Headings' : 'Body Text'}
+                                                      </button>
+                                                   ))}
+                                                </div>
+                                             </div>
+
+                                             <div className="space-y-8">
+                                                <div className="space-y-4">
+                                                   <div className="flex items-center justify-between">
+                                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Protocol</label>
+                                                      <label className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-purple-600 hover:border-purple-200 hover:shadow-lg transition-all cursor-pointer">
+                                                         <Upload size={16} />
+                                                         <input type="file" className="hidden" accept=".zip,.ttf,.otf,.woff,.woff2" onChange={(e) => handleFontUpload(e, fontConfigMode)} />
+                                                      </label>
+                                                   </div>
+                                                   <ZenDropdown 
+                                                      label="Select Font"
+                                                      hideLabel
+                                                      options={fontConfigMode === 'heading' ? ['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Poppins'] : ['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Montserrat']}
+                                                      value={settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont'].match(/uploads/i) ? 'Custom Font (Uploaded)' : settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont']}
+                                                      onChange={(val) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, [fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont']: val}} : null)}
+                                                      fontFamily={settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont'].match(/uploads/i) ? (fontConfigMode === 'heading' ? 'CustomHeadingFont' : 'CustomBodyFont') : settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont']}
+                                                   />
+                                                </div>
+
+                                                <div className="p-6 bg-white/40 rounded-3xl border border-slate-200/60 backdrop-blur-sm space-y-4">
+                                                   <div className="flex items-center justify-between opacity-40">
+                                                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Asset Validation</span>
+                                                      <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                                   </div>
+                                                   <p className="text-[11px] font-medium leading-relaxed text-slate-500">
+                                                      Configure the <span className="font-black text-slate-700 uppercase tracking-tighter">{fontConfigMode}</span> layer of your visual identity. Uploaded assets are automatically optimized for cross-browser delivery.
+                                                   </p>
+                                                </div>
+                                             </div>
                                           </div>
-                                          <label className="w-10 h-10 bg-white shadow-sm rounded-xl flex items-center justify-center text-slate-400 hover:text-purple-600 hover:shadow-md transition-all cursor-pointer">
-                                             <Upload size={16} />
-                                             <input type="file" className="hidden" accept=".zip,.ttf,.otf,.woff,.woff2" onChange={(e) => handleFontUpload(e, 'heading')} />
-                                          </label>
+
+                                          {/* Specimen Preview Section */}
+                                          <div className="lg:col-span-7 flex flex-col justify-center space-y-12 min-h-[300px]">
+                                             <div className="space-y-4">
+                                                <h1 
+                                                   className={`transition-all duration-700 text-4xl md:text-5xl lg:text-6xl tracking-tight leading-none break-words ${fontConfigMode === 'heading' ? 'text-slate-900 border-l-4 border-purple-500 pl-4 sm:pl-8' : 'text-slate-400 pl-4 sm:pl-8 opacity-40'}`} 
+                                                   style={{ fontFamily: settings.theme.headingFont.match(/uploads/i) ? 'CustomHeadingFont' : settings.theme.headingFont }}
+                                                >
+                                                   Sanctuary Settings
+                                                </h1>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] pl-8 sm:pl-12 opacity-30">Heading Specimen</p>
+                                             </div>
+ 
+                                             <div className="space-y-4">
+                                                <div 
+                                                   className={`transition-all duration-700 space-y-2 lg:max-w-xl pl-4 sm:pl-8 ${fontConfigMode === 'body' ? 'border-l-4 border-purple-500 opacity-100' : 'opacity-30'}`} 
+                                                   style={{ fontFamily: settings.theme.bodyFont.match(/uploads/i) ? 'CustomBodyFont' : settings.theme.bodyFont }}
+                                                >
+                                                   <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed">
+                                                      Every touchpoint across the experience is calibrated for absolute consistency and reading comfort.
+                                                   </p>
+                                                   <p className="text-sm sm:text-base text-slate-400 italic">
+                                                      The quick brown fox jumps over the lazy dog.
+                                                   </p>
+                                                </div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] pl-8 sm:pl-12 opacity-30">Body Readability Specimen</p>
+                                             </div>
+                                          </div>
                                        </div>
-
-                                       <div className="mb-8 py-6 px-4 border-y border-slate-200/50">
-                                          <h1 className="text-4xl text-slate-900 leading-tight truncate" style={{ fontFamily: settings.theme.headingFont.match(/uploads/i) ? 'CustomHeadingFont' : settings.theme.headingFont }}>
-                                             Platform Settings
-                                          </h1>
-                                          <p className="text-[10px] font-medium text-slate-400 mt-2 uppercase tracking-[0.2em] leading-relaxed">Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk</p>
-                                       </div>
-
-                                       <ZenDropdown 
-                                          label="Select Architecture"
-                                          hideLabel
-                                          options={['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Poppins']}
-                                          value={settings.theme.headingFont.match(/uploads/i) ? 'Custom Font' : settings.theme.headingFont}
-                                          onChange={(val) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, headingFont: val}} : null)}
-                                       />
-                                       
-                                       {settings.theme.headingFont.match(/uploads/i) && (
-                                          <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 w-fit px-3 py-1 rounded-full border border-emerald-100">
-                                             <Check size={12} strokeWidth={3} /> Verified Asset
-                                          </div>
-                                       )}
-                                    </div>
-
-                                    {/* Body Font Specimen */}
-                                    <div className="group relative bg-slate-50/50 rounded-3xl p-8 border border-slate-100 transition-all hover:bg-white hover:shadow-xl hover:shadow-purple-500/5">
-                                       <div className="flex items-center justify-between mb-8">
-                                          <div>
-                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Body Specimen</label>
-                                             <p className="text-[11px] font-bold text-purple-600">Sans Readability</p>
-                                          </div>
-                                          <label className="w-10 h-10 bg-white shadow-sm rounded-xl flex items-center justify-center text-slate-400 hover:text-purple-600 hover:shadow-md transition-all cursor-pointer">
-                                             <Upload size={16} />
-                                             <input type="file" className="hidden" accept=".zip,.ttf,.otf,.woff,.woff2" onChange={(e) => handleFontUpload(e, 'body')} />
-                                          </label>
-                                       </div>
-
-                                       <div className="mb-8 py-6 px-4 border-y border-slate-200/50">
-                                          <div className="space-y-2" style={{ fontFamily: settings.theme.bodyFont.match(/uploads/i) ? 'CustomBodyFont' : settings.theme.bodyFont }}>
-                                             <p className="text-sm text-slate-600 font-medium leading-relaxed">Every touchpoint is designed for consistency and reliability.</p>
-                                             <p className="text-sm text-slate-400 leading-relaxed italic">The quick brown fox jumps over the lazy dog.</p>
-                                          </div>
-                                       </div>
-
-                                       <ZenDropdown 
-                                          label="Select Architecture"
-                                          hideLabel
-                                          options={['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Montserrat']}
-                                          value={settings.theme.bodyFont.match(/uploads/i) ? 'Custom Font' : settings.theme.bodyFont}
-                                          onChange={(val) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, bodyFont: val}} : null)}
-                                       />
-
-                                       {settings.theme.bodyFont.match(/uploads/i) && (
-                                          <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 w-fit px-3 py-1 rounded-full border border-emerald-100">
-                                             <Check size={12} strokeWidth={3} /> Verified Asset
-                                          </div>
-                                       )}
                                     </div>
                                  </div>
                               </div>
@@ -613,8 +757,8 @@ const Settings = () => {
 
                   {activeSection === 'storage' && (
                      <div className="max-w-4xl">
-                        <section className="bg-white/80 backdrop-blur-xl p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
-                           <header className="mb-12 flex items-center justify-between">
+                        <section className="bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                           <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Storage Provider</h3>
                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Configure automated file hosting.</p>
@@ -634,7 +778,7 @@ const Settings = () => {
 
                            <AnimatePresence mode="wait">
                               {settings.upload.provider === 'local' ? (
-                                 <motion.div key="local" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="p-10 bg-zen-cream/10 rounded-[1rem] border border-zen-brown/15 flex items-center gap-8 group">
+                                 <motion.div key="local" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="p-6 sm:p-10 bg-zen-cream/10 rounded-[1rem] border border-zen-brown/15 flex flex-col sm:flex-row items-center gap-8 group text-center sm:text-left">
                                     <div className="w-20 h-20 rounded-[1rem] bg-white flex items-center justify-center text-zen-sand shadow-sm group-hover:scale-110 transition-transform duration-700">
                                        <HardDrive size={36} strokeWidth={1} />
                                     </div>
@@ -645,7 +789,7 @@ const Settings = () => {
                                  </motion.div>
                               ) : (
                                  <motion.div key="cloudinary" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-8">
-                                    <div className="bg-zen-cream/10 p-10 rounded-[1rem] border border-zen-brown/15 space-y-8">
+                                    <div className="bg-zen-cream/10 p-6 sm:p-10 rounded-[1rem] border border-zen-brown/15 space-y-8">
                                        <ZenInput 
                                           label="Cloud Name" 
                                           value={settings.upload.cloudinaryCloudName}
@@ -678,7 +822,7 @@ const Settings = () => {
 
                    {activeSection === 'alerts' && (
                       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
-                         <div className="xl:col-span-12 bg-white/80 backdrop-blur-xl p-10 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                         <div className="xl:col-span-12 bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
                             <header className="mb-12 relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
                                <div>
                                   <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">System Notifications</h3>
@@ -759,7 +903,6 @@ const Settings = () => {
                                               onClick={async () => {
                                                  try {
                                                     const res = await fetch(`${API_URL}/settings/test-notification`, {
-                                                       method: 'POST',
                                                        headers: { 'Authorization': `Bearer ${user?.token}` }
                                                     });
                                                     const data = await res.json();
@@ -795,14 +938,14 @@ const Settings = () => {
                    )}
 
                   {activeSection === 'smtp' && (
-                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
-                           <header className="mb-12 flex items-center justify-between">
+                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                           <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">SMTP Gateway</h3>
                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Manage dynamic outbound communication credentials.</p>
                               </div>
-                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[1rem] flex items-center justify-center text-zen-sand border border-zen-brown/15">
+                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[1rem] flex items-center justify-center text-zen-sand border border-zen-brown/15 shrink-0">
                                  <Mail size={28} strokeWidth={1.5} />
                               </div>
                            </header>
@@ -867,22 +1010,24 @@ const Settings = () => {
                            </footer>
                         </div>
 
-                        <div className="xl:col-span-4">
-                           <div className="bg-zen-cream/10 p-10 rounded-[1.5rem] border border-zen-brown/15 h-full">
-                              <h4 className="text-xl font-serif font-bold text-zen-brown mb-6 flex items-center gap-3">
-                                 <ShieldCheck className="text-zen-sand" size={24} />
+                        <div className="xl:col-span-4 h-full">
+                           <div className="bg-zen-brown p-6 sm:p-10 rounded-[2rem] text-white shadow-xl relative overflow-hidden h-full group">
+                              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-150 transition-transform duration-1000">
+                                 <ShieldCheck size={180} />
+                              </div>
+                              <h4 className="text-2xl font-serif font-bold mb-6 flex items-center gap-3 relative z-10">
                                  Security Protocol
                               </h4>
-                              <p className="text-xs text-zen-brown/60 leading-relaxed font-medium">
+                              <p className="text-sm font-medium text-white/90 leading-relaxed relative z-10">
                                  Your SMTP credentials are encrypted and stored securely within our infrastructure. 
                                  For standard configuration, use port **587** with TLS. For legacy systems, port **465** provides direct SSL.
                               </p>
-                              <div className="mt-8 space-y-4">
-                                 <div className="p-5 bg-white rounded-2xl border border-zen-brown/15">
-                                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em] mb-1">Status</p>
+                              <div className="mt-8 space-y-4 relative z-10">
+                                 <div className="p-6 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-2">Service Status</p>
                                     <div className="flex items-center gap-3">
-                                       <div className={`w-2 h-2 rounded-full ${settings.smtp?.host ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                                       <p className="text-sm font-bold text-zen-brown">{settings.smtp?.host ? 'Configuration Active' : 'Provider Pending'}</p>
+                                       <div className={`w-2.5 h-2.5 rounded-full ${settings.smtp?.host ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)] animate-pulse' : 'bg-rose-400 shadow-[0_0_12px_rgba(251,113,113,0.5)]'}`} />
+                                       <p className="text-sm font-bold text-white tracking-tight">{settings.smtp?.host ? 'Communication Active' : 'Provider Pending'}</p>
                                     </div>
                                  </div>
                               </div>
@@ -890,10 +1035,303 @@ const Settings = () => {
                         </div>
                      </div>
                   )}
-              </motion.div>
-           </AnimatePresence>
-        </main>
+
+                  {activeSection === 'payroll' && (
+                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
+                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-5 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                           <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                              <div>
+                                 <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Leave & Payroll Policy</h3>
+                                 <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Harmonize employment compensation and absence thresholds.</p>
+                              </div>
+                              <div className="w-16 h-16 bg-zen-cream/20 rounded-[1rem] flex items-center justify-center text-zen-sand border border-zen-brown/15 shrink-0">
+                                 <Clock size={28} strokeWidth={1.5} />
+                              </div>
+                           </header>
+
+                           <div className="space-y-12">
+                              {/* Leave Thresholds */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                 <div className="p-6 sm:p-10 rounded-[2rem] border transition-all duration-500 bg-white border-zen-sand shadow-lg">
+                                    <div className="flex items-center gap-4 mb-8">
+                                       <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-zen-sand text-white">
+                                          <Sun size={24} />
+                                       </div>
+                                       <div>
+                                          <h4 className="text-lg font-serif font-bold text-zen-brown">Monthly Threshold</h4>
+                                          <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Paid leaves per month</p>
+                                       </div>
+                                    </div>
+                                    <ZenInput 
+                                       label="Allowed Paid Leaves (Days)"
+                                       type="number"
+                                       value={settings.payroll.allowedPaidLeaves}
+                                       onChange={(e: any) => setSettings(prev => prev ? {...prev, payroll: {...prev.payroll, allowedPaidLeaves: parseFloat(e.target.value)}} : null)}
+                                    />
+                                    <p className="text-[10px] font-medium text-zen-brown/40 leading-relaxed mt-4 italic">
+                                       Absence exceeding this limit will trigger daily rate deductions for monthly employees.
+                                    </p>
+                                 </div>
+
+                                 <div className="p-6 sm:p-10 rounded-[2rem] border transition-all duration-500 bg-white border-zen-sand shadow-lg">
+                                    <div className="flex items-center gap-4 mb-8">
+                                       <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-zen-sand text-white">
+                                          <Activity size={24} />
+                                       </div>
+                                       <div>
+                                          <h4 className="text-lg font-serif font-bold text-zen-brown">Hourly Threshold</h4>
+                                          <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Paid hours per month</p>
+                                       </div>
+                                    </div>
+                                    <ZenInput 
+                                       label="Allowed Paid Hours (Hours)"
+                                       type="number"
+                                       value={settings.payroll.allowedPaidHours}
+                                       onChange={(e: any) => setSettings(prev => prev ? {...prev, payroll: {...prev.payroll, allowedPaidHours: parseFloat(e.target.value)}} : null)}
+                                    />
+                                    <p className="text-[10px] font-medium text-zen-brown/40 leading-relaxed mt-4 italic">
+                                       Absence exceeding this limit will trigger hourly rate deductions for hourly employees.
+                                    </p>
+                                 </div>
+                              </div>
+                           </div>
+
+                           <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
+                              <ZenButton 
+                                 onClick={() => handleSave('payroll')}
+                                 disabled={saving}
+                                 className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
+                              >
+                                 Sync Policy
+                              </ZenButton>
+                           </footer>
+                        </div>
+
+                        <div className="xl:col-span-4">
+                           <div className="bg-zen-brown p-10 rounded-[2rem] text-white shadow-xl relative overflow-hidden group">
+                              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-150 transition-transform duration-1000">
+                                 <ShieldCheck size={180} />
+                              </div>
+                              <h4 className="text-2xl font-serif font-bold mb-8 relative z-10">Payroll Equilibrium</h4>
+                              <p className="text-sm font-medium text-white/95 leading-relaxed relative z-10 mb-8">
+                                 The Sanctuary payroll engine automatically recalibrates employee compensation based on these global thresholds.
+                              </p>
+                              
+                              <div className="space-y-6 relative z-10">
+                                 <div className="p-6 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                                    <h5 className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 text-amber-200">Monthly Logic</h5>
+                                    <p className="text-xs text-white/85 leading-relaxed">
+                                       Payroll = Base Salary - ((Leaves - Paid Threshold) * Daily Rate)
+                                    </p>
+                                 </div>
+                                 <div className="p-6 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                                    <h5 className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 text-amber-200">Hourly Logic</h5>
+                                    <p className="text-xs text-white/85 leading-relaxed">
+                                       Payroll = (Hours Worked - (Max Potential - Paid Threshold)) * Hourly Rate
+                                    </p>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  )}
+
+                  {activeSection === 'tax' && (
+                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <div className="lg:col-span-8 bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                           <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                              <div>
+                                 <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Taxation Registry</h3>
+                                 <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Standardized Fiscal Control & Audit Compliance.</p>
+                              </div>
+                              <ZenButton onClick={() => openTaxModal()} className="px-8 py-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 w-full sm:w-auto">
+                                 <Plus size={18} />
+                                 <span>Create Rate</span>
+                              </ZenButton>
+                           </header>
+
+                           <div className="table-container bg-white rounded-2xl border border-zen-brown/10 shadow-sm min-h-[400px] overflow-hidden overflow-x-auto">
+                              {taxLoading ? (
+                                 <div className="p-20 text-center italic opacity-20">Syncing registry...</div>
+                              ) : (
+                                 <table className="w-full text-center border-collapse min-w-[700px]">
+                                    <thead>
+                                       <tr>
+                                          <th>S NO</th>
+                                          <th>Rate Protocol</th>
+                                          <th>Calculated Value</th>
+                                          <th>Status</th>
+                                          <th>Actions</th>
+                                       </tr>
+                                    </thead>
+                                    <tbody>
+                                       {taxRates.length === 0 && (
+                                          <tr>
+                                             <td colSpan={5} className="p-20 text-center text-zen-brown/30 italic">No tax protocols established.</td>
+                                          </tr>
+                                       )}
+                                       {taxRates.map((rate, index) => (
+                                          <tr key={rate._id} className="transition-all group border-b border-black/[0.02] hover:bg-zen-cream/10">
+                                             <td className="p-6 text-center italic opacity-30 text-[11px] font-medium tracking-widest">
+                                                {(index + 1).toString().padStart(2, '0')}
+                                             </td>
+                                             <td className="p-6">
+                                                <div className="flex flex-col items-center">
+                                                   <span className="zen-table-primary">{rate.name}</span>
+                                                   <span className="zen-table-meta">System Standard</span>
+                                                </div>
+                                             </td>
+                                             <td className="p-6 text-center">
+                                                <span className="text-lg font-serif font-black text-zen-brown">{rate.percentage}%</span>
+                                             </td>
+                                             <td className="p-6 text-center">
+                                                <ZenBadge variant={rate.isActive ? 'leaf' : 'sand'}>{rate.isActive ? 'Active' : 'Inactive'}</ZenBadge>
+                                             </td>
+                                             <td className="p-6 text-center">
+                                                <div className="flex items-center justify-center gap-2">
+                                                   <ZenIconButton 
+                                                      icon={Edit2} 
+                                                      variant="outline" 
+                                                      onClick={() => openTaxModal(rate)} 
+                                                   />
+                                                   <ZenIconButton 
+                                                      icon={Trash2} 
+                                                      variant="danger" 
+                                                      onClick={() => setTaxConfirmState({ isOpen: true, id: rate._id })} 
+                                                   />
+                                                </div>
+                                             </td>
+                                          </tr>
+                                       ))}
+                                    </tbody>
+                                 </table>
+                              )}
+                           </div>
+                        </div>
+
+                        <div className="lg:col-span-4 space-y-8 h-full">
+                           <div className="bg-zen-brown p-10 rounded-[2rem] text-white shadow-xl relative overflow-hidden group">
+                              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-150 transition-transform duration-1000">
+                                 <Percent size={180} />
+                              </div>
+                              <h3 className="text-2xl font-serif font-bold mb-8 relative z-10">Global Tax Master</h3>
+                              <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm shadow-xl relative z-10">
+                                 <div>
+                                    <span className="block font-black text-[10px] uppercase tracking-widest text-white/40 mb-1">Taxation Status</span>
+                                    <span className={`font-bold text-sm ${settings.general.billing?.gstEnabled ? 'text-emerald-400' : 'text-amber-200'}`}>
+                                       {settings.general.billing?.gstEnabled ? 'OPERATIONAL' : 'PAUSED'}
+                                    </span>
+                                 </div>
+                                 <button 
+                                    onClick={handleToggleGST}
+                                    className={`w-14 h-7 rounded-full transition-all duration-500 relative ${settings.general.billing?.gstEnabled ? 'bg-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-white/10'}`}
+                                 >
+                                    <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-500 ${settings.general.billing?.gstEnabled ? 'left-8' : 'left-1'}`} />
+                                 </button>
+                              </div>
+                              <p className="mt-8 text-[11px] font-medium leading-relaxed text-white/60 relative z-10">
+                                 Toggling this master switch enables or disables tax calculations across all checkout rituals and financial statements.
+                              </p>
+                           </div>
+
+                           <div className="bg-zen-brown p-10 rounded-[2rem] text-white shadow-xl relative overflow-hidden group">
+                              <ShieldCheck className="absolute -right-8 -bottom-8 text-white/5 w-48 h-48 group-hover:scale-110 transition-transform duration-1000" />
+                              <h4 className="text-xl font-serif font-bold mb-4 relative z-10">Best Practice</h4>
+                              <p className="text-sm font-medium leading-relaxed text-white/90 relative z-10">
+                                 Maintain a single active rate protocol for consistency. Obsolete rates should be archived or removed to ensure audit integrity.
+                              </p>
+                           </div>
+                        </div>
+                     </div>
+                  )}
+               </motion.div>
+            </AnimatePresence>
+         </main>
       </div>
+
+      {/* Tax Management Modal */}
+      <Modal 
+        isOpen={isTaxModalOpen} 
+        onClose={() => setIsTaxModalOpen(false)} 
+        title={editingTaxRate ? "Edit Tax Rate" : "New Tax Rate"} 
+        subtitle="Calibrate your fiscal protocols"
+        maxWidth="max-w-4xl"
+        headerIcon={Percent}
+        footer={
+          <div className="flex w-full gap-6">
+            <ZenButton
+              type="button"
+              variant="secondary"
+              className="flex-1 rounded-[2rem] py-5"
+              onClick={() => setIsTaxModalOpen(false)}
+            >
+              Cancel
+            </ZenButton>
+            <ZenButton
+              type="button"
+              onClick={handleSaveTaxRate}
+              className="flex-[2] rounded-[2rem] py-5 shadow-sm shadow-zen-brown/20 flex items-center justify-center gap-3"
+            >
+              <span>{editingTaxRate ? 'Update Protocol' : 'Set Protocol'}</span>
+              <BadgeDollarSign size={18} />
+            </ZenButton>
+          </div>
+        }
+      >
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] p-2">
+            <div className="rounded-[1.5rem] border border-zen-brown/10 bg-zen-cream/50 p-6 sm:p-8 space-y-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-zen-brown/10 bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-zen-brown/50">
+                <Percent size={12} />
+                Taxation Note
+              </div>
+              <h3 className="text-2xl font-serif font-bold text-zen-brown">Fiscal Controls</h3>
+              <p className="text-sm leading-relaxed text-zen-brown/60">
+                This percentage will be applied globally across all service rituals and product inventory checkouts. Ensure naming follows regulatory standards.
+              </p>
+
+              <div className="rounded-[1.25rem] border border-white/70 bg-white/80 p-4 shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/35">
+                  Calculation Method
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-zen-brown/65">
+                  Final Price = Net Price + (Net Price × Tax %)
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white/80 p-6 sm:p-8 space-y-8">
+              <ZenInput
+                label="Tax Protocol Name"
+                value={taxFormData.name}
+                placeholder="e.g. Standard GST"
+                onChange={(e: any) => setTaxFormData({ ...taxFormData, name: e.target.value })}
+              />
+              <ZenInput
+                label="Tax Percentage"
+                type="number"
+                value={taxFormData.percentage}
+                placeholder="0.00"
+                onChange={(e: any) => setTaxFormData({ ...taxFormData, percentage: parseFloat(e.target.value) })}
+              />
+              <div className="rounded-[1.25rem] border border-zen-brown/10 bg-zen-cream/50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/35">
+                  Output Preview
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-zen-brown/60">
+                   {taxFormData.name || 'Protocol'} — {taxFormData.percentage || 0}% applied on every transaction.
+                </p>
+              </div>
+            </div>
+          </div>
+      </Modal>
+
+      <ConfirmDialog 
+        isOpen={taxConfirmState.isOpen}
+        onClose={() => setTaxConfirmState({ isOpen: false, id: '' })}
+        onConfirm={handleDeleteTaxRate}
+        title="Archive Tax Protocol"
+        message="Are you sure you want to permanently remove this tax rate from the sanctuary registry?"
+      />
     </ZenPageLayout>
   );
 };

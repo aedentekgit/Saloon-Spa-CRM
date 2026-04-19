@@ -20,6 +20,9 @@ export interface Room { id?: number; _id?: string; name: string; type: string; s
 export interface Invoice { id?: number; _id?: string; clientName: string; items: any[]; subtotal: number; gst: number; discount: number; total: number; paymentMode: string; date: string; invoiceNumber: string; branch?: string; }
 export interface Expense { id?: number; _id?: string; title: string; category: string; amount: number; date: string; branch?: string; }
 export interface AttendanceRecord { id?: number; _id?: string; date: string; checkIn: string; checkOut: string; status: string; employeeName: string; }
+export interface LeaveRequest { _id: string; employeeName: string; type: string; reason: string; startDate: string; endDate: string; daysCount: number; status: string; user: string; }
+export interface Role { _id: string; name: string; permissions: string[]; status?: 'Active' | 'Inactive'; }
+export interface Branch { _id: string; name: string; location: string; phone: string; status?: string; }
 
 interface DataContextType {
   clients: Client[];
@@ -31,7 +34,10 @@ interface DataContextType {
   invoices: Invoice[];
   expenses: Expense[];
   attendance: AttendanceRecord[];
-  refreshData: () => Promise<void>;
+  leaves: LeaveRequest[];
+  roles: Role[];
+  branches: Branch[];
+  refreshData: (silent?: boolean) => Promise<void>;
   loading: boolean;
   addClient: (client: Partial<Client>) => void;
   updateClient: (id: string | number, client: Partial<Client>) => void;
@@ -111,38 +117,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Global Sync Logic (Optimized for Production)
-  const refreshData = async () => {
+  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  // Global Sync Logic (Real-time polling)
+  const refreshData = async (silent: boolean = false) => {
     if (!user?.token) {
       setLoading(false);
       return;
     }
     
     try {
+      if (!silent) setLoading(true);
       const headers = { 'Authorization': `Bearer ${user.token}` };
       
-      // We only fetch essential configuration data globally.
-      // Large collections like Invoices, Expenses, and Appointments are fetched 
-      // with limit=1 to get the total count for metadata (e.g. invoice numbering)
-      // without downloading the entire history.
-      const [cliRes, empRes, serRes, invenRes, invCountRes, appCountRes] = await Promise.all([
+      const [cliRes, empRes, serRes, invenRes, invCountRes, appCountRes, leavesRes, rolesRes, branchesRes] = await Promise.all([
         fetch(`${API_URL}/clients?limit=50`, { headers }), 
         fetch(`${API_URL}/employees`, { headers }),
         fetch(`${API_URL}/services`, { headers }),
         fetch(`${API_URL}/inventory?limit=50`, { headers }),
         fetch(`${API_URL}/invoices?limit=1`, { headers }),
-        fetch(`${API_URL}/appointments?limit=1`, { headers })
+        fetch(`${API_URL}/appointments?limit=1`, { headers }),
+        fetch(`${API_URL}/leaves`, { headers }),
+        fetch(`${API_URL}/roles`, { headers }),
+        fetch(`${API_URL}/branches`, { headers })
       ]);
 
-      // Handle Unauthorized (Session Expired)
-      if ([cliRes, empRes, serRes, invenRes, invCountRes, appCountRes].some(res => res.status === 401)) {
-        console.warn('Session expired. Logging out...');
+      if ([cliRes, empRes, serRes, invenRes, invCountRes, appCountRes, leavesRes, rolesRes, branchesRes].some(res => res.status === 401)) {
         logout();
         return;
       }
 
-      const [cliData, empData, serData, invenData, invCountData, appCountData] = await Promise.all([
-        cliRes.json(), empRes.json(), serRes.json(), invenRes.json(), invCountRes.json(), appCountRes.json()
+      const [cliData, empData, serData, invenData, invCountData, appCountData, leavesData, rolesData, branchesData] = await Promise.all([
+        cliRes.json(), empRes.json(), serRes.json(), invenRes.json(), invCountRes.json(), appCountRes.json(),
+        leavesRes.json(), rolesRes.json(), branchesRes.json()
       ]);
 
       if (Array.isArray(cliData)) setClients(cliData);
@@ -150,35 +159,42 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (Array.isArray(empData)) setEmployees(empData);
       if (Array.isArray(serData)) setServices(serData);
-
       if (Array.isArray(invenData)) setInventory(invenData);
       else if (invenData.data) setInventory(invenData.data);
 
-      // Handle Invoice and Appointment counts for numbering logic
-      if (invCountData.pagination) {
-        const dummyInvoices = new Array(invCountData.pagination.total).fill({});
-        setInvoices(dummyInvoices);
-      }
-      
-      if (appCountData.pagination) {
-        const dummyAppointments = new Array(appCountData.pagination.total).fill({});
-        setAppointments(dummyAppointments);
-      }
+      const leavesList = leavesData.data || leavesData;
+      if (Array.isArray(leavesList)) setLeaves(leavesList);
+
+      const rolesList = rolesData.data || rolesData;
+      if (Array.isArray(rolesList)) setRoles(rolesList);
+
+      const branchesList = branchesData.data || branchesData;
+      if (Array.isArray(branchesList)) setBranches(branchesList);
+
+      if (invCountData.pagination) setInvoices(new Array(invCountData.pagination.total).fill({}));
+      if (appCountData.pagination) setAppointments(new Array(appCountData.pagination.total).fill({}));
       
     } catch (error) {
       console.error('Core Synchronization Failure:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (user?.token) {
       refreshData();
+      
+      // Implement Polling for real-time updates without page refresh
+      const interval = setInterval(() => {
+        refreshData(true); // silent refresh in background
+      }, 10000); // Pulse every 10 seconds
+
+      return () => clearInterval(interval);
     }
   }, [user?.token]);
 
-  // Persistence (Cache for instant initial load)
+  // Persistence
   useEffect(() => localStorage.setItem('zen_clients', JSON.stringify(clients)), [clients]);
   useEffect(() => localStorage.setItem('zen_employees', JSON.stringify(employees)), [employees]);
   useEffect(() => localStorage.setItem('zen_services', JSON.stringify(services)), [services]);
@@ -192,61 +208,79 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Client Actions
   const addClient = (client: Partial<Client>) => {
     setClients(prev => [...prev, { ...client, id: Date.now(), totalSpending: 0, visits: 0 } as Client]);
+    refreshData(true);
   };
   const updateClient = (id: string | number, updatedClient: Partial<Client>) => {
     setClients(prev => prev.map(c => (c.id === id || c._id === id) ? { ...c, ...updatedClient } : c));
+    refreshData(true);
   };
   const deleteClient = (id: string | number) => {
     setClients(prev => prev.filter(c => c.id !== id && c._id !== id));
+    refreshData(true);
   };
   // Appointment Actions
   const addAppointment = (appointment: Partial<Appointment>) => {
     setAppointments(prev => [...prev, { ...appointment, id: Date.now() } as Appointment]);
+    refreshData(true);
   };
   const updateAppointment = (id: string | number, updated: Partial<Appointment>) => {
     setAppointments(prev => prev.map(a => (a.id === id || a._id === id) ? { ...a, ...updated } : a));
+    refreshData(true);
   };
   const deleteAppointment = (id: string | number) => {
     setAppointments(prev => prev.filter(a => a.id !== id && a._id !== id));
+    refreshData(true);
   };
   const updateRoom = (id: string | number, status: string) => {
     setRooms(prev => prev.map(r => (r.id === id || r._id === id) ? { ...r, status } : r));
   };
   const addInventoryItem = (item: Partial<InventoryItem>) => {
     setInventory(prev => [...prev, { ...item, id: Date.now() } as InventoryItem]);
+    refreshData(true);
   };
   const updateInventoryItem = (id: string | number, updated: Partial<InventoryItem>) => {
     setInventory(prev => prev.map(i => (i.id === id || i._id === id) ? { ...i, ...updated } : i));
+    refreshData(true);
   };
   const deleteInventoryItem = (id: string | number) => {
     setInventory(prev => prev.filter(i => i.id !== id && i._id !== id));
+    refreshData(true);
   };
   const adjustStock = (id: string | number, amount: number) => {
     setInventory(prev => prev.map(i => (i.id === id || i._id === id) ? { ...i, stock: Math.max(0, i.stock + amount) } : i));
+    refreshData(true);
   };
   const addEmployee = (employee: Partial<Employee>) => {
     setEmployees(prev => [...prev, { ...employee, id: Date.now() } as Employee]);
+    refreshData(true);
   };
   const updateEmployee = (id: string | number, updated: Partial<Employee>) => {
     setEmployees(prev => prev.map(e => (e.id === id || e._id === id) ? { ...e, ...updated } : e));
+    refreshData(true);
   };
   const deleteEmployee = (id: string | number) => {
     setEmployees(prev => prev.filter(e => e.id !== id && e._id !== id));
+    refreshData(true);
   };
   const addService = (service: Partial<Service>) => {
     setServices(prev => [...prev, { ...service, id: Date.now() } as Service]);
+    refreshData(true);
   };
   const updateService = (id: string | number, updated: Partial<Service>) => {
     setServices(prev => prev.map(s => (s.id === id || s._id === id) ? { ...s, ...updated } : s));
+    refreshData(true);
   };
   const deleteService = (id: string | number) => {
     setServices(prev => prev.filter(s => s.id !== id && s._id !== id));
+    refreshData(true);
   };
   const addInvoice = (invoice: Partial<Invoice>) => {
     setInvoices(prev => [{ ...invoice, _id: Date.now().toString() }, ...prev] as Invoice[]);
+    refreshData(true);
   };
   const addExpense = (expense: Partial<Expense>) => {
     setExpenses(prev => [{ ...expense, _id: Date.now().toString() }, ...prev] as Expense[]);
+    refreshData(true);
   };
   const markAttendance = (record: Partial<AttendanceRecord>) => {
     setAttendance(prev => {
@@ -256,11 +290,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return [{ ...record, id: Date.now() } as AttendanceRecord, ...prev];
     });
+    refreshData(true);
   };
 
   return (
     <DataContext.Provider value={{ 
-      clients, employees, services, appointments, inventory, rooms, invoices, expenses, attendance, refreshData, loading,
+      clients, employees, services, appointments, inventory, rooms, invoices, expenses, attendance, 
+      leaves, roles, branches, refreshData, loading,
       addClient, updateClient, deleteClient,
       addAppointment, updateAppointment, deleteAppointment,
       updateRoom, addInventoryItem, updateInventoryItem, deleteInventoryItem, adjustStock,

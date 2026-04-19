@@ -59,7 +59,6 @@ const Sidebar = ({
     { name: 'Service Category', icon: Shapes, path: '/service-categories', permission: 'settings' },
     { name: 'Admins', icon: ShieldCheck, path: '/admins', permission: 'roles' },
     { name: 'Roles', icon: Key, path: '/roles', permission: 'roles' },
-    { name: 'Tax', icon: Percent, path: '/tax', permission: 'settings' },
     { name: 'Settings', icon: Settings2, path: '/settings', permission: 'settings' },
   ];
 

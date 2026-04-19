@@ -29,8 +29,8 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { user } = useAuth();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-  const fetchCategories = async (type?: string) => {
-    setLoading(true);
+  const fetchCategories = async (type?: string, silent: boolean = false) => {
+    if (!silent) setLoading(true);
     try {
       const url = type ? `${API_URL}/categories?type=${type}` : `${API_URL}/categories`;
       const response = await fetch(url, {
@@ -38,16 +38,12 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       const data = await response.json();
       if (Array.isArray(data)) {
-        setCategories(type ? (prev) => {
-               // Merge or replace logic depending on needs. 
-               // For simplicity, we fetch all when needed or just filter global state.
-               return data; 
-            } : data);
+        setCategories(data);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -62,7 +58,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         body: JSON.stringify(data)
       });
       if (response.ok) {
-        fetchCategories();
+        fetchCategories(undefined, true);
         return true;
       }
       return false;
@@ -82,7 +78,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         body: JSON.stringify(data)
       });
       if (response.ok) {
-        fetchCategories();
+        fetchCategories(undefined, true);
         return true;
       }
       return false;
@@ -98,7 +94,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       if (response.ok) {
-        fetchCategories();
+        fetchCategories(undefined, true);
         return true;
       }
       return false;
@@ -117,7 +113,15 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     categories.filter(c => c.type === 'service' && c.isActive !== false).map(c => c.name);
 
   useEffect(() => {
-    if (user) fetchCategories();
+    if (user) {
+      fetchCategories();
+      
+      const interval = setInterval(() => {
+        fetchCategories(undefined, true);
+      }, 60000); // Pulse every 60 seconds
+      
+      return () => clearInterval(interval);
+    }
   }, [user]);
 
   return (

@@ -128,9 +128,9 @@ const Clients = () => {
 
   const PAGE_LIMIT = 12;
 
-  const fetchClients = async () => {
+  const fetchClients = async (silent: boolean = false) => {
     try {
-      console.log('Fetching clients from:', `${API_URL}/clients`);
+      if (!silent) setLoading(true);
       const response = await fetch(`${API_URL}/clients?page=${page}&limit=${PAGE_LIMIT}`, {
         headers: { 
           'Authorization': `Bearer ${user?.token}`,
@@ -138,12 +138,6 @@ const Clients = () => {
         }
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Fetch Clients Failed:', response.status, errorText);
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
       const data = await response.json();
       if (data.data) {
         setClients(data.data);
@@ -164,9 +158,9 @@ const Clients = () => {
       }
     } catch (error: any) {
       console.error('Error in fetchClients:', error);
-      notify('error', 'Error', 'Failed to load clients');
+      if (!silent) notify('error', 'Error', 'Failed to load clients');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -182,7 +176,6 @@ const Clients = () => {
           const roleNames = roleData.map((r: any) => r.name);
           setRoles(roleNames);
           
-          // If creating new client and roles are loaded, set default to 'Client' if available
           if (!editingClient && roleNames.includes('Client')) {
             setFormData(prev => ({ ...prev, role: 'Client' }));
           }
@@ -196,7 +189,13 @@ const Clients = () => {
   useEffect(() => {
     fetchClients();
     fetchRoles();
-  }, [page]);
+
+    const interval = setInterval(() => {
+      fetchClients(true);
+    }, 10000); // 10s sync
+
+    return () => clearInterval(interval);
+  }, [page, user?.token]);
 
   const filteredClients = useMemo(() => {
     let filtered = clients;

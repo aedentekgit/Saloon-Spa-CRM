@@ -111,8 +111,8 @@ const Memberships = () => {
 
     const PAGE_LIMIT = 12;
 
-    const fetchData = async () => {
-       setIsLoading(true);
+    const fetchData = async (silent: boolean = false) => {
+       if (!silent) setIsLoading(true);
        try {
           const headers = { 'Authorization': `Bearer ${user?.token}` };
           const [plansRes, enrollRes, servicesRes, branchRes, clientsRes, statsRes] = await Promise.all([
@@ -142,15 +142,21 @@ const Memberships = () => {
           setStats(statsData?.data || statsData);
        } catch (error) {
           console.error('Error fetching membership data:', error);
-          notify('error', 'Sync Failure', 'Failed to retrieve membership records');
+          if (!silent) notify('error', 'Sync Failure', 'Failed to retrieve membership records');
        } finally {
-          setIsLoading(false);
+          if (!silent) setIsLoading(false);
        }
     };
 
     useEffect(() => {
        fetchData();
-    }, [page]);
+
+       const interval = setInterval(() => {
+          fetchData(true);
+       }, 10000); // 10s sync
+
+       return () => clearInterval(interval);
+    }, [page, user?.token]);
 
     const handleCreatePlan = async (e: React.FormEvent) => {
        e.preventDefault();

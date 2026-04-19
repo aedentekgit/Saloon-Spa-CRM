@@ -17,6 +17,7 @@ import { ZenInput, ZenDropdown } from '../../components/zen/ZenInputs';
 import { notify } from '../../components/shared/ZenNotification';
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { useData } from '../../context/DataContext';
 
 interface Role {
   _id: string;
@@ -27,26 +28,33 @@ interface Role {
 
 const ALL_PAGES = [
   { id: 'dashboard', name: 'Dashboard' },
+  { id: 'memberships', name: 'Memberships' },
+  { id: 'services', name: 'Services' },
+  { id: 'rooms', name: 'Rooms' },
   { id: 'clients', name: 'Clients' },
   { id: 'appointments', name: 'Appointments' },
-  { id: 'rooms', name: 'Rooms' },
   { id: 'employees', name: 'Employees' },
   { id: 'attendance', name: 'Attendance' },
+  { id: 'shifts', name: 'Shifts' },
+  { id: 'payroll', name: 'Payroll' },
   { id: 'leave', name: 'Leave' },
-  { id: 'services', name: 'Services' },
-  { id: 'billing', name: 'Billing' },
   { id: 'finance', name: 'Finance' },
+  { id: 'transactions', name: 'Transactions' },
   { id: 'inventory', name: 'Inventory' },
+  { id: 'billing', name: 'Billing' },
   { id: 'whatsapp', name: 'WhatsApp' },
   { id: 'reports', name: 'Reports' },
-  { id: 'settings', name: 'Settings' },
-  { id: 'roles', name: 'Roles' }
+  { id: 'branches', name: 'Branches' },
+  { id: 'room-categories', name: 'Room Category' },
+  { id: 'service-categories', name: 'Service Category' },
+  { id: 'admins', name: 'Admins' },
+  { id: 'roles', name: 'Roles' },
+  { id: 'settings', name: 'Settings' }
 ];
 
 const Roles = () => {
   const { user } = useAuth();
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { roles, refreshData, loading } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
@@ -56,12 +64,6 @@ const Roles = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    setPage(1);
-  }, [viewMode]);
-
-  const PAGE_LIMIT = 12;
-
   const [formData, setFormData] = useState({
     name: '',
     permissions: [] as string[],
@@ -70,32 +72,8 @@ const Roles = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-  useEffect(() => {
-    fetchRoles();
-  }, [page]);
-
   const fetchRoles = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/roles?page=${page}&limit=${PAGE_LIMIT}`, {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      const data = await response.json();
-      if (data.data) {
-        setRoles(data.data);
-        setTotalPages(data.pagination?.pages || 1);
-      } else if (Array.isArray(data)) {
-        setRoles(data);
-        setTotalPages(1);
-      } else {
-        setRoles([]);
-        setTotalPages(1);
-      }
-    } catch (error) {
-      notify('error', 'Sync Failure', 'Failed to load role records.');
-    } finally {
-      setLoading(false);
-    }
+    refreshData();
   };
 
   const filteredRoles = useMemo(() => {

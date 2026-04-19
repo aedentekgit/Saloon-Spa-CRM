@@ -57,7 +57,13 @@ const Attendance = () => {
 
   useEffect(() => {
     fetchHistory();
-  }, [selectedBranch, page]);
+
+    const interval = setInterval(() => {
+      fetchHistory(true);
+    }, 10000); // 10s sync
+
+    return () => clearInterval(interval);
+  }, [selectedBranch, page, user?.token]);
 
   useEffect(() => {
     if (user?.role === 'Admin' || user?.role === 'Manager') {
@@ -82,8 +88,9 @@ const Attendance = () => {
     } catch (e) {}
   };
 
-  const fetchHistory = async () => {
+  const fetchHistory = async (silent: boolean = false) => {
     try {
+       if (!silent) setLoading(true);
       const url = new URL(`${API_URL}/attendance`);
       url.searchParams.append('page', page.toString());
       url.searchParams.append('limit', '12');
@@ -118,8 +125,10 @@ const Attendance = () => {
         setAttendance([]);
       }
     } catch (error) {
-      notify('error', 'Error', 'Failed to retrieve history');
+       if (!silent) notify('error', 'Error', 'Failed to retrieve history');
       setAttendance([]);
+    } finally {
+       if (!silent) setLoading(false);
     }
   };
 
@@ -565,7 +574,7 @@ const Attendance = () => {
 
                   <ZenDropdown 
                      label="Presence Status" 
-                     options={['Present', 'Absent', 'Half Day']} 
+                     options={['Present', 'Absent', 'Half Day', 'On Leave']} 
                      value={manualFormData.status} 
                      onChange={(val) => setManualFormData({...manualFormData, status: val})}
                      icon={Shield}

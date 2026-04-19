@@ -126,12 +126,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-  const fetchSettings = async () => {
+  const fetchSettings = async (silent: boolean = false) => {
     if (!user) {
       setLoading(false);
       return;
     }
     try {
+      if (!silent) setLoading(true);
       const response = await fetch(`${API_URL}/settings`, {
         headers: { 'Authorization': `Bearer ${user.token}` }
       });
@@ -146,7 +147,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (error) {
       console.error('Failed to fetch settings:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -174,7 +175,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    fetchSettings();
+    if (user) {
+      fetchSettings();
+      
+      const interval = setInterval(() => {
+        fetchSettings(true);
+      }, 30000); // Pulse every 30 seconds for configuration
+      
+      return () => clearInterval(interval);
+    }
   }, [user]);
 
   // Update Favicon, Title and Dynamic Theme

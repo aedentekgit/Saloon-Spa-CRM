@@ -97,7 +97,13 @@ const Inventory = () => {
 
   useEffect(() => {
     fetchInventory();
-  }, [page, debouncedSearch, selectedBranch, selectedCategory]);
+
+    const interval = setInterval(() => {
+      fetchInventory(true);
+    }, 10000); // 10s sync
+
+    return () => clearInterval(interval);
+  }, [page, debouncedSearch, selectedBranch, selectedCategory, user?.token]);
 
   useEffect(() => {
     setPage(1);
@@ -110,9 +116,9 @@ const Inventory = () => {
 
   const PAGE_LIMIT = 12;
 
-  const fetchInventory = async () => {
+  const fetchInventory = async (silent: boolean = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const queryParams = new URLSearchParams({
         page: page.toString(),
         limit: PAGE_LIMIT.toString(),
@@ -137,9 +143,9 @@ const Inventory = () => {
         setTotalPages(1);
       }
     } catch (error) {
-      notify('error', 'Sync Failure', 'Failed to synchronize inventory records');
+       if (!silent) notify('error', 'Sync Failure', 'Failed to synchronize inventory records');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 

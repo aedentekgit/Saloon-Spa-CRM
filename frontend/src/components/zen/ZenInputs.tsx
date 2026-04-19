@@ -14,12 +14,13 @@ interface DropdownProps {
   hideLabel?: boolean;
   variant?: 'line' | 'pill';
   disabled?: boolean;
+  fontFamily?: string;
 }
 
 export const ZenDropdown = ({ 
   label, options = [], value, onChange, placeholder, 
   className = "", icon: Icon, hideLabel, variant = 'line',
-  disabled
+  disabled, fontFamily
 }: DropdownProps) => {
   const safeOptions = Array.isArray(options) ? options : [];
   const [isOpen, setIsOpen] = useState(false);
@@ -49,16 +50,19 @@ export const ZenDropdown = ({
           : "w-full px-1 pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/40 group-focus-within:border-zen-brown transition-all"
         }
       >
-        <div className="flex items-center gap-3">
-          {Icon && <Icon size={16} className={variant === 'pill' ? "text-zen-brown/30 group-hover:text-zen-brown" : "text-zen-brown/20"} />}
-          <span className={variant === 'pill' 
-            ? `font-serif text-sm ${value ? 'text-zen-brown font-bold' : 'text-zen-brown/30'}`
-            : `font-serif text-lg ${value ? 'text-zen-brown' : 'text-zen-brown/20'}`
-          }>
+        <div className="flex items-center gap-3 overflow-hidden">
+          {Icon && <Icon size={16} className={variant === 'pill' ? "text-zen-brown/30 group-hover:text-zen-brown flex-shrink-0" : "text-zen-brown/20 flex-shrink-0"} />}
+          <span 
+            className={variant === 'pill' 
+              ? `font-serif text-sm truncate ${value ? 'text-zen-brown font-bold' : 'text-zen-brown/30'}`
+              : `font-serif text-lg truncate ${value ? 'text-zen-brown' : 'text-zen-brown/20'}`
+            }
+            style={fontFamily ? { fontFamily } : {}}
+          >
             {value || placeholder}
           </span>
         </div>
-        <ChevronDown size={variant === 'pill' ? 14 : 18} className={`text-zen-brown/20 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={variant === 'pill' ? 14 : 18} className={`text-zen-brown/20 flex-shrink-0 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
       </div>
       
       {isOpen && createPortal(
@@ -68,7 +72,7 @@ export const ZenDropdown = ({
             ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[1rem] max-h-[70vh]' : 'rounded-[1rem] max-h-60'}
           `}
           style={window.innerWidth >= 640 ? {
-            minWidth: Math.max(160, dropdownRef.current?.getBoundingClientRect().width || 0),
+            width: dropdownRef.current?.getBoundingClientRect().width || 200,
             left: dropdownRef.current?.getBoundingClientRect().left,
             top: (dropdownRef.current?.getBoundingClientRect().bottom || 0) + 8
           } : {}}
@@ -89,6 +93,7 @@ export const ZenDropdown = ({
                   setIsOpen(false);
                 }}
                 className={`px-6 py-4 text-sm font-medium transition-all cursor-pointer hover:bg-zen-cream underline-offset-4 ${value === opt ? 'bg-zen-cream/50 text-zen-brown font-bold' : 'text-zen-brown/60'}`}
+                style={['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Poppins', 'Montserrat'].includes(opt) ? { fontFamily: opt } : {}}
               >
                 {opt}
               </div>

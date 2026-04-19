@@ -33,12 +33,13 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-  const fetchBranches = async () => {
+  const fetchBranches = async (silent: boolean = false) => {
     if (!user) {
       setLoading(false);
       return;
     }
     try {
+      if (!silent) setLoading(true);
       const response = await fetch(`${API_URL}/branches`, {
         headers: { 'Authorization': `Bearer ${user.token}` }
       });
@@ -47,7 +48,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (error) {
       console.error('Failed to fetch branches:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -56,6 +57,12 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setSelectedBranchState(user.branch);
     }
     fetchBranches();
+
+    const interval = setInterval(() => {
+      fetchBranches(true);
+    }, 60000); // Pulse every 60 seconds
+
+    return () => clearInterval(interval);
   }, [user]);
 
   // Validation: If selected branch is not 'all' and not found in branches, reset to 'all'

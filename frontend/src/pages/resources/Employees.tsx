@@ -195,7 +195,13 @@ const Employees = () => {
 
   useEffect(() => {
     fetchEmployees();
-  }, [selectedBranch, page, debouncedSearch]);
+    
+    const interval = setInterval(() => {
+      fetchEmployees(true);
+    }, 10000); // 10s sync
+
+    return () => clearInterval(interval);
+  }, [selectedBranch, page, debouncedSearch, user?.token]);
 
   useEffect(() => {
     setPage(1);
@@ -368,9 +374,9 @@ const Employees = () => {
      }
    };
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = async (silent: boolean = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const queryParams = new URLSearchParams({
         page: page.toString(),
         limit: PAGE_LIMIT.toString(),
@@ -392,9 +398,9 @@ const Employees = () => {
         setTotalEmployees(data.length);
       }
     } catch (error) {
-      notify('error', 'Error', 'Failed to load staff');
+      if (!silent) notify('error', 'Error', 'Failed to load staff');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 

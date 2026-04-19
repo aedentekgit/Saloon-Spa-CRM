@@ -22,6 +22,8 @@ interface PayrollRecord {
   totalHours: number;
   otHours: number;
   daysWorked: number;
+  leavesCount: number;
+  deduction: number;
   payType: string;
 }
 
@@ -66,8 +68,9 @@ const Payroll = () => {
   const stats = useMemo(() => {
     const total = filteredData.reduce((acc, curr) => acc + curr.totalPay, 0);
     const ot = filteredData.reduce((acc, curr) => acc + curr.otPay, 0);
+    const deductions = filteredData.reduce((acc, curr) => acc + curr.deduction, 0);
     const hours = filteredData.reduce((acc, curr) => acc + curr.totalHours, 0);
-    return { total, ot, hours };
+    return { total, ot, deductions, hours };
   }, [filteredData]);
 
   return (
@@ -78,9 +81,10 @@ const Payroll = () => {
       hideViewToggle
       hideAddButton
     >
-      <div className="flex overflow-x-auto pb-8 gap-6 md:grid md:grid-cols-3 md:gap-8 mb-4 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 w-full">
+      <div className="flex overflow-x-auto pb-8 gap-6 md:grid md:grid-cols-4 md:gap-8 mb-4 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 w-full">
          {[
            { label: 'Payroll Disbursement', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.total.toLocaleString()}`, unit: '', icon: Wallet2, color: 'text-zen-brown', bg: 'bg-zen-brown/[0.03]', watermark: Wallet2 },
+           { label: 'Total Deductions', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.deductions.toLocaleString()}`, unit: '', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/[0.03]', watermark: Clock },
            { label: 'Overtime', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.ot.toLocaleString()}`, unit: '', icon: Zap, color: 'text-red-500', bg: 'bg-red-500/[0.03]', watermark: Zap },
            { label: 'Total Hours', value: `${stats.hours.toLocaleString()}`, unit: 'Hrs', icon: Clock, color: 'text-slate-500', bg: 'bg-slate-500/[0.03]', watermark: Clock }
          ].map((stat, i) => (
@@ -139,15 +143,16 @@ const Payroll = () => {
                     <th>Specialist</th>
                     <th>Protocol</th>
                     <th>Attendance</th>
+                    <th>Exceptions</th>
                     <th>Base Reward</th>
-                    <th>OT Premium</th>
+                    <th>Adjustment</th>
                     <th>Final Payout</th>
                  </tr>
               </thead>
               <tbody>
                  {(!filteredData || filteredData.length === 0) && (
                     <tr>
-                       <td colSpan={7} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">No financial nodes found for this cycle</td>
+                       <td colSpan={8} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">No financial nodes found for this cycle</td>
                     </tr>
                  )}
 
@@ -174,17 +179,31 @@ const Payroll = () => {
                           </div>
                        </td>
                        <td>
+                          <div className="flex flex-col items-center">
+                             <span className={`font-bold text-sm ${row.leavesCount > 0 ? 'text-amber-600' : 'text-zen-brown/20'}`}>
+                                {row.leavesCount} {row.payType === 'Monthly' ? 'Day' : 'Hr'}{row.leavesCount !== 1 ? 's' : ''}
+                             </span>
+                             <span className="text-[7px] font-bold uppercase tracking-widest opacity-40 whitespace-nowrap">Leave Balance</span>
+                          </div>
+                       </td>
+                       <td>
                           <span className="text-sm text-zen-brown/60 font-bold">{settings?.general?.currencySymbol} {row.basePay.toLocaleString()}</span>
                        </td>
                        <td>
-                          <div className="flex flex-col items-center">
-                             <span className="text-sm text-red-500 font-bold">+{settings?.general?.currencySymbol} {row.otPay.toLocaleString()}</span>
-                             <p className="text-[7px] text-red-500/40 uppercase tracking-[0.2em] font-bold">{row.otHours} OT Hrs</p>
+                          <div className="flex flex-col items-center gap-1">
+                             <div className="flex items-center gap-1.5">
+                                <span className={`text-[11px] font-black ${row.deduction > 0 ? 'text-red-500' : 'text-slate-300'}`}>-{settings?.general?.currencySymbol}{row.deduction.toLocaleString()}</span>
+                                <span className={`text-[11px] font-black ${row.otPay > 0 ? 'text-emerald-500' : 'text-slate-300'}`}>+{settings?.general?.currencySymbol}{row.otPay.toLocaleString()}</span>
+                             </div>
+                             <div className="flex items-center gap-4 opacity-30">
+                                <span className="text-[7px] uppercase font-bold tracking-tighter">Penalty</span>
+                                <span className="text-[7px] uppercase font-bold tracking-tighter">Premium</span>
+                             </div>
                           </div>
                        </td>
                        <td>
                           <div className="flex justify-center">
-                             <div className="bg-zen-leaf/5 py-3 px-6 rounded-xl border border-zen-leaf/10 shadow-sm">
+                             <div className="bg-zen-leaf/5 py-2.5 px-5 rounded-xl border border-zen-leaf/10 shadow-sm transition-transform group-hover:scale-105">
                                 <span className="font-black text-zen-leaf text-base tracking-tight">{settings?.general?.currencySymbol} {row.totalPay.toLocaleString()}</span>
                              </div>
                           </div>

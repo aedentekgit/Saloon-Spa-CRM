@@ -28,7 +28,7 @@ const getLeaves = async (req, res) => {
 // @route   POST /api/leaves
 // @access  Private
 const createLeave = async (req, res) => {
-  const { employeeName, type, reason, date } = req.body;
+  const { employeeName, type, reason, startDate, endDate, daysCount } = req.body;
 
   try {
     const leave = await Leave.create({
@@ -36,7 +36,9 @@ const createLeave = async (req, res) => {
       employeeName,
       type,
       reason,
-      date,
+      startDate,
+      endDate,
+      daysCount: daysCount || 1,
       status: 'Pending',
       branch: req.user.branch?._id || req.user.branch || undefined
     });

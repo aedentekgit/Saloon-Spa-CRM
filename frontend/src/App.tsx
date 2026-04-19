@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Context & Providers
@@ -28,12 +28,12 @@ const Rooms = React.lazy(() => import('./pages/resources/Rooms'));
 const Employees = React.lazy(() => import('./pages/resources/Employees'));
 const Attendance = React.lazy(() => import('./pages/operations/Attendance'));
 const Leave = React.lazy(() => import('./pages/operations/Leave'));
+const ApplyLeave = React.lazy(() => import('./pages/operations/ApplyLeave'));
 const Services = React.lazy(() => import('./pages/resources/Services'));
 const Memberships = React.lazy(() => import('./pages/resources/Memberships'));
 const Billing = React.lazy(() => import('./pages/operations/Billing'));
 const Finance = React.lazy(() => import('./pages/operations/Finance'));
 const Inventory = React.lazy(() => import('./pages/resources/Inventory'));
-const GST = React.lazy(() => import('./pages/operations/GST'));
 const WhatsApp = React.lazy(() => import('./pages/config/WhatsApp'));
 const Reports = React.lazy(() => import('./pages/dashboard/Reports'));
 const Settings = React.lazy(() => import('./pages/config/Settings'));
@@ -59,7 +59,7 @@ const Contact = React.lazy(() => import('./pages/landing/Contact'));
 import { ZenLoadingBarrier } from './components/zen/ZenLoading';
 import { useData } from './context/DataContext';
 
-const Layout = ({ children }: { children: React.ReactNode }) => {
+const Layout = () => {
   const { user, loading: authLoading } = useAuth();
   // We don't block the globally on dataLoading anymore as each page handles its own data
   const { loading: dataLoading } = useData(); 
@@ -122,7 +122,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               className="min-h-full w-full rounded-none"
             >
               <ErrorBoundary>
-                {children}
+                <Outlet />
               </ErrorBoundary>
             </motion.div>
           </AnimatePresence>
@@ -152,30 +152,32 @@ const AppRoutes = () => {
         <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
 
         {/* Protected Dashboards */}
-        <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-        <Route path="/clients" element={<Layout><Clients /></Layout>} />
-        <Route path="/appointments" element={<Layout><Appointments /></Layout>} />
-        <Route path="/rooms" element={<Layout><Rooms /></Layout>} />
-        <Route path="/employees" element={<Layout><Employees /></Layout>} />
-        <Route path="/attendance" element={<Layout><Attendance /></Layout>} />
-        <Route path="/leave" element={<Layout><Leave /></Layout>} />
-        <Route path="/services" element={<Layout><Services /></Layout>} />
-        <Route path="/memberships" element={<Layout><Memberships /></Layout>} />
-        <Route path="/billing" element={<Layout><Billing /></Layout>} />
-        <Route path="/finance" element={<Layout><Finance /></Layout>} />
-        <Route path="/inventory" element={<Layout><Inventory /></Layout>} />
-        <Route path="/whatsapp" element={<Layout><WhatsApp /></Layout>} />
-        <Route path="/reports" element={<Layout><Reports /></Layout>} />
-        <Route path="/tax" element={<Layout><GST /></Layout>} />
-        <Route path="/settings" element={<Layout><Settings /></Layout>} />
-        <Route path="/roles" element={<Layout><Roles /></Layout>} />
-        <Route path="/branches" element={<Layout><Branches /></Layout>} />
-        <Route path="/room-categories" element={<Layout><RoomCategories /></Layout>} />
-        <Route path="/service-categories" element={<Layout><ServiceCategories /></Layout>} />
-        <Route path="/admins" element={<Layout><Admins /></Layout>} />
-        <Route path="/payroll" element={<Layout><Payroll /></Layout>} />
-        <Route path="/shifts" element={<Layout><Shifts /></Layout>} />
-        <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/clients" element={<Clients />} />
+          <Route path="/appointments" element={<Appointments />} />
+          <Route path="/rooms" element={<Rooms />} />
+          <Route path="/employees" element={<Employees />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/leave" element={<Leave />} />
+          <Route path="/leave/apply" element={<ApplyLeave />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/memberships" element={<Memberships />} />
+          <Route path="/billing" element={<Billing />} />
+          <Route path="/finance" element={<Finance />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/whatsapp" element={<WhatsApp />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/roles" element={<Roles />} />
+          <Route path="/branches" element={<Branches />} />
+          <Route path="/room-categories" element={<RoomCategories />} />
+          <Route path="/service-categories" element={<ServiceCategories />} />
+          <Route path="/admins" element={<Admins />} />
+          <Route path="/payroll" element={<Payroll />} />
+          <Route path="/shifts" element={<Shifts />} />
+          <Route path="/transactions" element={<Transactions />} />
+        </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -64,7 +64,7 @@ exports.updateSettings = async (req, res) => {
       settings = new Settings();
     }
 
-    const { general, upload, theme, notifications, billing, smtp } = req.body;
+    const { general, upload, theme, notifications, billing, smtp, payroll } = req.body;
 
     if (general) {
       settings.general = { ...settings.general, ...general };
@@ -89,6 +89,10 @@ exports.updateSettings = async (req, res) => {
     if (smtp) {
       settings.smtp = { ...settings.smtp, ...smtp };
       settings.markModified('smtp');
+    }
+    if (payroll) {
+      settings.payroll = { ...settings.payroll, ...payroll };
+      settings.markModified('payroll');
     }
 
     const updatedSettings = await settings.save();
