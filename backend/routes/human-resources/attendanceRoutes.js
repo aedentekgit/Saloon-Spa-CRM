@@ -8,6 +8,8 @@ const {
 } = require('../../controllers/human-resources/attendanceController');
 const { protect } = require('../../middleware/authMiddleware');
 
+router.get('/public', getAttendance);
+
 router.route('/')
   .get(protect, getAttendance)
   .post(protect, markAttendance);

@@ -70,7 +70,7 @@ const Home = () => {
 
             <div className="flex flex-col sm:flex-row gap-6 pt-6">
               <Link 
-                to="/landing-services"
+                to="/book"
                 className="group relative px-10 py-5 bg-zen-brown text-zen-cream rounded-full font-bold overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-sm text-center sm:text-left"
               >
                 <span className="relative z-10 flex items-center justify-center sm:justify-start gap-2 uppercase tracking-widest text-[11px]">

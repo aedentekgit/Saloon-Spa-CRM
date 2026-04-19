@@ -203,24 +203,131 @@ exports.uploadFont = async (req, res) => {
 // @access  Private/Admin
 exports.sendTestNotification = async (req, res) => {
   try {
+    const { token } = req.body;
     const settings = await Settings.findOne();
+    
     if (!settings || !settings.notifications.pushEnabled) {
-      return res.status(400).json({ message: 'Push notifications are disabled' });
+      return res.status(400).json({ message: 'Push notifications are disabled in system configuration.' });
     }
 
-    if (!settings.notifications.fcmToken) {
-      return res.status(400).json({ message: 'No target FCM token set in notifications config' });
+    const targetToken = token || settings.notifications.fcmToken;
+    
+    if (!targetToken) {
+      return res.status(400).json({ message: 'No target device token provided or set in configuration.' });
     }
 
     await sendNotification(
-      settings.notifications.fcmToken,
-      'Zen Spa Test',
-      'The cosmic alignment is complete. Push notifications are active.',
+      targetToken,
+      'Sanctuary Gateway Test',
+      'The cosmic alignment is complete. Push notifications are active and synchronized.',
       { type: 'test' }
     );
     
     res.json({ message: 'Notification delivered to the destination device.' });
   } catch (error) {
     res.status(500).json({ message: `FCM Error: ${error.message}` });
+  }
+};
+
+// @desc    Test SMTP connection
+// @route   POST /api/settings/test-email
+// @access  Private/Admin
+exports.testEmailConnection = async (req, res) => {
+  const { host, port, user, password, fromName, fromEmail, encryption, targetEmail } = req.body;
+
+  if (!host || !user || !password) {
+    return res.status(400).json({ message: 'Required SMTP credentials (host, user, password) are missing for the test.' });
+  }
+
+  try {
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host,
+      port: parseInt(port) || 587,
+      secure: encryption === 'ssl' || parseInt(port) === 465,
+      auth: {
+        user,
+        pass: password
+      },
+      timeout: 10000 // 10 seconds timeout for test
+    });
+
+    // Verify connection configuration
+    await transporter.verify();
+
+    // Send test email
+    const info = await transporter.sendMail({
+      from: `${fromName || 'Sanctuary Gateway'} <${fromEmail || user}>`,
+      to: targetEmail || user,
+      subject: 'Sanctuary SMTP Connection Test',
+      text: 'Greetings. This is a synchronization test from your Saloon & Spa CRM. Your SMTP gateway is now perfectly aligned and operational.'
+    });
+
+    res.json({ message: `Success! Test email dispatched to ${targetEmail || user}.` });
+
+  } catch (error) {
+    console.error('SMTP Test Error:', error);
+    res.status(500).json({ message: `SMTP Failure: ${error.message}` });
+  }
+};
+
+// @desc    Upload & Parse Firebase JSON
+// @route   POST /api/settings/upload-firebase-config
+// @access  Private/Admin
+exports.uploadFirebaseConfig = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    let configData;
+    if (req.file.path.startsWith('http')) {
+      const axios = require('axios');
+      const response = await axios.get(req.file.path);
+      configData = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+    } else {
+      configData = fs.readFileSync(req.file.path, 'utf8');
+    }
+
+    let config;
+    try {
+      config = JSON.parse(configData);
+    } catch (e) {
+      // Handle nested JSON strings if encountered
+      config = JSON.parse(JSON.parse(configData));
+    }
+
+    // Validation: Check if this is a Web Config instead of a Service Account
+    if (!config.private_key && (config.apiKey || config.appId)) {
+      return res.status(400).json({ 
+        message: 'Invalid File Type: You uploaded a Firebase Web SDK Config. Please upload the "Service Account Private Key" JSON generated from the Firebase Console (Settings -> Service Accounts).' 
+      });
+    }
+
+    const mappedConfig = {
+      firebaseProjectId: config.project_id || '',
+      firebaseClientEmail: config.client_email || '',
+      firebasePrivateKey: config.private_key || ''
+    };
+
+    if (!mappedConfig.firebasePrivateKey) {
+      return res.status(400).json({ message: 'Parse Error: No private_key found in the provided JSON. Ensure you generated a Service Account token.' });
+    }
+
+    // Cleanup local file
+    if (!req.file.path.startsWith('http') && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.json({ 
+      message: 'Service credentials synchronized successfully.', 
+      config: mappedConfig 
+    });
+  } catch (error) {
+    if (req.file && !req.file.path.startsWith('http') && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    console.error('Firebase Config Parse Error:', error);
+    res.status(500).json({ message: `Relay Error: ${error.message}` });
   }
 };

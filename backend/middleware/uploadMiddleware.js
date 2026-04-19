@@ -51,7 +51,7 @@ const dynamicStorage = {
             params: {
               folder: 'spa_documents',
               resource_type: 'auto',
-              allowed_formats: ['jpg', 'png', 'jpeg', 'pdf', 'doc', 'docx']
+              allowed_formats: ['jpg', 'png', 'jpeg', 'pdf', 'doc', 'docx', 'json', 'ttf', 'otf', 'woff', 'woff2', 'zip']
             }
           });
           

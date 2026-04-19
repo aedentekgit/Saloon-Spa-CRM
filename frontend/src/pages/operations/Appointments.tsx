@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
-  Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Calendar, 
-  Sparkles, X, User as UserIcon, Search, MapPin
+  Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Calendar, ChevronDown,
+  Sparkles, User as UserIcon, Search, MapPin, Check, X as CloseIcon
 } from 'lucide-react';
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
@@ -26,7 +27,102 @@ interface Appointment {
   time: string;
   room?: string;
   branch?: any;
+  status?: string;
+  cancellationReason?: string;
 }
+
+// ── Rich Staff Dropdown ─────────────────────────────────────────────────────
+const StaffDropdown = ({ staffOptions, rawStaff, rawShifts, value, onChange }: any) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target as Node) &&
+        listRef.current && !listRef.current.contains(e.target as Node)
+      ) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const specialists = (staffOptions || []).filter((s: string) => s !== 'None');
+  const selectedMember = rawStaff?.find((e: any) => e.name === value);
+  const selectedShift = rawShifts?.find((s: any) => s.name === selectedMember?.shift);
+
+  return (
+    <div className="space-y-1 group relative" ref={triggerRef}>
+      <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">Staff member</label>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-1 pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/40 transition-all"
+      >
+        <div className="flex flex-col min-w-0">
+          <span className={`font-serif text-lg truncate ${value && value !== 'None' ? 'text-zen-brown' : 'text-zen-brown/20'}`}>
+            {value && value !== 'None' ? value : 'Select specialist'}
+          </span>
+          {selectedShift && (
+            <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest -mt-0.5">
+              {selectedMember?.designation || 'Specialist'} · {selectedShift.startTime}–{selectedShift.endTime}
+            </span>
+          )}
+        </div>
+        <ChevronDown size={18} className={`text-zen-brown/20 flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+
+      {isOpen && createPortal(
+        <div
+          ref={listRef}
+          className="fixed bg-white border border-zen-brown/15 rounded-[1rem] z-[99999] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden"
+          style={{
+            width: triggerRef.current?.getBoundingClientRect().width || 240,
+            left: triggerRef.current?.getBoundingClientRect().left,
+            top: (triggerRef.current?.getBoundingClientRect().bottom || 0) + 8,
+            maxHeight: 320,
+            overflowY: 'auto'
+          }}
+        >
+          {/* None option */}
+          <div
+            onMouseDown={e => { e.preventDefault(); onChange('None'); setIsOpen(false); }}
+            className={`px-5 py-3 cursor-pointer transition-colors hover:bg-zen-cream/60 border-b border-zen-brown/5 ${!value || value === 'None' ? 'bg-zen-cream/50' : ''}`}
+          >
+            <p className="text-sm font-medium text-zen-brown/40 font-serif">None</p>
+          </div>
+
+          {specialists.map((staffName: string) => {
+            const member = rawStaff?.find((e: any) => e.name === staffName);
+            const shift = rawShifts?.find((s: any) => s.name === member?.shift);
+            const isSelected = value === staffName;
+            return (
+              <div
+                key={staffName}
+                onMouseDown={e => { e.preventDefault(); onChange(staffName); setIsOpen(false); }}
+                className={`px-5 py-4 cursor-pointer transition-all hover:bg-zen-cream/60 border-b border-zen-brown/5 last:border-0 ${isSelected ? 'bg-zen-cream/80' : ''}`}
+              >
+                <p className={`text-sm font-bold font-serif ${isSelected ? 'text-zen-brown' : 'text-zen-brown/80'}`}>{staffName}</p>
+                <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0.5">
+                  {member?.designation || member?.jobTitle || 'Specialist'}
+                  {shift ? ` · ${shift.startTime}–${shift.endTime}` : ''}
+                </p>
+              </div>
+            );
+          })}
+
+          {specialists.length === 0 && (
+            <div className="px-5 py-8 text-center">
+              <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest">No specialists available</p>
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+// ────────────────────────────────────────────────────────────────────────────
 
 const Appointments = () => {
   const { user } = useAuth();
@@ -46,6 +142,11 @@ const Appointments = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_appointment_view') as 'grid' | 'table') || 'grid';
   });
+  
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [aptToCancel, setAptToCancel] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [statusLoading, setStatusLoading] = useState<string | null>(null);
 
   const PAGE_LIMIT = 12;
 
@@ -66,7 +167,8 @@ const Appointments = () => {
     membershipId: '',
     bookingType: 'Normal',
     date: dayjs().format('YYYY-MM-DD'),
-    branch: (user as any)?.branch?._id || (user as any)?.branch || ''
+    branch: (user as any)?.branch?._id || (user as any)?.branch || '',
+    status: 'Confirmed'
   });
 
   const activeMemberships = useMemo(() => {
@@ -346,7 +448,8 @@ const Appointments = () => {
         date: apt.date,
         membershipId: '',
         bookingType: 'Normal',
-        branch: apt.branch?._id || apt.branch || ''
+        branch: apt.branch?._id || apt.branch || '',
+        status: apt.status || 'Confirmed'
       });
     } else {
       setEditingApt(null);
@@ -359,7 +462,8 @@ const Appointments = () => {
         membershipId: '',
         bookingType: 'Normal',
         date: selectedDate.format('YYYY-MM-DD'),
-        branch: (user as any)?.branch?._id || (user as any)?.branch || ''
+        branch: (user as any)?.branch?._id || (user as any)?.branch || '',
+        status: 'Confirmed'
       });
     }
     setIsModalOpen(true);
@@ -406,6 +510,35 @@ const Appointments = () => {
       }
     } catch (error) {
       notify('error', 'Error', 'Action failed');
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, newStatus: string, reason?: string) => {
+    try {
+      setStatusLoading(id);
+      const response = await fetch(`${API_URL}/appointments/${id}/status`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}` 
+        },
+        body: JSON.stringify({ status: newStatus, cancellationReason: reason })
+      });
+
+      if (response.ok) {
+        notify('success', 'Status Synchronized', `Ritual is now ${newStatus}`);
+        setIsCancelModalOpen(false);
+        setCancelReason('');
+        setAptToCancel(null);
+        await fetchAppointments(true);
+      } else {
+        const error = await response.json();
+        notify('error', 'Update Failed', error.message || 'Action failed');
+      }
+    } catch (error) {
+      notify('error', 'Error', 'Connection synchronized incorrectly');
+    } finally {
+      setStatusLoading(null);
     }
   };
 
@@ -523,51 +656,61 @@ const Appointments = () => {
                      </div>
                   ) : (
                      <div className="p-4 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 animate-in fade-in zoom-in duration-1000 pb-20 sm:pb-8">
-                        {filteredAppointments.map((apt) => (
-                           <div key={apt._id} className="group relative bg-white border border-gray-100 p-6 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] transition-all duration-500 hover:border-[color:var(--theme-primary)] hover:shadow-lg hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
-                              <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
-                              
-                              <div className="relative z-10">
-                                  <div className="flex items-center justify-between mb-4 sm:mb-6 gap-4">
-                                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                                       <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-zen-cream border-2 border-white shadow-lg flex flex-col items-center justify-center shrink-0 group-hover:bg-zen-brown group-hover:text-white transition-all duration-500 text-center px-2">
-                                          <p className="text-[7px] sm:text-[8px] font-bold uppercase tracking-widest opacity-40 mb-0.5">Time</p>
-                                          <p className="text-[10px] sm:text-xs font-black leading-[1.1] sm:leading-tight">{apt.time || '--:--'}</p>
-                                       </div>
-                                       <div className="min-w-0">
-                                          <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tighter leading-none group-hover:translate-x-1 transition-transform duration-500 truncate">{apt.client}</h3>
-                                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 truncate">{apt.employee}</p>
-                                       </div>
-                                    </div>
-                                    <div className="flex gap-1.5 sm:gap-2 shrink-0">
-                                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(apt)} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
-                                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => {
-                                          setAptToDelete(apt._id);
-                                          setIsConfirmOpen(true);
-                                       }} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
-                                    </div>
-                                 </div>
+                         {filteredAppointments.map((apt) => (
+                            <div key={apt._id} className="group relative bg-white border border-gray-100 p-6 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] transition-all duration-500 hover:border-[color:var(--theme-primary)] hover:shadow-lg hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
+                               <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
+                               
+                               <div className="relative z-10">
+                                   <div className="flex items-center justify-between mb-4 sm:mb-6 gap-4">
+                                     <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-zen-cream border-2 border-white shadow-lg flex flex-col items-center justify-center shrink-0 group-hover:bg-zen-brown group-hover:text-white transition-all duration-500 text-center px-2">
+                                           <p className="text-[7px] sm:text-[8px] font-bold uppercase tracking-widest opacity-40 mb-0.5">Time</p>
+                                           <p className="text-[10px] sm:text-xs font-black leading-[1.1] sm:leading-tight">{apt.time || '--:--'}</p>
+                                        </div>
+                                        <div className="min-w-0">
+                                           <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tighter leading-none group-hover:translate-x-1 transition-transform duration-500 truncate">{apt.client}</h3>
+                                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 truncate">{apt.employee}</p>
+                                        </div>
+                                     </div>
+                                        <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(apt)} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
+                                        <ZenIconButton icon={Trash2} variant="danger" onClick={() => {
+                                           setAptToDelete(apt._id);
+                                           setIsConfirmOpen(true);
+                                        }} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
+                                     </div>
+                                  </div>
 
-                                 <div className="flex flex-wrap gap-2 mb-4">
-                                    <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-zen-leaf/5 border border-zen-leaf/10 rounded-xl sm:rounded-2xl flex items-center gap-2 group-hover:bg-zen-leaf/10 transition-colors duration-500">
-                                       <Sparkles size={12} className="text-zen-leaf" />
-                                       <span className="text-[10px] sm:text-xs font-serif font-medium text-zen-brown/70">{apt.service}</span>
-                                    </div>
-                                    {apt.room && (
-                                       <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-50/50 border border-indigo-100 rounded-xl sm:rounded-2xl flex items-center gap-2 group-hover:bg-indigo-50 transition-colors duration-500">
-                                          <MapPin size={12} className="text-indigo-400" />
-                                          <span className="text-[10px] sm:text-xs font-serif font-medium text-zen-brown/70">{apt.room}</span>
-                                       </div>
-                                    )}
-                                 </div>
-                              </div>
+                                  <div className="flex flex-wrap gap-2 mb-4">
+                                     <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-zen-leaf/5 border border-zen-leaf/10 rounded-xl sm:rounded-2xl flex items-center gap-2 group-hover:bg-zen-leaf/10 transition-colors duration-500">
+                                        <Sparkles size={12} className="text-zen-leaf" />
+                                        <span className="text-[10px] sm:text-xs font-serif font-medium text-zen-brown/70">{apt.service}</span>
+                                     </div>
+                                     {apt.room && (
+                                        <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-50/50 border border-indigo-100 rounded-xl sm:rounded-2xl flex items-center gap-2 group-hover:bg-indigo-50 transition-colors duration-500">
+                                           <MapPin size={12} className="text-indigo-400" />
+                                           <span className="text-[10px] sm:text-xs font-serif font-medium text-zen-brown/70">{apt.room}</span>
+                                        </div>
+                                     )}
+                                  </div>
 
-                              <div className="relative z-10 pt-4 mt-auto border-t border-zen-brown/15 flex items-center justify-between">
-                                 <p className="text-[8px] font-bold text-zen-brown/10 uppercase tracking-[0.3em]">ID: {apt._id.slice(-6).toUpperCase()}</p>
-                                 <span className="text-[8px] sm:text-[9px] font-bold text-zen-leaf/40 uppercase tracking-widest">{dayjs(apt.date).format('MMM DD')}</span>
-                              </div>
-                           </div>
-                        ))}
+                                  <div className="relative z-10 pt-4 mt-auto border-t border-zen-brown/15 flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                      <p className="text-[8px] font-bold text-zen-brown/10 uppercase tracking-[0.3em]">ID: {apt._id.slice(-6).toUpperCase()}</p>
+                                      <ZenBadge 
+                                        className="!text-[7px] !py-0.5 !px-2 uppercase tracking-widest"
+                                        variant={
+                                          apt.status === 'Confirmed' ? 'leaf' : 
+                                          apt.status === 'Pending' ? 'sand' : 
+                                          apt.status === 'Cancelled' ? 'danger' : 'secondary'
+                                        }
+                                      >
+                                        {apt.status || 'Confirmed'}
+                                      </ZenBadge>
+                                  </div>
+                                  <span className="text-[8px] sm:text-[9px] font-bold text-zen-leaf/40 uppercase tracking-widest">{dayjs(apt.date).format('MMM DD')}</span>
+                               </div>
+                            </div>
+                         ))}
                         {filteredAppointments.length === 0 && (
                            <div className="col-span-full flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px] text-zen-brown/20 space-y-4">
                               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-dashed border-zen-brown/25 flex items-center justify-center">
@@ -589,20 +732,18 @@ const Appointments = () => {
                      <th>S NO</th>
                      <th>Identity</th>
                      <th>Service</th>
-                     <th>Workspace</th>
-                     <th>Time Index</th>
-                     <th>Actions</th>
-                   </tr>
-                 </thead>
+                      <th>Workspace</th>
+                      <th>Time Index</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
                  <tbody className="">
                     {(!filteredAppointments || filteredAppointments.length === 0) && (
-
                        <tr>
-                          <td colSpan={6} className="px-6 py-16 text-center text-[13px] text-gray-400 bg-gray-50/30">No registry data available</td>
+                          <td colSpan={7} className="px-6 py-16 text-center text-[13px] text-gray-400 bg-gray-50/30">No registry data available</td>
                        </tr>
-
                     )}
-
                     {filteredAppointments.map((apt, idx) => (
                        <tr key={apt._id} className="hover:bg-gray-50/50 transition-all group">
                          <td className="px-6 py-6 text-gray-400 font-bold">{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</td>
@@ -624,15 +765,26 @@ const Appointments = () => {
                              <span className="text-[10px] text-gray-400 uppercase tracking-widest">{apt.time}</span>
                            </div>
                          </td>
-                         <td className="px-6 py-6">
-                           <div className="flex items-center justify-center gap-3 transition-all">
-                             <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(apt)} />
-                             <ZenIconButton icon={Trash2} variant="danger" onClick={() => {
-                               setAptToDelete(apt._id);
-                               setIsConfirmOpen(true);
-                             }} />
-                           </div>
-                         </td>
+                          <td className="px-6 py-6">
+                            <ZenBadge 
+                              variant={
+                                apt.status === 'Confirmed' ? 'leaf' : 
+                                apt.status === 'Pending' ? 'sand' : 
+                                apt.status === 'Cancelled' ? 'danger' : 'secondary'
+                              }
+                            >
+                              {apt.status || 'Confirmed'}
+                            </ZenBadge>
+                          </td>
+                          <td className="px-6 py-6">
+                            <div className="flex items-center justify-center gap-2 transition-all">
+                              <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(apt)} />
+                              <ZenIconButton icon={Trash2} variant="danger" onClick={() => {
+                                setAptToDelete(apt._id);
+                                setIsConfirmOpen(true);
+                              }} />
+                            </div>
+                          </td>
                        </tr>
                      ))}
                  </tbody>
@@ -680,9 +832,9 @@ const Appointments = () => {
            </div>
         </div>
       </div>
+   </div>
 
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
 
       {/* Appointment Modal */}
       <Modal
@@ -705,7 +857,7 @@ const Appointments = () => {
                 </p>
               </div>
             </div>
-            <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} size="md" />
+            <ZenIconButton icon={CloseIcon} onClick={() => setIsModalOpen(false)} size="md" />
           </div>
         }
         footer={
@@ -750,7 +902,7 @@ const Appointments = () => {
                   <ZenDropdown
                     label="Branch"
                     options={branchOptions}
-                    value={branches.find(b => b._id === formData.branch)?.name || 'None'}
+                    value={branches?.find(b => b._id === formData.branch)?.name || 'None'}
                     onChange={val => {
                       const b = branches.find(b => b.name === val);
                       setFormData({ ...formData, branch: b?._id || '', employee: '', service: '', room: '', time: '' });
@@ -759,7 +911,7 @@ const Appointments = () => {
                 ) : (
                   <div className="rounded-2xl border border-dashed border-zen-brown/15 bg-zen-cream/20 p-5 flex flex-col justify-center">
                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mb-1">Assigned branch</p>
-                    <p className="text-sm font-semibold text-zen-brown">{branches.find(b => b._id === formData.branch)?.name || 'Central branch'}</p>
+                    <p className="text-sm font-semibold text-zen-brown">{branches?.find(b => b._id === formData.branch)?.name || 'Central branch'}</p>
                   </div>
                 )}
                 <ZenDatePicker
@@ -829,76 +981,132 @@ const Appointments = () => {
               </div>
             )}
 
+            {/* ── Service & Room Row ─────────────────────────────────────── */}
             <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Service assignment</p>
-                  <h4 className="mt-1 text-lg font-semibold text-zen-brown">Select service, staff, room, and time</h4>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 justify-end">
-                  {formData.employee && formData.employee !== 'None' && (
-                    <span className="text-[10px] font-bold text-zen-leaf/60 uppercase tracking-[0.2em]">
-                      {rawShifts.find(s => s.name === rawStaff.find(e => e.name === formData.employee)?.shift)?.startTime ?? '--:--'} - {rawShifts.find(s => s.name === rawStaff.find(e => e.name === formData.employee)?.shift)?.endTime ?? '--:--'}
-                    </span>
-                  )}
-                  {formData.room && formData.room !== 'None' && (
-                    <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.2em]">
-                      Cleaning: {rawRooms.find(r => r.name === formData.room)?.cleaningDuration || 0}m
-                    </span>
-                  )}
-                </div>
+              <div className="mb-6">
+                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Service assignment</p>
+                <h4 className="mt-1 text-lg font-semibold text-zen-brown">Select service, specialist &amp; room</h4>
               </div>
-
-              <div className="grid gap-5 lg:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-3">
                 <ZenDropdown label="Service" options={serviceOptions} value={formData.service || 'None'} onChange={val => setFormData({ ...formData, service: val })} />
-                <ZenDropdown label="Staff member" options={staffOptions} value={formData.employee || 'None'} onChange={val => setFormData({ ...formData, employee: val })} />
+
+                {/* Rich specialist dropdown */}
+                <StaffDropdown
+                  staffOptions={staffOptions}
+                  rawStaff={rawStaff}
+                  rawShifts={rawShifts}
+                  value={formData.employee}
+                  onChange={val => setFormData({ ...formData, employee: val, time: '' })}
+                />
+
                 <ZenDropdown label="Room" options={roomOptions} value={formData.room || 'None'} onChange={val => setFormData({ ...formData, room: val })} />
               </div>
+              {formData.room && formData.room !== 'None' && (
+                <p className="mt-3 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">
+                  Cleaning buffer: {rawRooms.find(r => r.name === formData.room)?.cleaningDuration || 0} min
+                </p>
+              )}
             </div>
 
+            {/* ── Available Windows ─────────────────────────────────────── */}
             <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Availability</p>
                   <h4 className="mt-1 text-lg font-semibold text-zen-brown">Choose a time slot</h4>
                 </div>
-                <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.25em]">
-                  {availableSlots.length} slots available
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 gap-3 sm:gap-4">
-                {availableSlots.map((slot) => (
-                  <button
-                    key={slot.time}
-                    type="button"
-                    disabled={slot.isBooked}
-                    onClick={() => setFormData({ ...formData, time: slot.time })}
-                    className={`py-3 px-1 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black transition-all duration-300 border ${
-                      formData.time === slot.time
-                        ? 'bg-zen-brown text-white border-zen-brown shadow-lg scale-105'
-                        : slot.isBooked
-                          ? 'bg-zen-cream/10 text-zen-brown/10 border-zen-brown/15 cursor-not-allowed line-through'
-                          : 'bg-white text-zen-brown/60 border-zen-brown/25 hover:border-zen-brown hover:text-zen-brown'
-                    }`}
-                  >
-                    {slot.display}
-                  </button>
-                ))}
-                {availableSlots.length === 0 && (
-                  <div className="col-span-full py-10 bg-zen-cream/20 rounded-[1.5rem] border border-dashed border-zen-brown/15 flex flex-col items-center justify-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-zen-brown/5 flex items-center justify-center text-zen-brown/20">
-                      <Calendar size={18} />
-                    </div>
-                    <p className="text-[10px] font-bold text-zen-brown/25 uppercase tracking-[0.3em] text-center px-10 leading-relaxed">
-                      {(!formData.employee || formData.employee === 'None' || !formData.room || formData.room === 'None')
-                        ? 'Select staff and room to reveal available time slots.'
-                        : 'No time slots are available for this combination.'}
-                    </p>
-                  </div>
+                {availableSlots.length > 0 && (
+                  <span className="text-[10px] font-bold text-zen-leaf/60 uppercase tracking-[0.2em]">
+                    {availableSlots.filter(s => !s.isBooked).length} free slots
+                  </span>
                 )}
               </div>
+
+              {!formData.employee || formData.employee === 'None' ? (
+                <div className="py-10 rounded-2xl border border-dashed border-zen-brown/10 bg-zen-cream/20 flex flex-col items-center justify-center gap-3 text-zen-brown/20">
+                  <UserIcon size={26} strokeWidth={1} />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-center px-8">Select a specialist to view availability</p>
+                </div>
+              ) : !formData.room || formData.room === 'None' ? (
+                <div className="py-10 rounded-2xl border border-dashed border-zen-brown/10 bg-zen-cream/20 flex flex-col items-center justify-center gap-3 text-zen-brown/20">
+                  <MapPin size={22} strokeWidth={1} />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-center px-8">Select a room to see time slots</p>
+                </div>
+              ) : availableSlots.length === 0 ? (
+                <div className="py-10 rounded-2xl border border-dashed border-zen-brown/10 bg-zen-cream/20 flex flex-col items-center justify-center gap-3 text-zen-brown/20">
+                  <Calendar size={22} strokeWidth={1} />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-center px-8">No slots available for this combination</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 gap-3 sm:gap-4">
+                  {availableSlots.map(slot => (
+                    <button
+                      key={slot.time}
+                      type="button"
+                      disabled={slot.isBooked}
+                      onClick={() => setFormData({ ...formData, time: slot.time })}
+                      className={`py-3 px-1 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black transition-all duration-300 border ${
+                        formData.time === slot.time
+                          ? 'bg-zen-brown text-white border-zen-brown shadow-lg scale-105'
+                          : slot.isBooked
+                            ? 'bg-zen-cream/10 text-zen-brown/10 border-zen-brown/15 cursor-not-allowed line-through'
+                            : 'bg-white text-zen-brown/60 border-zen-brown/25 hover:border-zen-brown hover:text-zen-brown'
+                      }`}
+                    >
+                      {slot.display}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+            {editingApt && (user?.role === 'Admin' || user?.role === 'Manager') && (
+              <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
+                <div className="flex items-start justify-between gap-4 mb-8">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Administrative protocol</p>
+                    <h4 className="mt-1 text-lg font-semibold text-zen-brown">Ritual status & lifecycle</h4>
+                  </div>
+                  <ZenBadge variant={formData.status === 'Confirmed' ? 'leaf' : formData.status === 'Pending' ? 'sand' : formData.status === 'Cancelled' ? 'danger' : 'secondary'}>
+                    {formData.status}
+                  </ZenBadge>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[
+                    { id: 'Pending', label: 'Pending Approval', sub: 'Awaiting review', icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', active: 'bg-amber-100 border-amber-300 ring-2 ring-amber-500/20' },
+                    { id: 'Confirmed', label: 'Approve Ritual', sub: 'Confirmed & active', icon: Check, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', active: 'bg-emerald-100 border-emerald-300 ring-2 ring-emerald-500/20' },
+                    { id: 'Cancelled', label: 'Cancel Session', sub: 'Voided record', icon: CloseIcon, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', active: 'bg-rose-100 border-rose-300 ring-2 ring-rose-500/20' }
+                   ].map((s) => {
+                    const Icon = s.icon;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          if (s.id === 'Cancelled' && editingApt) {
+                            setAptToCancel(editingApt._id);
+                            setIsCancelModalOpen(true);
+                          } else {
+                            setFormData({ ...formData, status: s.id });
+                          }
+                        }}
+                        className={`flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 text-left ${
+                          formData.status === s.id ? s.active : `${s.bg} ${s.border} hover:scale-[1.02]`
+                        }`}
+                      >
+                        <div className={`w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm ${s.color}`}>
+                          <Icon size={20} />
+                        </div>
+                        <div>
+                          <p className={`text-xs font-bold ${s.color}`}>{s.label}</p>
+                          <p className="text-[10px] text-gray-400 font-medium">{s.sub}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
          </form>
       </Modal>
 
@@ -911,6 +1119,35 @@ const Appointments = () => {
         confirmText="Archive"
         cancelText="Preserve"
       />
+
+      <Modal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        header={
+          <div className="px-8 py-6">
+            <h3 className="text-xl font-bold text-gray-900">Cancellation Protocol</h3>
+            <p className="text-xs text-gray-400 mt-1 uppercase tracking-widest">Provide a reason for cancelling this ritual</p>
+          </div>
+        }
+        footer={
+           <div className="flex justify-end gap-3">
+              <ZenButton variant="secondary" onClick={() => setIsCancelModalOpen(false)}>Back</ZenButton>
+              <ZenButton variant="primary" onClick={() => handleUpdateStatus(aptToCancel!, 'Cancelled', cancelReason)} disabled={!cancelReason || statusLoading === aptToCancel}>
+                 {statusLoading === aptToCancel ? 'Processing...' : 'Confirm Cancellation'}
+              </ZenButton>
+           </div>
+        }
+      >
+         <div className="p-2">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Reason for Cancellation</label>
+            <textarea
+               className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm font-medium focus:ring-1 focus:ring-zen-sand outline-none transition-all min-h-[120px]"
+               placeholder="Why is this appointment being cancelled? (e.g., Client request, Schedule conflict...)"
+               value={cancelReason}
+               onChange={(e) => setCancelReason(e.target.value)}
+            />
+         </div>
+      </Modal>
     </ZenPageLayout>
   );
 };

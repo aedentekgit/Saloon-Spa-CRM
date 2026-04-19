@@ -175,58 +175,56 @@ const Finance = () => {
         </div>
 
         {/* Global Filter Bar */}
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm">
-          <div className="flex flex-col lg:flex-row gap-8 items-end">
-             <div className="flex-1 w-full flex flex-col gap-3">
-                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Registry Search</label>
-                <div className="relative group">
-                   <span className="absolute left-6 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors">
-                     <Filter size={16} />
-                   </span>
-                   <input 
-                     type="text"
-                     placeholder="Transactions are logged chronologically..."
-                     disabled
-                     className="w-full pl-14 pr-6 py-3.5 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm opacity-50"
-                   />
-                </div>
-             </div>
+        <div className="flex flex-col lg:flex-row gap-8 items-end px-2">
+           <div className="flex-1 w-full flex flex-col gap-3">
+              <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Registry Search</label>
+              <div className="relative group">
+                 <span className="absolute left-6 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors">
+                   <Filter size={16} />
+                 </span>
+                 <input 
+                   type="text"
+                   placeholder="Transactions are logged chronologically..."
+                   disabled
+                   className="w-full pl-14 pr-6 py-3.5 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm opacity-50"
+                 />
+              </div>
+           </div>
 
-             <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
-                <div className="flex items-center gap-4">
-                   <div className="flex flex-col gap-3">
-                      <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
-                      <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner">
-                         <button 
-                           onClick={() => setViewMode('grid')}
-                           className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                         >
-                           <Grid size={16} />
-                         </button>
-                         <button 
-                           onClick={() => setViewMode('table')}
-                           className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                         >
-                           <List size={16} />
-                         </button>
-                      </div>
-                   </div>
-                </div>
+           <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
+              <div className="flex items-center gap-4">
+                 <div className="flex flex-col gap-3">
+                    <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
+                    <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner">
+                       <button 
+                         onClick={() => setViewMode('grid')}
+                         className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
+                       >
+                         <Grid size={16} />
+                       </button>
+                       <button 
+                         onClick={() => setViewMode('table')}
+                         className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
+                       >
+                         <List size={16} />
+                       </button>
+                    </div>
+                 </div>
+              </div>
 
-                <div className="flex flex-col gap-3 w-full lg:w-auto">
-                   <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Management</label>
-                   <ZenButton onClick={() => setIsModalOpen(true)} variant="primary" className="w-full sm:w-auto px-8 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
-                      <Plus size={16} className="group-hover:rotate-12 transition-transform duration-500" />
-                      <span className="uppercase tracking-[0.2em] text-[10px] font-black">Log Expenditure</span>
-                   </ZenButton>
-                </div>
-             </div>
-          </div>
+              <div className="flex flex-col gap-3 w-full lg:w-auto">
+                 <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Management</label>
+                 <ZenButton onClick={() => setIsModalOpen(true)} variant="primary" className="w-full sm:w-auto px-8 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
+                    <Plus size={16} className="group-hover:rotate-12 transition-transform duration-500" />
+                    <span className="uppercase tracking-[0.2em] text-[10px] font-black">Log Expenditure</span>
+                 </ZenButton>
+              </div>
+           </div>
         </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 font-sans">
         {/* Left Side: Chart */}
-        <div className="w-full bg-white p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col overflow-hidden hover:-translate-y-1 hover:shadow-[0_10px_30px_rgb(0,0,0,0.08)] hover:border-[color:var(--theme-primary)] transition-all duration-300">
+        <div className="w-full flex flex-col transition-all duration-300">
            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 z-10 relative">
               <div>
                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">Financial Status</h3>
@@ -288,8 +286,9 @@ const Finance = () => {
         </div>
 
         {/* Right Side: List */}
-        <div className="w-full bg-white p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col h-full min-h-[500px] overflow-hidden hover:-translate-y-1 hover:shadow-[0_10px_30px_rgb(0,0,0,0.08)] hover:border-[color:var(--theme-primary)] transition-all duration-300">
-           <div className="flex justify-between items-center bg-white sticky top-0 z-10 mb-6 border-b border-gray-100 pb-4">
+        {/* Right Side: List */}
+        <div className="w-full flex flex-col h-full min-h-[500px] transition-all duration-300">
+           <div className="flex justify-between items-center bg-[#F9FAFB]/80 backdrop-blur-md sticky top-0 z-10 mb-6 border-b border-gray-100 pb-4">
               <div>
                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Activity</h3>
                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Combined Transaction Registry</p>

@@ -52,7 +52,14 @@ const settingsSchema = new mongoose.Schema({
     user: { type: String, default: '' },
     password: { type: String, default: '' },
     fromName: { type: String, default: '' },
-    fromEmail: { type: String, default: '' }
+    fromEmail: { type: String, default: '' },
+    encryption: { type: String, enum: ['ssl', 'tls', 'none'], default: 'tls' }
+  },
+  whatsapp: {
+    instanceId: { type: String },
+    token: { type: String },
+    provider: { type: String, default: 'ultramsg' },
+    enabled: { type: Boolean, default: false }
   },
   payroll: {
     type: { type: String, enum: ['Monthly', 'Hourly'], default: 'Monthly' },

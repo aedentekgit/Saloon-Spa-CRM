@@ -8,6 +8,9 @@ const {
 } = require('../../controllers/human-resources/shiftController');
 const { protect, admin } = require('../../middleware/authMiddleware');
 
+router.route('/public')
+  .get(getShifts);
+
 router.route('/')
   .get(protect, getShifts)
   .post(protect, createShift);

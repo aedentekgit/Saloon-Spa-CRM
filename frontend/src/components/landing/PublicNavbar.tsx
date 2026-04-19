@@ -98,7 +98,7 @@ const PublicNavbar = () => {
               Portal
             </Link>
             <Link
-              to="/contact"
+              to="/book"
               className="inline-flex items-center gap-2 rounded-full bg-zen-primary px-6 py-2.5 text-[10px] font-bold uppercase tracking-[0.24em] text-zen-contrast transition-colors hover:bg-black"
             >
               Book Now
@@ -202,7 +202,7 @@ const PublicNavbar = () => {
                   Portal Access
                 </Link>
                 <Link
-                  to="/contact"
+                  to="/book"
                   onClick={() => setIsOpen(false)}
                   className="w-full rounded-2xl bg-zen-primary py-6 text-center text-[11px] font-bold uppercase tracking-[0.3em] text-zen-contrast active:scale-[0.98] transition-all shadow-2xl shadow-zen-primary/30"
                 >

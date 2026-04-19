@@ -3,6 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { Bell, ChevronLeft, ChevronRight, Settings, LogOut, UserRound } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
+import { notify } from '../../components/shared/ZenNotification';
 import { motion, AnimatePresence } from 'motion/react';
 
 const Navbar = ({ 
@@ -17,17 +18,73 @@ const Navbar = ({
   const { user, logout } = useAuth();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotifOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+  
+  const fetchNotifications = async () => {
+    try {
+      const response = await fetch(`${API_URL}/notifications`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const data = await response.json();
+      setNotifications(data);
+    } catch (e) {
+      console.error('Failed to fetch notifications');
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 20000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const handleClearAll = async () => {
+    try {
+      await fetch(`${API_URL}/notifications`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      setNotifications([]);
+      notify('info', 'Clean Slate', 'All notifications have been cleared.');
+    } catch (e) {
+      notify('error', 'Action Failed', 'Could not clear notifications.');
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    try {
+      await fetch(`${API_URL}/notifications/${id}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+    } catch (e) {
+       // Silently fail
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -78,11 +135,72 @@ const Navbar = ({
       <div className="flex items-center gap-2 sm:gap-4">
         
         {/* Helper Icons */}
-        <div className="flex items-center gap-1 mr-2 text-slate-400">
-           <button className="relative p-2 hover:text-slate-900 transition-colors hover:bg-gray-50 rounded-lg">
+        <div className="relative" ref={notifRef}>
+           <button 
+              onClick={() => setIsNotifOpen(!isNotifOpen)}
+              className={`relative p-2 transition-all rounded-lg ${isNotifOpen ? 'bg-zen-cream text-zen-sand' : 'text-slate-400 hover:text-slate-900 hover:bg-gray-50'}`}
+           >
               <Bell size={18} />
-              <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+              {unreadCount > 0 && (
+                 <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
+              )}
            </button>
+
+           <AnimatePresence>
+             {isNotifOpen && (
+               <motion.div
+                 initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                 animate={{ opacity: 1, y: 0, scale: 1 }}
+                 exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                 className="absolute right-0 mt-3 w-80 bg-white rounded-3xl border border-gray-100 shadow-2xl overflow-hidden z-[60]"
+               >
+                  <div className="p-6 pb-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+                     <h4 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-900">Notifications</h4>
+                     {notifications.length > 0 && (
+                        <button 
+                           onClick={handleClearAll}
+                           className="text-[10px] font-bold text-zen-sand hover:underline"
+                        >
+                           Clear all
+                        </button>
+                     )}
+                  </div>
+                  <div className="max-h-[350px] overflow-y-auto scrollbar-hide py-2">
+                     {notifications.length === 0 ? (
+                        <div className="py-12 px-6 text-center">
+                           <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
+                              <Bell size={20} strokeWidth={1} />
+                           </div>
+                           <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Your sanctuary is quiet</p>
+                           <p className="text-[10px] text-slate-300 mt-1">No new updates right now.</p>
+                        </div>
+                     ) : (
+                        notifications.map((notif) => (
+                           <div 
+                              key={notif._id} 
+                              onClick={() => markAsRead(notif._id)}
+                              className={`px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer group ${!notif.isRead ? 'bg-slate-50/30' : ''}`}
+                           >
+                              <div className="flex items-start gap-3">
+                                 <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${notif.isRead ? 'bg-transparent border border-slate-200' : 'bg-zen-sand'}`} />
+                                 <div className="flex-1">
+                                    <div className="flex justify-between items-center bg">
+                                       <p className="text-xs font-bold text-slate-900 leading-tight">{notif.title}</p>
+                                       <span className="text-[8px] font-bold text-slate-400 uppercase">{new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">{notif.message}</p>
+                                 </div>
+                              </div>
+                           </div>
+                        ))
+                     )}
+                  </div>
+                  <div className="p-4 border-t border-gray-50 text-center">
+                     <button className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors">View all updates</button>
+                  </div>
+               </motion.div>
+             )}
+           </AnimatePresence>
         </div>
 
 

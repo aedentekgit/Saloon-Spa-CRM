@@ -55,6 +55,7 @@ const LandingServices = React.lazy(() => import('./pages/landing/LandingServices
 const LandingRooms = React.lazy(() => import('./pages/landing/LandingRooms'));
 const OurTeam = React.lazy(() => import('./pages/landing/OurTeam'));
 const Contact = React.lazy(() => import('./pages/landing/Contact'));
+const BookAppointment = React.lazy(() => import('./pages/landing/BookAppointment'));
 
 import { ZenLoadingBarrier } from './components/zen/ZenLoading';
 import { useData } from './context/DataContext';
@@ -147,6 +148,7 @@ const AppRoutes = () => {
         <Route path="/landing-rooms" element={<PublicLayout><LandingRooms /></PublicLayout>} />
         <Route path="/team" element={<PublicLayout><OurTeam /></PublicLayout>} />
         <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+        <Route path="/book" element={<BookAppointment />} />
         
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />

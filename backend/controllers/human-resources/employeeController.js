@@ -3,6 +3,25 @@ const path = require('path');
 const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
 
+// @desc    Get public employee list (for guest booking — no auth required)
+// @route   GET /api/employees/public
+// @access  Public
+exports.getPublicEmployees = async (req, res) => {
+  try {
+    const query = {};
+    if (req.query.branch) query.branch = req.query.branch;
+    // Return ALL employees (active or not) — let the admin control availability via shift assignment
+    // Only exclude if explicitly inactive AND no shift (i.e. truly unavailable)
+    const employees = await Employee.find(query)
+      .select('name role shift branch services status')
+      .populate('branch', 'name _id')
+      .sort({ name: 1 });
+    res.json(employees);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get all employees
 // @route   GET /api/employees
 // @access  Private

@@ -20,12 +20,13 @@ import {
   Activity,
   Info,
   Check,
-  CheckCircle2,
   Percent,
   Trash2,
   Edit2,
   BadgeDollarSign,
-  Plus
+  Plus,
+  MessageSquare,
+  Layout
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
@@ -68,6 +69,12 @@ interface SettingsData {
     bodyFont: string;
     darkMode: boolean;
   };
+  whatsapp: {
+    instanceId: string;
+    token: string;
+    provider: string;
+    enabled: boolean;
+  };
   notifications: {
     pushEnabled: boolean;
     fcmToken?: string;
@@ -92,6 +99,7 @@ interface SettingsData {
     password: string;
     fromName: string;
     fromEmail: string;
+    encryption: 'ssl' | 'tls' | 'none';
   };
   payroll: {
     type: 'Monthly' | 'Hourly';
@@ -107,7 +115,7 @@ interface GSTRate {
   isActive: boolean;
 }
 
-type SettingsSection = 'foundations' | 'storage' | 'visuals' | 'alerts' | 'smtp' | 'payroll' | 'tax';
+type SettingsSection = 'foundations' | 'storage' | 'visuals' | 'alerts' | 'smtp' | 'whatsapp' | 'payroll' | 'tax' | 'appearance';
 
 const Settings = () => {
   const { user } = useAuth();
@@ -126,6 +134,7 @@ const Settings = () => {
   const [taxConfirmState, setTaxConfirmState] = useState({ isOpen: false, id: '' });
   const [taxLoading, setTaxLoading] = useState(false);
   const [fontConfigMode, setFontConfigMode] = useState<'heading' | 'body'>('heading');
+  const [testTargetEmail, setTestTargetEmail] = useState('');
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -245,8 +254,9 @@ const Settings = () => {
         general: data?.general || { siteName: '', email: '', contactNumber: '', address: '', country: '', countryIso: '', dialingCode: '', currency: '', currencySymbol: '', dateTimeFormat: '', logo: '' },
         theme: data?.theme || { primaryColor: '', darkMode: false, headingFont: '', bodyFont: '' },
         upload: data?.upload || { provider: 'local', cloudinaryCloudName: '', cloudinaryApiKey: '', cloudinaryApiSecret: '' },
+        whatsapp: data?.whatsapp || { instanceId: '', token: '', provider: 'ultramsg', enabled: false },
         notifications: data?.notifications || { pushEnabled: false },
-        smtp: data?.smtp || { host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '' },
+        smtp: data?.smtp || { host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '', encryption: 'tls' },
         payroll: data?.payroll || { type: 'Monthly', allowedPaidLeaves: 1.5, allowedPaidHours: 12 }
       };
       
@@ -264,6 +274,17 @@ const Settings = () => {
       document.documentElement.style.setProperty('--zen-primary', settings.theme.primaryColor);
     }
   }, [settings?.theme?.primaryColor]);
+
+  useEffect(() => {
+    if (settings?.smtp?.port) {
+       const port = parseInt(settings.smtp.port.toString());
+       if (port === 465 && settings.smtp.encryption !== 'ssl') {
+          setSettings(prev => prev ? {...prev, smtp: {...prev.smtp!, encryption: 'ssl'}} : null);
+       } else if (port === 587 && settings.smtp.encryption !== 'tls') {
+          setSettings(prev => prev ? {...prev, smtp: {...prev.smtp!, encryption: 'tls'}} : null);
+       }
+    }
+  }, [settings?.smtp?.port]);
 
   useEffect(() => {
     const injectFont = (name: string, url: string) => {
@@ -374,6 +395,34 @@ const Settings = () => {
     }
   };
 
+  const handleTestSMTP = async () => {
+    if (!settings?.smtp) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/settings/test-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        body: JSON.stringify({
+          ...settings.smtp,
+          targetEmail: testTargetEmail || user?.email
+        })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        notify('success', 'Test Successful', data.message);
+      } else {
+        notify('error', 'Test Failed', data.message);
+      }
+    } catch (error) {
+      notify('error', 'Network Error', 'Failed to reach SMTP diagnostic relay.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading || !settings) {
     return (
       <div className="flex items-center justify-center min-h-[600px]">
@@ -393,6 +442,7 @@ const Settings = () => {
     { id: 'payroll', name: 'Payroll & Leave', icon: Clock, sub: 'Leave Thresholds' },
     { id: 'tax', name: 'Tax Protocol', icon: Percent, sub: 'Fiscal Configuration' },
     { id: 'smtp', name: 'SMTP', icon: ShieldCheck, sub: 'Outbound Configuration' },
+    { id: 'whatsapp', name: 'WhatsApp Gateway', icon: MessageSquare, sub: 'Customer Messaging' },
     { id: 'alerts', name: 'Notification', icon: Bell, sub: 'System Alerts' },
     { id: 'storage', name: 'Storage', icon: Cloud, sub: 'File Management' },
     { id: 'visuals', name: 'Appearance', icon: Palette, sub: 'Interface Styling' },
@@ -783,7 +833,7 @@ const Settings = () => {
                                        <HardDrive size={36} strokeWidth={1} />
                                     </div>
                                     <div>
-                                       <h4 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Local Filesystem</h4>
+                                       <h4 className="text-2xl font-serif font-bold text-zen-brown">Local Filesystem</h4>
                                        <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mt-1">Documents are stored in your private workspace.</p>
                                     </div>
                                  </motion.div>
@@ -821,121 +871,244 @@ const Settings = () => {
                   )}
 
                    {activeSection === 'alerts' && (
-                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
-                         <div className="xl:col-span-12 bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
-                            <header className="mb-12 relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
-                               <div>
-                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">System Notifications</h3>
-                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Manage communication channels and Firebase dispatch.</p>
-                               </div>
-                               <div className="flex items-center gap-6 p-4 bg-zen-cream/30 rounded-3xl border border-zen-brown/10 backdrop-blur-md">
-                                  <div className="flex flex-col items-end">
-                                     <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">System Status</p>
-                                     <p className="text-sm font-serif font-bold text-zen-sand">{settings.notifications.pushEnabled ? 'Active Relay' : 'Standby Mode'}</p>
-                                  </div>
-                                  <button 
-                                     onClick={() => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, pushEnabled: !prev.notifications.pushEnabled}} : null)}
-                                     className={`w-16 h-8 rounded-full flex items-center px-1 transition-all duration-500 ${settings.notifications.pushEnabled ? 'bg-zen-sand shadow-[0_0_20px_rgba(234,179,8,0.4)]' : 'bg-zen-brown/10'}`}
-                                  >
-                                     <motion.div layout className="w-6 h-6 rounded-full bg-white shadow-sm" animate={{ x: settings.notifications.pushEnabled ? 32 : 0 }} />
-                                  </button>
-                               </div>
-                            </header>
-
-                            <div className="space-y-12 relative z-10">
-                               {/* Section: Firebase Setup */}
-                               <div className={`transition-all duration-700 ${settings.notifications.pushEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-                                  <div className="flex items-center gap-4 mb-10 pb-4 border-b border-zen-brown/10">
-                                     <Zap size={20} className="text-zen-sand" />
-                                     <h4 className="text-xl font-serif font-bold text-zen-brown tracking-tight uppercase">Firebase Configuration</h4>
-                                  </div>
-
-                                  <div className="space-y-12">
-                                     {/* Step 1: Client Connectivity */}
-                                     <div>
-                                        <div className="flex items-center gap-3 mb-8">
-                                           <div className="w-8 h-8 rounded-xl bg-zen-cream flex items-center justify-center text-zen-sand text-[10px] font-black border border-zen-brown/10">01</div>
-                                           <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[.3em]">Client Connectivity (Web SDK)</p>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                           <ZenInput label="API Key" value={settings.notifications.firebaseApiKey || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseApiKey: e.target.value}} : null)} />
-                                           <ZenInput label="Auth Domain" value={settings.notifications.firebaseAuthDomain || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseAuthDomain: e.target.value}} : null)} />
-                                           <ZenInput label="Project ID" value={settings.notifications.firebaseProjectId || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseProjectId: e.target.value}} : null)} />
-                                           <ZenInput label="Storage Bucket" value={settings.notifications.firebaseStorageBucket || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseStorageBucket: e.target.value}} : null)} />
-                                           <ZenInput label="Messaging Sender ID" value={settings.notifications.firebaseMessagingSenderId || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseMessagingSenderId: e.target.value}} : null)} />
-                                           <ZenInput label="App ID" value={settings.notifications.firebaseAppId || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseAppId: e.target.value}} : null)} />
-                                        </div>
-                                        <div className="mt-8">
-                                            <ZenInput label="VAPID Public Key" placeholder="BExXx..." value={settings.notifications.firebaseVapidKey || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseVapidKey: e.target.value}} : null)} />
-                                        </div>
-                                     </div>
-
-                                     {/* Step 2: Server Authorization */}
-                                     <div>
-                                        <div className="flex items-center gap-3 mb-8">
-                                           <div className="w-8 h-8 rounded-xl bg-zen-cream flex items-center justify-center text-zen-sand text-[10px] font-black border border-zen-brown/10">02</div>
-                                           <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[.3em]">Server Authorization (Admin SDK)</p>
-                                        </div>
-                                        <div className="space-y-8">
-                                           <ZenInput label="Service Client Email" value={settings.notifications.firebaseClientEmail || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseClientEmail: e.target.value}} : null)} />
-                                           <ZenTextarea label="Private Key" placeholder="-----BEGIN PRIVATE KEY-----" value={settings.notifications.firebasePrivateKey || ''} onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebasePrivateKey: e.target.value}} : null)} />
-                                        </div>
-                                     </div>
-
-                                     {/* Test Signal Block */}
-                                     <div className="p-8 bg-zen-cream/20 rounded-3xl border border-zen-brown/10 flex flex-col sm:flex-row items-center justify-between gap-6">
-                                        <div className="flex items-center gap-6">
-                                           <div className="p-4 bg-white text-zen-sand rounded-2xl shadow-sm border border-zen-brown/5"><Activity size={24} /></div>
-                                           <div>
-                                              <p className="text-lg font-serif font-bold text-zen-brown">Connection Status</p>
-                                              <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Verify configuration integrity</p>
-                                           </div>
-                                        </div>
-                                        <div className="flex items-center gap-4 w-full sm:w-auto">
-                                           <input 
-                                              type="text" 
-                                              placeholder="Target Device Token" 
-                                              className="bg-white border border-zen-brown/10 rounded-xl px-4 py-2.5 text-xs text-zen-brown focus:outline-none focus:ring-4 focus:ring-zen-sand/5 w-full sm:w-64 transition-all"
-                                              value={settings.notifications.fcmToken || ''}
-                                              onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, fcmToken: e.target.value}} : null)}
-                                           />
-                                           <button 
-                                              onClick={async () => {
-                                                 try {
-                                                    const res = await fetch(`${API_URL}/settings/test-notification`, {
-                                                       headers: { 'Authorization': `Bearer ${user?.token}` }
-                                                    });
-                                                    const data = await res.json();
-                                                    if (res.ok) notify('success', 'Signal Sent', data.message);
-                                                    else notify('error', 'Signal Failed', data.message);
-                                                 } catch (e) {
-                                                    notify('error', 'Network Error', 'Could not reach cosmic relay.');
-                                                 }
-                                              }}
-                                              className="bg-zen-brown text-white px-8 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-zen-sand transition-all shadow-lg whitespace-nowrap"
-                                           >
-                                              Test Signal
-                                           </button>
-                                        </div>
-                                     </div>
-                                  </div>
-                               </div>
-
-                               {/* Section: Save Area */}
-                               <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
-                                  <ZenButton 
-                                     onClick={() => handleSave('notifications')} 
-                                     disabled={saving}
-                                     className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
-                                  >
-                                     <Save className="mr-2" size={20} />
-                                     Update Logic
-                                  </ZenButton>
-                               </footer>
+                      <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                         <header className="mb-12 relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
+                            <div>
+                               <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Notification</h3>
+                               <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Manage communication channels and Firebase dispatch.</p>
                             </div>
-                         </div>
-                      </div>
-                   )}
+                            <div className="flex items-center gap-6 p-4 bg-zen-cream/30 rounded-3xl border border-zen-brown/10 backdrop-blur-md">
+                               <div className="flex flex-col items-end">
+                                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">System Status</p>
+                                  <p className="text-sm font-serif font-bold text-zen-sand">{settings.notifications.pushEnabled ? 'Active Relay' : 'Standby Mode'}</p>
+                               </div>
+                               <button 
+                                  onClick={() => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, pushEnabled: !prev.notifications.pushEnabled}} : null)}
+                                  className={`w-16 h-8 rounded-full flex items-center px-1 transition-all duration-500 ${settings.notifications.pushEnabled ? 'bg-zen-sand shadow-[0_0_20px_rgba(234,179,8,0.4)]' : 'bg-zen-brown/10'}`}
+                               >
+                                  <motion.div layout className="w-6 h-6 rounded-full bg-white shadow-sm" animate={{ x: settings.notifications.pushEnabled ? 32 : 0 }} />
+                                </button>
+                             </div>
+                          </header>
+ 
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 relative z-10">
+                             <ZenInput 
+                                label="FIREBASE PUBLIC VAPID KEY (KEY PAIR)" 
+                                value={settings.notifications.firebaseVapidKey || ''} 
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseVapidKey: e.target.value}} : null)} 
+                             />
+                             <ZenInput 
+                                label="FIREBASE API KEY" 
+                                value={settings.notifications.firebaseApiKey || ''} 
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseApiKey: e.target.value}} : null)} 
+                             />
+                             <ZenInput 
+                                label="FIREBASE AUTH DOMAIN" 
+                                value={settings.notifications.firebaseAuthDomain || ''} 
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseAuthDomain: e.target.value}} : null)} 
+                             />
+                             <ZenInput 
+                                label="FIREBASE PROJECT ID" 
+                                value={settings.notifications.firebaseProjectId || ''} 
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseProjectId: e.target.value}} : null)} 
+                             />
+                             <ZenInput 
+                                label="FIREBASE STORAGE BUCKET" 
+                                value={settings.notifications.firebaseStorageBucket || ''} 
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseStorageBucket: e.target.value}} : null)} 
+                             />
+                             <ZenInput 
+                                label="FIREBASE MESSAGE SENDER ID" 
+                                value={settings.notifications.firebaseMessagingSenderId || ''} 
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseMessagingSenderId: e.target.value}} : null)} 
+                             />
+                             <ZenInput 
+                                label="FIREBASE APP ID" 
+                                value={settings.notifications.firebaseAppId || ''} 
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseAppId: e.target.value}} : null)} 
+                             />
+                             <ZenInput 
+                                label="FIREBASE MEASUREMENT ID" 
+                                value={settings.notifications.firebaseMeasurementId || ''} 
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseMeasurementId: e.target.value}} : null)} 
+                             />
+                             <ZenInput 
+                                label="FIREBASE SERVICE ACCOUNT ID (CLIENT EMAIL)" 
+                                value={settings.notifications.firebaseClientEmail || ''} 
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseClientEmail: e.target.value}} : null)} 
+                             />
+                             <div className="md:col-span-2">
+                                <ZenTextarea 
+                                   label="FIREBASE PRIVATE KEY" 
+                                   placeholder="-----BEGIN PRIVATE KEY-----"
+                                   value={settings.notifications.firebasePrivateKey || ''} 
+                                   onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebasePrivateKey: e.target.value}} : null)} 
+                                />
+                             </div>
+                             
+                             <div className="space-y-4">
+                                <label className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.3em] ml-2 block">
+                                   File (JSON) {settings.notifications.firebasePrivateKey ? '— ✓ Configured' : ''}
+                                </label>
+                                <div className="flex items-center gap-4 bg-zen-cream/30 p-2 rounded-2xl border border-zen-brown/10">
+                                   <input 
+                                      type="file" 
+                                      accept=".json"
+                                      onChange={async (e) => {
+                                         const file = e.target.files?.[0];
+                                         if (!file) return;
+                                         setSaving(true);
+                                         try {
+                                            const formData = new FormData();
+                                            formData.append('firebaseJSON', file);
+                                            const res = await fetch(`${API_URL}/settings/upload-firebase-config`, {
+                                               method: 'POST',
+                                               headers: { 'Authorization': `Bearer ${user?.token}` },
+                                               body: formData
+                                            });
+                                            const data = await res.json();
+                                            if (res.ok) {
+                                               setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, ...data.config}} : null);
+                                               notify('success', 'Config Imported', 'Firebase service account parsed successfully. Click "Update Logic" to save.');
+                                            } else {
+                                               notify('error', 'Import Failed', data.message);
+                                            }
+                                         } catch (err) {
+                                            notify('error', 'Network Error', 'Failed to synchronize config file.');
+                                         } finally {
+                                            setSaving(false);
+                                         }
+                                      }}
+                                      className="text-xs text-zen-brown/50 file:mr-4 file:py-2 file:px-6 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-white file:text-zen-brown file:uppercase file:tracking-widest hover:file:bg-zen-sand transition-all cursor-pointer"
+                                   />
+                                </div>
+                             </div>
+                          </div>
+ 
+                          {/* Test Block */}
+                          <div className="mt-12 p-8 bg-zen-cream/20 rounded-3xl border border-zen-brown/10 flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
+                             <div className="flex items-center gap-6">
+                                <div className="p-4 bg-white text-zen-sand rounded-2xl shadow-sm border border-zen-brown/5"><Activity size={24} /></div>
+                                <div>
+                                   <p className="text-lg font-serif font-bold text-zen-brown">Signal Diagnostic</p>
+                                   <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Verify push notification relay</p>
+                                </div>
+                             </div>
+                             <div className="flex items-center gap-4 w-full sm:w-auto">
+                                <div className="relative flex-1 sm:w-64">
+                                   <input 
+                                      type="text" 
+                                      placeholder="Target Device Token..." 
+                                      className="bg-white border border-zen-brown/10 rounded-xl px-4 py-2.5 text-xs text-zen-brown focus:outline-none focus:ring-4 focus:ring-zen-sand/5 w-full transition-all pr-24"
+                                      value={settings.notifications.fcmToken || ''}
+                                      onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, fcmToken: e.target.value}} : null)}
+                                   />
+                                   <button 
+                                      onClick={async () => {
+                                         const currentSettings = settings;
+                                         if (!currentSettings) return;
+                                         
+                                         try {
+                                            if (!('Notification' in window)) {
+                                               notify('error', 'Unsupported', 'Browser does not support notifications.');
+                                               return;
+                                            }
+                                            
+                                            setSaving(true);
+                                            // Dynamic import to avoid bundle overhead if not used
+                                            const { initializeApp } = await import('firebase/app');
+                                            const { getMessaging, getToken } = await import('firebase/messaging');
+
+                                            const firebaseConfig = {
+                                               apiKey: currentSettings.notifications.firebaseApiKey,
+                                               authDomain: currentSettings.notifications.firebaseAuthDomain,
+                                               projectId: currentSettings.notifications.firebaseProjectId,
+                                               storageBucket: currentSettings.notifications.firebaseStorageBucket,
+                                               messagingSenderId: currentSettings.notifications.firebaseMessagingSenderId,
+                                               appId: currentSettings.notifications.firebaseAppId,
+                                            };
+
+                                            if (!firebaseConfig.apiKey || !firebaseConfig.messagingSenderId) {
+                                               setSaving(false);
+                                               notify('error', 'Config Incomplete', 'Provide API Key and Sender ID first.');
+                                               return;
+                                            }
+
+                                            const appName = 'diagnostic-app-' + Date.now();
+                                            const app = initializeApp(firebaseConfig, appName);
+                                            const messaging = getMessaging(app);
+
+                                            const permission = await Notification.requestPermission();
+                                            if (permission !== 'granted') {
+                                               setSaving(false);
+                                               notify('warning', 'Permission Required', 'Please allow notifications to retrieve your token.');
+                                               return;
+                                            }
+
+                                            const token = await getToken(messaging, { 
+                                               vapidKey: currentSettings.notifications.firebaseVapidKey 
+                                            });
+
+                                            if (token) {
+                                               setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, fcmToken: token}} : null);
+                                               if (navigator.clipboard) {
+                                                  navigator.clipboard.writeText(token);
+                                                  notify('success', 'Token Captured', 'Device token retrieved and copied to clipboard.');
+                                               } else {
+                                                  notify('success', 'Token Captured', 'Device token retrieved successfully.');
+                                               }
+                                            } else {
+                                               notify('info', 'Token Unavailable', 'Ensure VAPID key is correct and valid.');
+                                            }
+                                         } catch (e: any) {
+                                            console.error('FCM Token Retrieval Error:', e);
+                                            notify('error', 'Retrieval Failed', e.message || 'Check browser console for details.');
+                                         } finally {
+                                            setSaving(false);
+                                         }
+                                      }}
+                                      className="absolute right-1.5 top-1.5 bottom-1.5 bg-zen-cream text-zen-sand px-3 rounded-lg text-[8px] font-black uppercase tracking-tighter hover:bg-zen-sand hover:text-white transition-all"
+                                   >
+                                      My Token
+                                   </button>
+                                </div>
+                                <button 
+                                   onClick={async () => {
+                                      try {
+                                         const res = await fetch(`${API_URL}/settings/test-notification`, {
+                                            method: 'POST',
+                                            headers: { 
+                                               'Authorization': `Bearer ${user?.token}`,
+                                               'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({ token: settings.notifications.fcmToken })
+                                         });
+                                         const data = await res.json();
+                                         if (res.ok) notify('success', 'Signal Sent', data.message);
+                                         else notify('error', 'Signal Failed', data.message);
+                                      } catch (e) {
+                                         notify('error', 'Network Error', 'Could not reach push relay.');
+                                      }
+                                   }}
+                                   className="bg-zen-brown text-white px-8 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-zen-sand transition-all shadow-lg whitespace-nowrap"
+                                >
+                                   Test Signal
+                                </button>
+                             </div>
+                          </div>
+ 
+                          <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end relative z-10">
+                             <ZenButton 
+                                onClick={() => handleSave('notifications')} 
+                                disabled={saving}
+                                className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
+                             >
+                                <Save className="mr-2" size={20} />
+                                Update Logic
+                             </ZenButton>
+                          </footer>
+                       </div>
+                    )}
 
                   {activeSection === 'smtp' && (
                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
@@ -988,18 +1161,59 @@ const Settings = () => {
                                     label="Default From Name"
                                     placeholder="SaloonSpaCRM"
                                     value={settings.smtp?.fromName || ''}
-                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: ''}), fromName: e.target.value}} : null)}
+                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '', encryption: 'tls'}), fromName: e.target.value}} : null)}
                                  />
                                  <ZenInput 
                                     label="Default From Email"
                                     placeholder="noreply@yourdomain.com"
                                     value={settings.smtp?.fromEmail || ''}
-                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: ''}), fromEmail: e.target.value}} : null)}
+                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '', encryption: 'tls'}), fromEmail: e.target.value}} : null)}
                                  />
+                              </div>
+
+                              <div className="space-y-4">
+                                 <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.3em] ml-2">Mail Encryption</label>
+                                    <p className="text-[9px] font-bold text-zen-sand uppercase tracking-widest bg-zen-sand/5 px-2 py-0.5 rounded-md">
+                                       {settings.smtp?.port === 587 ? 'STARTTLS (Port 587)' : settings.smtp?.port === 465 ? 'Direct SSL (Port 465)' : 'Custom Protocol'}
+                                    </p>
+                                 </div>
+                                 <div className="flex bg-zen-cream/30 p-1.5 rounded-2xl border border-zen-brown/10 w-fit">
+                                    {['ssl', 'tls', 'none'].map((enc) => (
+                                       <button 
+                                          key={enc}
+                                          onClick={() => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '', encryption: 'tls'}), encryption: enc as any}} : null)}
+                                          className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${settings.smtp?.encryption === enc ? 'bg-white text-zen-brown shadow-lg' : 'text-zen-brown/40 hover:text-zen-brown'}`}
+                                       >
+                                          {enc.toUpperCase()}
+                                       </button>
+                                    ))}
+                                 </div>
+                              </div>
+
+                              <div className="pt-8 border-t border-zen-brown/5 space-y-6">
+                                 <div className="max-w-md">
+                                    <ZenInput 
+                                       label="Test Delivery Address"
+                                       placeholder="Enter email to receive test message..."
+                                       icon={Mail}
+                                       value={testTargetEmail}
+                                       onChange={(e: any) => setTestTargetEmail(e.target.value)}
+                                    />
+                                    <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mt-2 ml-2">Specify where the synchronization signal should be sent.</p>
+                                 </div>
                               </div>
                            </div>
 
-                           <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
+                           <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex flex-col sm:flex-row justify-end gap-4">
+                              <ZenButton 
+                                 variant="outline"
+                                 onClick={handleTestSMTP}
+                                 disabled={saving}
+                                 className="px-8 py-5 rounded-[1.5rem] shadow-sm transition-all text-sm uppercase tracking-widest font-black"
+                              >
+                                 Test Gateway
+                              </ZenButton>
                               <ZenButton 
                                  onClick={() => handleSave('smtp' as any)}
                                  disabled={saving}
@@ -1028,6 +1242,91 @@ const Settings = () => {
                                     <div className="flex items-center gap-3">
                                        <div className={`w-2.5 h-2.5 rounded-full ${settings.smtp?.host ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)] animate-pulse' : 'bg-rose-400 shadow-[0_0_12px_rgba(251,113,113,0.5)]'}`} />
                                        <p className="text-sm font-bold text-white tracking-tight">{settings.smtp?.host ? 'Communication Active' : 'Provider Pending'}</p>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  )}
+
+                  {activeSection === 'whatsapp' && (
+                     <div className="space-y-12 max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <div className="flex items-center gap-6 mb-12">
+                           <div className="w-16 h-16 rounded-[1.5rem] bg-[#25D366]/10 flex items-center justify-center text-[#25D366]">
+                              <MessageSquare size={32} />
+                           </div>
+                           <div>
+                              <h2 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">WhatsApp Gateway</h2>
+                              <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2 italic">Automated Customer Dissemination</p>
+                           </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                           <div className="space-y-8 p-10 bg-white/40 rounded-[2rem] border border-zen-brown/15 shadow-sm group hover:bg-white/80 transition-all duration-700">
+                              <div className="flex items-center justify-between mb-4">
+                                 <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-zen-brown">Instance Credentials</h3>
+                                 <ZenBadge variant={settings.whatsapp.enabled ? 'leaf' : 'stone'}>
+                                    {settings.whatsapp.enabled ? 'Channel Live' : 'Channel Paused'}
+                                 </ZenBadge>
+                              </div>
+
+                              <ZenInput 
+                                label="Provider"
+                                placeholder="e.g. ultramsg"
+                                value={settings.whatsapp.provider}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, provider: e.target.value}} : null)}
+                                icon={Layout}
+                              />
+
+                              <ZenInput 
+                                label="Instance ID"
+                                placeholder="e.g. instance12345"
+                                value={settings.whatsapp.instanceId}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, instanceId: e.target.value}} : null)}
+                                icon={Zap}
+                              />
+
+                              <ZenInput 
+                                label="Token / API Key"
+                                type="password"
+                                placeholder="Your private access token"
+                                value={settings.whatsapp.token}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, token: e.target.value}} : null)}
+                                icon={ShieldCheck}
+                              />
+
+                              <div className="flex items-center justify-between pt-4">
+                                 <span className="text-[11px] font-bold text-zen-brown/50 uppercase tracking-widest">Enable Messaging</span>
+                                 <button 
+                                   onClick={() => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, enabled: !prev.whatsapp.enabled}} : null)}
+                                   className={`w-12 h-6 rounded-full transition-all duration-500 relative ${settings.whatsapp.enabled ? 'bg-[#25D366]' : 'bg-stone-300'}`}
+                                 >
+                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-500 ${settings.whatsapp.enabled ? 'left-7' : 'left-1'}`} />
+                                 </button>
+                              </div>
+                              
+                              <ZenButton onClick={() => handleSave('whatsapp')} className="w-full py-4 rounded-[1.5rem]">
+                                 Update Gateway
+                              </ZenButton>
+                           </div>
+
+                           <div className="p-10 bg-gradient-to-tr from-zen-brown to-stone-800 rounded-[2rem] text-white shadow-xl shadow-zen-brown/20 relative overflow-hidden group">
+                              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-1000">
+                                 <Sparkles size={180} />
+                              </div>
+                              <div className="relative z-10">
+                                 <h4 className="text-xl font-serif font-bold mb-6 tracking-tight">Active Reach Protocol</h4>
+                                 <p className="text-sm text-stone-300 leading-relaxed mb-10 italic">"Ensure your WhatsApp Instance is paired with a physical device before enabling. This connection allows the CRM to broadcast directly through your primary business line."</p>
+                                 
+                                 <div className="space-y-6">
+                                    <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
+                                       <div className="w-2 h-2 rounded-full bg-zen-sand" />
+                                       UltraMsg Certified
+                                    </div>
+                                    <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
+                                       <div className="w-2 h-2 rounded-full bg-zen-sand" />
+                                       E2E Encryption Maintained
                                     </div>
                                  </div>
                               </div>

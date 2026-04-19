@@ -265,6 +265,28 @@ exports.getUserProfile = async (req, res) => {
   }
 };
 
+// @desc    Update FCM Token
+// @route   POST /api/users/fcm-token
+// @access  Private
+exports.updateFcmToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ message: 'Token required' });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.sendStatus(404);
+
+    if (!user.fcmTokens.includes(token)) {
+      user.fcmTokens.push(token);
+      await user.save();
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Generate JWT
 const generateToken = (id) => {
   return jwt.sign({ id: id.toString() }, process.env.JWT_SECRET, {

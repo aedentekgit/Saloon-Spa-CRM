@@ -80,6 +80,7 @@ const userSchema = new mongoose.Schema({
   lockUntil: {
     type: Date
   },
+  fcmTokens: [{ type: String }],
   createdAt: {
     type: Date,
     default: Date.now

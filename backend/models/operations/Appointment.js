@@ -45,6 +45,25 @@ const appointmentSchema = mongoose.Schema({
     ref: 'Branch',
     required: true
   },
+  clientPhone: {
+    type: String
+  },
+  clientEmail: {
+    type: String
+  },
+  bookingType: {
+    type: String,
+    enum: ['Normal', 'Membership', 'Guest'],
+    default: 'Normal'
+  },
+  status: {
+    type: String,
+    enum: ['Pending', 'Confirmed', 'Completed', 'Cancelled'],
+    default: 'Confirmed'
+  },
+  cancellationReason: {
+    type: String
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

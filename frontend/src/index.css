@@ -43,13 +43,15 @@
     font-weight: 700;
   }
 
-  /* Hide Scrollbars Globally but allow local overrides */
-  html, body {
+  /* Hide ALL scrollbars site-wide — scrolling still works */
+  html, body, * {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
   }
 
-  html::-webkit-scrollbar, body::-webkit-scrollbar {
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  *::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
     height: 0 !important;

@@ -29,6 +29,7 @@ const whatsAppRoutes = require('./routes/operations/whatsAppRoutes');
 const branchRoutes = require('./routes/operations/branchRoutes');
 const categoryRoutes = require('./routes/operations/categoryRoutes');
 const shiftRoutes = require('./routes/human-resources/shiftRoutes');
+const notificationRoutes = require('./routes/core/notificationRoutes');
 
 // Connect to database
 connectDB();
@@ -106,6 +107,7 @@ app.use('/api/shifts', shiftRoutes);
 app.use('/api/gst', require('./routes/finance/gstRoutes'));
 app.use('/api/stats', require('./routes/finance/statsRoutes'));
 app.use('/api/payroll', require('./routes/finance/payrollRoutes'));
+app.use('/api/notifications', notificationRoutes);
 
 // Fallback legacy routes (Handles cases where /api prefix is missing in Frontend URL)
 app.use('/users', userRoutes);
@@ -128,6 +130,7 @@ app.use('/memberships', require('./routes/operations/membershipRoutes'));
 app.use('/categories', categoryRoutes);
 app.use('/shifts', shiftRoutes);
 app.use('/gst', require('./routes/finance/gstRoutes'));
+app.use('/notifications', notificationRoutes);
 
 // Root route / Health check
 app.get('/api/health', (req, res) => {

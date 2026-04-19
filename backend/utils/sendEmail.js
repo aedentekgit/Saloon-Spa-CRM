@@ -14,7 +14,8 @@ const sendEmail = async (options) => {
           pass: settings.smtp.password
         },
         fromName: settings.smtp.fromName,
-        fromEmail: settings.smtp.fromEmail
+        fromEmail: settings.smtp.fromEmail,
+        encryption: settings.smtp.encryption
       }
     : {
         host: process.env.EMAIL_HOST,
@@ -24,13 +25,14 @@ const sendEmail = async (options) => {
           pass: process.env.EMAIL_PASSWORD
         },
         fromName: process.env.FROM_NAME,
-        fromEmail: process.env.FROM_EMAIL
+        fromEmail: process.env.FROM_EMAIL,
+        encryption: process.env.EMAIL_ENCRYPTION || 'tls'
       };
 
   const transporter = nodemailer.createTransport({
     host: smtpConfig.host,
     port: smtpConfig.port,
-    secure: smtpConfig.port === 465, // Use SSL for port 465
+    secure: smtpConfig.encryption === 'ssl' || smtpConfig.port === 465,
     auth: smtpConfig.auth
   });
 
