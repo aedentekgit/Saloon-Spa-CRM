@@ -163,19 +163,19 @@ const Finance = () => {
       hideAddButton
       onAddClick={() => setIsModalOpen(true)}
     >
-      <div style={{ '--theme-primary': settings?.theme?.primaryColor || '#8B5CF6' } as React.CSSProperties} className="contents">
-        <div className="flex overflow-x-auto pb-6 gap-4 sm:gap-6 md:grid md:grid-cols-3 mb-8 sm:mb-10 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
+      <div style={{ '--theme-primary': settings?.theme?.primaryColor || '#8B5CF6' } as React.CSSProperties} className="space-y-10 pb-20 mt-4">
+        <div className="flex overflow-x-auto pt-4 pb-6 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
           {[
-            { label: 'Internal Inflow', value: `${settings?.general?.currencySymbol || 'QR'} ${totalIncome.toLocaleString()}`, unit: '', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10', watermark: TrendingUp },
-            { label: 'External Outflow', value: `${settings?.general?.currencySymbol || 'QR'} ${totalExpenses.toLocaleString()}`, unit: '', icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-500/10', watermark: TrendingDown },
-            { label: 'Net Balance', value: `${settings?.general?.currencySymbol || 'QR'} ${netProfit.toLocaleString()}`, unit: '', icon: Coins, color: 'text-indigo-500', bg: 'bg-indigo-500/10', watermark: Coins }
+            { label: 'Internal Inflow', value: `${settings?.general?.currencySymbol || 'QR'} ${totalIncome.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Total Revenue Generated' },
+            { label: 'External Outflow', value: `${settings?.general?.currencySymbol || 'QR'} ${totalExpenses.toLocaleString()}`, icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-500/10', glow: 'bg-red-500/20', trend: 'Operational Expenditure' },
+            { label: 'Net Balance', value: `${settings?.general?.currencySymbol || 'QR'} ${netProfit.toLocaleString()}`, icon: Coins, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'Liquid Asset Position' }
           ].map((stat, i) => (
-            <ZenStatCard key={stat.label} {...stat} index={i} />
+            <ZenStatCard key={stat.label} {...stat} delay={i * 0.2} />
           ))}
         </div>
 
         {/* Global Filter Bar */}
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm mb-10">
+        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm">
           <div className="flex flex-col lg:flex-row gap-8 items-end">
              <div className="flex-1 w-full flex flex-col gap-3">
                 <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Registry Search</label>
