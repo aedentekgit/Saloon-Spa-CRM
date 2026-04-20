@@ -1,4 +1,5 @@
 const Leave = require('../../models/human-resources/Leave');
+const Employee = require('../../models/human-resources/Employee');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 
@@ -30,19 +31,48 @@ const getLeaves = async (req, res) => {
 // @route   POST /api/leaves
 // @access  Private
 const createLeave = async (req, res) => {
-  const { employeeName, type, reason, startDate, endDate, daysCount } = req.body;
+  const { employeeName, employeeId, type, reason, startDate, endDate, daysCount } = req.body;
 
   try {
+    let leaveOwnerId = req.user._id;
+    let leaveBranch = getBranchId(req.user.branch) || undefined;
+    let leaveEmployeeName = employeeName || req.user.name;
+
+    if (req.user.role === 'Admin' || req.user.role === 'Manager') {
+      if (!employeeName) {
+        return res.status(400).json({ message: 'Employee selection is required' });
+      }
+
+      const lookup = employeeId ? { _id: employeeId } : { name: employeeName };
+      const targetEmployee = await Employee.findOne(lookup).select('_id name branch status');
+
+      if (!targetEmployee) {
+        return res.status(404).json({ message: 'Selected employee not found' });
+      }
+
+      if (targetEmployee.status !== 'Active') {
+        return res.status(400).json({ message: 'Selected employee is not active' });
+      }
+
+      if (req.user.role === 'Manager' && !sameBranch(targetEmployee.branch, req.user.branch)) {
+        return res.status(403).json({ message: 'Access Denied: You can only create leave requests for your own branch.' });
+      }
+
+      leaveOwnerId = targetEmployee._id;
+      leaveEmployeeName = targetEmployee.name;
+      leaveBranch = getBranchId(targetEmployee.branch) || leaveBranch;
+    }
+
     const leave = await Leave.create({
-      user: req.user._id,
-      employeeName,
+      user: leaveOwnerId,
+      employeeName: leaveEmployeeName,
       type,
       reason,
       startDate,
       endDate,
       daysCount: daysCount || 1,
       status: 'Pending',
-      branch: getBranchId(req.user.branch) || undefined
+      branch: leaveBranch
     });
 
     res.status(201).json(leave);

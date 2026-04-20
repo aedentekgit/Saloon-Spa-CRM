@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
-  CalendarDays, Sparkles, Info, ArrowLeft, Sun, User as UserIcon, Tag, AlertCircle, Calendar, Clock 
+  CalendarDays, Sparkles, X, ArrowLeft, Sun, User as UserIcon, 
+  Tag, AlertCircle, Calendar, Clock, Wind, Moon, Star, ShieldCheck,
+  ChevronRight, MapPin, Coffee, Compass, Landmark, Heart, CalendarClock,
+  Zap, Flame, Leaf, Cloud
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenButton } from '../../components/zen/ZenButtons';
@@ -10,14 +14,18 @@ import { ZenInput, ZenDropdown, ZenTextarea } from '../../components/zen/ZenInpu
 import { notify } from '../../components/shared/ZenNotification';
 import { useBranches } from '../../context/BranchContext';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+
 const ApplyLeave = () => {
   const { user } = useAuth();
-  const { selectedBranch } = useBranches();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [activeStage, setActiveStage] = useState(1);
 
   const [formData, setFormData] = useState({
+    employeeId: '',
     employeeName: '',
     type: 'Full Day',
     reason: '',
@@ -26,13 +34,11 @@ const ApplyLeave = () => {
     daysCount: 1
   });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
-
   useEffect(() => {
     if (user?.role === 'Admin' || user?.role === 'Manager') {
       fetchEmployees();
     } else {
-        setFormData(prev => ({ ...prev, employeeName: user?.name || '' }));
+      setFormData(prev => ({ ...prev, employeeId: user?._id || '', employeeName: user?.name || '' }));
     }
   }, [user]);
 
@@ -42,9 +48,8 @@ const ApplyLeave = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) {
-        setEmployees(data.filter((e: any) => e.status === 'Active'));
-      }
+      const empList = Array.isArray(data) ? data : (data.data || []);
+      setEmployees(empList.filter((e: any) => e.status === 'Active'));
     } catch (error) {
       console.error('Failed to fetch employees');
     }
@@ -59,17 +64,21 @@ const ApplyLeave = () => {
     }
   }, [formData.startDate, formData.endDate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.daysCount < 1) {
-      notify('error', 'Invalid Range', 'End date must be after or on start date');
+  const handleSubmit = async () => {
+    if (!formData.reason) {
+      notify('error', 'Incomplete Ritual', 'Please define your intent for the sanctuary.');
+      return;
+    }
+    if ((user?.role === 'Admin' || user?.role === 'Manager') && !formData.employeeName) {
+      notify('error', 'Unidentified', 'Please select an ambassador.');
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
     try {
       const payload = {
         ...formData,
+        employeeId: (user?.role === 'Admin' || user?.role === 'Manager') ? formData.employeeId : user?._id,
         employeeName: (user?.role === 'Admin' || user?.role === 'Manager') ? formData.employeeName : user?.name
       };
 
@@ -83,208 +92,318 @@ const ApplyLeave = () => {
       });
 
       if (response.ok) {
-        notify('success', 'Application Dispatched', 'Your retreat request has been logged successfully.');
+        notify('success', 'Registry Synchronized', 'Your sanctuary pause has been logged successfully.');
         navigate('/leave');
       } else {
         const err = await response.json();
-        notify('error', 'Submission Failed', err.message || 'Something went wrong');
+        notify('error', 'Registry Error', err.message || 'Window closed');
       }
     } catch (error) {
-      notify('error', 'Error', 'Submission failed');
+      notify('error', 'Frequency Lost', 'Reconnect to the sanctuary pulse.');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
+  const stages = [
+    { id: 1, title: 'Identification', icon: Compass },
+    { id: 2, title: 'Synchronization', icon: CalendarClock },
+    { id: 3, title: 'Manifestation', icon: Landmark }
+  ];
+
   return (
-    <div className="min-h-full bg-zen-cream p-4 sm:p-10 pb-32">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">
-            <div>
-                <button 
-                  onClick={() => navigate('/leave')}
-                  className="flex items-center gap-2 text-zen-brown/40 hover:text-zen-brown transition-colors mb-4 group"
-                >
-                    <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Back to History</span>
-                </button>
-                <h1 className="text-3xl sm:text-4xl font-serif font-black text-zen-brown tracking-tight">Request Presence Pause</h1>
-                <p className="text-xs text-zen-brown/40 font-medium mt-2">Harmonize your energy by scheduling a purposeful retreat.</p>
+    <div className="h-full bg-zen-cream text-zen-brown font-sans selection:bg-zen-sand/20 relative flex flex-col items-center justify-center p-4">
+      
+      {/* Background Ambience */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.5]">
+        <div className="absolute -top-1/4 -right-1/4 w-[80vw] h-[80vw] bg-[radial-gradient(circle_at_center,_#C5A05911,_transparent_70%)] animate-pulse" />
+        <div className="absolute -bottom-1/4 -left-1/4 w-[60vw] h-[60vw] bg-[radial-gradient(circle_at_center,_#2D2D2D08,_transparent_70%)]" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-6xl aspect-[16/9] lg:max-h-[85vh] bg-white rounded-[4rem] shadow-[0_100px_200px_-50px_rgba(45,45,45,0.12)] border border-zen-stone overflow-hidden flex flex-col md:flex-row">
+        
+        {/* Left Interactive Guidance Column */}
+        <aside className="w-full md:w-[320px] lg:w-[380px] bg-zen-brown text-white p-10 lg:p-14 flex flex-col relative shrink-0">
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none select-none">
+            <Landmark size={600} className="absolute -bottom-20 -left-20 rotate-[-15deg]" />
+          </div>
+
+          <div className="relative z-10 flex flex-col h-full">
+            <button 
+              onClick={() => navigate('/leave')}
+              className="flex items-center gap-3 text-white/40 hover:text-zen-sand transition-all mb-12 group w-fit"
+            >
+              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+              <span className="text-[10px] font-black uppercase tracking-[0.4em]">Registry History</span>
+            </button>
+
+            <div className="space-y-6 flex-1">
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-zen-sand uppercase tracking-[0.5em] italic">Sacred Absence</p>
+                <h1 className="text-4xl lg:text-5xl font-serif font-black leading-tight italic tracking-tighter">Presence<br />Pause</h1>
+              </div>
+
+              <div className="space-y-10 pt-12">
+                 {stages.map((s) => (
+                   <div key={s.id} className={`flex items-start gap-5 transition-all duration-700 ${activeStage === s.id ? 'opacity-100 translate-x-4' : 'opacity-20 translate-x-0'}`}>
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border transition-all duration-700 ${activeStage === s.id ? 'bg-zen-sand border-zen-sand shadow-lg shadow-zen-sand/20' : 'border-white/10 text-white'}`}>
+                        <s.icon size={18} strokeWidth={1.5} />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-zen-sand/60">Phase 0{s.id}</p>
+                        <p className="text-sm font-bold tracking-widest uppercase">{s.title}</p>
+                      </div>
+                   </div>
+                 ))}
+              </div>
             </div>
-            
-            <div className="hidden sm:flex items-center gap-3 bg-white px-6 py-3 rounded-2xl border border-zen-brown/5 shadow-sm">
-                <div className="w-10 h-10 rounded-xl bg-zen-sand/10 flex items-center justify-center text-zen-sand">
-                    <CalendarDays size={20} />
-                </div>
-                <div>
-                    <p className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest">Annual Balance</p>
-                    <p className="text-sm font-serif font-black text-zen-brown">14 Solar Cycles</p>
-                </div>
+
+            <div className="pt-10 border-t border-white/5 space-y-6">
+               <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-zen-sand/10 border border-zen-sand/20 flex items-center justify-center text-zen-sand">
+                    <Sparkles size={18} />
+                  </div>
+                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] leading-relaxed">
+                    Balance your energy <br /> for total sanctuary restoration.
+                  </p>
+               </div>
             </div>
-        </div>
+          </div>
+        </aside>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            {/* Form Side */}
-            <div className="lg:col-span-2 space-y-8">
-                <form onSubmit={handleSubmit} className="bg-white rounded-[2.5rem] p-8 sm:p-12 border border-zen-brown/10 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] relative overflow-hidden">
-                    {/* Decorative element */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-zen-sand/5 to-transparent rounded-bl-full pointer-events-none" />
+        {/* Right Form Engine */}
+        <main className="flex-1 flex flex-col p-10 lg:p-16 relative bg-white">
 
-                    <div className="space-y-10 relative z-10">
-                        {/* Selector Section */}
-                        <div className="space-y-8">
-                            {(user?.role === 'Admin' || user?.role === 'Manager') ? (
-                                <ZenDropdown
-                                    label="Ambassador Selection"
-                                    value={formData.employeeName}
-                                    icon={UserIcon}
-                                    variant="pill"
-                                    onChange={val => setFormData({...formData, employeeName: val})}
-                                    placeholder="Select an Ambassador"
-                                    options={employees.map(e => e.name)}
-                                />
-                            ) : (
-                                <div className="p-6 bg-zen-cream/30 rounded-2xl border border-zen-brown/5 flex justify-between items-center group hover:bg-white transition-colors">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-white border border-zen-brown/5 flex items-center justify-center text-zen-brown/30 group-hover:text-zen-brown transition-colors">
-                                            <UserIcon size={18} />
-                                        </div>
-                                        <div>
-                                            <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest">Declaring For</p>
-                                            <p className="text-base font-serif font-black text-zen-brown">{user?.name}</p>
-                                        </div>
-                                    </div>
-                                    <Sparkles size={16} className="text-zen-sand/40 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                            )}
+           
+           <AnimatePresence mode="wait">
+             {activeStage === 1 && (
+               <motion.div 
+                 key="stage1"
+                 initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                 animate={{ opacity: 1, scale: 1, y: 0 }}
+                 exit={{ opacity: 0, scale: 0.98, y: -10 }}
+                 className="flex-1 flex flex-col"
+               >
+                 <div className="flex-1 flex flex-col justify-center max-w-2xl">
+                    <div className="mb-12 space-y-4">
+                       <h2 className="text-3xl font-serif font-black italic text-[#534337]">Identity & Purpose</h2>
+                       <div className="w-16 h-px bg-[#d4a373]" />
+                    </div>
 
-                            <ZenDropdown
-                                label="Nature of Retreat"
-                                value={formData.type}
-                                icon={Tag}
-                                variant="pill"
-                                onChange={val => setFormData({...formData, type: val})}
-                                options={['Full Day', 'Half Day', 'Annual Leave', 'Sick Leave', 'Casual Leave', 'Emergency Leave']}
-                            />
-                        </div>
-
-                        {/* Date Range Section */}
-                        <div className="p-8 bg-zen-cream/10 rounded-[2rem] border border-zen-brown/5">
-                            <h3 className="text-[10px] font-black text-zen-brown/20 uppercase tracking-[0.3em] mb-8 text-center px-4">Retreat Duration</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
-                                <ZenInput
-                                    type="date"
-                                    label="Commencement Date"
-                                    icon={Calendar}
-                                    required
-                                    value={formData.startDate}
-                                    onChange={(e: any) => setFormData({...formData, startDate: e.target.value})}
-                                />
-                                <ZenInput
-                                    type="date"
-                                    label="Conclusion Date"
-                                    icon={Clock}
-                                    required
-                                    value={formData.endDate}
-                                    onChange={(e: any) => setFormData({...formData, endDate: e.target.value})}
-                                />
+                    <div className="space-y-10">
+                       {(user?.role === 'Admin' || user?.role === 'Manager') ? (
+                         <ZenDropdown
+                           label="Select Ambassador"
+                           value={formData.employeeName}
+                           icon={UserIcon}
+                           variant="pill"
+                           placeholder="Who is taking this pause?"
+                           options={employees.map(e => e.name)}
+                           onChange={val => {
+                             const selectedEmployee = employees.find(e => e.name === val);
+                             setFormData({
+                               ...formData,
+                               employeeName: val,
+                               employeeId: selectedEmployee?._id || ''
+                             });
+                           }}
+                         />
+                       ) : (
+                         <div className="bg-white p-8 rounded-[2rem] border border-[#534337]/5 shadow-sm flex items-center justify-between group">
+                            <div className="flex items-center gap-6">
+                               <div className="w-14 h-14 rounded-2xl bg-[#534337]/5 flex items-center justify-center text-[#534337] group-hover:scale-110 transition-all">
+                                  <ShieldCheck size={24} />
+                               </div>
+                               <div>
+                                  <p className="text-[10px] font-black text-[#534337]/20 uppercase tracking-[0.4em]">Current Identity</p>
+                                  <p className="text-2xl font-serif font-black italic">{user?.name}</p>
+                               </div>
                             </div>
+                            <span className="text-[8px] font-black px-4 py-1.5 rounded-full bg-[#534337] text-white uppercase tracking-widest">Active Pulse</span>
+                         </div>
+                       )}
 
-                            <div className="mt-10 pt-8 border-t border-zen-brown/5 flex items-center justify-center gap-6">
-                                <div className="flex items-center gap-2 text-zen-brown/20">
-                                    <Sun size={14} />
-                                    <span className="text-[9px] font-black uppercase tracking-widest">Total Cycles</span>
-                                </div>
-                                <div className="h-4 w-px bg-zen-brown/10" />
-                                <div className="flex items-center gap-2">
-                                    <span className="text-3xl font-serif font-black text-zen-brown">{formData.daysCount}</span>
-                                    <span className="text-[10px] font-black text-zen-sand uppercase tracking-widest">{formData.daysCount === 1 ? 'Solar Cycle' : 'Solar Cycles'}</span>
-                                </div>
-                            </div>
-                        </div>
+                       <ZenDropdown
+                         label="Pause Nature"
+                         value={formData.type}
+                         icon={Tag}
+                         variant="pill"
+                         options={['Full Day', 'Half Day', 'Annual Leave', 'Sick Leave', 'Casual Leave', 'Emergency Leave']}
+                         onChange={val => setFormData({...formData, type: val})}
+                       />
+                    </div>
+                 </div>
 
-                        {/* Reason Section */}
-                        <ZenTextarea
-                            label="Purpose of Pause"
+                 <div className="pt-10 flex justify-end">
+                    <ZenButton 
+                      onClick={() => {
+                        if (!formData.employeeName) return notify('error', 'Unidentified', 'Please select an ambassador.');
+                        if ((user?.role === 'Admin' || user?.role === 'Manager') && !formData.employeeId) {
+                          return notify('error', 'Unidentified', 'Please select a valid ambassador.');
+                        }
+                        setActiveStage(2);
+                      }}
+                      className="px-12 py-6 bg-[#534337] text-white rounded-[2rem] group"
+                    >
+                      Define Temporal Window <ChevronRight size={18} className="ml-2 group-hover:translate-x-2 transition-transform" />
+                    </ZenButton>
+                 </div>
+               </motion.div>
+             )}
+
+             {activeStage === 2 && (
+               <motion.div 
+                 key="stage2"
+                 initial={{ opacity: 0, x: 20 }}
+                 animate={{ opacity: 1, x: 0 }}
+                 exit={{ opacity: 0, x: -20 }}
+                 className="flex-1 flex flex-col"
+               >
+                 <div className="flex-1 flex flex-col justify-center">
+                    <div className="grid lg:grid-cols-2 gap-16 items-center">
+                       <div className="space-y-10">
+                          <div className="mb-4 space-y-4">
+                             <h2 className="text-3xl font-serif font-black italic text-[#534337]">Temporal Sync</h2>
+                             <div className="w-16 h-px bg-[#d4a373]" />
+                          </div>
+                          <ZenInput
+                            label="Commencement Cycle"
+                            type="date"
                             required
-                            placeholder="Share the nature of your retreat with the sanctuary context..."
+                            value={formData.startDate}
+                            onChange={(e: any) => setFormData({...formData, startDate: e.target.value})}
+                            icon={Wind}
+                            variant="pill"
+                            className="!text-lg"
+                          />
+                          <ZenInput
+                            label="Conclusion Cycle"
+                            type="date"
+                            required
+                            value={formData.endDate}
+                            onChange={(e: any) => setFormData({...formData, endDate: e.target.value})}
+                            icon={Moon}
+                            variant="pill"
+                            className="!text-lg"
+                          />
+                       </div>
+
+                       <div className="bg-[#534337] rounded-[3.5rem] p-12 text-white relative overflow-hidden group shadow-2xl">
+                          <div className="absolute top-0 right-0 p-8 opacity-[0.05]">
+                             <Sun size={200} strokeWidth={1} />
+                          </div>
+                          <div className="relative z-10 flex flex-col items-center justify-center space-y-4 text-center">
+                             <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[#d4a373]">Absence Duration</p>
+                             <div className="flex items-baseline gap-4">
+                                <span className="text-8xl font-serif font-black italic tabular-nums">{formData.daysCount}</span>
+                                <span className="text-[11px] font-black uppercase tracking-[0.4em] text-white/30">{formData.daysCount === 1 ? 'Day' : 'Days'}</span>
+                             </div>
+                             <div className="w-12 h-[1px] bg-white/10" />
+                             <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 leading-relaxed italic">
+                                Automatically calculated based <br /> on your sanctuary calendar sync.
+                             </p>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="pt-10 flex justify-between items-center">
+                    <button onClick={() => setActiveStage(1)} className="text-[10px] font-black uppercase tracking-[0.4em] text-[#534337]/30 hover:text-[#534337] transition-all">Refine Identity</button>
+                    <ZenButton 
+                      onClick={() => setActiveStage(3)}
+                      className="px-14 py-6 bg-[#534337] text-white rounded-[2rem] group"
+                    >
+                      Crystalize Intent <ChevronRight size={18} className="ml-2 group-hover:translate-x-2 transition-transform" />
+                    </ZenButton>
+                 </div>
+               </motion.div>
+             )}
+
+             {activeStage === 3 && (
+               <motion.div 
+                 key="stage3"
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: -20 }}
+                 className="flex-1 flex flex-col"
+               >
+                 <div className="flex-1 flex flex-col justify-center max-w-3xl mx-auto w-full">
+                    <div className="mb-12 space-y-4 text-center">
+                       <h2 className="text-4xl font-serif font-black italic text-[#534337]">The Manifest Statement</h2>
+                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#d4a373]">Phase 03: Registry Finalization</p>
+                    </div>
+
+                    <div className="space-y-12">
+                       <div className="relative group">
+                          <ZenTextarea
+                            required
+                            hideLabel
+                            placeholder="Why must you seek solace? Define the intent of this pause..."
                             value={formData.reason}
                             onChange={(e: any) => setFormData({...formData, reason: e.target.value})}
-                        />
+                            className="!bg-white !border-[#534337]/10 !rounded-[2.5rem] !p-10 !h-[240px] text-xl font-serif italic text-[#534337] placeholder:text-[#534337]/10 shadow-[0_30px_60px_-20px_rgba(83,67,55,0.05)] focus:!border-[#d4a373] transition-all"
+                          />
+                          <div className="absolute top-8 right-8 text-[#534337]/5 group-focus-within:text-[#d4a373]/20 transition-colors">
+                             <Star size={48} strokeWidth={1} />
+                          </div>
+                       </div>
 
-                        {/* Submit Section */}
-                        <div className="pt-6">
-                            <ZenButton 
-                                type="submit" 
-                                disabled={loading}
-                                className="w-full py-6 rounded-[1.5rem] shadow-xl group overflow-hidden relative"
-                            >
-                                <span className="relative z-10 flex items-center justify-center gap-3 text-sm tracking-[0.2em]">
-                                    {loading ? 'Dispersing...' : 'Dispatch Application'}
-                                    {!loading && <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />}
-                                </span>
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                            </ZenButton>
-                            <p className="text-center mt-6 text-[10px] font-medium text-zen-brown/30 italic">
-                                Your request will be synchronized with the sanctuary's presence registry for review.
-                            </p>
-                        </div>
+                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 opacity-50 select-none">
+                          {[
+                            { i: Heart, l: 'Vitality' },
+                            { i: Sparkles, l: 'Clarity' },
+                            { i: Cloud, l: 'Serenity' },
+                            { i: Flame, l: 'Passion' }
+                          ].map((rit, i) => (
+                            <div key={i} className="bg-white border border-[#534337]/5 px-6 py-4 rounded-[1.5rem] flex items-center gap-4">
+                               <rit.i size={14} className="text-[#534337]" />
+                               <span className="text-[9px] font-black uppercase tracking-widest">{rit.l}</span>
+                            </div>
+                          ))}
+                       </div>
                     </div>
-                </form>
-            </div>
+                 </div>
 
-            {/* Info Side */}
-            <div className="space-y-8">
-                <div className="bg-zen-brown p-10 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-125 transition-transform duration-1000">
-                        <CalendarDays size={120} />
-                    </div>
-                    <p className="text-[9px] font-bold opacity-30 uppercase tracking-[0.4em] mb-6">Zen Protocol</p>
-                    <h4 className="text-xl font-serif font-black mb-4 leading-tight tracking-tight text-zen-cream">Before You Retreat</h4>
-                    <ul className="space-y-5">
-                       {[
-                         "Ensure all pending sanctuary rituals are delegated.",
-                         "Verify your duration fits your solar cycle balance.",
-                         "Communicate with your branch manager for urgent drifts.",
-                         "Rest deeply to return with higher resonance."
-                       ].map((item, i) => (
-                         <li key={i} className="flex gap-4 items-start group/item">
-                           <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-serif font-black shrink-0 group-hover/item:bg-zen-sand transition-colors">
-                             {i + 1}
-                           </div>
-                           <p className="text-xs opacity-60 font-medium leading-relaxed">{item}</p>
-                         </li>
-                       ))}
-                    </ul>
-                </div>
+                 <div className="pt-10 flex justify-between items-center">
+                    <button onClick={() => setActiveStage(2)} className="text-[10px] font-black uppercase tracking-[0.4em] text-[#534337]/30 hover:text-[#534337] transition-all italic">Refine Temporal Sync</button>
+                    <ZenButton 
+                      onClick={handleSubmit}
+                      loading={submitting}
+                      className="px-16 py-7 bg-[#534337] text-white rounded-[2.5rem] shadow-2xl shadow-[#534337]/20 group"
+                    >
+                      Dispatch Registry Manifest <ChevronRight size={18} className="ml-3" />
+                    </ZenButton>
+                 </div>
+               </motion.div>
+             )}
+           </AnimatePresence>
 
-                <div className="bg-white p-8 rounded-[2rem] border border-zen-brown/10 group hover:translate-y-[-4px] transition-all duration-500">
-                    <div className="flex gap-4 items-start mb-6">
-                        <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500">
-                            <AlertCircle size={20} />
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-serif font-black text-zen-brown">Registry Alert</h4>
-                            <p className="text-[10px] text-zen-brown/40 font-bold uppercase tracking-widest mt-0.5">Extended Retreats</p>
-                        </div>
-                    </div>
-                    <p className="text-xs text-zen-brown/60 leading-relaxed font-medium">
-                        Retreats exceeding 3 solar cycles may require physical documentation (e.g., medical scrolls) upon return to the sanctuary.
-                    </p>
-                </div>
+           {/* Immersive Overlay info */}
+           <div className="absolute top-10 right-10 flex items-center gap-8 pointer-events-none opacity-[0.2]">
+              <div className="text-right">
+                 <p className="text-[9px] font-black uppercase tracking-[0.3em]">Sanctuary Node</p>
+                 <p className="text-xs font-serif font-bold italic">v4.0 Protocol</p>
+              </div>
+              <div className="w-[1px] h-10 bg-[#534337]/20" />
+              <ShieldCheck size={28} strokeWidth={1} />
+           </div>
 
-                <div className="bg-zen-sand/5 p-8 rounded-[2rem] border border-zen-sand/10 flex gap-4 items-center">
-                    <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-zen-sand shadow-sm">
-                        <Info size={18} />
-                    </div>
-                    <p className="text-[11px] text-zen-brown/50 font-medium leading-relaxed italic">
-                        "A pause is not an end, but a preparation for a new beginning."
-                    </p>
-                </div>
-            </div>
-        </div>
+        </main>
       </div>
+
+      {/* Global Scrollbar Suppression */}
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(83, 67, 55, 0.1);
+          border-radius: 10px;
+        }
+      `}</style>
     </div>
   );
 };

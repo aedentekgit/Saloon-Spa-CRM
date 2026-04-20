@@ -9,6 +9,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./config/db');
 const mongoose = require('mongoose');
 const path = require('path');
+const fs = require('fs');
 const paginationMiddleware = require('./middleware/paginationMiddleware');
 
 // Route files
@@ -142,6 +143,12 @@ app.use((req, res) => {
   // If request is for an API route that doesn't exist
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ success: false, message: 'API Endpoint not found' });
+  }
+
+  // SPA fallback when frontend build exists.
+  const indexFilePath = path.join(frontendPath, 'index.html');
+  if (fs.existsSync(indexFilePath)) {
+    return res.sendFile(indexFilePath);
   }
 
   // Otherwise, show the clean API Sanctuary Status Page

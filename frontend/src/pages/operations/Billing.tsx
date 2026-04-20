@@ -270,7 +270,7 @@ const Billing = () => {
         <div className="xl:col-span-8 space-y-8">
           
           {/* Client & Status Section */}
-          <div className="bg-white rounded-[2.5rem] border border-black/5 p-8 shadow-sm">
+          <div className="zen-pointed-surface bg-white rounded-[2.5rem] border border-black/5 p-8 shadow-sm">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
               <div className="flex-1 w-full max-w-md">
                 <div className="flex items-center gap-3 mb-4">
@@ -294,7 +294,7 @@ const Billing = () => {
                 <motion.div 
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-4 bg-gray-50 p-4 rounded-3xl border border-black/5"
+                  className="zen-pointed-surface flex items-center gap-4 bg-gray-50 p-4 rounded-3xl border border-black/5 shadow-sm"
                 >
                   <div className="w-12 h-12 rounded-2xl bg-white border border-black/5 flex items-center justify-center text-zen-sand shadow-sm">
                     {activeMembership ? <Crown size={24} /> : <User size={24} />}
@@ -311,7 +311,7 @@ const Billing = () => {
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-8 p-6 bg-zen-sand/[0.03] rounded-[2rem] border border-zen-sand/10 flex flex-col md:flex-row items-center justify-between gap-6"
+                className="zen-pointed-surface mt-8 p-6 bg-zen-sand/[0.03] rounded-[2rem] border border-zen-sand/10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm"
               >
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-zen-sand shadow-sm">
@@ -345,7 +345,7 @@ const Billing = () => {
           </div>
 
           {/* Service Registry Section */}
-          <div className="bg-white rounded-[2.5rem] border border-black/5 overflow-hidden shadow-sm flex flex-col">
+          <div className="zen-pointed-surface bg-white rounded-[2.5rem] border border-black/5 shadow-sm flex flex-col">
             <div className="p-8 border-b border-black/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-zen-leaf/10 flex items-center justify-center text-zen-leaf">
@@ -455,7 +455,7 @@ const Billing = () => {
         <div className="xl:col-span-4 space-y-8">
           
           {/* Summary Card */}
-          <div className="bg-white rounded-[2.5rem] border border-black/10 shadow-2xl p-8 relative overflow-hidden group">
+          <div className="zen-pointed-surface bg-white rounded-[2.5rem] border border-black/10 shadow-2xl p-8 relative group">
             <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:rotate-12 group-hover:scale-125 transition-transform duration-1000">
               <Receipt size={200} />
             </div>
@@ -537,7 +537,7 @@ const Billing = () => {
           </div>
 
           {/* Payment Mode Selection */}
-          <div className="bg-gray-50/50 rounded-[2.5rem] border border-black/5 p-8 space-y-6">
+          <div className="zen-pointed-surface bg-gray-50/50 rounded-[2.5rem] border border-black/5 p-8 space-y-6">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-black/40">Engagement Logic</h3>
             
             <div className="grid grid-cols-2 gap-3">
@@ -550,7 +550,7 @@ const Billing = () => {
                 <button
                   key={mode.name}
                   onClick={() => setPaymentMode(mode.name)}
-                  className={`group relative flex flex-col items-center justify-center gap-4 p-6 rounded-3xl border transition-all duration-500 ${paymentMode === mode.name 
+                  className={`zen-pointed-surface group relative flex flex-col items-center justify-center gap-4 p-6 rounded-3xl border transition-all duration-500 ${paymentMode === mode.name
                     ? 'bg-white border-zen-sand shadow-lg ring-1 ring-zen-sand/20' 
                     : 'bg-transparent border-black/5 hover:border-black/20 text-black/30 hover:text-black/60'}`}
                 >
@@ -577,7 +577,7 @@ const Billing = () => {
                   className="space-y-4 pt-4 overflow-hidden"
                 >
                   {payments.map((p, idx) => (
-                    <div key={p.mode} className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-black/5">
+                    <div key={p.mode} className="zen-pointed-surface flex items-center gap-4 p-4 bg-white rounded-2xl border border-black/5 shadow-sm">
                       <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest w-12">{p.mode}</span>
                       <div className="flex-1 relative">
                         <span className="absolute left-0 top-1/2 -translate-y-1/2 text-[10px] font-bold opacity-20">{settings?.general.currencySymbol || 'QR'}</span>

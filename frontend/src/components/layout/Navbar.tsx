@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { Bell, ChevronLeft, ChevronRight, Settings, LogOut, UserRound } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
@@ -84,6 +84,16 @@ const Navbar = ({
     }
   };
 
+  const navigate = useNavigate();
+
+  const handleNotifClick = (notif: any) => {
+    markAsRead(notif._id);
+    if (notif.link) {
+      navigate(notif.link);
+      setIsNotifOpen(false);
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const getPageTitle = () => {
@@ -106,13 +116,13 @@ const Navbar = ({
               setIsCollapsed(!isCollapsed);
             }
           }}
-          className="text-zen-brown/40 hover:text-zen-brown transition-colors p-1 rounded-md hover:bg-zen-stone/30"
+          className="hidden lg:block text-zen-brown/40 hover:text-zen-brown transition-colors p-1 rounded-md hover:bg-zen-stone/30"
           aria-label="Toggle Menu"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
 
-        <div className="h-5 w-px bg-zen-stone hidden sm:block"></div>
+        <div className="h-5 w-px bg-zen-stone hidden lg:block"></div>
 
         <AnimatePresence mode="wait">
           <motion.div 
@@ -178,7 +188,7 @@ const Navbar = ({
                         notifications.map((notif) => (
                            <div 
                               key={notif._id} 
-                              onClick={() => markAsRead(notif._id)}
+                              onClick={() => handleNotifClick(notif)}
                               className={`px-6 py-4 hover:bg-zen-cream/50 transition-colors cursor-pointer group ${!notif.isRead ? 'bg-zen-primary/[0.02]' : ''}`}
                            >
                               <div className="flex items-start gap-3">

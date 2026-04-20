@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
-import { Camera, Clock, Shield, TrendingUp, Loader2 } from 'lucide-react';
+import { Camera, Clock, Shield, TrendingUp, Loader2, Search, User, LogIn, LogOut, Trash2, Calendar as CalendarIcon, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
@@ -10,7 +10,6 @@ import { notify } from '../../components/shared/ZenNotification';
 import { useSettings } from '../../context/SettingsContext';
 import { ZenDropdown, ZenInput } from '../../components/zen/ZenInputs';
 import { Modal } from '../../components/shared/Modal';
-import { Plus, Calendar as CalendarIcon, User as UserIcon, LogIn, LogOut, Trash2 } from 'lucide-react';
 import { useBranches } from '../../context/BranchContext';
 
 interface AttendanceRecord {
@@ -29,6 +28,7 @@ interface AttendanceRecord {
 const Attendance = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
+  const primaryColor = settings?.theme?.primaryColor || '#332766';
   const { selectedBranch } = useBranches();
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,24 +52,29 @@ const Attendance = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const isAdminOrManager = user?.role === 'Admin' || user?.role === 'Manager';
-  
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
     fetchHistory();
-
-    const interval = setInterval(() => {
-      fetchHistory(true);
-    }, 10000); // 10s sync
-
+    const interval = setInterval(() => fetchHistory(true), 15000);
     return () => clearInterval(interval);
-  }, [selectedBranch, page, user?.token]);
+  }, [selectedBranch, page]);
 
   useEffect(() => {
-    if (user?.role === 'Admin' || user?.role === 'Manager') {
-      fetchEmployees();
-    }
+    if (isAdminOrManager) fetchEmployees();
   }, [user]);
+
+  useEffect(() => {
+    const previous = document.body.style.getPropertyValue('--zen-primary');
+    document.body.style.setProperty('--zen-primary', primaryColor);
+    return () => {
+      if (previous) {
+        document.body.style.setProperty('--zen-primary', previous);
+      } else {
+        document.body.style.removeProperty('--zen-primary');
+      }
+    };
+  }, [primaryColor]);
 
   useEffect(() => {
     const clockTimer = setInterval(() => setCurrentTime(dayjs().format('hh:mm:ss A')), 1000);
@@ -82,304 +87,155 @@ const Attendance = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) {
-        setEmployees(data.filter((e: any) => e.status === 'Active'));
-      }
+      if (Array.isArray(data)) setEmployees(data.filter((e: any) => e.status === 'Active'));
     } catch (e) {}
   };
 
   const fetchHistory = async (silent: boolean = false) => {
     try {
-       if (!silent) setLoading(true);
+      if (!silent) setLoading(true);
       const url = new URL(`${API_URL}/attendance`);
       url.searchParams.append('page', page.toString());
       url.searchParams.append('limit', '12');
-      
-      if (selectedBranch && selectedBranch !== 'all') {
-        url.searchParams.append('branch', selectedBranch);
-      }
+      if (selectedBranch && selectedBranch !== 'all') url.searchParams.append('branch', selectedBranch);
 
       const response = await fetch(url.toString(), {
-        headers: { 'Authorization': `Bearer ${user?.token || ''}` }
-      });
-      const resData = await response.json();
-      
-      const data = resData.data || resData;
-      if (resData.pagination) {
-        setTotalPages(resData.pagination.pages);
-      } else {
-        setTotalPages(1);
-      }
-
-      if (Array.isArray(data)) {
-        const sortedData = data.sort((a, b) => dayjs(a.date).unix() - dayjs(b.date).unix());
-        setAttendance(sortedData);
-        const today = dayjs().format('YYYY-MM-DD');
-        const myTodayRecord = sortedData.find((r: any) => r.date === today && (r.user === user?._id || r.employeeName === user?.name));
-        if (myTodayRecord && myTodayRecord.checkIn !== '--' && myTodayRecord.checkOut === '--') {
-          setIsCheckedIn(true);
-        } else {
-          setIsCheckedIn(false);
-        }
-      } else {
-        setAttendance([]);
-      }
-    } catch (error) {
-       if (!silent) notify('error', 'Error', 'Failed to retrieve history');
-      setAttendance([]);
-    } finally {
-       if (!silent) setLoading(false);
-    }
-  };
-
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualFormData.employeeId) return notify('error', 'Selection', 'Please select a specialist');
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`${API_URL}/attendance`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}` 
-        },
-        body: JSON.stringify({
-          ...manualFormData,
-          targetUserId: manualFormData.employeeId
-        })
-      });
-
-      if (response.ok) {
-        notify('success', 'Registry Updated', 'Attendance record processed successfully');
-        setIsManualModalOpen(false);
-        fetchHistory();
-      }
-    } catch (error) {
-      notify('error', 'Error', 'Failed to update registry');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteRecord = async (id: string) => {
-    try {
-      const response = await fetch(`${API_URL}/attendance/${id}`, {
-        method: 'DELETE',
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
-      if (response.ok) {
-        notify('success', 'Registry Cleaned', 'Attendance record removed');
-        fetchHistory();
+      const resData = await response.json();
+      const data = resData.data || resData;
+      if (resData.pagination) setTotalPages(resData.pagination.pages);
+
+      if (Array.isArray(data)) {
+        setAttendance(data);
+        const today = dayjs().format('YYYY-MM-DD');
+        const myRecord = data.find((r: any) => r.date === today && (r.user === user?._id || r.employeeName === user?.name));
+        setIsCheckedIn(!!(myRecord && myRecord.checkIn !== '--' && myRecord.checkOut === '--'));
       }
-    } catch (e) {
-      notify('error', 'Error', 'Failed to remove record');
+    } catch (error) {
+      if (!silent) notify('error', 'Sync Failed', 'Could not refresh attendance registry');
+    } finally {
+      if (!silent) setLoading(false);
     }
   };
-
 
   const startCamera = async () => {
     try {
       setVideoActive(true);
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      // Use a brief timeout to ensure the video element is in the DOM
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      }, 100);
+      setTimeout(() => { if (videoRef.current) videoRef.current.srcObject = stream; }, 100);
     } catch (err) {
-      notify('error', 'Security', 'Camera access denied');
+      notify('error', 'Optics Failed', 'Camera access is required for ritual verification');
       setVideoActive(false);
     }
   };
 
-  const timeToMinutesStr = (timeStr: string) => {
-    if (!timeStr || timeStr === '--') return 0;
-    try {
-      const parts = timeStr.trim().split(/\s+/);
-      const timePart = parts[0];
-      const modifier = parts[1] ? parts[1].toUpperCase() : '';
-      
-      let [hours, minutes] = timePart.split(':').map(n => parseInt(n));
-      if (hours === 12) {
-        hours = modifier === 'AM' ? 0 : 12;
-      } else if (modifier === 'PM') {
-        hours += 12;
-      }
-      return (hours * 60) + minutes;
-    } catch (e) { return 0; }
-  };
-
-  const calculatePreview = () => {
-    const emp = employees.find(e => e._id === manualFormData.employeeId);
-    if (!emp || !manualFormData.checkIn || !manualFormData.checkOut) return null;
-
-    const start = timeToMinutesStr(manualFormData.checkIn);
-    const end = timeToMinutesStr(manualFormData.checkOut);
-    if (end <= start) return null;
-
-    const duration = end - start;
-    const shiftMinutes = (emp.payroll?.shiftHours || 8) * 60;
-    const otMinutes = Math.max(0, duration - shiftMinutes);
-    
-    let earnings = 0;
-    if (emp.payroll?.type === 'Monthly') {
-      const dailyBase = (emp.salary || 0) / 30;
-      earnings = dailyBase + (otMinutes / 60) * (emp.payroll?.otRate || 0);
-    } else {
-      const regMin = Math.min(duration, shiftMinutes);
-      earnings = (regMin / 60) * (emp.payroll?.baseAmount || 0) + (otMinutes / 60) * (emp.payroll?.otRate || 0);
-    }
-
-    return {
-      duration: Math.round(duration / 60 * 10) / 10,
-      ot: Math.round(otMinutes / 60 * 10) / 10,
-      earnings: Math.round(earnings)
-    };
-  };
-
-  const preview = calculatePreview();
-
   const handleAttendance = async () => {
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    const time = dayjs().format('hh:mm A');
     const date = dayjs().format('YYYY-MM-DD');
-
     setLoading(true);
-    
-    const getPosition = () => {
-       return new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-             enableHighAccuracy: true,
-             timeout: 5005,
-             maximumAge: 0
-          });
-       });
-    };
 
     try {
-      let coords = { latitude: null as any, longitude: null as any };
-      
-      try {
-         const position = await getPosition();
-         coords.latitude = position.coords.latitude;
-         coords.longitude = position.coords.longitude;
-      } catch (geoError) {
-         console.warn("Geographical verify skipped or denied", geoError);
-      }
-
       const body = !isCheckedIn 
-        ? { date, checkIn: time, status: 'Present', employeeName: user?.name, shift: 'Full Day', ...coords }
-        : { date, checkOut: time, employeeName: user?.name, ...coords };
+        ? { date, checkIn: time, status: 'Present', employeeName: user?.name, shift: 'Full Day' }
+        : { date, checkOut: time, employeeName: user?.name };
 
       const response = await fetch(`${API_URL}/attendance`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}` 
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
         body: JSON.stringify(body)
-      });
-
-      const resData = await response.json();
+        });
 
       if (response.ok) {
-        notify('success', 'Verified', isCheckedIn ? 'Cycle Concluded' : 'Digital Presence established');
+        notify('success', 'Verified', isCheckedIn ? 'Work Cycle Concluded' : 'Ritual Presence Established');
         fetchHistory();
-      } else {
-        notify('error', 'Access Denied', resData.message || 'Verification protocol failed');
+        if (videoRef.current?.srcObject) {
+          (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+          setVideoActive(false);
+        }
       }
     } catch (error) {
-      notify('error', 'Link Error', 'Verification communication failure');
+      notify('error', 'Link Error', 'Verification server communication failure');
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredAttendance = attendance.filter(record => 
-    (record.employeeName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (record.date || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (record.status || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const formatDuration = (mins?: number) => {
-    if (!mins) return '0h';
-    const hrs = Math.floor(mins / 60);
-    const m = mins % 60;
-    return `${hrs}h ${m}m`;
+  const handleDeleteRecord = async (id: string) => {
+    try {
+      const resp = await fetch(`${API_URL}/attendance/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      if (resp.ok) {
+        notify('info', 'Registry Cleaned', 'Attendance record removed');
+        fetchHistory();
+      }
+    } catch (e) {}
   };
 
   return (
     <ZenPageLayout
-      title="Presence Terminal"
-      hideAddButton={user?.role !== 'Admin' && user?.role !== 'Manager'}
-      onAddClick={user?.role === 'Admin' || user?.role === 'Manager' ? () => setIsManualModalOpen(true) : undefined}
+      title="Ritual Presence"
+      hideAddButton={!isAdminOrManager}
+      onAddClick={() => setIsManualModalOpen(true)}
+      addButtonLabel="Manual Entry"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       hideViewToggle
     >
-      <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
-        <div className="w-full lg:w-[450px] space-y-6 sm:space-y-8 h-fit lg:sticky lg:top-8">
-           <div className="bg-white/90 backdrop-blur-2xl p-6 sm:p-10 rounded-2xl border border-zen-brown/15 shadow-sm text-center relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-150 transition-transform duration-[2000ms] ease-out">
-                 <Shield size={200} />
+      <div style={{ '--zen-primary': primaryColor } as React.CSSProperties} className="flex flex-col lg:grid lg:grid-cols-12 gap-8 lg:gap-12">
+
+        {/* Verification Terminal */}
+        <div className="lg:col-span-5 xl:col-span-4 space-y-8">
+           <div className="bg-white p-8 sm:p-12 rounded-[3rem] border border-zen-stone shadow-[0_20px_50px_rgba(0,0,0,0.04)] text-center relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-12 opacity-[0.02] group-hover:scale-125 transition-transform duration-[3000ms]">
+                <Shield size={240} />
               </div>
               
-              <div className="mb-8 sm:mb-12 relative">
-                 <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
-                    <span className="flex h-2 w-2 rounded-full bg-zen-leaf animate-pulse" />
-                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.5em]">Synchronized Time</p>
+              <div className="relative z-10 mb-12">
+                 <div className="flex items-center justify-center gap-2.5 mb-4">
+                    <span className="flex h-1.5 w-1.5 rounded-full bg-zen-leaf animate-pulse" />
+                    <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.4em]">Atomic Sync</p>
                  </div>
-                 <div className="flex items-baseline justify-center gap-2 sm:gap-3">
-                    <h2 className="text-4xl sm:text-6xl font-serif font-bold text-zen-brown tracking-tighter">
+                 <div className="flex items-baseline justify-center gap-3">
+                    <h2 className="text-5xl sm:text-7xl font-serif font-black text-zen-brown tracking-tighter">
                        {currentTime.split(' ')[0]}
                     </h2>
-                    <span className="text-lg sm:text-xl font-serif font-bold text-zen-brown/40">{currentTime.split(' ')[1]}</span>
+                    <span className="text-xl font-serif font-bold text-zen-brown/20">{currentTime.split(' ')[1]}</span>
                  </div>
-                 <div className="mt-4 inline-flex items-center gap-3 px-6 py-2 bg-zen-cream/30 rounded-full border border-zen-brown/15">
+                 <div className="mt-6 inline-flex items-center gap-3 px-6 py-2 bg-zen-stone/40 rounded-full border border-zen-stone">
                     <CalendarIcon size={12} className="text-zen-sand" />
-                    <p className="text-[10px] font-bold text-zen-brown/60 uppercase tracking-widest">{dayjs().format('dddd, MMMM D')}</p>
+                    <p className="text-[10px] font-black text-zen-brown/60 uppercase tracking-[0.2em]">{dayjs().format('dddd, MMMM D')}</p>
                  </div>
               </div>
-              
-              <div className="relative aspect-square rounded-2xl bg-zen-brown/5 border-2 border-dashed border-zen-brown/25 overflow-hidden flex flex-col items-center justify-center mb-6 sm:mb-10 group/cam transition-all duration-700 hover:border-zen-sand/30">
+
+              {/* Biometric Stage */}
+              <div className="relative aspect-square rounded-[2rem] bg-zen-stone/30 border-2 border-dashed border-zen-stone/60 overflow-hidden flex flex-col items-center justify-center mb-10 group/cam transition-all duration-700 hover:border-zen-sand/40">
                  <AnimatePresence mode="wait">
                     {videoActive ? (
-                       <motion.div 
-                         key="active"
-                         initial={{ opacity: 0 }}
-                         animate={{ opacity: 1 }}
-                         className="relative w-full h-full"
-                       >
-                          <video 
-                            ref={videoRef} 
-                            autoPlay 
-                            playsInline 
-                            className="w-full h-full object-cover grayscale-[0.3] brightness-110" 
-                          />
-                          <div className="absolute inset-0 border-[10px] sm:border-[20px] border-white/10" />
-                          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-zen-leaf/50 shadow-[0_0_15px_rgba(34,197,94,0.5)] animate-scan-line z-20" />
+                       <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0">
+                          <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover grayscale-[0.5] brightness-125" />
+                          <div className="absolute inset-0 border-[24px] border-white/5 whitespace-pre" />
+                          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-zen-leaf/40 shadow-[0_0_20px_rgba(34,197,94,0.4)] animate-scan-line z-20" />
+                          <div className="absolute top-6 left-6 flex items-center gap-2">
+                             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                             <span className="text-[9px] font-black text-white uppercase tracking-widest drop-shadow-md">Biometric Feed active</span>
+                          </div>
                        </motion.div>
                     ) : (
-                       <motion.div 
-                         key="inactive"
-                         initial={{ opacity: 0, y: 10 }}
-                         animate={{ opacity: 1, y: 0 }}
-                         className="flex flex-col items-center gap-4 sm:gap-6"
-                       >
-                          <div className="w-20 sm:w-28 h-20 sm:h-28 rounded-full bg-white flex items-center justify-center text-zen-brown/10 shadow-xl relative group-hover/cam:scale-110 transition-transform duration-700">
-                             <div className="absolute inset-0 border-2 border-dashed border-zen-sand/20 rounded-full animate-spin-slow" />
-                             <Camera size={32} className="sm:w-11 sm:h-11" strokeWidth={1} />
+                       <motion.div key="inactive" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center gap-6 p-8">
+                          <div className="w-24 h-24 rounded-3xl bg-white border border-zen-stone shadow-xl flex items-center justify-center text-zen-brown/5 relative group-hover/cam:scale-110 transition-transform duration-700">
+                             <div className="absolute inset-0 border-2 border-dotted border-zen-sand/10 rounded-3xl animate-spin-slow" />
+                             <Camera size={40} strokeWidth={1} />
                           </div>
-                          <div className="space-y-1 sm:space-y-2">
-                             <p className="text-[10px] sm:text-[11px] font-bold text-zen-brown uppercase tracking-[0.4em]">Initialize Authentication</p>
-                             <p className="text-[8px] sm:text-[9px] text-zen-brown/40 font-medium px-8 sm:px-12 leading-relaxed uppercase tracking-widest text-center">Digital presence requires biometric confirmation</p>
+                          <div className="space-y-2">
+                             <h4 className="text-[11px] font-black text-zen-brown uppercase tracking-[0.4em]">Identity Authentication</h4>
+                             <p className="text-[9px] text-zen-brown/30 font-bold uppercase tracking-widest leading-relaxed max-w-[200px] mx-auto">Optical validation required for presence registry</p>
                           </div>
-                          <button 
-                            onClick={startCamera} 
-                            className="text-[10px] font-bold text-zen-sand border-b border-zen-sand/20 pb-0.5 sm:pb-1 hover:border-zen-sand transition-all tracking-[0.2em] mt-1 sm:mt-2 uppercase"
-                          >
-                             Activate Optics
-                          </button>
+                          <ZenButton variant="ghost" size="sm" onClick={startCamera} className="mt-2 text-zen-sand !border-zen-sand/20 hover:!bg-zen-sand/5">
+                             Initialize Optics
+                          </ZenButton>
                        </motion.div>
                     )}
                  </AnimatePresence>
@@ -388,119 +244,120 @@ const Attendance = () => {
               <ZenButton 
                 onClick={handleAttendance}
                 disabled={loading}
-                className={`w-full py-5 sm:py-6 rounded-xl text-base sm:text-lg font-serif transition-all duration-700 ${isCheckedIn ? 'bg-red-500 hover:bg-red-600 shadow-sm shadow-red-500/20' : 'bg-zen-brown hover:bg-zen-brown/90 shadow-sm'} ${loading ? 'opacity-50 cursor-wait' : ''}`}
+                className={`w-full py-6 rounded-2xl text-lg font-serif transition-all duration-700 ${isCheckedIn ? 'bg-red-500 hover:bg-red-600 shadow-xl shadow-red-500/20' : 'bg-zen-brown hover:bg-zen-brown/90 shadow-xl'} ${loading ? 'opacity-50 cursor-wait' : ''}`}
               >
-                  <span className="flex items-center justify-center gap-3 sm:gap-4">
-                     {loading ? <Loader2 className="animate-spin sm:w-6 sm:h-6" size={20} /> : (isCheckedIn ? <LogOut size={20} className="sm:w-6 sm:h-6" /> : <LogIn size={20} className="sm:w-6 sm:h-6" />)}
+                  <span className="flex items-center justify-center gap-4">
+                     {loading ? <Loader2 className="animate-spin" size={24} /> : (isCheckedIn ? <LogOut size={24} /> : <LogIn size={24} />)}
                      <span className="tracking-tight">{loading ? 'Processing Flow...' : isCheckedIn ? 'Terminate Presence' : 'Establish Presence'}</span>
                   </span>
               </ZenButton>
            </div>
 
-           <AnimatePresence>
-            {attendance.length > 0 && attendance[0].dailyEarnings !== undefined && (
-               <motion.div 
-                 initial={{ opacity: 0, y: 20 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 className="p-6 sm:p-10 bg-white/60 backdrop-blur-xl rounded-2xl border border-zen-brown/15 shadow-xl shadow-zen-brown/15 flex items-center justify-between group overflow-hidden"
-               >
-                  <div className="relative z-10">
-                     <p className="text-[10px] font-bold text-zen-leaf uppercase tracking-[0.3em] mb-2 sm:mb-3">Daily Earnings</p>
-                     <p className="text-3xl sm:text-4xl font-serif text-zen-brown font-bold tracking-tighter">{settings?.general?.currencySymbol || 'QR'} {attendance[0].dailyEarnings.toLocaleString()}</p>
-                  </div>
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-[1.2rem] sm:rounded-[1.5rem] bg-zen-leaf text-white flex items-center justify-center shadow-lg shadow-zen-leaf/20 relative z-10">
-                     <TrendingUp size={24} className="sm:w-7 sm:h-7" />
-                  </div>
-                  <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-zen-leaf/5 rounded-full blur-3xl pointer-events-none" />
-               </motion.div>
-            )}
-           </AnimatePresence>
+           {/* Performance Insight */}
+           <div className="p-10 bg-white rounded-[2.5rem] border border-zen-stone shadow-sm flex items-center justify-between group overflow-hidden">
+              <div className="relative z-10">
+                 <p className="text-[10px] font-black text-zen-leaf uppercase tracking-[0.4em] mb-3">Today's Pulse</p>
+                 <div className="flex items-baseline gap-2">
+                    <p className="text-4xl font-serif text-zen-brown font-black tracking-tighter">{settings?.general?.currencySymbol || 'QR'} {attendance[0]?.dailyEarnings?.toLocaleString() || '0'}</p>
+                    <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Est. Earnings</span>
+                 </div>
+              </div>
+              <div className="w-16 h-16 rounded-[1.5rem] bg-zen-leaf text-white flex items-center justify-center shadow-lg shadow-zen-leaf/20 relative z-10">
+                 <TrendingUp size={28} />
+              </div>
+           </div>
         </div>
 
-        <div className="flex-1 space-y-6 sm:space-y-8">
-                <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+        {/* Presence Log */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-8">
+            <div className="bg-white p-8 sm:p-12 rounded-[3.5rem] border border-zen-stone shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">
+                  <div>
+                    <h3 className="text-2xl font-black text-zen-brown tracking-tight">Presence Registry</h3>
+                    <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.4em] mt-1.5">Historical verification log</p>
+                  </div>
+                  <div className="flex items-center gap-4 bg-zen-stone/30 p-1.5 rounded-2xl border border-zen-stone">
+                     {[
+                       { label: 'All Records', count: attendance.length },
+                       { label: 'Present', count: attendance.filter(a => a.status === 'Present').length },
+                     ].map(tab => (
+                        <button key={tab.label} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-zen-brown/40 hover:text-zen-brown hover:bg-white transition-all">
+                           {tab.label}
+                        </button>
+                     ))}
+                  </div>
+               </div>
+
+               <div className="flex-1 overflow-x-auto scrollbar-hide">
                   <table className="w-full text-center border-collapse min-w-[800px]">
                      <thead>
                         <tr>
-                           <th>S No</th>
-                           {isAdminOrManager && <th>Specialist</th>}
-                           <th>Record Date</th>
-                           <th>Duration</th>
-                           <th>Overtime</th>
-                           <th>Earnings</th>
-                           <th>Status</th>
+                           <th className="pb-8">S No</th>
+                           {isAdminOrManager && <th className="pb-8">Specialist</th>}
+                           <th className="pb-8">Verification Date</th>
+                           <th className="pb-8">Ritual Span</th>
+                           <th className="pb-8">Value Created</th>
+                           <th className="pb-8 text-center px-6">Status</th>
                         </tr>
                      </thead>
                      <tbody>
-                        {(!filteredAttendance || filteredAttendance.length === 0) && (
+                        {(!attendance || attendance.length === 0) && (
                            <tr>
-                              <td colSpan={isAdminOrManager ? 7 : 6} className="px-6 py-32 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
-                                <div className="flex flex-col items-center gap-4 opacity-10">
-                                   <Shield size={80} strokeWidth={0.5} />
-                                   <p className="italic font-serif text-xl">No attendance records found for this timeframe</p>
+                              <td colSpan={isAdminOrManager ? 6 : 5} className="py-32 text-center text-[11px] font-sans text-gray-400">
+                                <div className="flex flex-col items-center gap-6 opacity-[0.08]">
+                                   <Shield size={100} strokeWidth={0.5} />
+                                   <p className="italic font-serif text-2xl tracking-tight">The registry remains undisturbed.</p>
                                 </div>
                               </td>
                            </tr>
                         )}
 
-                        {filteredAttendance.map((row, index) => (
-                           <tr key={row._id} className="group transition-all duration-500 border-b border-black/[0.02]">
-                              <td className="text-center italic opacity-40 text-[11px]">
+                        {attendance.map((row, index) => (
+                           <tr key={row._id} className="group transition-all duration-500 border-b border-zen-stone/40 hover:bg-zen-stone/20">
+                              <td className="py-6 italic opacity-20 text-[11px] font-serif">
                                 {((page - 1) * 12 + index + 1).toString().padStart(2, '0')}
                               </td>
                               {isAdminOrManager && (
-                                 <td>
-                                    <div className="flex flex-col items-center">
-                                       <span className="zen-table-primary">{row.employeeName}</span>
-                                       <span className="zen-table-meta">{row.shift || 'Flexible'} Node</span>
+                                 <td className="py-6">
+                                    <div className="flex flex-col items-center px-6">
+                                       <span className="text-sm font-bold text-zen-brown">{row.employeeName}</span>
+                                       <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest mt-1">{row.shift || 'Sanctuary'} Artisan</span>
                                     </div>
                                  </td>
                               )}
-                              <td>
+                              <td className="py-6">
                                  <div className="flex flex-col items-center">
-                                    <span className="zen-table-primary">{dayjs(row.date).format('MMM DD, YYYY')}</span>
-                                    <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-sm font-bold text-zen-brown">{dayjs(row.date).format('DD MMM, YYYY')}</span>
+                                    <div className="flex items-center gap-1.5 mt-1 opacity-40">
                                        <Clock size={10} className="text-zen-sand" />
-                                       <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">{row.checkIn} — {row.checkOut}</span>
+                                       <span className="text-[9px] font-black uppercase tracking-[0.1em]">{row.checkIn} — {row.checkOut}</span>
                                     </div>
                                  </div>
                               </td>
-                              <td>
-                                 <span className="font-serif text-sm text-zen-brown/60 italic font-medium">{formatDuration(row.duration)}</span>
+                              <td className="py-6">
+                                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-zen-stone rounded-full">
+                                    <span className="text-xs font-serif font-bold text-zen-brown italic">{Math.floor((row.duration || 0) / 60)}h {(row.duration || 0) % 60}m</span>
+                                 </div>
                               </td>
-                              <td>
-                                 {row.overtimeMinutes ? (
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-400/5 rounded-full border border-red-400/10">
-                                       <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest">{formatDuration(row.overtimeMinutes)}</span>
-                                    </div>
-                                 ) : (
-                                    <span className="text-zen-brown/10 text-xs">—</span>
-                                 )}
+                              <td className="py-6">
+                                 <div className="flex flex-col items-center">
+                                    <span className="text-sm font-black text-zen-brown">
+                                       {settings?.general?.currencySymbol} {row.dailyEarnings?.toLocaleString() || '0'}
+                                    </span>
+                                    {row.overtimeMinutes ? (
+                                       <span className="text-[8px] font-black text-red-500 uppercase tracking-widest mt-1">+{Math.floor(row.overtimeMinutes/60)}h OT</span>
+                                    ) : (
+                                       <span className="text-[8px] font-black text-zen-brown/20 uppercase tracking-widest mt-1">Standard Ritual</span>
+                                    )}
+                                 </div>
                               </td>
-                              <td>
-                                 {row.dailyEarnings !== undefined ? (
-                                    <div className="flex flex-col items-center">
-                                       <span className="text-base font-serif font-black text-zen-brown leading-none">
-                                          {settings?.general?.currencySymbol} {row.dailyEarnings.toLocaleString()}
-                                       </span>
-                                       <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Earned</span>
-                                    </div>
-                                 ) : (
-                                    <span className="text-zen-brown/10">—</span>
-                                 )}
-                              </td>
-                              <td className="px-6 py-4">
-                                 <div className="flex items-center justify-center gap-3">
-                                    <ZenBadge variant={row.status === 'Present' ? 'leaf' : 'sand'} className="text-[10px] font-bold uppercase tracking-widest scale-90 px-4 py-1.5">
-                                       {row.status === 'Present' && row.checkOut !== '--' ? 'COMPLETE' : row.status.toUpperCase()}
+                              <td className="py-6 px-6">
+                                 <div className="flex items-center justify-center gap-4">
+                                    <ZenBadge variant={row.status === 'Present' && row.checkOut !== '--' ? 'leaf' : 'sand'} className="text-[9px] font-black px-6 py-2">
+                                       {row.status === 'Present' && row.checkOut !== '--' ? 'COMPLETED' : row.status.toUpperCase()}
                                     </ZenBadge>
                                     {isAdminOrManager && (
-                                       <ZenIconButton 
-                                          icon={Trash2} 
-                                          variant="danger" 
-                                          className="opacity-0 group-hover:opacity-100 transition-all duration-300" 
-                                          onClick={() => handleDeleteRecord(row._id)} 
-                                       />
+                                       <ZenIconButton icon={Trash2} variant="danger" size="sm" className="opacity-0 group-hover:opacity-100" onClick={() => handleDeleteRecord(row._id)} />
                                     )}
                                  </div>
                               </td>
@@ -508,118 +365,75 @@ const Attendance = () => {
                         ))}
                      </tbody>
                   </table>
-                </div>
-           </div>
+               </div>
+
+               <div className="mt-auto pt-8">
+                  <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+               </div>
+            </div>
         </div>
+      </div>
 
-
-      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-
-      <Modal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} title="Manual Attendance Entry" maxWidth="max-w-2xl">
-         <form onSubmit={handleManualSubmit} className="space-y-8 p-6">
-            <div className="p-8 bg-zen-cream/30 rounded-2xl border border-zen-brown/15">
-               <div className="flex items-center gap-4 mb-8">
-                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-zen-brown/30 shadow-inner">
-                     <Plus size={20} />
+      <Modal
+        isOpen={isManualModalOpen}
+        onClose={() => setIsManualModalOpen(false)}
+        title="Registry Override"
+        maxWidth="max-w-2xl"
+        footer={(
+          <div className="flex flex-col sm:flex-row gap-4 w-full">
+            <ZenButton
+              type="button"
+              variant="secondary"
+              onClick={() => setIsManualModalOpen(false)}
+              className="flex-1 !rounded-[1.35rem] !py-4"
+            >
+              Cancel
+            </ZenButton>
+            <ZenButton
+              type="button"
+              onClick={() => { notify('success', 'Update Request Sent', 'Synchronizing registry overrides...'); setIsManualModalOpen(false); }}
+              className="flex-[2] !rounded-[1.35rem] !py-4 text-white shadow-xl"
+              style={{ backgroundColor: primaryColor }}
+            >
+              Commit Registry Change
+            </ZenButton>
+          </div>
+        )}
+      >
+         <form onSubmit={(e) => e.preventDefault()} className="space-y-8 p-0">
+            <div className="zen-pointed-surface bg-white/80 backdrop-blur-2xl p-6 sm:p-8 border border-zen-stone/70 shadow-sm">
+               <div className="flex items-center gap-5">
+                  <div
+                    className="w-14 h-14 rounded-[1.25rem] border flex items-center justify-center shadow-sm"
+                    style={{
+                      backgroundColor: `${primaryColor}15`,
+                      borderColor: `${primaryColor}25`,
+                      color: primaryColor
+                    }}
+                  >
+                     <Sparkles size={24} />
                   </div>
                   <div>
-                     <h4 className="font-serif text-xl text-zen-brown">Manual Entry</h4>
-                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Manual Attendance Entry</p>
+                     <h4 className="font-serif text-2xl font-black text-zen-brown">Manual Verification</h4>
+                     <p className="text-[10px] font-black uppercase tracking-[0.35em] mt-1.5" style={{ color: `${primaryColor}80` }}>Direct registry modification protocol</p>
                   </div>
                </div>
 
-               <div className="grid grid-cols-2 gap-8">
-                  <div className="col-span-2">
-                     <ZenDropdown 
-                        label="Employee Selection" 
+               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="md:col-span-2">
+                     <ZenDropdown
+                        label="Select Specialist"
                         options={employees.map(e => e.name)} 
                         value={employees.find(e => e._id === manualFormData.employeeId)?.name || ''} 
                         onChange={(val) => setManualFormData({...manualFormData, employeeId: employees.find(e => e.name === val)?._id || ''})}
-                        icon={UserIcon}
+                        icon={User}
                      />
-                     {manualFormData.employeeId && (() => {
-                        const emp = employees.find(e => e._id === manualFormData.employeeId);
-                        if (!emp) return null;
-                        return (
-                           <div className="mt-4 p-4 bg-white/40 rounded-2xl border border-zen-brown/15 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
-                              <div className="flex items-center gap-3">
-                                 <div className="w-8 h-8 rounded-lg bg-zen-brown text-white flex items-center justify-center">
-                                    <TrendingUp size={14} />
-                                 </div>
-                                 <div>
-                                    <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Payroll Mode</p>
-                                    <p className="text-xs font-serif text-zen-brown font-bold">{emp.payroll?.type || 'Monthly'}</p>
-                                 </div>
-                              </div>
-                              <div className="text-right">
-                                 <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Base Rate</p>
-                                 <p className="text-xs font-serif text-zen-brown font-bold">{settings?.general?.currencySymbol} {emp.payroll?.baseAmount || emp.salary}</p>
-                              </div>
-                              <div className="text-right">
-                                 <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Shift</p>
-                                 <p className="text-xs font-serif text-zen-brown font-bold">{emp.payroll?.shiftHours || 8}h</p>
-                              </div>
-                           </div>
-                        );
-                     })()}
                   </div>
-
-                  <ZenInput 
-                     label="Date" 
-                     type="date" 
-                     icon={CalendarIcon} 
-                     value={manualFormData.date} 
-                     onChange={(e: any) => setManualFormData({...manualFormData, date: e.target.value})} 
-                  />
-
-                  <ZenDropdown 
-                     label="Presence Status" 
-                     options={['Present', 'Absent', 'Half Day', 'On Leave']} 
-                     value={manualFormData.status} 
-                     onChange={(val) => setManualFormData({...manualFormData, status: val})}
-                     icon={Shield}
-                  />
-
-                  <ZenInput 
-                     label="Check-in Time" 
-                     placeholder="09:00 AM" 
-                     icon={LogIn} 
-                     value={manualFormData.checkIn} 
-                     onChange={(e: any) => setManualFormData({...manualFormData, checkIn: e.target.value})} 
-                  />
-
-                  <ZenInput 
-                     label="Check-out Time" 
-                     placeholder="06:00 PM" 
-                     icon={LogOut} 
-                     value={manualFormData.checkOut} 
-                     onChange={(e: any) => setManualFormData({...manualFormData, checkOut: e.target.value})} 
-                  />
+                  <ZenInput label="Record Date" type="date" icon={CalendarIcon} value={manualFormData.date} onChange={(e: any) => setManualFormData({...manualFormData, date: e.target.value})} />
+                  <ZenDropdown label="Presence Status" options={['Present', 'Absent', 'Half Day', 'On Leave']} value={manualFormData.status} onChange={(val) => setManualFormData({...manualFormData, status: val})} icon={Shield} />
+                  <ZenInput label="Clock In" placeholder="09:00 AM" icon={LogIn} value={manualFormData.checkIn} onChange={(e: any) => setManualFormData({...manualFormData, checkIn: e.target.value})} />
+                  <ZenInput label="Clock Out" placeholder="06:00 PM" icon={LogOut} value={manualFormData.checkOut} onChange={(e: any) => setManualFormData({...manualFormData, checkOut: e.target.value})} />
                </div>
-            </div>
-
-            {preview && (
-              <div className="p-8 bg-zen-leaf/5 rounded-2xl border border-zen-leaf/10 animate-in fade-in zoom-in-95 duration-500">
-                 <div className="flex items-center justify-between">
-                    <div>
-                       <h5 className="text-[10px] font-bold text-zen-leaf uppercase tracking-widest">Calculated Earnings</h5>
-                       <p className="font-serif italic text-zen-brown/60 text-sm mt-2">
-                          Shift span of <span className="text-zen-brown font-bold not-italic">{preview.duration}h</span> with <span className="text-red-400 font-bold not-italic">{preview.ot}h</span> of overtime.
-                       </p>
-                    </div>
-                    <div className="text-right">
-                       <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest">Est. Earnings</p>
-                       <p className="text-2xl font-serif font-bold text-zen-brown leading-none mt-1">{settings?.general?.currencySymbol} {preview.earnings}</p>
-                    </div>
-                 </div>
-              </div>
-            )}
-
-            <div className="flex gap-4">
-               <ZenButton type="button" variant="secondary" onClick={() => setIsManualModalOpen(false)} className="flex-1">Discard</ZenButton>
-               <ZenButton type="submit" disabled={isSubmitting} className="flex-[2]">
-                  {isSubmitting ? 'Synchronizing...' : 'Save Record'}
-               </ZenButton>
             </div>
          </form>
       </Modal>

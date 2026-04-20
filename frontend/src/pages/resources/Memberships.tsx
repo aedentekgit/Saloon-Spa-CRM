@@ -563,7 +563,7 @@ title="Membership Management"
 
             {activeTab === 'registry' && (
               <div className="space-y-12">
-                  <div className="flex overflow-x-auto pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+                  <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
                      {[
                       { label: 'Total Clients', value: memberships.length.toString(), icon: Users, trend: `${stats?.totalActive || 0} active currently`, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', delay: 0 },
                       { label: 'Plan Engagement', value: stats?.activeTiers?.toString() || '0', icon: BarChart3, trend: 'In membership', color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', delay: 0.2 },

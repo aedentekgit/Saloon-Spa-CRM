@@ -9,10 +9,8 @@ const { getBranchId, sameBranch } = require('../../utils/branch');
 // @access  Public
 exports.getPublicEmployees = async (req, res) => {
   try {
-    const query = {};
+    const query = { status: 'Active' };
     if (req.query.branch) query.branch = req.query.branch;
-    // Return ALL employees (active or not) — let the admin control availability via shift assignment
-    // Only exclude if explicitly inactive AND no shift (i.e. truly unavailable)
     const employees = await Employee.find(query)
       .select('name role shift branch services status')
       .populate('branch', 'name _id')
@@ -29,6 +27,7 @@ exports.getPublicEmployees = async (req, res) => {
 exports.getEmployees = async (req, res) => {
   try {
     let query = {};
+    let select;
     const userBranchId = getBranchId(req.user?.branch);
 
     // Filters
@@ -54,12 +53,23 @@ exports.getEmployees = async (req, res) => {
         if (userBranchId) {
           query.branch = userBranchId;
         }
+      } else if (req.user.role === 'Client') {
+        query.status = 'Active';
+        if (userBranchId) {
+          query.branch = userBranchId;
+        }
       }
     } else {
         query.status = 'Active';
     }
 
+    // Non-admin roles should not receive payroll/salary fields.
+    if (!req.user || req.user.role === 'Employee' || req.user.role === 'Client') {
+      select = 'name role phone email profilePic services attendance earnings status shift shiftType branch joiningDate createdAt';
+    }
+
     const { data, pagination } = await paginateModelQuery(Employee, query, req, {
+      select,
       populate: 'branch',
       sort: { createdAt: -1 }
     });

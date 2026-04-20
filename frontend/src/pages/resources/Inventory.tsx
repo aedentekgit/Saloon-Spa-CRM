@@ -280,7 +280,7 @@ const Inventory = () => {
     >
       <div className="space-y-10 pb-20">
         {/* Dynamic Summary Cards */}
-        <div className="flex overflow-x-auto pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
             { label: 'Inventory Volume', value: metrics.totalItems, trend: 'Items in workspace', icon: Boxes, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20' },
             { label: 'Critical Levels', value: metrics.lowStockCount, trend: 'Replenish required', icon: AlertTriangle, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20' },

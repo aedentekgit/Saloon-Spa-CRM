@@ -7,12 +7,6 @@ import {
   Plus, 
   Filter, 
   Trash2, 
-  ArrowUpRight,
-  ArrowDownRight,
-  Sparkles,
-  CheckCircle2,
-  Grid,
-  List
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -49,6 +43,17 @@ interface Invoice {
   paymentMode: string;
 }
 
+interface LedgerRow {
+  id: string;
+  kind: 'Income' | 'Expense';
+  title: string;
+  subtitle: string;
+  date: string;
+  amount: number;
+  meta: string;
+  sourceId: string;
+}
+
 const Finance = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
@@ -58,9 +63,6 @@ const Finance = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
-    return (localStorage.getItem('zen_finance_view') as 'grid' | 'table') || 'table';
-  });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -104,6 +106,34 @@ const Finance = () => {
   const totalExpenses = useMemo(() => expenses.reduce((acc, exp) => acc + (exp.amount || 0), 0), [expenses]);
   const netProfit = totalIncome - totalExpenses;
 
+  const ledgerRows = useMemo<LedgerRow[]>(() => {
+    const expenseRows = expenses.map(exp => ({
+      id: `expense-${exp._id}`,
+      kind: 'Expense' as const,
+      title: exp.title,
+      subtitle: exp.category,
+      date: exp.date,
+      amount: exp.amount || 0,
+      meta: 'Operational outflow',
+      sourceId: exp._id
+    }));
+
+    const invoiceRows = invoices.map(inv => ({
+      id: `invoice-${inv._id}`,
+      kind: 'Income' as const,
+      title: `Service ${inv.clientName}`,
+      subtitle: inv.paymentMode,
+      date: inv.date,
+      amount: inv.total || 0,
+      meta: 'Completed invoice',
+      sourceId: inv._id
+    }));
+
+    return [...expenseRows, ...invoiceRows].sort(
+      (a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()
+    );
+  }, [expenses, invoices]);
+
   const chartData = useMemo(() => {
     if (trendData.length > 0) return trendData;
     // Fallback if no trend data
@@ -111,6 +141,11 @@ const Finance = () => {
       { name: '...', revenue: 0, expenses: 0 },
     ];
   }, [trendData]);
+
+  const hasChartPoints = useMemo(
+    () => chartData.some(point => Number(point.revenue || 0) > 0 || Number(point.expenses || 0) > 0),
+    [chartData]
+  );
 
 
   const handleAddExpense = async (e: React.FormEvent) => {
@@ -164,7 +199,7 @@ const Finance = () => {
       onAddClick={() => setIsModalOpen(true)}
     >
       <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="space-y-10 pb-20 mt-4">
-        <div className="flex overflow-x-auto pt-4 pb-6 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
             { label: 'Internal Inflow', value: `${settings?.general?.currencySymbol || 'QR'} ${totalIncome.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Total Revenue Generated' },
             { label: 'External Outflow', value: `${settings?.general?.currencySymbol || 'QR'} ${totalExpenses.toLocaleString()}`, icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-500/10', glow: 'bg-red-500/20', trend: 'Operational Expenditure' },
@@ -175,46 +210,26 @@ const Finance = () => {
         </div>
 
         {/* Global Filter Bar */}
-        <div className="flex flex-col lg:flex-row gap-8 items-end px-2">
-           <div className="flex-1 w-full flex flex-col gap-3">
-              <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Registry Search</label>
-              <div className="relative group">
-                 <span className="absolute left-6 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors">
-                   <Filter size={16} />
-                 </span>
-                 <input 
-                   type="text"
-                   placeholder="Transactions are logged chronologically..."
-                   disabled
-                   className="w-full pl-14 pr-6 py-3.5 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm opacity-50"
-                 />
-              </div>
-           </div>
-
-           <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
-              <div className="flex items-center gap-4">
-                 <div className="flex flex-col gap-3">
-                    <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
-                    <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner">
-                       <button 
-                         onClick={() => setViewMode('grid')}
-                         className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                       >
-                         <Grid size={16} />
-                       </button>
-                       <button 
-                         onClick={() => setViewMode('table')}
-                         className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                       >
-                         <List size={16} />
-                       </button>
-                    </div>
+        <div className="rounded-[2.25rem] border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-5">
+           <div className="flex flex-col xl:flex-row xl:items-end gap-5 xl:gap-8">
+              <div className="flex-1 w-full flex flex-col gap-2.5">
+                 <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Registry Search</label>
+                 <div className="relative group">
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors">
+                      <Filter size={16} />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Search entries, amounts, or dates..."
+                      disabled
+                      className="w-full h-[58px] pl-[52px] pr-6 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm opacity-50"
+                    />
                  </div>
               </div>
 
-              <div className="flex flex-col gap-3 w-full lg:w-auto">
-                 <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Management</label>
-                 <ZenButton onClick={() => setIsModalOpen(true)} variant="primary" className="w-full sm:w-auto px-8 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
+              <div className="flex flex-col gap-2.5 w-full xl:w-auto">
+                 <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Management</label>
+                 <ZenButton onClick={() => setIsModalOpen(true)} variant="primary" className="w-full xl:w-auto px-8 h-[58px] shadow-sm flex items-center justify-center gap-2 group rounded-[1.15rem]">
                     <Plus size={16} className="group-hover:rotate-12 transition-transform duration-500" />
                     <span className="uppercase tracking-[0.2em] text-[10px] font-black">Log Expenditure</span>
                  </ZenButton>
@@ -222,30 +237,36 @@ const Finance = () => {
            </div>
         </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 font-sans">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 font-sans">
         {/* Left Side: Chart */}
-        <div className="w-full flex flex-col transition-all duration-300">
-           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 z-10 relative">
-              <div>
-                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Financial Status</h3>
-                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Income vs Expenditure Dynamics</p>
-              </div>
-              <div className="flex items-center gap-4">
-                 <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#10b981]"></div>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Revenue</span>
+        <div className="lg:col-span-7 w-full flex flex-col">
+           <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-6 sm:p-8 min-h-[420px] relative overflow-hidden">
+             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-zen-brown/5">
+                <div>
+                   <h3 className="text-xl font-bold text-gray-900 tracking-tight">Financial Status</h3>
+                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Income vs expenditure dynamics</p>
+                </div>
+                <div className="flex items-center gap-4">
+                   <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#10b981]"></div>
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Revenue</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></div>
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Expenses</span>
+                   </div>
+                </div>
+             </div>
+
+             {!hasChartPoints && (
+               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                 <div className="text-center max-w-xs opacity-20">
+                   <Coins size={46} strokeWidth={0.8} className="mx-auto mb-4" />
+                   <p className="italic font-serif text-lg text-gray-500">No revenue trend data is available yet.</p>
                  </div>
-                 <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></div>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Expenses</span>
-                 </div>
-                 <div className="ml-2">
-                    <ZenIconButton icon={Filter} />
-                 </div>
-              </div>
-           </div>
-           
-           <div className="h-[300px] w-full mt-auto relative z-10 -ml-4">
+               </div>
+             )}
+             <div className="h-[320px] w-full relative z-10">
               <ResponsiveContainer width="100%" height="100%">
                  <AreaChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
                     <defs>
@@ -282,103 +303,102 @@ const Finance = () => {
                     <Area type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={3} strokeDasharray="10 10" fillOpacity={1} fill="url(#colorExpense)" />
                  </AreaChart>
               </ResponsiveContainer>
+             </div>
            </div>
         </div>
 
-        {/* Right Side: List */}
-        {/* Right Side: List */}
-        <div className="w-full flex flex-col h-full min-h-[500px] transition-all duration-300">
-           <div className="flex justify-between items-center bg-zen-cream/80 backdrop-blur-md sticky top-0 z-10 mb-6 border-b border-gray-100 pb-4">
-              <div>
-                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Activity</h3>
-                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Combined Transaction Registry</p>
+        {/* Right Side: Ledger */}
+        <div className="lg:col-span-5 w-full flex flex-col">
+           <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden">
+              <div className="flex justify-between items-center gap-4 px-6 sm:px-8 pt-6 pb-5 border-b border-zen-brown/5">
+                 <div>
+                    <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Activity</h3>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Combined transaction registry</p>
+                 </div>
+                 <ZenBadge variant="leaf" className="px-3 sm:px-5">Ledger</ZenBadge>
               </div>
-              <div className="flex gap-4 items-center">
-                  <ZenBadge variant="leaf" className="px-3 sm:px-5">Active Entries</ZenBadge>
-               </div>
-           </div>
- 
-           <div className="flex-1 overflow-y-auto custom-scrollbar -mr-4 pr-4">
-              {viewMode === 'grid' ? (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {expenses.map((exp) => (
-                       <div key={exp._id} className="group relative bg-red-50/30 rounded-2xl p-5 border border-red-100 hover:bg-red-50 hover:border-red-200 transition-all duration-300">
-                          <div className="flex justify-between items-start mb-4">
-                             <div className="w-10 h-10 bg-white border border-red-100 rounded-xl flex items-center justify-center text-red-500 shadow-sm">
-                                <TrendingDown size={18} strokeWidth={2} />
+
+              <div className="table-container overflow-x-auto">
+                 <table className="w-full min-w-[720px] table-fixed border-collapse">
+                    <colgroup>
+                      <col className="w-[15%]" />
+                      <col className="w-[30%]" />
+                      <col className="w-[22%]" />
+                      <col className="w-[18%]" />
+                      <col className="w-[15%]" />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>Entry</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ledgerRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-24 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
+                             <div className="flex flex-col items-center gap-4 opacity-20">
+                                <Coins size={60} strokeWidth={0.5} />
+                                <p className="italic font-serif text-xl">Ledger is currently quiet.</p>
                              </div>
-                             <button onClick={() => { setExpenseToDelete(exp._id); setIsConfirmOpen(true); }} className="text-gray-400 hover:text-red-500 transition-colors">
-                                <Trash2 size={16} />
-                             </button>
-                          </div>
-                          <div className="space-y-1">
-                             <h4 className="text-sm font-bold text-gray-900 tracking-tight line-clamp-1">{exp.title}</h4>
-                             <div className="flex items-center justify-between pt-1">
-                                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{dayjs(exp.date).format('MMM DD')} • {exp.category}</span>
-                                <p className="text-lg font-bold text-red-600">-{settings?.general?.currencySymbol || 'QR'} {exp.amount?.toLocaleString()}</p>
-                             </div>
-                          </div>
-                       </div>
-                    ))}
-                    {invoices.map((inv) => (
-                       <div key={inv._id} className="group relative bg-emerald-50/30 rounded-2xl p-5 border border-emerald-100 hover:bg-emerald-50 hover:border-emerald-200 transition-all duration-300">
-                          <div className="flex justify-between items-start mb-4">
-                             <div className="w-10 h-10 bg-white border border-emerald-100 rounded-xl flex items-center justify-center text-emerald-500 shadow-sm">
-                                <TrendingUp size={18} strokeWidth={2} />
-                             </div>
-                             <div className="p-1 px-2 bg-emerald-100/50 text-emerald-600 rounded-lg border border-emerald-100/50 flex items-center"><Sparkles size={12} className="mr-1" /><span className="text-[9px] font-bold uppercase tracking-widest">Settled</span></div>
-                          </div>
-                          <div className="space-y-1">
-                             <h4 className="text-sm font-bold text-gray-900 tracking-tight line-clamp-1">Service {inv.clientName}</h4>
-                             <div className="flex items-center justify-between pt-1">
-                                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{dayjs(inv.date).format('MMM DD')} • {inv.paymentMode}</span>
-                                <p className="text-lg font-bold text-emerald-600">+{settings?.general?.currencySymbol || 'QR'} {inv.total?.toLocaleString()}</p>
-                             </div>
-                          </div>
-                       </div>
-                    ))}
-                 </div>
-              ) : (
-                 <div className="space-y-3">
-                    {expenses.map((exp) => (
-                       <div key={exp._id} className="group flex items-center justify-between p-4 bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl transition-all duration-300">
-                          <div className="flex items-center gap-4">
-                             <div className="w-10 h-10 bg-red-50 rounded-xl border border-red-100 flex items-center justify-center text-red-500">
-                                <TrendingDown size={18} strokeWidth={2} />
-                             </div>
-                             <div>
-                                <p className="text-sm font-bold text-gray-900 tracking-tight leading-tight">{exp.title}</p>
-                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{dayjs(exp.date).format('MMM DD, YYYY')} • {exp.category}</p>
-                             </div>
-                          </div>
-                          <div className="text-right flex items-center gap-5">
-                             <p className="text-base font-serif font-black text-red-600">-{settings?.general?.currencySymbol || 'QR'} {exp.amount?.toLocaleString()}</p>
-                             <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setExpenseToDelete(exp._id); setIsConfirmOpen(true); }} />
-                          </div>
-                       </div>
-                    ))}
-                    {invoices.map((inv) => (
-                       <div key={inv._id} className="group flex items-center justify-between p-4 bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl transition-all duration-300">
-                          <div className="flex items-center gap-4">
-                             <div className="w-10 h-10 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center text-emerald-500">
-                                <TrendingUp size={18} strokeWidth={2} />
-                             </div>
-                             <div>
-                                <p className="text-sm font-bold text-gray-900 tracking-tight leading-tight">Service {inv.clientName}</p>
-                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{dayjs(inv.date).format('MMM DD, YYYY')} • {inv.paymentMode}</p>
-                             </div>
-                          </div>
-                          <p className="text-base font-serif font-black text-emerald-600 mr-10">+{settings?.general?.currencySymbol || 'QR'} {inv.total?.toLocaleString()}</p>
-                       </div>
-                    ))}
-                 </div>
-              )}
- 
-              {expenses.length === 0 && invoices.length === 0 && (
-                 <div className="h-full flex flex-col items-center justify-center py-20 text-gray-400 font-bold text-xs uppercase tracking-widest">
-                    No transactions found for the current filters
-                 </div>
-              )}
+                          </td>
+                        </tr>
+                      ) : (
+                        ledgerRows.map((row) => {
+                          const isExpense = row.kind === 'Expense';
+                          return (
+                            <tr key={row.id} className="transition-all group">
+                              <td>
+                                <div className="flex flex-col items-center">
+                                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${isExpense ? 'bg-red-500/10 text-red-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                                    {row.kind}
+                                  </span>
+                                  <span className="zen-table-meta mt-2">{isExpense ? 'Outflow' : 'Inflow'}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="flex flex-col items-center px-4">
+                                  <span className="zen-table-primary">{row.title}</span>
+                                  <span className="zen-table-meta">{row.subtitle}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="flex flex-col items-center">
+                                  <span className="zen-table-primary !text-[14px]">{dayjs(row.date).format('MMM DD, YYYY')}</span>
+                                  <span className="zen-table-meta">{row.meta}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <p className={`text-base font-serif font-black ${isExpense ? 'text-red-600' : 'text-emerald-600'}`}>
+                                  {isExpense ? '-' : '+'}{settings?.general?.currencySymbol || 'QR'} {row.amount?.toLocaleString()}
+                                </p>
+                              </td>
+                              <td>
+                                <div className="flex items-center justify-center gap-3">
+                                  {isExpense ? (
+                                    <ZenIconButton
+                                      icon={Trash2}
+                                      variant="danger"
+                                      onClick={() => {
+                                        setExpenseToDelete(row.sourceId);
+                                        setIsConfirmOpen(true);
+                                      }}
+                                    />
+                                  ) : (
+                                    <ZenBadge variant="leaf" className="px-4">Settled</ZenBadge>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                 </table>
+              </div>
            </div>
         </div>
       </div>

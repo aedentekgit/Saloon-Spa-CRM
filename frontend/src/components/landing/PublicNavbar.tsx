@@ -33,6 +33,7 @@ const PublicNavbar = () => {
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
     { name: 'Services', path: '/landing-services' },
+    { name: 'Memberships', path: '/membership-tiers' },
     { name: 'Rooms', path: '/landing-rooms' },
     { name: 'Team', path: '/team' },
     { name: 'Contact', path: '/contact' },

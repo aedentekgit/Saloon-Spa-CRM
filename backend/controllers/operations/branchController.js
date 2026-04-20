@@ -8,7 +8,15 @@ const { paginateModelQuery } = require('../../utils/pagination');
 // @access  Public
 const getPublicBranches = async (req, res) => {
   try {
-    const { data, pagination } = await paginateModelQuery(Branch, {}, req);
+    const { data, pagination } = await paginateModelQuery(
+      Branch,
+      { isActive: true },
+      req,
+      {
+        // Deliberately exclude security-sensitive fields (e.g., allowedIPs).
+        select: 'name logo isActive contactNumber address lat lng radius'
+      }
+    );
     res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -20,7 +28,11 @@ const getPublicBranches = async (req, res) => {
 // @access  Private
 const getBranches = async (req, res) => {
   try {
-    const { data, pagination } = await paginateModelQuery(Branch, {}, req);
+    const isAdmin = req.user?.role === 'Admin';
+    const filter = isAdmin ? {} : { isActive: true };
+    const select = isAdmin ? undefined : 'name logo isActive contactNumber address lat lng radius';
+
+    const { data, pagination } = await paginateModelQuery(Branch, filter, req, { select });
     res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });

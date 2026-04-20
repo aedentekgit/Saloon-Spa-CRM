@@ -41,8 +41,8 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-brown/10 font-sans">
-      {/* Hero Section - Reduced top gap by changing items-center and adding smaller pt */}
-      <section className="relative min-h-[80vh] flex items-start px-4 md:px-6 lg:px-24 overflow-hidden pt-8 md:pt-16 lg:pt-20">
+      {/* Hero Section - Elevated breathing room */}
+      <section className="relative min-h-[90vh] flex items-start px-4 md:px-6 lg:px-24 overflow-hidden pt-20 md:pt-32 lg:pt-40">
         {/* Background Elements */}
         <div className="absolute top-[-10%] right-[-5%] w-[60%] h-[80%] bg-zen-sand/10 rounded-full blur-[120px] -z-10 animate-pulse" />
         <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-zen-primary/5 rounded-full blur-[100px] -z-10" />
@@ -106,25 +106,52 @@ const Home = () => {
           </div>
 
           {/* Decorative Media Area */}
-          <div className="relative animate-in fade-in zoom-in duration-1000 delay-300 mt-4 lg:mt-0">
-            <div className="aspect-[4/5] w-full rounded-[1.5rem] md:rounded-[5rem] overflow-hidden shadow-sm lg:skew-y-2">
+          <div className="relative animate-in fade-in zoom-in duration-1000 delay-300 mt-12 lg:mt-0 lg:pl-12">
+            <motion.div 
+              initial={{ rotate: 0 }}
+              animate={{ rotate: 2 }}
+              transition={{ duration: 20, repeat: Infinity, repeatType: "reverse" }}
+              className="aspect-[4/5] w-full rounded-[3rem] md:rounded-[5rem] overflow-hidden shadow-2xl relative z-0 group"
+            >
                <img 
                  src="/images/hero_sanctuary.png" 
                  alt="Warm sanctuary interior with water and lantern light" 
-                 className="w-full h-full object-cover hover:scale-100 transition-all duration-1000 scale-110"
+                 className="w-full h-full object-cover transition-all duration-1000 scale-110 group-hover:scale-100"
                />
-            </div>
-            {/* Glass Card Overlay - Positioned for mobile/desktop */}
-            <div className="absolute -bottom-6 -left-4 md:-bottom-10 md:-left-10 p-6 md:p-10 backdrop-blur-3xl bg-white/40 border border-white/80 rounded-[1rem] md:rounded-[1.5rem] shadow-sm max-w-[280px] md:max-w-sm hidden sm:block">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-zen-primary/10 rounded-2xl text-zen-brown">
-                  <Waves size={24} />
+               <div className="absolute inset-0 bg-gradient-to-t from-zen-brown/20 to-transparent" />
+            </motion.div>
+
+            {/* Premium Floating Glass Card */}
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.8, duration: 1 }}
+              whileHover={{ y: -10, transition: { duration: 0.4 } }}
+              className="absolute -bottom-8 -left-8 lg:-left-16 p-8 lg:p-10 backdrop-blur-3xl bg-white/60 border border-white/80 rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(109,40,217,0.15)] max-w-[320px] lg:max-w-md hidden sm:block group/card overflow-hidden"
+            >
+              {/* Subtle accent glow */}
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-zen-sand/10 rounded-full blur-2xl group-hover/card:scale-150 transition-transform duration-1000" />
+              
+              <div className="relative z-10 flex items-start gap-5">
+                <div className="w-14 h-14 bg-zen-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-zen-primary/20 shrink-0">
+                  <Waves size={26} strokeWidth={1.5} />
                 </div>
-                <h3 className="font-serif font-bold text-xl md:text-2xl">Sacred Arrival</h3>
+                <div className="space-y-3">
+                  <h3 className="font-serif font-black text-2xl text-zen-brown leading-none">Sacred Arrival</h3>
+                  <p className="text-xs md:text-sm text-zen-brown/50 leading-relaxed font-medium">
+                    Warm timber, lantern light, and a quiet water feature set the tone before the first treatment begins.
+                  </p>
+                  <div className="pt-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-zen-sand">
+                     <span className="w-6 h-px bg-zen-sand/30" />
+                     The Registry Ritual
+                  </div>
+                </div>
               </div>
-              <p className="text-xs md:text-sm text-zen-primary/60 leading-relaxed">
-                Warm timber, lantern light, and a quiet water feature set the tone before the first treatment begins.
-              </p>
+            </motion.div>
+
+            {/* Ornamental Dots/Sparkles */}
+            <div className="absolute top-10 -right-4 text-zen-sand/20 animate-pulse">
+               <Sparkles size={48} strokeWidth={1} />
             </div>
           </div>
         </div>

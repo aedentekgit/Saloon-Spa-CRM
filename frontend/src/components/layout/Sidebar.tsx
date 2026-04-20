@@ -5,7 +5,7 @@ import {
   Gem, FileText, Landmark, Boxes, MessageCircle, TrendingUp,
   LogOut, ChevronRight, Settings2, ShieldCheck,
   MapPin, Award, Layers, CreditCard, Percent,
-  Fingerprint, Timer, Shapes, Key, UserRound, Sparkles, Scissors
+  Fingerprint, Timer, Shapes, Key, UserRound, Sparkles, Scissors, Clock
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
@@ -64,10 +64,12 @@ const Sidebar = ({
       label: 'Team',
       items: [
         { name: 'Employees', icon: Briefcase, path: '/employees', permission: 'employees' },
-        { name: 'Attendance', icon: Fingerprint, path: '/attendance', permission: 'attendance' },
+        { name: 'Attendance Ritual', icon: Clock, path: '/attendance', permission: 'attendance' },
+
         { name: 'Shifts', icon: Timer, path: '/shifts', permission: 'settings' },
         { name: 'Payroll', icon: Landmark, path: '/payroll', permission: 'finance' },
-        { name: 'Leave', icon: CalendarOff, path: '/leave', permission: 'leave' },
+        { name: 'Leave History', icon: CalendarOff, path: '/leave', permission: 'leave' },
+        { name: 'Apply Leave', icon: Sparkles, path: '/leave/apply', permission: 'leave' },
       ]
     },
     {
@@ -121,6 +123,7 @@ const Sidebar = ({
     <NavLink
       key={item.name}
       to={item.path}
+      end={item.path === '/leave'} // Ensure strict matching for Leave to prevent double highlight
       onClick={() => {
         if (window.innerWidth < 1024 && onClose) onClose();
       }}
@@ -134,6 +137,7 @@ const Sidebar = ({
         } ${isActive ? 'text-white shadow-sm shadow-zen-sand/20' : 'text-zen-brown/50 hover:text-zen-brown'}`
       }
     >
+
       {({ isActive }) => (
         <>
           <div className={`flex items-center justify-center shrink-0`}>

@@ -6,14 +6,16 @@
   --font-serif: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-accent: "Italiana", serif;
   
-  /* Modern Purple & Slate Palette - Responsive to Settings */
-  --color-zen-cream: var(--zen-cream, #F8FAFC);
-  --color-zen-brown: var(--zen-brown, #1E293B);
-  --color-zen-primary: var(--zen-primary, #332766);
+  /* Purple-lilac dashboard palette */
+  --color-zen-cream: var(--zen-cream, #F7F8FC);
+  --color-zen-brown: var(--zen-brown, #2B2440);
+  --color-zen-primary: var(--zen-primary, #6D28D9);
   --color-zen-sand: var(--zen-sand, #8B5CF6);
   --color-zen-leaf: #10B981;
-  --color-zen-stone: #E2E8F0;
+  --color-zen-stone: #E8ECF5;
   --color-zen-contrast: #FFFFFF;
+
+
   
   /* Extended Lavender Palette */
   --color-lavender-50: #F5F3FF;
@@ -26,6 +28,14 @@
   --color-lavender-700: #6D28D9;
   --color-lavender-800: #5B21B6;
   --color-lavender-900: #4C1D95;
+
+  /* Global container shadow profile (soft depth like billing reference) */
+  --shadow-sm: 0 12px 24px -18px rgba(17, 24, 39, 0.28), 0 2px 8px -6px rgba(17, 24, 39, 0.16);
+  --shadow: 0 16px 32px -20px rgba(17, 24, 39, 0.30), 0 6px 14px -10px rgba(17, 24, 39, 0.18);
+  --shadow-md: 0 20px 40px -22px rgba(17, 24, 39, 0.34), 0 8px 18px -12px rgba(17, 24, 39, 0.20);
+  --shadow-lg: 0 24px 48px -24px rgba(17, 24, 39, 0.36), 0 10px 24px -14px rgba(17, 24, 39, 0.22);
+  --shadow-xl: 0 30px 60px -28px rgba(17, 24, 39, 0.40), 0 14px 28px -16px rgba(17, 24, 39, 0.24);
+  --shadow-2xl: 0 38px 72px -32px rgba(17, 24, 39, 0.44), 0 18px 36px -20px rgba(17, 24, 39, 0.26);
 }
 
 @layer base {
@@ -35,7 +45,11 @@
   }
 
   body {
-    @apply bg-zen-cream text-black font-sans antialiased overflow-x-hidden;
+    background:
+      radial-gradient(circle at top left, rgba(139, 92, 246, 0.08), transparent 32%),
+      radial-gradient(circle at top right, rgba(109, 40, 217, 0.06), transparent 26%),
+      linear-gradient(180deg, #F7F8FC 0%, #F4F6FB 100%);
+    @apply text-slate-900 font-sans antialiased overflow-x-hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -68,14 +82,18 @@
 }
 
 @layer utilities {
+  .zen-container-shadow {
+    box-shadow: var(--shadow-md);
+  }
+
   /* Override themed backgrounds to use dynamic variables and handle contrast text */
   .bg-zen-brown {
-    background-color: var(--zen-primary, #2D1622);
+    background-color: var(--zen-primary, #6D28D9);
     color: var(--zen-contrast-text, #FFFFFF);
   }
 
   .bg-zen-sand {
-    background-color: var(--zen-sand, #2D1622);
+    background-color: var(--zen-sand, #8B5CF6);
     color: var(--zen-contrast-text, #FFFFFF);
   }
 
@@ -98,8 +116,8 @@
   .zen-sidebar-gradient {
     background: linear-gradient(
       135deg,
-      var(--sidebar-gradient-start, #332766) 0%,
-      var(--sidebar-gradient-end, #241A4E) 100%
+      var(--sidebar-gradient-start, #5B21B6) 0%,
+      var(--sidebar-gradient-end, #312E81) 100%
     );
     background-size: 180% 180%;
     animation: sidebar-gradient-shift 18s ease-in-out infinite;
@@ -147,8 +165,28 @@
   }
 
   /* Global hover effect for cards - reflects theme color in border */
+  .zen-pointed-surface {
+    --zen-point-radius: 2.75rem 1.35rem 2.75rem 1.35rem;
+    @apply relative border border-zen-stone/70;
+    border-radius: var(--zen-point-radius);
+  }
+
   .zen-card-hover {
-    @apply transition-all duration-500 hover:border-zen-sand/40 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.1)] hover:-translate-y-1 cursor-pointer;
+    --zen-point-radius: 2.75rem 1.35rem 2.75rem 1.35rem;
+    @apply relative border border-zen-stone/70 bg-white/90 backdrop-blur-xl transition-all duration-500 hover:border-zen-sand/40 hover:-translate-y-1 cursor-pointer;
+    border-radius: var(--zen-point-radius);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Normalize older arbitrary shadow values to the new global container depth */
+  [class*="shadow-[0_8px_30px_rgb(0,0,0,0.04)]"],
+  [class*="shadow-[0_20px_50px_rgba(0,0,0,0.03)]"],
+  [class*="shadow-[0_8px_40px_rgb(0,0,0,0.03)]"],
+  [class*="shadow-[0_2px_10px_rgba(0,0,0,0.02)]"],
+  [class*="shadow-[0_40px_80px_-20px_rgba(83,67,55,0.12)]"],
+  [class*="shadow-[0_60px_100px_-30px_rgba(83,67,55,0.15)]"],
+  [class*="shadow-[0_100px_200px_-50px_rgba(45,45,45,0.12)]"] {
+    box-shadow: var(--shadow-md) !important;
   }
 }
 

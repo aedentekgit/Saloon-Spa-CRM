@@ -163,15 +163,17 @@ const AdminDashboard = () => {
 
 
   return (
-    <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="space-y-8 font-sans pb-20">
+    <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#2D2D2D' } as React.CSSProperties} className="space-y-8 font-sans pb-20">
+
 
       {/* Quick Actions Bar */}
       <div className="flex flex-wrap items-center gap-4">
-         {[
-           { label: 'Book Ritual', icon: Sparkles, color: 'bg-zen-sand text-white', path: '/appointments' },
-           { label: 'New Artisan', icon: Users, color: 'bg-white text-zen-brown border-zen-brown/10', path: '/employees' },
-           { label: 'Inventory Restock', icon: Target, color: 'bg-white text-zen-brown border-zen-brown/10', path: '/inventory' },
-         ].map((action, i) => (
+          {[
+            { label: 'Book Ritual', icon: Sparkles, color: 'bg-zen-sand text-white', path: '/appointments' },
+            { label: 'Digital Punch', icon: Clock, color: 'bg-white text-zen-brown border-zen-brown/10', path: '/attendance' },
+            { label: 'New Artisan', icon: Users, color: 'bg-white text-zen-brown border-zen-brown/10', path: '/employees' },
+            { label: 'Inventory Restock', icon: Target, color: 'bg-white text-zen-brown border-zen-brown/10', path: '/inventory' },
+          ].map((action, i) => (
            <motion.button
              key={action.label}
              initial={{ opacity: 0, x: -20 }}
@@ -186,7 +188,7 @@ const AdminDashboard = () => {
          ))}
       </div>
 
-      <div className="flex overflow-x-auto pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+      <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
         {cards.map((card, i) => (
            <ZenStatCard key={i} {...card} />
         ))}
@@ -194,7 +196,8 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Analytics Overview */}
-        <div className="lg:col-span-8 bg-white p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col overflow-hidden transition-all duration-300 zen-card-hover">
+        <div className="lg:col-span-8 bg-white p-8 rounded-3xl border border-zen-stone/80 shadow-[0_8px_40px_rgb(0,0,0,0.03)] flex flex-col transition-all duration-300 zen-card-hover">
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 z-10 relative">
              <h3 className="text-xl font-bold text-gray-900 tracking-tight">Analytics Overview</h3>
              <div className="flex items-center gap-4">
@@ -254,7 +257,8 @@ const AdminDashboard = () => {
         </div>
 
         {/* Daily Overview */}
-        <div className="lg:col-span-4 bg-white p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-[0_10px_30px_rgb(0,0,0,0.08)] hover:border-zen-sand/30 transition-all duration-300">
+        <div className="lg:col-span-4 bg-white p-8 rounded-3xl border border-zen-stone/80 shadow-[0_8px_40px_rgb(0,0,0,0.03)] hover:-translate-y-1 hover:shadow-[0_15px_40px_rgb(0,0,0,0.06)] hover:border-zen-sand/30 transition-all duration-300">
+
            <h3 className="text-xl font-bold text-gray-900 tracking-tight mb-8">Daily Overview</h3>
            <div className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-[1rem] bg-orange-50 hover:bg-orange-100/60 hover:-translate-y-1 transition-all duration-300 cursor-pointer">
@@ -334,7 +338,8 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
          {/* Recent Ceremonies */}
-         <div className="lg:col-span-12 bg-white/60 backdrop-blur-xl p-10 rounded-[2.5rem] border border-gray-200/60 shadow-sm overflow-hidden">
+         <div className="lg:col-span-12 bg-white/80 backdrop-blur-3xl p-10 rounded-[3rem] border border-zen-stone/80 shadow-sm">
+
             <div className="flex items-center justify-between mb-10">
                <div>
                   <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Rituals</h3>
@@ -343,7 +348,7 @@ const AdminDashboard = () => {
                <ZenButton size="sm" variant="ghost" icon={ChevronRight}>View All Directory</ZenButton>
             </div>
 
-            <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+            <div className="-mx-10 overflow-x-auto animate-in fade-in duration-700">
                <table className="w-full text-center border-collapse min-w-[1000px]">
                   <thead>
                     <tr>
@@ -351,13 +356,14 @@ const AdminDashboard = () => {
                       <th>Ritual Participant</th>
                       <th>Sanctuary Role</th>
                       <th>Service Scope</th>
-                      <th>Status & Action</th>
+                      <th>Status</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(!stats?.appointments?.recent || stats.appointments.recent.length === 0) ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-20 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
+                        <td colSpan={6} className="px-6 py-20 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
                            <div className="flex flex-col items-center gap-4 opacity-10">
                               <Activity size={60} strokeWidth={0.5} />
                               <p className="italic font-serif text-xl">Sanctuary logs are currently quiet.</p>
@@ -395,13 +401,17 @@ const AdminDashboard = () => {
                              </div>
                           </td>
                           <td>
-                             <div className="flex items-center justify-center gap-4">
+                             <div className="flex items-center justify-center">
                                 <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${
                                    apt.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' :
                                    apt.status === 'Cancelled' ? 'bg-red-500/10 text-red-600' : 'bg-zen-sand/10 text-zen-sand'
                                 }`}>
                                    {apt.status}
                                 </span>
+                             </div>
+                          </td>
+                          <td>
+                             <div className="flex items-center justify-center">
                                 <ZenIconButton icon={ChevronRight} onClick={() => navigate('/appointments')} />
                              </div>
                           </td>
@@ -461,7 +471,7 @@ const EmployeeDashboard = () => {
 
   return (
     <div className="space-y-12 pb-20">
-      <div className="flex overflow-x-auto pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+      <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
         {cards.map((card, i) => (
            <ZenStatCard key={i} {...card} />
         ))}
@@ -568,7 +578,7 @@ const ClientDashboard = () => {
 
   return (
     <div className="space-y-12 pb-20">
-      <div className="flex overflow-x-auto pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
+      <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
         {cards.map((card, i) => (
            <ZenStatCard key={i} {...card} />
         ))}

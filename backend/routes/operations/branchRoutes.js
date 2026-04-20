@@ -14,7 +14,7 @@ router.route('/public')
   .get(getPublicBranches);
 
 router.route('/')
-  .get(getBranches)
+  .get(protect, getBranches)
   .post(protect, admin, upload.fields([{ name: 'logo', maxCount: 1 }]), createBranch);
 
 router.route('/:id')

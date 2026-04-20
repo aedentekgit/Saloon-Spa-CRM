@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasPermission = (permId: string): boolean => {
     if (!user) return false;
     // Admin always has full access
-    if (user.role === 'Admin') return true;
+    if (user.role.toLowerCase() === 'admin') return true;
     
     // Check custom permissions first
     if (user.permissions && user.permissions.length > 0) {

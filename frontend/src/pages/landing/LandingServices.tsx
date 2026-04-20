@@ -124,8 +124,8 @@ const LandingServices = () => {
 
   return (
     <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-sand/20">
-      {/* Reduced top padding for header */}
-      <header className="relative z-10 px-6 pt-12 md:pt-24 lg:pt-32 pb-32 text-center overflow-hidden">
+      {/* Adjusted top padding to fix the large gap issue */}
+      <header className="relative z-10 px-6 pt-10 md:pt-16 lg:pt-20 pb-16 text-center overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none">
           <span className="text-[25vw] font-serif font-bold tracking-tighter leading-none">RITUALS</span>
         </div>
@@ -136,26 +136,26 @@ const LandingServices = () => {
           transition={{ duration: 1 }}
           className="mx-auto max-w-4xl relative z-10"
         >
-          <div className="flex items-center justify-center gap-4 text-[10px] md:text-sm font-bold tracking-[0.4em] uppercase text-zen-brown/40 mb-8">
-            <span className="w-12 h-[1px] bg-zen-brown/20" />
+          <div className="flex items-center justify-center gap-4 text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase text-zen-brown/40 mb-6">
+            <span className="w-10 h-[1px] bg-zen-brown/20" />
             The Zen Collective Offers
-            <span className="w-12 h-[1px] bg-zen-brown/20" />
+            <span className="w-10 h-[1px] bg-zen-brown/20" />
           </div>
           
-          <h1 className="text-6xl md:text-8xl lg:text-9xl font-serif font-bold leading-[0.85] tracking-tight mb-12">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-black leading-[0.9] tracking-tight mb-8">
             The Art of<br />
-            <span className="italic relative animate-text-shine">
+            <span className="italic relative animate-text-shine text-zen-sand">
               Self-Renewal
               <motion.span 
                 initial={{ width: 0 }}
                 animate={{ width: '100%' }}
                 transition={{ delay: 1, duration: 1.5 }}
-                className="absolute -bottom-4 left-0 h-[1px] bg-zen-brown/10" 
+                className="absolute -bottom-2 left-0 h-[1px] bg-zen-sand/20" 
               />
             </span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-zen-brown/60 max-w-2xl mx-auto leading-loose font-sans font-light">
+          <p className="text-lg md:text-xl text-zen-brown/60 max-w-2xl mx-auto leading-relaxed font-sans font-light">
             Our services are choreographed passages of renewal. Each treatment is tailored to your immediate state of being, facilitated by masters of their craft.
           </p>
 
@@ -163,12 +163,13 @@ const LandingServices = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.5 }}
-            className="mt-16 flex justify-center"
+            className="mt-10 flex justify-center"
           >
-            <div className="w-[1px] h-24 bg-gradient-to-b from-zen-brown/40 to-transparent" />
+            <div className="w-[1px] h-16 bg-gradient-to-b from-zen-brown/20 to-transparent" />
           </motion.div>
         </motion.div>
       </header>
+
 
       {/* Branch Tabs */}
       <section className="px-6 lg:px-24 mb-16">
@@ -326,7 +327,7 @@ const LandingServices = () => {
                         
                         <div className="pt-4 flex items-center justify-between border-t border-white/20">
                           <Link
-                            to="/booking"
+                            to="/book"
                             className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-zen-sand group/btn hover:text-white transition-colors"
                           >
                             Book Ritual

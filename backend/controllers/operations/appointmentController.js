@@ -390,14 +390,27 @@ const updateAppointmentStatus = async (req, res) => {
 // @access  Public
 const getPublicAppointments = async (req, res) => {
   try {
-    const { branch, date } = req.query;
-    let query = {};
+    const { branch, date, status } = req.query;
+    let query = {
+      status: { $in: ['Confirmed', 'Pending'] }
+    };
     if (branch) query.branch = branch;
     if (date) query.date = date;
+    if (status) {
+      const statusList = String(status)
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (statusList.length === 1) {
+        query.status = statusList[0];
+      } else if (statusList.length > 1) {
+        query.status = { $in: statusList };
+      }
+    }
 
     // Only return fields needed for availability calculation
     const appointments = await Appointment.find(query)
-      .select('date time service employee room branch')
+      .select('date time service employee room branch status')
       .populate('branch', 'name');
     
     res.json(appointments);

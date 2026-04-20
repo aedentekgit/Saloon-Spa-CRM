@@ -81,7 +81,7 @@ const Payroll = () => {
       hideViewToggle
       hideAddButton
     >
-      <div className="flex overflow-x-auto pb-8 gap-6 md:grid md:grid-cols-4 md:gap-8 mb-4 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8 mb-8 px-4 lg:px-0 w-full">
          {[
            { label: 'Payroll Disbursement', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.total.toLocaleString()}`, unit: '', icon: Wallet2, color: 'text-zen-brown', bg: 'bg-zen-brown/[0.03]', watermark: Wallet2 },
            { label: 'Total Deductions', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.deductions.toLocaleString()}`, unit: '', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/[0.03]', watermark: Clock },
@@ -93,40 +93,38 @@ const Payroll = () => {
       </div>
 
        {/* Global Filter Bar */}
-       <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm mb-10">
-          <div className="flex flex-col lg:flex-row gap-8 items-end">
-             <div className="flex-1 w-full flex flex-col gap-3">
-                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Employee Search</label>
+       <div className="rounded-[2.25rem] border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-5 mb-8">
+          <div className="flex flex-col xl:flex-row xl:items-end gap-5 xl:gap-8">
+             <div className="flex-1 w-full flex flex-col gap-2.5">
+                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Employee Search</label>
                 <div className="relative group">
-                   <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
+                   <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
                    <input 
                      type="text"
                      placeholder="Search by specialist..."
                      value={searchTerm}
                      onChange={(e) => setSearchTerm(e.target.value)}
-                     className="w-full pl-14 pr-6 py-3.5 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
+                     className="w-full h-[58px] pl-[52px] pr-6 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
                    />
                 </div>
              </div>
 
-             <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
-                <div className="flex items-center gap-4">
-                   <div className="flex flex-col gap-3">
-                      <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Time Window</label>
-                      <div className="flex items-center h-[48px] bg-white rounded-xl border border-zen-brown/10 shadow-sm shrink-0">
-                         <ZenMonthPicker 
-                           value={selectedMonth} 
-                           onChange={setSelectedMonth}
-                           className="w-48 sm:w-56 h-full !border-none !shadow-none !bg-transparent"
-                           hideLabel
-                         />
-                      </div>
+             <div className="flex flex-wrap xl:flex-nowrap gap-4 w-full xl:w-auto items-end">
+                <div className="flex flex-col gap-2.5 w-full xl:w-auto">
+                   <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Time Window</label>
+                   <div className="flex items-center h-[58px] bg-white/70 rounded-[1.15rem] border border-zen-brown/10 shadow-sm shrink-0">
+                      <ZenMonthPicker
+                        value={selectedMonth}
+                        onChange={setSelectedMonth}
+                        className="w-52 sm:w-56 h-full !border-none !shadow-none !bg-transparent"
+                        hideLabel
+                      />
                    </div>
                 </div>
 
-                <div className="flex flex-col gap-3 w-full lg:w-auto">
-                   <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Management</label>
-                   <ZenButton onClick={handleExport} variant="primary" className="w-full sm:w-auto px-8 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
+                <div className="flex flex-col gap-2.5 w-full xl:w-auto">
+                   <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Management</label>
+                   <ZenButton onClick={handleExport} variant="primary" className="w-full xl:w-auto px-8 h-[58px] shadow-sm flex items-center justify-center gap-2 group rounded-[1.15rem]">
                       <Download size={16} className="group-hover:rotate-12 transition-transform duration-500" />
                       <span className="uppercase tracking-[0.2em] text-[10px] font-black">Export Report</span>
                    </ZenButton>
@@ -135,7 +133,15 @@ const Payroll = () => {
           </div>
        </div>
 
-      <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
+      <div className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] border border-zen-stone/70 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden animate-in fade-in duration-700">
+           <div className="flex items-center justify-between gap-4 px-6 sm:px-8 pt-6 pb-5 border-b border-zen-brown/5">
+             <div>
+               <h3 className="text-xl font-bold text-gray-900 tracking-tight">Payroll Registry</h3>
+               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Specialist compensation and attendance summary</p>
+             </div>
+             <ZenBadge variant="leaf" className="px-3 sm:px-5">{filteredData.length} Records</ZenBadge>
+           </div>
+           <div className="table-container overflow-x-auto">
            <table className="w-full text-center border-collapse min-w-[1000px]">
               <thead>
                  <tr>
@@ -212,6 +218,7 @@ const Payroll = () => {
                  ))}
               </tbody>
            </table>
+           </div>
         </div>
     </ZenPageLayout>
   );

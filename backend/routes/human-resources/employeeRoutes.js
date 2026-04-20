@@ -18,7 +18,7 @@ const staffUploads = upload.fields([
 ]);
 
 router.get('/public', getPublicEmployees);
-router.get('/', getEmployees);
+router.get('/', protect, getEmployees);
 router.post('/', protect, manager, staffUploads, createEmployee);
 router.put('/:id', protect, manager, staffUploads, updateEmployee);
 router.delete('/:id', protect, manager, deleteEmployee);

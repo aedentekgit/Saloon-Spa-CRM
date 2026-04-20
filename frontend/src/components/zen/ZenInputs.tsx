@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, Calendar, Sparkles, Eye, EyeOff } from 'lucide-react';
 import dayjs from 'dayjs';
@@ -17,6 +17,53 @@ interface DropdownProps {
   fontFamily?: string;
 }
 
+export const useFloatingAnchor = (
+  anchorRef: React.RefObject<HTMLElement>,
+  isOpen: boolean,
+  offset = 8,
+  maxWidth?: number
+) => {
+  const [style, setStyle] = useState<React.CSSProperties>({});
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+
+    let rafId = 0;
+    const updatePosition = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const anchor = anchorRef.current;
+        if (!anchor) return;
+
+        const rect = anchor.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const left = Math.min(
+          Math.max(12, rect.left),
+          Math.max(12, viewportWidth - (maxWidth || rect.width) - 12)
+        );
+
+        setStyle({
+          width: maxWidth || rect.width,
+          left,
+          top: rect.bottom + offset
+        });
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [anchorRef, isOpen, offset, maxWidth]);
+
+  return style;
+};
+
 export const ZenDropdown = ({ 
   label, options = [], value, onChange, placeholder, 
   className = "", icon: Icon, hideLabel, variant = 'line',
@@ -26,6 +73,7 @@ export const ZenDropdown = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const floatingStyle = useFloatingAnchor(dropdownRef, isOpen, 8);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -46,16 +94,16 @@ export const ZenDropdown = ({
       <div 
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={variant === 'pill' 
-          ? "h-[48px] sm:h-[52px] bg-white/95 backdrop-blur-md px-5 rounded-[1rem] border border-zen-brown/15 flex items-center justify-between gap-3 group-hover:border-zen-brown/30 transition-all cursor-pointer"
-          : "w-full px-1 pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/40 group-focus-within:border-zen-brown transition-all"
+          ? "h-[52px] sm:h-[56px] bg-white px-6 rounded-[1.5rem] border-[1.5px] border-zen-brown/30 flex items-center justify-between gap-4 group-hover:border-zen-brown/60 transition-all cursor-pointer shadow-md"
+          : "w-full px-1 pb-4 bg-transparent border-b-[2px] border-zen-brown/30 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/60 group-focus-within:border-zen-brown transition-all"
         }
       >
-        <div className="flex items-center gap-3 overflow-hidden">
-          {Icon && <Icon size={16} className={variant === 'pill' ? "text-zen-brown/30 group-hover:text-zen-brown flex-shrink-0" : "text-zen-brown/20 flex-shrink-0"} />}
+        <div className="flex items-center gap-4 overflow-hidden">
+          {Icon && <Icon size={18} className={variant === 'pill' ? "text-zen-brown/50 group-hover:text-zen-brown flex-shrink-0" : "text-zen-brown/40 flex-shrink-0"} />}
           <span 
             className={variant === 'pill' 
-              ? `font-serif text-sm truncate ${value ? 'text-zen-brown font-bold' : 'text-zen-brown/30'}`
-              : `font-serif text-lg truncate ${value ? 'text-zen-brown' : 'text-zen-brown/20'}`
+              ? `font-serif text-base truncate ${value ? 'text-zen-brown font-black' : 'text-zen-brown/40'}`
+              : `font-serif text-xl truncate ${value ? 'text-zen-brown font-bold' : 'text-zen-brown/30'}`
             }
             style={fontFamily ? { fontFamily } : {}}
           >
@@ -68,14 +116,14 @@ export const ZenDropdown = ({
       {isOpen && createPortal(
         <div 
           ref={listRef}
-          className={`fixed bg-white border border-zen-brown/15 animate-in fade-in slide-in-from-top-2 duration-300 z-[99999] overflow-y-auto
-            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[1rem] max-h-[70vh]' : 'rounded-[1rem] max-h-60'}
-          `}
-          style={window.innerWidth >= 640 ? {
-            width: dropdownRef.current?.getBoundingClientRect().width || 200,
-            left: dropdownRef.current?.getBoundingClientRect().left,
-            top: (dropdownRef.current?.getBoundingClientRect().bottom || 0) + 8
-          } : {}}
+          className={`fixed bg-white border border-zen-brown/15 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[99999] overflow-y-auto rounded-[1rem] max-h-60`}
+          style={window.innerWidth < 640 ? {
+            left: 16,
+            top: '50%',
+            width: 'calc(100vw - 32px)',
+            transform: 'translateY(-50%)',
+            maxHeight: '70vh'
+          } : floatingStyle}
         >
           <div className="py-2">
             {window.innerWidth < 640 && (
@@ -114,6 +162,7 @@ export const ZenAutocomplete = ({
   const [searchTerm, setSearchTerm] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const floatingStyle = useFloatingAnchor(containerRef, isOpen, 8);
 
   // Synchronize search term with external value if needed
   useEffect(() => {
@@ -169,14 +218,14 @@ export const ZenAutocomplete = ({
       {isOpen && filteredOptions.length > 0 && createPortal(
         <div 
           ref={listRef}
-          className={`fixed bg-white/95 backdrop-blur-xl border border-zen-brown/15 animate-in fade-in slide-in-from-top-2 duration-500 z-[99999] overflow-y-auto
-            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[1.5rem] max-h-[60vh]' : 'rounded-[1rem] max-h-[320px] border border-zen-brown/15'}
-          `}
-          style={window.innerWidth >= 640 ? {
-            width: containerRef.current?.getBoundingClientRect().width,
-            left: containerRef.current?.getBoundingClientRect().left,
-            top: (containerRef.current?.getBoundingClientRect().bottom || 0) + 8
-          } : {}}
+          className={`fixed bg-white border border-zen-brown/15 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-500 z-[99999] overflow-y-auto rounded-[1rem] max-h-[320px] border border-zen-brown/15`}
+          style={window.innerWidth < 640 ? {
+            left: 16,
+            top: '50%',
+            width: 'calc(100vw - 32px)',
+            transform: 'translateY(-50%)',
+            maxHeight: '60vh'
+          } : floatingStyle}
         >
           <div className="py-4 px-2">
             {filteredOptions.map((opt: any) => (
@@ -204,34 +253,59 @@ export const ZenAutocomplete = ({
   );
 };
 
-export const ZenInput = ({ label, icon: Icon, prefix, variant = 'light', type, ...props }: any) => {
+export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', type, required, ...props }: any) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
   
   return (
-    <div className={`space-y-2 group ${props.containerClassName || ''}`}>
-      <label className={`text-[9px] font-bold uppercase tracking-widest ml-1 ${variant === 'dark' ? 'text-white/40' : 'text-zen-brown/30'}`}>{label}</label>
-      <div className="relative flex items-center px-1">
-        {Icon && <Icon className={`absolute left-1 bottom-3 transition-colors ${variant === 'dark' ? 'text-white/20' : 'text-zen-brown/10'} group-focus-within:text-zen-brown`} size={16} />}
-        {prefix && (
-          <span className={`absolute ${Icon ? 'left-8' : 'left-2'} bottom-3 text-sm font-bold border-r border-zen-brown/25 pr-2 mr-2 whitespace-nowrap ${variant === 'dark' ? 'text-white/60' : 'text-zen-brown/40'}`}>
-            {prefix}
-          </span>
-        )}
-        <input 
-          {...props}
-          type={isPassword ? (showPassword ? 'text' : 'password') : type}
-          className={`w-full pb-2 ${Icon ? 'pl-8' : 'pl-1'} bg-transparent border-b border-zen-brown/25 outline-none transition-all font-medium text-sm sm:text-base placeholder:text-zen-brown/30 ${prefix ? (Icon ? 'pl-16' : 'pl-12') : ''} ${variant === 'dark' ? 'text-white focus:border-white/40' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''} ${isPassword ? 'pr-8' : ''} group-hover:border-zen-brown/40`}
-          style={prefix ? { paddingLeft: Icon ? `calc(1.75rem + ${prefix.length * 0.6}rem + 1rem)` : `calc(0.25rem + ${prefix.length * 0.6}rem + 1rem)` } : {}}
-        />
-        {isPassword && (
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-0 bottom-2 p-1 text-zen-brown/20 hover:text-zen-brown transition-all hover:scale-110 active:scale-90"
-          >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
+    <div className={`space-y-3 group ${props.containerClassName || ''}`}>
+      <label className={`text-[10px] font-black uppercase tracking-[0.4em] ml-1.5 flex items-center gap-1 ${variant === 'dark' ? 'text-white/60' : 'text-zen-brown/40'}`}>
+        {label}
+        {required && <span className="text-red-400 text-xs mt-0.5">*</span>}
+      </label>
+      <div className="relative flex items-center">
+        {variant === 'professional' ? (
+          <div className={`w-full relative flex items-center transition-all duration-300 ${props.disabled ? 'opacity-40' : ''}`}>
+            {Icon && <Icon className="absolute left-6 text-zen-brown/30 group-focus-within:text-zen-brown transition-colors" size={18} />}
+            <input 
+              {...props}
+              type={isPassword ? (showPassword ? 'text' : 'password') : type}
+              className={`w-full py-5 ${Icon ? 'pl-16' : 'pl-6'} pr-6 bg-white border border-zen-brown/10 rounded-2xl outline-none transition-all font-serif text-lg text-zen-brown placeholder:text-zen-brown/20 focus:border-zen-sand/40 focus:ring-4 focus:ring-zen-sand/5 shadow-sm group-hover:border-zen-brown/20 ${props.className || ''}`}
+            />
+            {isPassword && (
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-6 text-zen-brown/20 hover:text-zen-brown transition-all"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="w-full relative flex items-center px-1">
+            {Icon && <Icon className={`absolute left-1 bottom-4 transition-colors ${variant === 'dark' ? 'text-white/40' : 'text-zen-brown/40'} group-focus-within:text-zen-brown`} size={18} />}
+            {prefix && (
+              <span className={`absolute ${Icon ? 'left-8' : 'left-2'} bottom-4 text-sm font-bold border-r border-zen-brown/50 pr-3 mr-2 whitespace-nowrap ${variant === 'dark' ? 'text-white/70' : 'text-zen-brown/60'}`}>
+                {prefix}
+              </span>
+            )}
+            <input 
+              {...props}
+              type={isPassword ? (showPassword ? 'text' : 'password') : type}
+              className={`w-full pb-3 ${Icon ? 'pl-9' : 'pl-2'} bg-transparent border-b-[2px] border-zen-brown/30 outline-none transition-all font-serif text-lg text-zen-brown placeholder:text-zen-brown/40 ${prefix ? (Icon ? 'pl-20' : 'pl-16') : ''} ${variant === 'dark' ? 'text-white border-white/20 focus:border-white/60' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''} ${isPassword ? 'pr-10' : ''} group-hover:border-zen-brown/60`}
+              style={prefix ? { paddingLeft: Icon ? `calc(2rem + ${prefix.length * 0.7}rem + 1rem)` : `calc(0.5rem + ${prefix.length * 0.7}rem + 1rem)` } : {}}
+            />
+            {isPassword && (
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-0 bottom-2 p-1 text-zen-brown/20 hover:text-zen-brown transition-all hover:scale-110 active:scale-90"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -244,13 +318,18 @@ interface DatePickerProps {
   onChange: (v: string) => void;
   className?: string;
   icon?: any;
+  hideLabel?: boolean;
 }
 
-export const ZenDatePicker = ({ label, value, onChange, className = "", icon: Icon = Calendar }: DatePickerProps) => {
+export const ZenDatePicker = ({ 
+  label, value, onChange, className = "", 
+  icon: Icon = Calendar, hideLabel 
+}: DatePickerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [viewDate, setViewDate] = useState(dayjs(value || undefined));
   const containerRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+  const floatingStyle = useFloatingAnchor(containerRef, isOpen, 12, 350);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -298,31 +377,35 @@ export const ZenDatePicker = ({ label, value, onChange, className = "", icon: Ic
   }
 
   return (
-    <div className={`space-y-1 relative group ${className}`} ref={containerRef}>
-      <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>
+    <div className={`space-y-3 relative group ${className}`} ref={containerRef}>
+      <label className={`text-[10px] font-black uppercase tracking-[0.4em] text-zen-brown/40 ml-1.5 ${hideLabel ? 'sr-only' : ''}`}>{label}</label>
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-1 pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/40 group-focus-within:border-zen-brown transition-all group/input"
+        className="w-full px-1 pb-4 bg-transparent border-b-[2px] border-zen-brown/30 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/60 group-focus-within:border-zen-brown transition-all group/input"
       >
-        <div className="flex items-center gap-3">
-          <Icon size={16} className="text-zen-brown/20 group-hover/input:text-zen-brown/40 transition-colors" />
-          <span className={`font-serif text-lg ${value ? 'text-zen-brown font-bold' : 'text-zen-brown/20'}`}>
+        <div className="flex items-center gap-4">
+          <Icon size={18} className="text-zen-brown/40 group-hover/input:text-zen-brown/60 transition-colors" />
+          <span className={`font-serif text-xl ${value ? 'text-zen-brown font-black' : 'text-zen-brown/40'}`}>
             {value ? dayjs(value).format('DD / MM / YYYY') : 'Select Date'}
           </span>
         </div>
-        <ChevronDown size={18} className={`text-zen-brown/20 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={20} className={`text-zen-brown/40 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
       </div>
+
+
 
       {isOpen && createPortal(
         <div 
           ref={calendarRef}
-          className={`fixed bg-white/95 backdrop-blur-xl border border-white/80 animate-in zoom-in-95 fade-in duration-300 z-[99999] min-w-[320px]
-            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[1.5rem] p-8' : 'rounded-[1rem] p-6'}
-          `}
-          style={window.innerWidth >= 640 ? {
-            left: Math.min(window.innerWidth - 350, containerRef.current?.getBoundingClientRect().left || 0),
-            top: (containerRef.current?.getBoundingClientRect().bottom || 0) + 12
-          } : {}}
+          className={`fixed bg-white border border-zen-brown/10 shadow-[0_30px_100px_-20px_rgba(45,45,45,0.15)] animate-in zoom-in-95 fade-in duration-300 z-[99999] min-w-[320px] rounded-[1rem] p-6`}
+          style={window.innerWidth < 640 ? {
+            left: 16,
+            top: '50%',
+            width: 'calc(100vw - 32px)',
+            transform: 'translateY(-50%)',
+            minWidth: 'unset',
+            maxHeight: '70vh'
+          } : floatingStyle}
         >
           {/* Calendar Header */}
           <div className="flex items-center justify-between mb-8 px-1">
@@ -387,8 +470,9 @@ export const ZenTextarea = ({ label, ...props }: any) => (
     <label className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>
     <textarea 
       {...props}
-      className={`w-full p-4 sm:p-6 bg-zen-cream/5 border border-zen-brown/15 rounded-[1.5rem] sm:rounded-[1rem] outline-none focus:bg-white focus:border-zen-brown/30 transition-all font-serif text-base sm:text-lg text-zen-brown h-28 sm:h-32 resize-none shadow-inner ${props.className || ''}`}
+      className={`w-full p-4 sm:p-6 bg-white border border-zen-brown/15 rounded-[1.5rem] sm:rounded-[1rem] outline-none focus:border-zen-brown/30 transition-all font-serif text-base sm:text-lg text-zen-brown h-28 sm:h-32 resize-none shadow-sm ${props.className || ''}`}
     />
+
   </div>
 );
 
@@ -396,6 +480,7 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLab
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const floatingStyle = useFloatingAnchor(containerRef, isOpen, 12, 300);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -450,13 +535,15 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLab
       {isOpen && createPortal(
         <div 
           ref={dropdownRef}
-          className={`fixed bg-white/95 backdrop-blur-2xl border border-white/80 overflow-hidden animate-in zoom-in-95 fade-in duration-500 z-[99999] p-4 min-w-[280px]
-            ${window.innerWidth < 640 ? 'inset-x-4 top-1/2 -translate-y-1/2 rounded-[1.5rem]' : 'rounded-[1rem]'}
-          `}
-          style={window.innerWidth >= 640 ? {
-            left: Math.min(window.innerWidth - 300, containerRef.current?.getBoundingClientRect().left || 0),
-            top: (containerRef.current?.getBoundingClientRect().bottom || 0) + 12
-          } : {}}
+          className={`fixed bg-white border border-zen-brown/10 shadow-3xl overflow-hidden animate-in zoom-in-95 fade-in duration-500 z-[99999] p-4 min-w-[280px] rounded-[1rem]`}
+          style={window.innerWidth < 640 ? {
+            left: 16,
+            top: '50%',
+            width: 'calc(100vw - 32px)',
+            transform: 'translateY(-50%)',
+            minWidth: 'unset',
+            maxHeight: '70vh'
+          } : floatingStyle}
         >
           <div className="max-h-[320px] overflow-y-auto scrollbar-hide space-y-1">
             {months.map((m) => (

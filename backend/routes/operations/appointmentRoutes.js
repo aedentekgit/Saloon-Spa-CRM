@@ -18,6 +18,8 @@ router.route('/')
   .get(protect, getAppointments)
   .post(protect, createAppointment);
 
+router.patch('/:id/status', protect, updateAppointmentStatus);
+
 router.route('/:id')
   .put(protect, updateAppointment)
   .patch(protect, updateAppointmentStatus)

@@ -6,6 +6,7 @@ import { ZenButton } from './ZenButtons';
 interface ZenLayoutProps {
   children: React.ReactNode;
   title?: string;
+  subtitle?: string;
   searchTerm?: string;
   onSearchChange?: (v: string) => void;
   viewMode?: 'grid' | 'table';
@@ -23,6 +24,7 @@ interface ZenLayoutProps {
 export const ZenPageLayout = ({
   children,
   title,
+  subtitle,
   searchTerm = '',
   onSearchChange = () => {},
   viewMode = 'grid',
@@ -38,7 +40,15 @@ export const ZenPageLayout = ({
 }: ZenLayoutProps) => {
 
   return (
-    <div className="page-container min-h-screen p-4 sm:p-6 lg:p-8 animate-in fade-in duration-1000">
+    <div className="page-container min-h-screen p-6 sm:p-10 lg:p-12 pt-8 sm:pt-14 lg:pt-16 animate-in fade-in duration-1000">
+      
+      {/* Page Title Section */}
+      {title && (
+        <div className="mb-8 px-2">
+           <h1 className="text-3xl sm:text-4xl font-serif font-black text-zen-brown tracking-tight">{title}</h1>
+           {subtitle && <p className="mt-2 text-sm sm:text-base text-zen-brown/50 font-medium italic">{subtitle}</p>}
+        </div>
+      )}
       
       {/* Search and Action Bar */}
       {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel) || headerActions) && (
@@ -51,7 +61,7 @@ export const ZenPageLayout = ({
                   placeholder={`Search ${title}...`}
                   value={searchTerm}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  className="w-full bg-white/80 backdrop-blur-xl pl-6 pr-12 h-[48px] sm:h-[52px] rounded-[1rem] border border-zen-brown/15 shadow-sm shadow-zen-brown/5 focus:bg-white focus:border-zen-brown/30 focus:ring-4 focus:ring-zen-brown/5 outline-none transition-all duration-700 font-sans text-sm text-zen-brown placeholder:text-zen-brown/30"
+                  className="w-full bg-white pl-6 pr-12 h-[48px] sm:h-[52px] rounded-[1rem] border border-zen-stone shadow-sm shadow-zen-brown/5 focus:border-zen-brown/30 focus:ring-4 focus:ring-zen-brown/5 outline-none transition-all duration-700 font-sans text-sm text-zen-brown placeholder:text-zen-brown/30"
                 />
                 <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-700 group-focus-within:scale-110">
                   <Search className="text-zen-brown/20 group-focus-within:text-zen-brown/50" size={18} />
@@ -71,7 +81,7 @@ export const ZenPageLayout = ({
               {headerActions}
 
               {!hideViewToggle && onViewModeChange && (
-                <div className="flex items-center h-[48px] sm:h-[52px] bg-white/80 backdrop-blur-xl p-1 rounded-[1.2rem] sm:rounded-[1rem] border border-stone-200/50">
+                <div className="flex items-center h-[48px] sm:h-[52px] bg-white p-1 rounded-[1.2rem] sm:rounded-[1rem] border border-zen-stone shadow-sm">
                   <button 
                     onClick={() => onViewModeChange('grid')}
                     className={`h-full aspect-square flex items-center justify-center rounded-[0.8rem] transition-colors duration-300 ${viewMode === 'grid' ? 'bg-zen-brown text-white' : 'text-zen-brown/40 hover:text-zen-brown hover:bg-zen-brown/5'}`}
@@ -80,7 +90,7 @@ export const ZenPageLayout = ({
                   </button>
                   <button 
                     onClick={() => onViewModeChange('table')}
-                    className={`h-full aspect-square flex items-center justify-center rounded-[0.8rem] transition-colors duration-300 ${viewMode === 'table' ? 'bg-zen-brown text-white' : 'text-zen-brown/40 hover:text-zen-brown hover:bg-zen-brown/5'}`}
+                    className={`h-full aspect-square flex items-center justify-center rounded-[0.8rem] transition-colors duration-300 ${viewMode === 'table' ? 'bg-zen-primary text-white' : 'text-zen-brown/40 hover:text-zen-brown hover:bg-zen-brown/5'}`}
                   >
                     <List size={16} />
                   </button>

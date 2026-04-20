@@ -11,7 +11,7 @@ import { notify } from '../../components/shared/ZenNotification';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenButton, ZenBadge, ZenIconButton } from '../../components/zen/ZenButtons';
-import { ZenAutocomplete, ZenDatePicker, ZenDropdown } from '../../components/zen/ZenInputs';
+import { ZenAutocomplete, ZenDatePicker, ZenDropdown, useFloatingAnchor } from '../../components/zen/ZenInputs';
 import { useBranches } from '../../context/BranchContext';
 import { useSettings } from '../../context/SettingsContext';
 import dayjs from 'dayjs';
@@ -36,6 +36,7 @@ const StaffDropdown = ({ staffOptions, rawStaff, rawShifts, value, onChange }: a
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const floatingStyle = useFloatingAnchor(triggerRef, isOpen, 8);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -75,13 +76,10 @@ const StaffDropdown = ({ staffOptions, rawStaff, rawShifts, value, onChange }: a
       {isOpen && createPortal(
         <div
           ref={listRef}
-          className="fixed bg-white border border-zen-brown/15 rounded-[1rem] z-[99999] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden"
+          className="fixed bg-white border border-zen-brown/15 rounded-[1rem] z-[99999] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 overflow-y-auto"
           style={{
-            width: triggerRef.current?.getBoundingClientRect().width || 240,
-            left: triggerRef.current?.getBoundingClientRect().left,
-            top: (triggerRef.current?.getBoundingClientRect().bottom || 0) + 8,
-            maxHeight: 320,
-            overflowY: 'auto'
+            ...floatingStyle,
+            maxHeight: 320
           }}
         >
           {/* None option */}
@@ -565,7 +563,7 @@ const Appointments = () => {
         <div className="flex flex-col lg:flex-row gap-10">
           <div className="flex-1 space-y-8">
            {/* Calendar Controls - Now visible in both Grid and Table view */}
-            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
+            <div className="bg-white/90 backdrop-blur-2xl px-5 sm:px-6 py-5 rounded-[2.25rem] border border-zen-stone/70 shadow-[0_16px_40px_rgba(0,0,0,0.04)] flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full xl:w-auto">
                   <div className="flex items-center gap-2 sm:gap-3 bg-gray-50/50 p-1.5 sm:p-2 rounded-[1.25rem] w-full xl:w-auto justify-between sm:justify-start">
                      <ZenIconButton icon={ChevronLeft} onClick={handlePrev} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
@@ -592,7 +590,7 @@ const Appointments = () => {
              <>
 
                {/* Calendar View Area */}
-               <div className="bg-white rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden min-h-[500px]">
+               <div className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] border border-zen-stone/70 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden min-h-[500px]">
                   {loading ? (
                      <div className="flex flex-col items-center justify-center h-[500px]">
                         <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
@@ -724,8 +722,16 @@ const Appointments = () => {
              </>
            ) : (
              /* Table View Area */
-            <div className="table-container w-full bg-white rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container">
-               <table className="w-full text-center border-collapse min-w-[800px]">
+            <div className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] border border-zen-stone/70 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden">
+               <div className="flex items-center justify-between gap-4 px-6 sm:px-8 pt-6 pb-5 border-b border-zen-brown/5">
+                 <div>
+                   <h3 className="text-xl font-bold text-gray-900 tracking-tight">Appointment Registry</h3>
+                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Scheduled rituals across the selected view</p>
+                 </div>
+                 <ZenBadge variant="leaf" className="px-3 sm:px-5">{filteredAppointments.length} Records</ZenBadge>
+               </div>
+               <div className="table-container overflow-x-auto">
+                 <table className="w-full text-center border-collapse min-w-[800px]">
                  <thead>
                    <tr>
                      <th>S NO</th>
@@ -793,7 +799,8 @@ const Appointments = () => {
                    <p className="text-sm font-serif italic text-zen-brown/20">Registry is currently void of records</p>
                  </div>
                )}
-             </div>
+              </div>
+            </div>
            )}
         </div>
 
