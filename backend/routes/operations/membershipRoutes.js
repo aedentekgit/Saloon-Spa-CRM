@@ -11,9 +11,12 @@ const {
   getMembershipStats,
   getAllMemberships,
   deleteMembership,
-  updateMembership
+  updateMembership,
+  getActiveMembershipPlansPublic
 } = require('../../controllers/operations/membershipController');
 const { protect, admin } = require('../../middleware/authMiddleware');
+
+router.get('/active', getActiveMembershipPlansPublic);
 
 router.route('/plans')
   .post(protect, admin, createMembershipPlan)

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Sparkles, User, ArrowUpRight } from 'lucide-react';
+import { Menu, X, Sparkles, User, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { usePublicSettings } from './usePublicSettings';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
@@ -17,6 +17,9 @@ function getImageUrl(path?: string): string {
 const PublicNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null);
+
   const { settings } = usePublicSettings();
   const siteName = settings.general.siteName;
   const logoUrl = getImageUrl(settings.general.logo);
@@ -32,9 +35,15 @@ const PublicNavbar = () => {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
-    { name: 'Services', path: '/landing-services' },
-    { name: 'Memberships', path: '/membership-tiers' },
-    { name: 'Rooms', path: '/landing-rooms' },
+    { 
+      name: 'Catalogue', 
+      isDropdown: true,
+      items: [
+        { name: 'Services', path: '/landing-services' },
+        { name: 'Memberships', path: '/membership-tiers' },
+        { name: 'Rooms', path: '/landing-rooms' },
+      ]
+    },
     { name: 'Team', path: '/team' },
     { name: 'Contact', path: '/contact' },
   ];
@@ -63,28 +72,66 @@ const PublicNavbar = () => {
 
           {/* Nav Links — centred in remaining space */}
           <div className="hidden lg:flex flex-1 items-center justify-center">
-            <div className="flex items-center gap-4 xl:gap-6">
+            <div className="flex items-center gap-4 xl:gap-8">
               {navLinks.map((link) => (
-                <NavLink
-                  key={link.path}
-                  to={link.path}
-                  className={({ isActive }) => `
-                    relative text-[10px] font-semibold uppercase tracking-[0.2em] transition-colors
-                    ${isActive ? 'text-zen-brown' : 'text-zen-brown/40 hover:text-zen-brown'}
-                  `}
-                >
-                  {({ isActive }) => (
-                    <span className="relative inline-block py-2">
+                link.isDropdown ? (
+                  <div 
+                    key={link.name}
+                    className="relative group py-2"
+                    onMouseEnter={() => setIsDropdownOpen(true)}
+                    onMouseLeave={() => setIsDropdownOpen(false)}
+                  >
+                    <button className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/40 hover:text-zen-brown transition-colors">
                       {link.name}
-                      {isActive && (
-                        <motion.span
-                          layoutId="nav-underline"
-                          className="absolute -bottom-0.5 left-1/2 h-[2px] w-12 -translate-x-1/2 bg-zen-primary"
-                        />
+                      <ChevronDown size={12} className={`transition-transform duration-500 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {isDropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 bg-white/95 backdrop-blur-xl rounded-2xl border border-zen-primary/10 shadow-2xl overflow-hidden py-3 z-[110]"
+                        >
+                          {link.items?.map((item) => (
+                            <NavLink
+                              key={item.path}
+                              to={item.path}
+                              className={({ isActive }) => `
+                                block px-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-all
+                                ${isActive ? 'bg-zen-primary/5 text-zen-brown' : 'text-zen-brown/40 hover:text-zen-brown hover:bg-zen-primary/5'}
+                              `}
+                            >
+                              {item.name}
+                            </NavLink>
+                          ))}
+                        </motion.div>
                       )}
-                    </span>
-                  )}
-                </NavLink>
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <NavLink
+                    key={link.path}
+                    to={link.path}
+                    className={({ isActive }) => `
+                      relative text-[10px] font-bold uppercase tracking-[0.2em] transition-colors py-2
+                      ${isActive ? 'text-zen-brown' : 'text-zen-brown/40 hover:text-zen-brown'}
+                    `}
+                  >
+                    {({ isActive }) => (
+                      <span className="relative inline-block">
+                        {link.name}
+                        {isActive && (
+                          <motion.span
+                            layoutId="nav-underline"
+                            className="absolute -bottom-1 left-1/2 h-[2px] w-full -translate-x-1/2 bg-zen-sand"
+                          />
+                        )}
+                      </span>
+                    )}
+                  </NavLink>
+                )
               ))}
             </div>
           </div>
@@ -154,39 +201,81 @@ const PublicNavbar = () => {
                 <Sparkles size={400} />
               </div>
 
-              <div className="space-y-10">
+              <div className="space-y-6">
                 {navLinks.map((link, i) => (
                   <motion.div
-                    key={link.path}
+                    key={link.name}
                     initial={{ opacity: 0, x: 30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.1 + 0.2, ease: "easeOut" }}
                   >
-                    <NavLink
-                      to={link.path}
-                      onClick={() => setIsOpen(false)}
-                      className={({ isActive }) => `
-                        group relative flex flex-col transition-all duration-500
-                        ${isActive ? 'text-zen-primary' : 'text-zen-brown/40 hover:text-zen-brown'}
-                      `}
-                    >
-                      {({ isActive }) => (
-                        <>
+                    {link.isDropdown ? (
+                      <div className="space-y-4">
+                        <button 
+                          onClick={() => setActiveSubMenu(activeSubMenu === link.name ? null : link.name)}
+                          className="w-full flex items-center justify-between text-zen-brown/40 hover:text-zen-brown transition-all"
+                        >
                           <div className="flex items-center gap-4">
                             <span className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40">0{i + 1}</span>
-                            <span className={`font-serif text-5xl sm:text-6xl font-black leading-none tracking-tight transition-transform duration-500 group-hover:translate-x-4 ${isActive ? 'italic' : ''}`}>
+                            <span className="font-serif text-5xl sm:text-6xl font-black leading-none tracking-tight">
                               {link.name}
                             </span>
                           </div>
-                          {isActive && (
+                          <ChevronDown size={32} className={`transition-transform duration-500 ${activeSubMenu === link.name ? 'rotate-180 text-zen-primary' : 'opacity-20'}`} />
+                        </button>
+                        
+                        <AnimatePresence>
+                          {activeSubMenu === link.name && (
                             <motion.div 
-                              layoutId="mobile-link-dot"
-                              className="absolute -left-6 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-zen-sand"
-                            />
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden space-y-4 pl-12"
+                            >
+                              {link.items?.map((item) => (
+                                <NavLink
+                                  key={item.path}
+                                  to={item.path}
+                                  onClick={() => setIsOpen(false)}
+                                  className={({ isActive }) => `
+                                    block font-serif text-3xl font-black transition-all
+                                    ${isActive ? 'text-zen-primary italic' : 'text-zen-brown/30'}
+                                  `}
+                                >
+                                  {item.name}
+                                </NavLink>
+                              ))}
+                            </motion.div>
                           )}
-                        </>
-                      )}
-                    </NavLink>
+                        </AnimatePresence>
+                      </div>
+                    ) : (
+                      <NavLink
+                        to={link.path}
+                        onClick={() => setIsOpen(false)}
+                        className={({ isActive }) => `
+                          group relative flex flex-col transition-all duration-500
+                          ${isActive ? 'text-zen-primary' : 'text-zen-brown/40 hover:text-zen-brown'}
+                        `}
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <div className="flex items-center gap-4">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40">0{i + 1}</span>
+                              <span className={`font-serif text-5xl sm:text-6xl font-black leading-none tracking-tight transition-transform duration-500 group-hover:translate-x-4 ${isActive ? 'italic' : ''}`}>
+                                {link.name}
+                              </span>
+                            </div>
+                            {isActive && (
+                              <motion.div 
+                                layoutId="mobile-link-dot"
+                                className="absolute -left-6 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-zen-sand"
+                              />
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    )}
                   </motion.div>
                 ))}
               </div>

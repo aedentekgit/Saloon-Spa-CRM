@@ -85,7 +85,10 @@ const Memberships = () => {
        description: '',
        branches: [] as string[],
        isActive: true,
-       isUnlimited: false
+       isUnlimited: false,
+       benefits: [] as string[],
+       icon: 'Sparkles',
+       isPopular: false
     });
 
     const [enrollData, setEnrollData] = useState({
@@ -175,7 +178,10 @@ const Memberships = () => {
              },
              body: JSON.stringify({
                 ...planFormData,
-                durationDays: planFormData.isUnlimited ? 36500 : planFormData.durationDays
+                durationDays: planFormData.isUnlimited ? 36500 : planFormData.durationDays,
+                benefits: typeof planFormData.benefits === 'string' 
+                  ? (planFormData.benefits as string).split('\n').filter(b => b.trim()) 
+                  : planFormData.benefits
              })
           });
 
@@ -391,7 +397,7 @@ title="Membership Management"
                     </div>
                     <ZenButton onClick={() => { 
                       setEditingPlan(null); 
-                      setPlanFormData({ name: '', price: 0, durationDays: 30, maxSessions: 0, applicableServices: [], description: '', branches: [], isActive: true, isUnlimited: false }); 
+                      setPlanFormData({ name: '', price: 0, durationDays: 30, maxSessions: 0, applicableServices: [], description: '', branches: [], isActive: true, isUnlimited: false, benefits: [], icon: 'Sparkles', isPopular: false }); 
                       setIsPlanModalOpen(true); 
                     }} variant="secondary" type="button" className="w-full sm:w-auto">Define New Plan</ZenButton>
                  </div>
@@ -423,7 +429,8 @@ title="Membership Management"
                                              setPlanFormData({
                                                 ...plan as any,
                                                 applicableServices: plan.applicableServices?.map((s: any) => typeof s === 'string' ? s : s._id) || [],
-                                                isUnlimited: plan.durationDays >= 36500
+                                                isUnlimited: plan.durationDays >= 36500,
+                                                benefits: Array.isArray(plan.benefits) ? plan.benefits.join('\n') : (plan.benefits || '')
                                              });
                                              setIsPlanModalOpen(true);
                                           }} />
@@ -786,18 +793,32 @@ title="Membership Management"
 
                <div className="flex flex-col justify-center">
                   <h4 className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mb-4">Plan Status</h4>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked={planFormData.isActive} onChange={e => setPlanFormData({...planFormData, isActive: e.target.checked})} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-zen-leaf after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                    <span className="ms-3 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">{planFormData.isActive ? 'Active' : 'Inactive'}</span>
-                  </label>
+                  <div className="flex gap-8">
+                     <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={planFormData.isActive} onChange={e => setPlanFormData({...planFormData, isActive: e.target.checked})} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-zen-leaf after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                        <span className="ms-3 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">{planFormData.isActive ? 'Active' : 'Inactive'}</span>
+                     </label>
+                     <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={planFormData.isPopular} onChange={e => setPlanFormData({...planFormData, isPopular: e.target.checked})} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-zen-sand after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                        <span className="ms-3 text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Mark Popular</span>
+                     </label>
+                  </div>
                </div>
+
+               <ZenDropdown label="Thematic Icon" icon={Crown} options={['Sparkles', 'Gem', 'Crown', 'Star', 'ShieldCheck', 'Zap']} value={planFormData.icon} onChange={val => setPlanFormData({...planFormData, icon: val})} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
+               <ZenTextarea label="Included Benefits (One per line)" placeholder="E.g. Unlimited Access&#10;Member Priority" value={planFormData.benefits as any} onChange={(e: any) => setPlanFormData({...planFormData, benefits: e.target.value})} />
+               <ZenTextarea label="Internal Description" value={planFormData.description} onChange={(e: any) => setPlanFormData({...planFormData, description: e.target.value})} />
             </div>
 
             <div className="space-y-6">
                 <h4 className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] px-2">Included Services</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                   {services.map(service => {
+                   {(services || []).map(service => {
                       const isSelected = planFormData.applicableServices.includes(service._id);
                       return (
                          <button
@@ -807,16 +828,15 @@ title="Membership Management"
                            className={`p-4 rounded-2xl border text-left transition-all duration-300 ${isSelected ? 'bg-zen-brown text-zen-cream border-zen-brown shadow-xl' : 'bg-white text-zen-brown/60 border-zen-brown/15 hover:border-zen-brown/35'}`}
                          >
                             <p className="font-serif font-bold text-sm leading-tight">{service.name}</p>
-                            <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center justify-center mt-2">
                                <span className="text-[8px] uppercase tracking-widest opacity-60">{service.category?.name}</span>
-                               {isSelected && <CheckCircle2 size={12} />}
+                               {isSelected && <CheckCircle2 size={12} className="ml-2" />}
                             </div>
                          </button>
                       );
                    })}
                 </div>
             </div>
-            <ZenTextarea label="Description" value={planFormData.description} onChange={(e: any) => setPlanFormData({...planFormData, description: e.target.value})} />
         </form>
       </Modal>
 

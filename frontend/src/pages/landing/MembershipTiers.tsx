@@ -8,6 +8,10 @@ import { usePublicSettings } from '../../components/landing/usePublicSettings';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
+const ICON_MAP: Record<string, any> = {
+  Sparkles, Gem, Crown, Star, ShieldCheck, Zap
+};
+
 const MembershipTiers = () => {
   const { settings } = usePublicSettings();
   const [plans, setPlans] = useState<any[]>([]);
@@ -120,10 +124,10 @@ const MembershipTiers = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 + 0.3 }}
               className={`relative bg-white/60 backdrop-blur-3xl rounded-[3rem] p-10 border border-white/50 shadow-2xl shadow-zen-brown/5 flex flex-col group transition-all duration-700 hover:translate-y-[-10px] ${
-                plan.popular ? 'ring-2 ring-zen-sand shadow-zen-sand/10' : ''
+                (plan.popular || plan.isPopular) ? 'ring-2 ring-zen-sand shadow-zen-sand/10' : ''
               }`}
             >
-              {plan.popular && (
+              {(plan.popular || plan.isPopular) && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-zen-sand text-white px-5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg">
                   Most Preferred
                 </div>
@@ -131,14 +135,14 @@ const MembershipTiers = () => {
 
               <div className="space-y-8 flex-1">
                 <div className={`w-16 h-16 rounded-[1.5rem] bg-gradient-to-tr ${plan.color || 'from-zen-sand/10 to-transparent'} flex items-center justify-center text-zen-sand group-hover:scale-110 transition-transform duration-700`}>
-                  {plan.icon ? <plan.icon size={32} strokeWidth={1} /> : <Sparkles size={32} strokeWidth={1} />}
+                  {ICON_MAP[plan.icon] ? React.createElement(ICON_MAP[plan.icon], { size: 32, strokeWidth: 1 }) : <Sparkles size={32} strokeWidth={1} />}
                 </div>
 
                 <div className="space-y-2">
                   <h3 className="text-3xl font-serif font-black text-zen-brown">{plan.name}</h3>
                   <div className="flex items-baseline gap-2">
                     <span className="text-4xl font-serif font-black tracking-tight text-zen-brown">{plan.price}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-zen-brown/30">QAR / {plan.duration}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zen-brown/30">QAR / {plan.duration || 'Monthly'}</span>
                   </div>
                 </div>
 

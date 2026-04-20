@@ -32,6 +32,17 @@ const membershipPlanSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  benefits: [{
+    type: String
+  }],
+  icon: {
+    type: String,
+    default: 'Sparkles'
+  },
+  isPopular: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

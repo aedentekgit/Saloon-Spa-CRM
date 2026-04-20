@@ -30,6 +30,18 @@ exports.getMembershipPlans = async (req, res) => {
   }
 };
 
+// @desc    Get active membership plans for public landing
+// @route   GET /api/memberships/active
+// @access  Public
+exports.getActiveMembershipPlansPublic = async (req, res) => {
+  try {
+    const plans = await MembershipPlan.find({ isActive: true }).populate('applicableServices').sort({ price: 1 });
+    res.json(plans);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Update a membership plan
 // @route   PUT /api/memberships/plans/:id
 // @access  Private/Admin
