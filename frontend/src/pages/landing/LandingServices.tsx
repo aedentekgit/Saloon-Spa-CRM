@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Sparkles, Waves, Leaf, Sun, Coffee, Music, Clock, Coins, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowRight, Sparkles, Waves, Leaf, Sun, Coffee, Music, Clock, Coins, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import PublicNavbar from '../../components/landing/PublicNavbar';
-import PublicFooter from '../../components/landing/PublicFooter';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const BASE_URL = API_URL.replace('/api', '');
@@ -126,9 +124,8 @@ const LandingServices = () => {
 
   return (
     <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-sand/20">
-      <PublicNavbar />
-      {/* Distinct Centered Header for Services */}
-      <header className="relative z-10 px-6 pt-48 pb-32 text-center overflow-hidden">
+      {/* Reduced top padding for header */}
+      <header className="relative z-10 px-6 pt-12 md:pt-24 lg:pt-32 pb-32 text-center overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none">
           <span className="text-[25vw] font-serif font-bold tracking-tighter leading-none">RITUALS</span>
         </div>
@@ -330,7 +327,7 @@ const LandingServices = () => {
                         <div className="pt-4 flex items-center justify-between border-t border-white/20">
                           <Link
                             to="/booking"
-                            className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-sand group/btn hover:text-white transition-colors"
+                            className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-zen-sand group/btn hover:text-white transition-colors"
                           >
                             Book Ritual
                             <ArrowRight size={14} className="group-hover/btn:translate-x-2 transition-transform" />
@@ -366,7 +363,6 @@ const LandingServices = () => {
           </div>
         </div>
       </section>
-      <PublicFooter />
     </div>
   );
 };

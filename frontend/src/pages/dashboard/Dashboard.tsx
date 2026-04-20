@@ -58,7 +58,11 @@ const AdminDashboard = () => {
   const fetchStats = async (silent: boolean = false) => {
     try {
       if (!silent) setLoading(true);
-      const response = await fetch(`${API_URL}/stats/dashboard`, {
+      const statsUrl = new URL(`${API_URL}/stats/dashboard`);
+      if (selectedBranch && selectedBranch !== 'all') {
+        statsUrl.searchParams.set('branch', selectedBranch);
+      }
+      const response = await fetch(statsUrl.toString(), {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
@@ -83,8 +87,8 @@ const AdminDashboard = () => {
 
   // Fully dynamic metrics mapping
   const displayRevenue = stats?.revenue?.total || 0;
-  const displayExpenses = stats?.revenue?.today || 0;
-  const displayProfit = (stats?.revenue?.total || 0) - (stats?.revenue?.today || 0);
+  const displayTodayRevenue = stats?.revenue?.today || 0;
+  const displayProfit = stats?.profit?.total ?? ((stats?.revenue?.total || 0) - (stats?.expenses?.total || 0));
   const displayClients = stats?.clients?.total || 0;
 
   const cards = [
@@ -100,7 +104,7 @@ const AdminDashboard = () => {
     },
     { 
       label: 'DAILY REVENUE', 
-      value: `${settings?.general?.currencySymbol || 'QR'} ${displayExpenses.toLocaleString()}`, 
+      value: `${settings?.general?.currencySymbol || 'QR'} ${displayTodayRevenue.toLocaleString()}`, 
       trend: stats?.revenue?.today > 0 ? 'Operating Today' : 'System Ready', 
       icon: Activity, 
       color: 'text-rose-500', 

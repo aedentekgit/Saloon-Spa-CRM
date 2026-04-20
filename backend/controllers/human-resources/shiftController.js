@@ -1,5 +1,6 @@
 const Shift = require('../../models/human-resources/Shift');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId } = require('../../utils/branch');
 
 // @desc    Get all shifts
 // @route   GET /api/shifts
@@ -11,6 +12,10 @@ const getShifts = async (req, res) => {
     
     if (branch && branch !== 'all') {
       query.branch = branch;
+    }
+
+    if (!req.user) {
+      query.status = 'Active';
     }
 
     const { data, pagination } = await paginateModelQuery(Shift, query, req, {
@@ -35,7 +40,7 @@ const createShift = async (req, res) => {
       startTime,
       endTime,
       durationHours,
-      branch: branch || req.user.branch
+      branch: getBranchId(branch) || getBranchId(req.user.branch)
     });
     res.status(201).json(shift);
   } catch (error) {

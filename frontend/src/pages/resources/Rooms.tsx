@@ -303,13 +303,13 @@ const Rooms = () => {
                   <div className="w-full lg:w-[240px]">
                      <ZenDropdown 
                        label="Active Branch"
-                       options={['All Branches', ...branches.map(b => b.name)]}
-                       value={branches.find(b => b._id === selectedBranch)?.name || 'All Branches'}
+                       options={['All Branches', ...(branches || []).map(b => b.name)]}
+                       value={(branches || []).find(b => b._id === selectedBranch)?.name || 'All Branches'}
                        onChange={(val: any) => {
                          if (val === 'All Branches') {
                            setSelectedBranch('all');
                          } else {
-                           const branch = branches.find(b => b.name === val);
+                           const branch = (branches || []).find(b => b.name === val);
                            if (branch) setSelectedBranch(branch._id);
                          }
                        }}
@@ -574,10 +574,10 @@ const Rooms = () => {
               
               <ZenDropdown 
                  label="Assigned Branch" 
-                 options={['None', ...branches.filter(b => b.isActive).map(b => b.name)]} 
-                 value={branches.find(b => b._id === formData.branch)?.name || 'None'} 
+                 options={['None', ...(branches || []).map(b => b.name)]} 
+                 value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} 
                  onChange={(val) => {
-                   const branch = branches.filter(b => b.isActive).find(b => b.name === val);
+                   const branch = (branches || []).find(b => b.name === val);
                    setFormData({...formData, branch: branch ? branch._id : ''});
                  }} 
               />

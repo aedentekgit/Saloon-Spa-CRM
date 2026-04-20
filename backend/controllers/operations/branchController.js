@@ -8,7 +8,7 @@ const { paginateModelQuery } = require('../../utils/pagination');
 // @access  Public
 const getPublicBranches = async (req, res) => {
   try {
-    const { data, pagination } = await paginateModelQuery(Branch, { isActive: true }, req);
+    const { data, pagination } = await paginateModelQuery(Branch, {}, req);
     res.json(pagination ? { data, pagination } : data);
   } catch (error) {
     res.status(500).json({ message: error.message });

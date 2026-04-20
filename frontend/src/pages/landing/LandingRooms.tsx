@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sparkles, MapPin, Loader2, DoorOpen, Wind, Coffee, Music, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import PublicNavbar from '../../components/landing/PublicNavbar';
-import PublicFooter from '../../components/landing/PublicFooter';
 import { resolveRoomImageMeta } from '../../utils/roomImage';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
@@ -83,9 +81,8 @@ const LandingRooms = () => {
 
   return (
     <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-sand/20">
-      <PublicNavbar />
-      {/* Asymmetric Layered Header for Rooms */}
-      <header className="relative z-10 px-6 pt-48 pb-32 lg:px-24">
+      {/* Reduced top padding for header */}
+      <header className="relative z-10 px-6 pt-12 md:pt-24 lg:pt-32 pb-32 lg:px-24">
         <div className="mx-auto max-w-7xl">
           <div className="grid lg:grid-cols-12 gap-12 items-center">
             <motion.div 
@@ -299,7 +296,6 @@ const LandingRooms = () => {
             </p>
          </div>
       </section>
-      <PublicFooter />
     </div>
   );
 };

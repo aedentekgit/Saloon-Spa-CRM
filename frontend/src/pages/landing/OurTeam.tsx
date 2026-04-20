@@ -2,24 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowRight,
-  Award,
-  BadgeCheck,
-  Building2,
   ExternalLink,
-  Instagram,
-  Linkedin,
   Loader2,
   MapPin,
-  Sparkles,
   Star,
-  Twitter,
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
 import { motion, AnimatePresence } from 'motion/react';
-import PublicNavbar from '../../components/landing/PublicNavbar';
-import PublicFooter from '../../components/landing/PublicFooter';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const BASE_URL = API_URL.replace('/api', '');
@@ -155,16 +146,14 @@ const OurTeam = () => {
 
   return (
     <div className="relative min-h-screen bg-zen-cream text-zen-brown overflow-hidden selection:bg-zen-sand/20">
-      <PublicNavbar />
-      
       {/* Immersive Background */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] right-[-5%] w-[60%] h-[60%] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.08),_transparent_70%)] animate-pulse" />
         <div className="absolute bottom-[-5%] left-[-5%] w-[50%] h-[50%] bg-[radial-gradient(circle_at_center,_rgba(51,39,102,0.05),_transparent_70%)]" style={{ animation: 'float 20s ease-in-out infinite' }} />
       </div>
 
-      {/* Dynamic Collective Header for Team */}
-      <header className="relative z-10 px-6 pt-48 pb-32 lg:px-24 overflow-hidden">
+      {/* Dynamic Collective Header for Team - Reduced top padding */}
+      <header className="relative z-10 px-6 pt-12 md:pt-24 lg:pt-32 pb-32 lg:px-24 overflow-hidden">
         <div className="mx-auto max-w-7xl">
           <div className="grid lg:grid-cols-2 gap-20 items-center">
             <motion.div 
@@ -422,8 +411,6 @@ const OurTeam = () => {
           </div>
         </div>
       </section>
-      
-      <PublicFooter />
 
       <style>{`
         @keyframes float {

@@ -94,7 +94,7 @@ const Navbar = ({
   };
 
   return (
-    <header className="h-16 bg-white border-b border-zen-brown/10 shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40">
+    <header className="h-16 bg-white/90 backdrop-blur-md border-b border-zen-stone/20 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40 shadow-sm shadow-black/[0.02]">
       
       {/* Left section: Breadcrumb & Title */}
       <div className="flex items-center gap-4">

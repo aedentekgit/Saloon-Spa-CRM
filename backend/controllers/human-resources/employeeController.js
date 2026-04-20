@@ -2,6 +2,7 @@ const Employee = require('../../models/human-resources/Employee');
 const path = require('path');
 const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, sameBranch } = require('../../utils/branch');
 
 // @desc    Get public employee list (for guest booking — no auth required)
 // @route   GET /api/employees/public
@@ -28,6 +29,7 @@ exports.getPublicEmployees = async (req, res) => {
 exports.getEmployees = async (req, res) => {
   try {
     let query = {};
+    const userBranchId = getBranchId(req.user?.branch);
 
     // Filters
     if (req.query.branch && req.query.branch !== 'all') {
@@ -49,8 +51,8 @@ exports.getEmployees = async (req, res) => {
         // Global Admin can filter by any branch provided in req.query
       } else if (req.user.role === 'Manager' || req.user.role === 'Employee') {
         // Managers and Employees are locked to their branch
-        if (req.user.branch) {
-          query.branch = req.user.branch;
+        if (userBranchId) {
+          query.branch = userBranchId;
         }
       }
     } else {
@@ -75,8 +77,9 @@ exports.createEmployee = async (req, res) => {
     const { name, role, email, phone, address, salary, services, password, joiningDate, branch } = req.body;
     
     // IDOR Check: Manager can only create employees for their OWN branch
-    const selectedBranch = branch || req.user.branch;
-    if (req.user.role !== 'Admin' && selectedBranch?.toString() !== req.user.branch?.toString()) {
+    const userBranchId = getBranchId(req.user.branch);
+    const selectedBranch = getBranchId(branch) || userBranchId;
+    if (req.user.role !== 'Admin' && !sameBranch(selectedBranch, userBranchId)) {
       return res.status(403).json({ message: 'Access Denied: You can only create employees for your own branch.' });
     }
 
@@ -127,7 +130,7 @@ exports.updateEmployee = async (req, res) => {
 
     // IDOR Check
     const isSelf = employee.email === req.user.email;
-    const isBranchManager = req.user.role === 'Manager' && employee.branch?.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(employee.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchManager && !isSelf) {
@@ -188,7 +191,7 @@ exports.deleteEmployee = async (req, res) => {
     }
 
     // IDOR Check
-    const isBranchManager = req.user.role === 'Manager' && employee.branch?.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(employee.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchManager) {
@@ -224,7 +227,7 @@ exports.uploadDocument = async (req, res) => {
 
     // IDOR Check
     const isSelf = employee.email === req.user.email;
-    const isBranchManager = req.user.role === 'Manager' && employee.branch?.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(employee.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchManager && !isSelf) {
@@ -266,7 +269,7 @@ exports.deleteDocument = async (req, res) => {
 
     // IDOR Check
     const isSelf = employee.email === req.user.email;
-    const isBranchManager = req.user.role === 'Manager' && employee.branch?.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(employee.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchManager && !isSelf) {

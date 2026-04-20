@@ -132,26 +132,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!silent) setLoading(true);
       const headers = { 'Authorization': `Bearer ${user.token}` };
       
-      const [cliRes, empRes, serRes, invenRes, invCountRes, appCountRes, leavesRes, rolesRes, branchesRes] = await Promise.all([
+      const [cliRes, empRes, serRes, invenRes, invoiceRes, appRes, expenseRes, attendanceRes, leavesRes, rolesRes, branchesRes] = await Promise.all([
         fetch(`${API_URL}/clients?limit=50`, { headers }), 
         fetch(`${API_URL}/employees`, { headers }),
         fetch(`${API_URL}/services`, { headers }),
         fetch(`${API_URL}/inventory?limit=50`, { headers }),
-        fetch(`${API_URL}/invoices?limit=1`, { headers }),
-        fetch(`${API_URL}/appointments?limit=1`, { headers }),
+        fetch(`${API_URL}/invoices`, { headers }),
+        fetch(`${API_URL}/appointments`, { headers }),
+        fetch(`${API_URL}/expenses`, { headers }),
+        fetch(`${API_URL}/attendance`, { headers }),
         fetch(`${API_URL}/leaves`, { headers }),
         fetch(`${API_URL}/roles`, { headers }),
         fetch(`${API_URL}/branches`, { headers })
       ]);
 
-      if ([cliRes, empRes, serRes, invenRes, invCountRes, appCountRes, leavesRes, rolesRes, branchesRes].some(res => res.status === 401)) {
+      if ([cliRes, empRes, serRes, invenRes, invoiceRes, appRes, expenseRes, attendanceRes, leavesRes, rolesRes, branchesRes].some(res => res.status === 401)) {
         logout();
         return;
       }
 
-      const [cliData, empData, serData, invenData, invCountData, appCountData, leavesData, rolesData, branchesData] = await Promise.all([
-        cliRes.json(), empRes.json(), serRes.json(), invenRes.json(), invCountRes.json(), appCountRes.json(),
-        leavesRes.json(), rolesRes.json(), branchesRes.json()
+      const [cliData, empData, serData, invenData, invoiceData, appData, expenseData, attendanceData, leavesData, rolesData, branchesData] = await Promise.all([
+        cliRes.json(), empRes.json(), serRes.json(), invenRes.json(), invoiceRes.json(), appRes.json(),
+        expenseRes.json(), attendanceRes.json(), leavesRes.json(), rolesRes.json(), branchesRes.json()
       ]);
 
       if (Array.isArray(cliData)) setClients(cliData);
@@ -161,6 +163,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (Array.isArray(serData)) setServices(serData);
       if (Array.isArray(invenData)) setInventory(invenData);
       else if (invenData.data) setInventory(invenData.data);
+      if (Array.isArray(invoiceData)) setInvoices(invoiceData);
+      else if (invoiceData.data) setInvoices(invoiceData.data);
+      if (Array.isArray(appData)) setAppointments(appData);
+      else if (appData.data) setAppointments(appData.data);
+      if (Array.isArray(expenseData)) setExpenses(expenseData);
+      else if (expenseData.data) setExpenses(expenseData.data);
+      if (Array.isArray(attendanceData)) setAttendance(attendanceData);
+      else if (attendanceData.data) setAttendance(attendanceData.data);
 
       const leavesList = leavesData.data || leavesData;
       if (Array.isArray(leavesList)) setLeaves(leavesList);
@@ -170,9 +180,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const branchesList = branchesData.data || branchesData;
       if (Array.isArray(branchesList)) setBranches(branchesList);
-
-      if (invCountData.pagination) setInvoices(new Array(invCountData.pagination.total).fill({}));
-      if (appCountData.pagination) setAppointments(new Array(appCountData.pagination.total).fill({}));
       
     } catch (error) {
       console.error('Core Synchronization Failure:', error);

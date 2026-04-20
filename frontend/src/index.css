@@ -1,26 +1,31 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Italiana&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", serif;
-  --font-accent: "Outfit", sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-accent: "Italiana", serif;
   
-  /* Modern Luxury & High-Contrast Palette */
-  --color-zen-cream: var(--zen-bg, #FFFFFF);
-  --color-zen-brown: var(--zen-text, #0F172A);
-  --color-zen-primary: var(--zen-primary, #6366F1);
-  --color-zen-sand: var(--zen-accent, #F43F5E);
+  /* Modern Purple & Slate Palette - Responsive to Settings */
+  --color-zen-cream: var(--zen-cream, #F8FAFC);
+  --color-zen-brown: var(--zen-brown, #1E293B);
+  --color-zen-primary: var(--zen-primary, #332766);
+  --color-zen-sand: var(--zen-sand, #8B5CF6);
   --color-zen-leaf: #10B981;
-  --color-zen-stone: #CBD5E1;
+  --color-zen-stone: #E2E8F0;
   --color-zen-contrast: #FFFFFF;
   
-  /* Extended Modern Palette */
-  --color-aurora-50: #EEF2FF;
-  --color-aurora-100: #E0E7FF;
-  --color-aurora-500: #6366F1;
-  --color-aurora-600: #4F46E5;
-  --color-aurora-900: #312E81;
+  /* Extended Lavender Palette */
+  --color-lavender-50: #F5F3FF;
+  --color-lavender-100: #EDE9FE;
+  --color-lavender-200: #DDD6FE;
+  --color-lavender-300: #C4B5FD;
+  --color-lavender-400: #A78BFA;
+  --color-lavender-500: #8B5CF6;
+  --color-lavender-600: #7C3AED;
+  --color-lavender-700: #6D28D9;
+  --color-lavender-800: #5B21B6;
+  --color-lavender-900: #4C1D95;
 }
 
 @layer base {

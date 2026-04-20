@@ -13,10 +13,10 @@ router.route('/public')
 
 router.route('/')
   .get(protect, getShifts)
-  .post(protect, createShift);
+  .post(protect, admin, createShift);
 
 router.route('/:id')
-  .put(protect, updateShift)
-  .delete(protect, deleteShift);
+  .put(protect, admin, updateShift)
+  .delete(protect, admin, deleteShift);
 
 module.exports = router;

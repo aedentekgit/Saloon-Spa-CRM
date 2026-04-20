@@ -1,6 +1,7 @@
 const Service = require('../../models/operations/Service');
 const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, sameBranch } = require('../../utils/branch');
 
 // @desc    Get public services
 // @route   GET /api/services/public
@@ -9,7 +10,7 @@ const getPublicServices = async (req, res) => {
   try {
     const { data, pagination } = await paginateModelQuery(
       Service,
-      { status: 'Active' },
+      {},
       req,
       { populate: 'branch' }
     );
@@ -51,8 +52,9 @@ const createService = async (req, res) => {
     }
     
     // IDOR Check
-    const selectedBranch = branch || req.user.branch;
-    if (req.user.role !== 'Admin' && selectedBranch?.toString() !== req.user.branch?.toString()) {
+    const userBranchId = getBranchId(req.user.branch);
+    const selectedBranch = getBranchId(branch) || userBranchId;
+    if (req.user.role !== 'Admin' && !sameBranch(selectedBranch, userBranchId)) {
       if (req.file) await deleteFile(req.file.path);
       return res.status(403).json({ message: 'Access Denied: Cannot create services for other branches.' });
     }
@@ -103,7 +105,7 @@ const updateService = async (req, res) => {
 
     // IDOR Check
     const isAdmin = req.user.role === 'Admin';
-    const isBranchManager = req.user.role === 'Manager' && service.branch?.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(service.branch, req.user.branch);
     
     if (!isAdmin && !isBranchManager) {
       if (req.file) await deleteFile(req.file.path);
@@ -161,7 +163,7 @@ const deleteService = async (req, res) => {
 
     // IDOR Check
     const isAdmin = req.user.role === 'Admin';
-    const isBranchManager = req.user.role === 'Manager' && service.branch?.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(service.branch, req.user.branch);
 
     if (!isAdmin && !isBranchManager) {
       return res.status(403).json({ message: 'Access Denied' });

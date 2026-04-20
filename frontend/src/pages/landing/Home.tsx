@@ -3,8 +3,6 @@ import { ArrowRight, Leaf, Waves, Wind, Sun, Star, Award, ShieldCheck, Sparkles 
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
-import PublicNavbar from '../../components/landing/PublicNavbar';
-import PublicFooter from '../../components/landing/PublicFooter';
 
 const Home = () => {
   const { settings } = usePublicSettings();
@@ -43,15 +41,14 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-brown/10 font-sans">
-      <PublicNavbar />
-      {/* Hero Section */}
-      <section className="relative min-h-[90vh] lg:h-screen flex items-center px-4 md:px-6 lg:px-24 overflow-hidden">
+      {/* Hero Section - Reduced top gap by changing items-center and adding smaller pt */}
+      <section className="relative min-h-[80vh] flex items-start px-4 md:px-6 lg:px-24 overflow-hidden pt-8 md:pt-16 lg:pt-20">
         {/* Background Elements */}
         <div className="absolute top-[-10%] right-[-5%] w-[60%] h-[80%] bg-zen-sand/10 rounded-full blur-[120px] -z-10 animate-pulse" />
         <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-zen-primary/5 rounded-full blur-[100px] -z-10" />
 
-        <div className="max-w-7xl w-full mx-auto grid lg:grid-cols-2 gap-12 lg:gap-24 items-center">
-          <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
+        <div className="max-w-7xl w-full mx-auto grid lg:grid-cols-2 gap-12 lg:gap-24 items-start">
+          <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000 mt-4 lg:mt-12">
             <div className="flex items-center gap-3 text-[10px] md:text-sm font-bold tracking-[0.2em] uppercase text-zen-brown/60">
               <span className="w-8 h-[1px] bg-zen-brown/30" />
               Est. 2024 • {siteName}
@@ -109,7 +106,7 @@ const Home = () => {
           </div>
 
           {/* Decorative Media Area */}
-          <div className="relative animate-in fade-in zoom-in duration-1000 delay-300">
+          <div className="relative animate-in fade-in zoom-in duration-1000 delay-300 mt-4 lg:mt-0">
             <div className="aspect-[4/5] w-full rounded-[1.5rem] md:rounded-[5rem] overflow-hidden shadow-sm lg:skew-y-2">
                <img 
                  src="/images/hero_sanctuary.png" 
@@ -228,7 +225,6 @@ const Home = () => {
            </div>
         </div>
       </section>
-      <PublicFooter />
     </div>
   );
 };

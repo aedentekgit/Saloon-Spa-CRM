@@ -1,8 +1,7 @@
 const Attendance = require('../../models/human-resources/Attendance');
 const Employee = require('../../models/human-resources/Employee');
-const User = require('../../models/core/User');
-const Branch = require('../../models/operations/Branch');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, sameBranch } = require('../../utils/branch');
 
 // Haversine formula to calculate distance between two coordinates in meters
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -48,8 +47,13 @@ const timeToMinutes = (timeStr) => {
 // @access  Private
 const getAttendance = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
     const { branch } = req.query;
     let query = {};
+    const userBranchId = getBranchId(req.user.branch);
 
     if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
       // Employee: only own records
@@ -58,13 +62,13 @@ const getAttendance = async (req, res) => {
       // Admin/Manager: filter by branch if provided, or default for Manager
       let branchToFilter = branch;
       
-      if (req.user.role === 'Manager' && req.user.branch) {
-        branchToFilter = req.user.branch._id || req.user.branch;
+      if (req.user.role === 'Manager' && userBranchId) {
+        branchToFilter = userBranchId;
       }
 
       if (branchToFilter && branchToFilter !== 'all') {
-        const branchUsers = await User.find({ branch: branchToFilter }).select('_id');
-        const userIds = branchUsers.map(u => u._id);
+        const branchEmployees = await Employee.find({ branch: branchToFilter }).select('_id');
+        const userIds = branchEmployees.map(emp => emp._id);
         query.user = { $in: userIds };
       }
     }
@@ -85,6 +89,8 @@ const markAttendance = async (req, res) => {
   const { date, checkIn, checkOut, status, employeeName, shift, targetUserId } = req.body;
 
   try {
+    const userBranchId = getBranchId(req.user.branch);
+
     // If targetUserId is provided and requester is Admin/Manager, use that ID
     const userId = (targetUserId && (req.user.role === 'Admin' || req.user.role === 'Manager')) 
       ? targetUserId 
@@ -94,7 +100,7 @@ const markAttendance = async (req, res) => {
     if (targetUserId && (req.user.role === 'Admin' || req.user.role === 'Manager')) {
       employee = await Employee.findById(targetUserId).populate('branch');
       // IDOR Check: Manager can only mark attendance for their eigene employees
-      if (req.user.role === 'Manager' && employee?.branch?._id.toString() !== req.user.branch?.toString()) {
+      if (req.user.role === 'Manager' && !sameBranch(employee?.branch, userBranchId)) {
          return res.status(403).json({ message: 'Access Denied: You cannot manage attendance for other branches.' });
       }
     } else {
@@ -190,7 +196,7 @@ const deleteAttendance = async (req, res) => {
 
     // IDOR Check
     const employee = await Employee.findById(record.user).populate('branch');
-    const isBranchManager = req.user.role === 'Manager' && employee?.branch?._id.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(employee?.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchManager) {
@@ -218,7 +224,7 @@ const updateAttendance = async (req, res) => {
 
     // IDOR Check
     const employee = await Employee.findById(record.user).populate('branch');
-    const isBranchManager = req.user.role === 'Manager' && employee?.branch?._id.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(employee?.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchManager) {

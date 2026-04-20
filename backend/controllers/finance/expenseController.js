@@ -1,5 +1,6 @@
 const Expense = require('../../models/finance/Expense');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, sameBranch } = require('../../utils/branch');
 
 // @desc    Get all expenses
 // @route   GET /api/expenses
@@ -7,14 +8,15 @@ const { paginateModelQuery } = require('../../utils/pagination');
 const getExpenses = async (req, res) => {
   try {
     let query = {};
+    const userBranchId = getBranchId(req.user.branch);
     
     // IDOR Prevention
     if (req.user.role === 'Admin') {
       // Global admin sees all
     } else if (req.user.role === 'Manager') {
       // Manager sees their branch
-      if (req.user.branch) {
-        query.branch = req.user.branch;
+      if (userBranchId) {
+        query.branch = userBranchId;
       }
     } else {
       // Employees only see their own recorded expenses
@@ -37,13 +39,14 @@ const createExpense = async (req, res) => {
   const { title, category, amount, date, branch } = req.body;
 
   try {
+    const userBranchId = getBranchId(req.user.branch);
     const expense = await Expense.create({
       user: req.user._id,
       title,
       category,
       amount,
       date,
-      branch: branch || req.user.branch || undefined
+      branch: getBranchId(branch) || userBranchId || undefined
     });
 
     res.status(201).json(expense);
@@ -65,7 +68,7 @@ const deleteExpense = async (req, res) => {
 
     // IDOR Check
     const isOwner = expense.user?.toString() === req.user._id.toString();
-    const isBranchManager = req.user.role === 'Manager' && expense.branch?.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(expense.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchManager && !isOwner) {

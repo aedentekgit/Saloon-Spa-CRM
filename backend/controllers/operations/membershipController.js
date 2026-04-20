@@ -1,7 +1,7 @@
 const MembershipPlan = require('../../models/operations/MembershipPlan');
 const Membership = require('../../models/operations/Membership');
-const User = require('../../models/core/User');
 const { getPaginationOptions, buildPaginationMeta } = require('../../utils/pagination');
+const { getBranchId, sameBranch } = require('../../utils/branch');
 
 // @desc    Create a new membership plan
 // @route   POST /api/memberships/plans
@@ -21,8 +21,8 @@ exports.createMembershipPlan = async (req, res) => {
 exports.getMembershipPlans = async (req, res) => {
   try {
     const { paginate, page, limit, skip } = getPaginationOptions(req);
-    const plansQuery = MembershipPlan.find({ isActive: true }).populate('applicableServices').sort({ createdAt: -1 });
-    const total = paginate ? await MembershipPlan.countDocuments({ isActive: true }) : null;
+    const plansQuery = MembershipPlan.find({}).populate('applicableServices').sort({ createdAt: -1 });
+    const total = paginate ? await MembershipPlan.countDocuments({}) : null;
     const plans = paginate ? await plansQuery.skip(skip).limit(limit) : await plansQuery;
     res.json(paginate ? { data: plans, pagination: buildPaginationMeta(total || 0, page, limit) } : plans);
   } catch (error) {
@@ -63,8 +63,9 @@ exports.enrollClient = async (req, res) => {
     const { clientId, planId, branchId, startDate } = req.body;
     
     // IDOR Check: Ensure Manager/Admin belongs to the branch
-    const selectedBranch = branchId || req.user.branch;
-    if (req.user.role !== 'Admin' && selectedBranch?.toString() !== req.user.branch?.toString()) {
+    const userBranchId = getBranchId(req.user.branch);
+    const selectedBranch = getBranchId(branchId) || userBranchId;
+    if (req.user.role !== 'Admin' && !sameBranch(selectedBranch, userBranchId)) {
       return res.status(403).json({ message: 'Access Denied: Cannot enroll client in another branch.' });
     }
 
@@ -129,7 +130,7 @@ exports.redeemMembershipSession = async (req, res) => {
     if (!membership) return res.status(404).json({ message: 'Membership not found' });
     
     // IDOR Check
-    const isBranchStaff = req.user.branch && membership.branch?.toString() === req.user.branch.toString();
+    const isBranchStaff = sameBranch(membership.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
     if (!isAdmin && !isBranchStaff) {
       return res.status(403).json({ message: 'Access Denied: You cannot redeem sessions for this branch.' });
@@ -169,12 +170,11 @@ exports.redeemMembershipSession = async (req, res) => {
 exports.getAllMemberships = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role !== 'Admin') {
-      if (req.user.branch) {
-        query.branch = req.user.branch;
-      } else if (req.user.role === 'Client') {
-        query.client = req.user._id;
-      }
+    const userBranchId = getBranchId(req.user.branch);
+    if (req.user.role === 'Client') {
+      query.client = req.user._id;
+    } else if (req.user.role !== 'Admin' && userBranchId) {
+      query.branch = userBranchId;
     }
 
     const { paginate, page, limit, skip } = getPaginationOptions(req);
@@ -202,8 +202,10 @@ exports.getAllMemberships = async (req, res) => {
 exports.getMembershipStats = async (req, res) => {
   try {
     let matchQuery = { status: 'Active' };
-    if (req.user.role !== 'Admin' && req.user.branch) {
-      matchQuery.branch = req.user.branch;
+    const userBranchId = getBranchId(req.user.branch);
+
+    if (req.user.role !== 'Admin' && userBranchId) {
+      matchQuery.branch = userBranchId;
     }
 
     const totalActive = await Membership.countDocuments(matchQuery);
@@ -219,7 +221,7 @@ exports.getMembershipStats = async (req, res) => {
     const activeTiers = await Membership.distinct('plan', matchQuery);
 
     const popularity = await Membership.aggregate([
-      { $match: req.user.role === 'Admin' ? {} : { branch: req.user.branch } },
+      { $match: req.user.role === 'Admin' ? {} : { branch: userBranchId } },
       { $group: { _id: '$plan', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $lookup: { from: 'membershipplans', localField: '_id', foreignField: '_id', as: 'planDetails' } }
@@ -248,7 +250,7 @@ exports.deleteMembership = async (req, res) => {
     }
 
     // IDOR Check
-    const isBranchManager = req.user.role === 'Manager' && membership.branch?.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(membership.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
     if (!isAdmin && !isBranchManager) {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to delete this membership.' });
@@ -271,7 +273,7 @@ exports.updateMembership = async (req, res) => {
     if (!membership) return res.status(404).json({ message: 'Membership not found' });
 
     // IDOR Check
-    const isBranchManager = req.user.role === 'Manager' && membership.branch?.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(membership.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
     if (!isAdmin && !isBranchManager) {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to update this membership.' });

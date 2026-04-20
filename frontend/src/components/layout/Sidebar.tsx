@@ -150,7 +150,7 @@ const Sidebar = ({
   );
 
   return (
-    <aside className={`bg-[#fafafb] border-r border-zen-brown/10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] h-full transition-all duration-300 ease-in-out flex flex-col z-20 rounded-none relative overflow-hidden ${isCollapsed ? 'lg:w-[70px] w-60 md:w-60' : 'w-[210px]'}`}>
+    <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] ${isCollapsed ? 'lg:w-[70px] w-60 md:w-60' : 'w-[210px]'}`}>
       
       {/* Top Logo Section — logo only, always centered */}
       <div 

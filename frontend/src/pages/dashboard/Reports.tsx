@@ -70,10 +70,20 @@ const Reports = () => {
   ], [totalIncome, totalExpenses]);
 
   const serviceData = useMemo(() => {
-    return services.slice(0, 5).map(s => ({
-      name: s.name,
-      value: appointments.filter(a => a.service === s.name).length + 2
-    }));
+    const counts = new Map<string, number>();
+
+    appointments.forEach((appointment) => {
+      if (!appointment.service) return;
+      counts.set(appointment.service, (counts.get(appointment.service) || 0) + 1);
+    });
+
+    return services
+      .map(s => ({
+        name: s.name,
+        value: counts.get(s.name) || 0
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
   }, [services, appointments]);
 
   const COLORS = ['#332766', '#8B5CF6', '#10B981', '#E2E8F0', '#1E293B'];
@@ -173,7 +183,7 @@ const Reports = () => {
               </ResponsiveContainer>
               <div className="absolute flex flex-col items-center">
                  <span className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest">Total Services</span>
-                 <span className="text-3xl font-serif font-bold text-zen-brown">{appointments.length}</span>
+                 <span className="text-3xl font-serif font-bold text-zen-brown">{services.length}</span>
               </div>
            </div>
         </div>

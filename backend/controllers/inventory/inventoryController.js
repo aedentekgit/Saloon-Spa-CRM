@@ -1,6 +1,7 @@
 const Inventory = require('../../models/inventory/Inventory');
 const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, sameBranch } = require('../../utils/branch');
 
 // @desc    Get all inventory items
 // @route   GET /api/inventory
@@ -9,6 +10,7 @@ const getInventory = async (req, res) => {
   try {
     let query = {};
     const { search, branch } = req.query;
+    const userBranchId = getBranchId(req.user.branch);
 
     // Admin can see everything or filter by branch
     // Managers/Staff can only see their own branch
@@ -17,8 +19,8 @@ const getInventory = async (req, res) => {
         query.branch = branch;
       }
     } else {
-      if (req.user.branch) {
-        query.branch = req.user.branch;
+      if (userBranchId) {
+        query.branch = userBranchId;
       } else {
         query.branch = null; 
       }
@@ -61,10 +63,11 @@ const getInventory = async (req, res) => {
 // @access  Private/Manager
 const createInventoryItem = async (req, res) => {
   const { name, category, stock, lowStock, vendor, branch, unit } = req.body;
+  const userBranchId = getBranchId(req.user.branch);
   
   // IDOR Check
-  const assignedBranch = branch || req.user.branch;
-  if (req.user.role !== 'Admin' && assignedBranch?.toString() !== req.user.branch?.toString()) {
+  const assignedBranch = getBranchId(branch) || userBranchId;
+  if (req.user.role !== 'Admin' && !sameBranch(assignedBranch, userBranchId)) {
     return res.status(403).json({ message: 'Access Denied: Cannot create inventory for another branch.' });
   }
 
@@ -104,7 +107,7 @@ const updateInventoryItem = async (req, res) => {
     }
 
     // IDOR Check
-    const isBranchStaff = req.user.branch && item.branch?.toString() === req.user.branch.toString();
+    const isBranchStaff = sameBranch(item.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchStaff) {
@@ -148,7 +151,7 @@ const deleteInventoryItem = async (req, res) => {
     }
 
     // IDOR Check
-    const isBranchStaff = req.user.branch && item.branch?.toString() === req.user.branch.toString();
+    const isBranchStaff = sameBranch(item.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchStaff) {

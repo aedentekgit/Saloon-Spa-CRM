@@ -2,6 +2,7 @@ const Invoice = require('../../models/finance/Invoice');
 const Employee = require('../../models/human-resources/Employee');
 const Service = require('../../models/operations/Service');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, sameBranch } = require('../../utils/branch');
 
 // @desc    Get all invoices
 // @route   GET /api/invoices
@@ -9,18 +10,21 @@ const { paginateModelQuery } = require('../../utils/pagination');
 const getInvoices = async (req, res) => {
   try {
     let query = {};
+    const userBranchId = getBranchId(req.user.branch);
     
     // IDOR Prevention
     if (req.user.role === 'Admin') {
       // Sees all
     } else if (req.user.role === 'Manager' || req.user.role === 'Employee') {
-      if (req.user.branch) {
-        query.branch = req.user.branch;
+      if (userBranchId) {
+        query.branch = userBranchId;
       }
     } else if (req.user.role === 'Client') {
       // Clients only see their own invoices
-      // Note: Invoices should probably have a clientId field, checking model
-      query.user = req.user._id; 
+      query.$or = [
+        { user: req.user._id },
+        { clientId: req.user._id }
+      ];
     }
 
     const { data, pagination } = await paginateModelQuery(Invoice, query, req, {
@@ -38,6 +42,7 @@ const getInvoices = async (req, res) => {
 const createInvoice = async (req, res) => {
   const { 
     invoiceNumber,
+    clientId,
     clientName, 
     items, 
     subtotal, 
@@ -51,8 +56,10 @@ const createInvoice = async (req, res) => {
   } = req.body;
 
   try {
+    const userBranchId = getBranchId(req.user.branch);
     const invoice = await Invoice.create({
-      user: req.user._id,
+      user: clientId || req.user._id,
+      clientId: clientId || undefined,
       invoiceNumber,
       clientName,
       items,
@@ -63,7 +70,7 @@ const createInvoice = async (req, res) => {
       paymentMode,
       payments,
       date,
-      branch: branch || req.user.branch || undefined
+      branch: getBranchId(branch) || userBranchId || undefined
     });
     
     // Auto-update Employee Earnings and Inventory Stock
@@ -127,8 +134,8 @@ const getInvoiceById = async (req, res) => {
     }
 
     // IDOR Check
-    const isOwner = invoice.user?.toString() === req.user._id.toString();
-    const isBranchStaff = req.user.branch && invoice.branch?.toString() === req.user.branch.toString();
+    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
+    const isBranchStaff = sameBranch(invoice.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchStaff && !isOwner) {

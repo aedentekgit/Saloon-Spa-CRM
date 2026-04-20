@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../../utils/sendEmail');
 
+const getFrontendUrl = () => process.env.FRONTEND_URL || 'http://localhost:3000';
+
 // Helper to find user across models
 const findUserByEmail = async (email) => {
   let user = await User.findOne({ email }).select('+password');
@@ -51,7 +53,7 @@ exports.registerUser = async (req, res) => {
 
     if (user) {
       // Send verification email
-      const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+      const verificationUrl = `${getFrontendUrl()}/verify-email?token=${verificationToken}`;
       const message = `Please verify your email by clicking: \n\n ${verificationUrl}`;
 
       try {
@@ -167,7 +169,7 @@ exports.forgotPassword = async (req, res) => {
 
   await user.save();
 
-  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+  const resetUrl = `${getFrontendUrl()}/reset-password?token=${resetToken}`;
   const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please click: \n\n ${resetUrl}`;
 
   try {
@@ -194,7 +196,6 @@ exports.resetPassword = async (req, res) => {
   const findResetUser = async () => {
     let u = await User.findOne({ resetPasswordToken, resetPasswordExpires: { $gt: Date.now() } });
     if (!u) u = await Employee.findOne({ resetPasswordToken, resetPasswordExpires: { $gt: Date.now() } });
-    if (!u) u = await Client.findOne({ resetPasswordToken, resetPasswordExpires: { $gt: Date.now() } });
     return u;
   };
 
@@ -225,7 +226,7 @@ exports.verifyEmail = async (req, res) => {
 
   const findVerifyUser = async () => {
     let u = await User.findOne({ verificationToken: token, verificationTokenExpires: { $gt: Date.now() } });
-    if (!u) u = await Client.findOne({ verificationToken: token, verificationTokenExpires: { $gt: Date.now() } });
+    if (!u) u = await Employee.findOne({ verificationToken: token, verificationTokenExpires: { $gt: Date.now() } });
     return u;
   };
 

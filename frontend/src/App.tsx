@@ -21,6 +21,9 @@ import ScrollToTop from './components/shared/ScrollToTop';
 // Pages - Lazy Loaded
 const Login = React.lazy(() => import('./pages/auth/Login'));
 const Signup = React.lazy(() => import('./pages/auth/Signup'));
+const ForgotPassword = React.lazy(() => import('./pages/auth/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('./pages/auth/ResetPassword'));
+const VerifyEmail = React.lazy(() => import('./pages/auth/VerifyEmail'));
 const Dashboard = React.lazy(() => import('./pages/dashboard/Dashboard'));
 const Clients = React.lazy(() => import('./pages/resources/Clients'));
 const Appointments = React.lazy(() => import('./pages/operations/Appointments'));
@@ -152,6 +155,9 @@ const AppRoutes = () => {
         
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
 
         {/* Protected Dashboards */}
         <Route element={<Layout />}>
@@ -209,4 +215,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-

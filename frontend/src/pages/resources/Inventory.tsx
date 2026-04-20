@@ -313,8 +313,8 @@ const Inventory = () => {
             <div className="w-[170px] shrink-0">
               <ZenDropdown
                 label=""
-                options={['All Branches', ...branches.filter(b => b.isActive).map(b => b.name)]}
-                value={branches.find(b => b._id === selectedBranch)?.name || 'All Branches'}
+                options={['All Branches', ...(branches || []).map(b => b.name)]}
+                value={(branches || []).find(b => b._id === selectedBranch)?.name || 'All Branches'}
                 onChange={(val) => {
                   if (val === 'All Branches') {
                     setSelectedBranch('all');
@@ -596,10 +596,10 @@ const Inventory = () => {
                 label="Assigned Branch"
                 value={branches.find(b => b._id === formData.branch)?.name || 'Select Branch'}
                 onChange={val => {
-                  const b = branches.filter(b => b.isActive).find(branch => branch.name === val);
+                  const b = (branches || []).find(branch => branch.name === val);
                   if (b) setFormData({...formData, branch: b._id});
                 }}
-                options={branches.filter(b => b.isActive).map(b => b.name)}
+                options={(branches || []).map(b => b.name)}
               />
            </div>
            <div className="grid grid-cols-1 gap-8">

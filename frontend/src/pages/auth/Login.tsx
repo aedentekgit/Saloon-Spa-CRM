@@ -100,7 +100,7 @@ const Login = () => {
                     </div>
 
                     <div className="flex justify-start">
-                       <span className="text-[11px] font-bold text-zen-brown/35 hover:text-zen-sand cursor-pointer transition-colors block -mt-2">Forget password?</span>
+                       <Link to="/forgot-password" className="text-[11px] font-bold text-zen-brown/35 hover:text-zen-sand cursor-pointer transition-colors block -mt-2">Forget password?</Link>
                     </div>
 
                     <div className="pt-2">

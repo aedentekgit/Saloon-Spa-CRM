@@ -1,9 +1,31 @@
 const Invoice = require('../../models/finance/Invoice');
 const Expense = require('../../models/finance/Expense');
 const User = require('../../models/core/User');
+const Employee = require('../../models/human-resources/Employee');
 const Attendance = require('../../models/human-resources/Attendance');
 const Appointment = require('../../models/operations/Appointment');
 const Inventory = require('../../models/inventory/Inventory');
+const { getBranchId } = require('../../utils/branch');
+
+const parseTimeToMinutes = (time = '') => {
+  const match = String(time).trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!match) return 0;
+
+  let hours = Number.parseInt(match[1], 10);
+  const minutes = Number.parseInt(match[2], 10);
+  const period = match[3]?.toUpperCase();
+
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+
+  return (hours * 60) + minutes;
+};
+
+const compareAppointments = (a, b) => {
+  const dateCompare = String(a.date || '').localeCompare(String(b.date || ''));
+  if (dateCompare !== 0) return dateCompare;
+  return parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time);
+};
 
 // @desc    Get dashboard summary stats
 // @route   GET /api/stats/dashboard
@@ -13,12 +35,21 @@ exports.getDashboardStats = async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? req.query.branch : null;
+    const userBranchId = getBranchId(req.user.branch);
 
     // Branching logic for Role-specific dynamism
     if (req.user.role === 'Client') {
-      const myAppointments = await Appointment.find({ client: req.user.name }).sort({ date: -1 }).lean();
+      const myAppointments = await Appointment.find({
+        $or: [
+          { clientId: req.user._id },
+          { client: req.user.name }
+        ]
+      }).sort({ date: -1 }).lean();
       const totalVisits = myAppointments.filter(a => a.status === 'Completed').length;
-      const upcomingApt = myAppointments.find(a => (a.status === 'Booked' || a.status === 'Confirmed') && a.date >= todayStr);
+      const upcomingApt = myAppointments
+        .filter(a => ['Pending', 'Confirmed'].includes(a.status) && a.date >= todayStr)
+        .sort(compareAppointments)[0];
       
       return res.json({
         role: 'Client',
@@ -35,7 +66,12 @@ exports.getDashboardStats = async (req, res) => {
     }
 
     if (req.user.role === 'Employee') {
-      const myAppointments = await Appointment.find({ employee: req.user.name }).sort({ date: -1 }).lean();
+      const myAppointments = await Appointment.find({
+        $or: [
+          { employeeId: req.user._id },
+          { employee: req.user.name }
+        ]
+      }).sort({ date: -1 }).lean();
       const completed = myAppointments.filter(a => a.status === 'Completed').length;
       const todayApts = myAppointments.filter(a => a.date === todayStr).length;
       
@@ -56,8 +92,10 @@ exports.getDashboardStats = async (req, res) => {
 
     // Default Admin/Manager Logic
     let matchQuery = {};
-    if (req.user.role !== 'Admin' && req.user.branch) {
-      matchQuery.branch = req.user.branch;
+    if (req.user.role === 'Admin' && requestedBranch) {
+      matchQuery.branch = requestedBranch;
+    } else if (req.user.role !== 'Admin' && userBranchId) {
+      matchQuery.branch = userBranchId;
     }
 
     // ... (rest of the Admin/Manager logic remains same but ensuring it's robust)
@@ -67,21 +105,44 @@ exports.getDashboardStats = async (req, res) => {
     ]);
     const totalRevenue = totalRevenueResult[0]?.total || 0;
 
+    const totalExpensesResult = await Expense.aggregate([
+      { $match: matchQuery },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalExpenses = totalExpensesResult[0]?.total || 0;
+
     const todayRevenueResult = await Invoice.aggregate([
       { $match: { ...matchQuery, createdAt: { $gte: today } } },
       { $group: { _id: null, total: { $sum: '$total' } } }
     ]);
     const todayRevenue = todayRevenueResult[0]?.total || 0;
 
+    const todayExpensesResult = await Expense.aggregate([
+      { $match: { ...matchQuery, createdAt: { $gte: today } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const todayExpenses = todayExpensesResult[0]?.total || 0;
+
     const totalClients = await User.countDocuments({ ...matchQuery, role: 'Client' });
     const newClientsToday = await User.countDocuments({ ...matchQuery, role: 'Client', createdAt: { $gte: today } });
 
-    const attendanceToday = await Attendance.countDocuments({ ...matchQuery, date: todayStr, status: 'Present' });
+    let attendanceToday = 0;
+    if (matchQuery.branch) {
+      const branchEmployees = await Employee.find({ branch: matchQuery.branch }).select('_id');
+      const branchEmployeeIds = branchEmployees.map(employee => employee._id);
+      attendanceToday = await Attendance.countDocuments({
+        user: { $in: branchEmployeeIds },
+        date: todayStr,
+        status: 'Present'
+      });
+    } else {
+      attendanceToday = await Attendance.countDocuments({ date: todayStr, status: 'Present' });
+    }
     
     const activeAppointments = await Appointment.countDocuments({ 
       ...matchQuery, 
-      status: { $in: ['Booked', 'Confirmed'] }, 
-      date: { $gte: todayStr } 
+      status: { $in: ['Pending', 'Confirmed'] }, 
+      date: todayStr
     });
 
     const lowStockItems = await Inventory.countDocuments({ ...matchQuery, $expr: { $lte: ['$stock', '$lowStock'] } });
@@ -137,6 +198,14 @@ exports.getDashboardStats = async (req, res) => {
         today: todayRevenue,
         trend: trendData
       },
+      expenses: {
+        total: totalExpenses,
+        today: todayExpenses,
+        trend: trendData.map(day => ({ name: day.name, value: day.expenses }))
+      },
+      profit: {
+        total: totalRevenue - totalExpenses
+      },
       clients: {
         total: totalClients,
         newToday: newClientsToday
@@ -164,5 +233,3 @@ exports.getDashboardStats = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-

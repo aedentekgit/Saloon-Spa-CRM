@@ -197,6 +197,7 @@ const Billing = () => {
     
     const newInvoice = {
       invoiceNumber: nextNumber,
+      clientId: selectedClient._id,
       clientName: selectedClient.name,
       items: invoiceItems.map(i => ({ name: i.name, price: i.price, duration: i.duration })),
       subtotal,

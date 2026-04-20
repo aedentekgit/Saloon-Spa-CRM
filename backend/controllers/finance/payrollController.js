@@ -1,6 +1,7 @@
 const Employee = require('../../models/human-resources/Employee');
 const Attendance = require('../../models/human-resources/Attendance');
 const Settings = require('../../models/core/Settings');
+const { getBranchId } = require('../../utils/branch');
 
 // @desc    Generate payroll report for a specific month
 // @route   GET /api/payroll
@@ -18,8 +19,9 @@ exports.generatePayroll = async (req, res) => {
     const globalPaidHours = settings?.payroll?.allowedPaidHours || 0;
 
     let query = {};
-    if (req.user.role !== 'Admin' && req.user.branch) {
-      query.branch = req.user.branch;
+    const userBranchId = getBranchId(req.user.branch);
+    if (req.user.role !== 'Admin' && userBranchId) {
+      query.branch = userBranchId;
     }
 
     const employees = await Employee.find(query);

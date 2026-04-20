@@ -1,5 +1,6 @@
 const Leave = require('../../models/human-resources/Leave');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, sameBranch } = require('../../utils/branch');
 
 // @desc    Get leave requests
 // @route   GET /api/leaves
@@ -7,12 +8,13 @@ const { paginateModelQuery } = require('../../utils/pagination');
 const getLeaves = async (req, res) => {
   try {
     let query = {};
+    const userBranchId = getBranchId(req.user.branch);
     if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
       // Employee: own requests only
       query.user = req.user._id;
-    } else if (req.user.role === 'Manager' && req.user.branch) {
+    } else if (req.user.role === 'Manager' && userBranchId) {
       // Manager: only leaves from their branch
-      query.branch = req.user.branch._id || req.user.branch;
+      query.branch = userBranchId;
     }
     // Admin: no filter
     const { data, pagination } = await paginateModelQuery(Leave, query, req, {
@@ -40,7 +42,7 @@ const createLeave = async (req, res) => {
       endDate,
       daysCount: daysCount || 1,
       status: 'Pending',
-      branch: req.user.branch?._id || req.user.branch || undefined
+      branch: getBranchId(req.user.branch) || undefined
     });
 
     res.status(201).json(leave);
@@ -61,7 +63,7 @@ const updateLeaveStatus = async (req, res) => {
     }
 
     // IDOR Check
-    const isBranchManager = req.user.role === 'Manager' && leave.branch?.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(leave.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchManager) {
@@ -89,7 +91,7 @@ const deleteLeave = async (req, res) => {
 
     // IDOR Check: Only the owner (Employee) or their Manager/Admin can delete
     const isOwner = leave.user?.toString() === req.user._id.toString();
-    const isBranchManager = req.user.role === 'Manager' && leave.branch?.toString() === req.user.branch?.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(leave.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchManager && !isOwner) {

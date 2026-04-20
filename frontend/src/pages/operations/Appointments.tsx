@@ -200,7 +200,7 @@ const Appointments = () => {
     // Default: Show all active services for the current branch
     let filtered = rawServices.filter(s => {
       const matchesBranch = !formData.branch || s.branch === formData.branch || s.branch?._id === formData.branch;
-      return s.status === 'Active' && matchesBranch;
+      return matchesBranch;
     });
 
     return ['None', ...filtered.map(s => s.name)];
@@ -306,8 +306,7 @@ const Appointments = () => {
   }, [appointments, selectedDate, viewType, searchTerm, user]);
 
   const clientSearchOptions = useMemo(() => {
-     return rawClients
-       .filter(c => c.status === 'Active')
+     return (rawClients || [])
        .map(c => ({
          id: c.name,
          name: c.name,
@@ -316,7 +315,7 @@ const Appointments = () => {
   }, [rawClients]);
 
   const branchOptions = useMemo(() => {
-    return ['None', ...branches.filter(b => b.isActive).map(b => b.name)];
+     return ['None', ...(branches || []).map(b => b.name)];
   }, [branches]);
 
   const staffOptions = useMemo(() => {
@@ -325,7 +324,7 @@ const Appointments = () => {
 
     return ['None', ...rawStaff.filter(e => {
       const matchesBranch = !formData.branch || e.branch === formData.branch || e.branch?._id === formData.branch;
-      if (e.status !== 'Active' || !matchesBranch) return false;
+      if (!matchesBranch) return false;
 
       // Filter: Shift Over / Sign-off / Logout (Only if booking for today)
       if (formData.date === today) {
@@ -356,7 +355,7 @@ const Appointments = () => {
   const roomOptions = useMemo(() => {
     return ['None', ...rawRooms.filter(r => {
       const matchesBranch = !formData.branch || r.branch === formData.branch || r.branch?._id === formData.branch;
-      return r.isActive && matchesBranch;
+      return matchesBranch;
     }).map(r => r.name)];
   }, [rawRooms, formData.branch]);
 

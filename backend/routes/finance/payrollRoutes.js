@@ -3,6 +3,6 @@ const router = express.Router();
 const { generatePayroll } = require('../../controllers/finance/payrollController');
 const { protect, admin } = require('../../middleware/authMiddleware');
 
-router.get('/', protect, generatePayroll);
+router.get('/', protect, admin, generatePayroll);
 
 module.exports = router;

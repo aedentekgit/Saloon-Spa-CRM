@@ -797,7 +797,7 @@ title="Membership Management"
             <div className="space-y-6">
                 <h4 className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] px-2">Included Services</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                   {services.filter(s => s.status === 'Active').map(service => {
+                   {services.map(service => {
                       const isSelected = planFormData.applicableServices.includes(service._id);
                       return (
                          <button
@@ -837,14 +837,14 @@ title="Membership Management"
          <form id="enroll-form" onSubmit={handleEnroll} className="space-y-10">
             <ZenDropdown 
                label="Select Client" 
-               options={clients.filter(c => c.status === 'Active').map(c => `${c.name || 'Unknown'} (${c.phone || 'No Phone'})`)} 
+               options={(clients || []).map(c => `${c.name || 'Unknown'} (${c.phone || 'No Phone'})`)} 
                value={(() => {
-                  const client = clients.find(c => c._id === enrollData.clientId);
+                  const client = (clients || []).find(c => c._id === enrollData.clientId);
                   return client ? `${client.name} (${client.phone})` : '';
                })()}
                disabled={!!editingEnrollmentId} // Don't allow changing client on edit
                onChange={val => {
-                  const client = clients.filter(c => c.status === 'Active').find(c => `${c.name} (${c.phone})` === val);
+                  const client = (clients || []).find(c => `${c.name} (${c.phone})` === val);
                   if (client) setEnrollData({...enrollData, clientId: client._id});
                }} 
             />
@@ -852,19 +852,19 @@ title="Membership Management"
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                <ZenDropdown 
                   label="Membership Plan" 
-                  options={plans.filter(p => p.isActive).map(p => p.name)} 
-                  value={plans.find(p => p._id === enrollData.planId)?.name || ''} 
+                  options={(plans || []).map(p => p.name)} 
+                  value={(plans || []).find(p => p._id === enrollData.planId)?.name || ''} 
                   onChange={val => {
-                     const plan = plans.find(p => p.name === val);
+                     const plan = (plans || []).find(p => p.name === val);
                      if (plan) setEnrollData({...enrollData, planId: plan._id});
                   }}
                />
                <ZenDropdown 
                   label="Assign Branch" 
-                  options={branches.filter(b => b.isActive).map(b => b.name)} 
-                  value={branches.find(b => b._id === enrollData.branchId)?.name || ''} 
+                  options={(branches || []).map(b => b.name)} 
+                  value={(branches || []).find(b => b._id === enrollData.branchId)?.name || ''} 
                   onChange={val => {
-                     const branch = branches.find(b => b.name === val);
+                     const branch = (branches || []).find(b => b.name === val);
                      if (branch) setEnrollData({...enrollData, branchId: branch._id});
                   }} 
                />
@@ -900,10 +900,10 @@ title="Membership Management"
 
             <ZenDropdown 
                label="Service" 
-               options={services.filter((s: any) => s.status === 'Active').map((s: any) => s.name)} 
-               value={services.find((s: any) => s._id === redeemData.serviceId)?.name || ''} 
+               options={(services || []).map((s: any) => s.name)} 
+               value={(services || []).find((s: any) => s._id === redeemData.serviceId)?.name || ''} 
                onChange={(val: any) => {
-                  const s = services.filter((s: any) => s.status === 'Active').find((serv: any) => serv.name === val);
+                  const s = (services || []).find((serv: any) => serv.name === val);
                   if (s) setRedeemData({...redeemData, serviceId: s._id});
                }}
             />

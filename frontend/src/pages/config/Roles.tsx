@@ -52,6 +52,8 @@ const ALL_PAGES = [
   { id: 'settings', name: 'Settings' }
 ];
 
+const PAGE_LIMIT = 12;
+
 const Roles = () => {
   const { user } = useAuth();
   const { roles, refreshData, loading } = useData();
@@ -62,7 +64,6 @@ const Roles = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -81,6 +82,14 @@ const Roles = () => {
       (role.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [roles, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRoles.length / PAGE_LIMIT));
+  const currentPage = Math.min(page, totalPages);
+
+  const paginatedRoles = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_LIMIT;
+    return filteredRoles.slice(start, start + PAGE_LIMIT);
+  }, [filteredRoles, currentPage]);
 
   const handleOpenModal = (role: Role | null = null) => {
     if (role) {
@@ -193,7 +202,7 @@ const Roles = () => {
     >
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {filteredRoles.map(role => (
+          {paginatedRoles.map(role => (
             <div key={role._id} className={`group relative bg-white rounded-[2rem] p-6 lg:p-8 shadow-sm border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${role.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
               
@@ -275,10 +284,10 @@ const Roles = () => {
                  </tr>
               )}
 
-              {filteredRoles.map((role, index) => (
+              {paginatedRoles.map((role, index) => (
                 <tr key={role._id} className="transition-all group border-b border-black/[0.02]">
                   <td className="text-center italic opacity-40 text-[11px]">
-                    {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
+                    {((currentPage - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
                   </td>
                   <td>
                     <div className="flex items-center justify-center gap-4">
@@ -328,7 +337,7 @@ const Roles = () => {
 
       
 
-      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+      <ZenPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal 
         isOpen={isModalOpen} 

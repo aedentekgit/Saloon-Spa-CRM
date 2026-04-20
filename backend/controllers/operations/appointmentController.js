@@ -2,6 +2,7 @@ const Appointment = require('../../models/operations/Appointment');
 const User = require('../../models/core/User');
 const Notification = require('../../models/core/Notification');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, sameBranch } = require('../../utils/branch');
 
 // Helper: convert "YYYY-MM-DD" + "HH:mm" into minutes since midnight for overlap math
 const parseTime = (date, time) => {
@@ -15,20 +16,21 @@ const parseTime = (date, time) => {
 const getAppointments = async (req, res) => {
   try {
     let query = {};
+    const userBranchId = getBranchId(req.user.branch);
     
     // IDOR Prevention: Filter logically based on role and branch
     if (req.user.role === 'Admin') {
       // Global admin sees all
     } else if (req.user.role === 'Manager') {
       // Manager sees their branch
-      if (req.user.branch) {
-        query.branch = req.user.branch;
+      if (userBranchId) {
+        query.branch = userBranchId;
       }
     } else if (req.user.role === 'Employee') {
       // Employee sees their branch or only their own tasks? 
       // Usually employees see all appointments for the branch to coordinate.
-      if (req.user.branch) {
-        query.branch = req.user.branch;
+      if (userBranchId) {
+        query.branch = userBranchId;
       }
     } else if (req.user.role === 'Client') {
       // Clients only see their own appointments
@@ -45,13 +47,15 @@ const getAppointments = async (req, res) => {
 };
 const createAppointment = async (req, res) => {
   try {
+    const userBranchId = getBranchId(req.user.branch);
+    const appointmentBranchId = getBranchId(req.body.branch || userBranchId);
     const appointmentData = {
       ...req.body,
-      branch: req.body.branch || req.user.branch,
+      branch: appointmentBranchId,
       user: req.user._id
     };
 
-    if (!appointmentData.branch && req.user.role !== 'Admin') {
+    if (!appointmentData.branch) {
       return res.status(400).json({ message: 'Branch assignment required' });
     }
 
@@ -64,6 +68,7 @@ const createAppointment = async (req, res) => {
 
       // Get all active appointments for this date
       const existingApts = await Appointment.find({
+        branch: appointmentData.branch,
         date,
         status: { $in: ['Confirmed', 'Pending'] }
       });
@@ -144,16 +149,23 @@ const createAppointment = async (req, res) => {
         let activeMembership;
         if (req.body.membershipId) {
           activeMembership = await Membership.findById(req.body.membershipId).populate('plan');
+          if (activeMembership && !sameBranch(activeMembership.branch, appointment.branch)) {
+            return res.status(403).json({ message: 'Membership does not belong to this branch.' });
+          }
         } else {
           activeMembership = await Membership.findOne({
             client: appointment.clientId,
+            branch: appointment.branch,
             status: 'Active',
             remainingSessions: { $gt: 0 }
           }).populate('plan');
         }
 
         if (activeMembership) {
-          const isApplicable = activeMembership.plan.applicableServices.some(
+          const applicableServices = Array.isArray(activeMembership.plan?.applicableServices)
+            ? activeMembership.plan.applicableServices
+            : [];
+          const isApplicable = applicableServices.length === 0 || applicableServices.some(
             id => id.toString() === serviceId.toString()
           );
           if (isApplicable) {
@@ -190,7 +202,7 @@ const updateAppointment = async (req, res) => {
 
     // IDOR Check
     const isOwner = appointment.clientId?.toString() === req.user._id.toString();
-    const isBranchStaff = req.user.branch && appointment.branch?.toString() === req.user.branch.toString();
+    const isBranchStaff = sameBranch(appointment.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchStaff && !isOwner) {
@@ -205,6 +217,7 @@ const updateAppointment = async (req, res) => {
     const checkTime = time || appointment.time;
     const checkEmployee = employee || appointment.employee;
     const checkRoom = room || appointment.room;
+    const checkBranch = getBranchId(req.body.branch || appointment.branch);
 
     if (checkDate && checkTime && checkEmployee) {
       const Service = require('../../models/operations/Service');
@@ -213,6 +226,7 @@ const updateAppointment = async (req, res) => {
       const serviceDuration = selectedService?.duration || 60;
 
       const existingApts = await Appointment.find({
+        branch: checkBranch,
         date: checkDate,
         status: { $in: ['Confirmed', 'Pending'] },
         _id: { $ne: appointment._id } // exclude self
@@ -296,7 +310,7 @@ const deleteAppointment = async (req, res) => {
 
     // IDOR Check
     const isOwner = appointment.clientId?.toString() === req.user._id.toString();
-    const isBranchStaff = req.user.branch && appointment.branch?.toString() === req.user.branch.toString();
+    const isBranchStaff = sameBranch(appointment.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchStaff && !isOwner) {
@@ -398,6 +412,39 @@ const getPublicAppointments = async (req, res) => {
 const createGuestAppointment = async (req, res) => {
   try {
     const { name, phone, email, ...rest } = req.body;
+    const appointmentBranch = getBranchId(rest.branch);
+
+    if (!name || !phone || !email || !rest.service || !rest.employee || !rest.date || !rest.time || !appointmentBranch) {
+      return res.status(400).json({ message: 'Missing required booking details' });
+    }
+
+    // Server-side conflict validation to prevent double booking
+    const Service = require('../../models/operations/Service');
+    const selectedService = await Service.findOne({ name: rest.service });
+    const serviceDuration = selectedService?.duration || 60;
+    const existingApts = await Appointment.find({
+      branch: appointmentBranch,
+      date: rest.date,
+      status: { $in: ['Confirmed', 'Pending'] }
+    });
+    const newStart = parseTime(rest.date, rest.time);
+    const newEnd = newStart + serviceDuration;
+
+    for (const apt of existingApts) {
+      const existingService = await Service.findOne({ name: apt.service });
+      const existingDuration = existingService?.duration || 60;
+      const existingStart = parseTime(apt.date, apt.time);
+      const existingEnd = existingStart + existingDuration;
+      const overlaps = newStart < existingEnd && newEnd > existingStart;
+
+      if (overlaps && apt.employee === rest.employee) {
+        return res.status(409).json({ message: `${rest.employee} is already booked at this time. Please choose a different slot.` });
+      }
+
+      if (overlaps && rest.room && apt.room === rest.room) {
+        return res.status(409).json({ message: `Room "${rest.room}" is already booked at this time. Please choose a different slot or room.` });
+      }
+    }
     
     // 1. Create or find a client profile for the guest
     // This allows them to show up in the Billing dropdown and maintain history
@@ -417,7 +464,7 @@ const createGuestAppointment = async (req, res) => {
         role: 'Client',
         status: 'Active',
         notes: 'Created via Guest Booking',
-        branch: rest.branch || null,
+        branch: appointmentBranch,
         password: Math.random().toString(36).slice(-8) // Generate random dummy password
       });
     }
@@ -428,6 +475,7 @@ const createGuestAppointment = async (req, res) => {
       clientId: client._id, // Link to the created/found client
       clientPhone: phone,
       clientEmail: email,
+      branch: appointmentBranch,
       bookingType: 'Guest',
       status: 'Pending'
     };

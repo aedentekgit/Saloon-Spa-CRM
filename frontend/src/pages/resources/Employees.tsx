@@ -818,7 +818,7 @@ const Employees = () => {
             <div className="space-y-5">
               <ZenInput label="Full Name" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-4xl border-none p-0 h-auto font-bold tracking-tighter" />
               <div className="w-full sm:w-80">
-                <ZenDropdown label="Role" options={roles.filter(r => r.status === 'Active' || r.isActive).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} />
+                <ZenDropdown label="Role" options={(roles || []).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} />
               </div>
               <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.5em]">Core identity</p>
             </div>
@@ -844,7 +844,7 @@ const Employees = () => {
                      <ZenInput label="Phone Number" icon={Phone} prefix={settings?.general?.dialingCode} value={formData.phone} onChange={(e: any) => setFormData({...formData, phone: e.target.value})} />
                      <ZenInput label={`Password ${editingEmp ? '(Optional)' : ''}`} icon={Lock} type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} />
                      <ZenInput label="Confirm Password" icon={Lock} type="password" value={formData.confirmPassword} onChange={(e: any) => setFormData({...formData, confirmPassword: e.target.value})} />
-                     <ZenDropdown label="Branch" options={['None', ...(branches || []).filter(b => b.isActive).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: (branches || []).filter(b => b.isActive).find(b => b.name === val)?._id || ''})} />
+                     <ZenDropdown label="Branch" options={['None', ...(branches || []).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: (branches || []).find(b => b.name === val)?._id || ''})} />
                      <ZenDropdown label="Employment Status" options={['Active', 'Inactive']} value={formData.status} onChange={(val) => setFormData({...formData, status: val as 'Active' | 'Inactive'})} />
                      <div className="col-span-2">
                         <ZenDatePicker label="Start Date" value={formData.joiningDate} onChange={val => setFormData({...formData, joiningDate: val})} />
@@ -866,10 +866,10 @@ const Employees = () => {
                     <div className="col-span-1">
                        <ZenDropdown 
                          label="Assigned Shift" 
-                         options={['None', ...shifts.filter(s => s.status === 'Active').map(s => s.name)]} 
+                         options={['None', ...(shifts || []).map(s => s.name)]} 
                          value={formData.shift || 'None'} 
                          onChange={(val) => {
-                            const selectedShift = shifts.find(s => s.name === val);
+                            const selectedShift = (shifts || []).find(s => s.name === val);
                             setFormData({
                                ...formData, 
                                shift: val === 'None' ? '' : val,

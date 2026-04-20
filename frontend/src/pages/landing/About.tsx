@@ -2,8 +2,6 @@ import React from 'react';
 import { History, Heart, Sparkles, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
-import PublicNavbar from '../../components/landing/PublicNavbar';
-import PublicFooter from '../../components/landing/PublicFooter';
 
 const About = () => {
   const { settings } = usePublicSettings();
@@ -11,9 +9,8 @@ const About = () => {
 
   return (
     <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-sand/20">
-      <PublicNavbar />
-      {/* Hero Content - Image 1 Style */}
-      <section className="px-6 lg:px-24 mb-16 pt-40 md:pt-48">
+      {/* Hero Content - Reduced top gap by lowering padding */}
+      <section className="px-6 lg:px-24 mb-16 pt-12 md:pt-24 lg:pt-32">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-center">
           <div className="space-y-12 animate-in fade-in slide-in-from-left-8 duration-1000">
             <div className="space-y-8">
@@ -153,7 +150,6 @@ const About = () => {
           </div>
         </div>
       </section>
-      <PublicFooter />
     </div>
   );
 };
