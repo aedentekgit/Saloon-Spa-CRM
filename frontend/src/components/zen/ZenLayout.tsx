@@ -42,13 +42,7 @@ export const ZenPageLayout = ({
   return (
     <div className="page-container min-h-screen p-6 sm:p-10 lg:p-12 pt-8 sm:pt-14 lg:pt-16 animate-in fade-in duration-1000">
       
-      {/* Page Title Section */}
-      {title && (
-        <div className="mb-8 px-2">
-           <h1 className="text-3xl sm:text-4xl font-serif font-black text-zen-brown tracking-tight">{title}</h1>
-           {subtitle && <p className="mt-2 text-sm sm:text-base text-zen-brown/50 font-medium italic">{subtitle}</p>}
-        </div>
-      )}
+      {/* Search and Action Bar removed Page Title Section */}
       
       {/* Search and Action Bar */}
       {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel) || headerActions) && (

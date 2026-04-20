@@ -94,23 +94,23 @@ export const ZenDropdown = ({
       <div 
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={variant === 'pill' 
-          ? "h-[52px] sm:h-[56px] bg-white px-6 rounded-[1.5rem] border-[1.5px] border-zen-brown/30 flex items-center justify-between gap-4 group-hover:border-zen-brown/60 transition-all cursor-pointer shadow-md"
+          ? "h-[46px] sm:h-[50px] bg-white px-5 rounded-[1.35rem] border-[1.5px] border-zen-brown/30 flex items-center justify-between gap-4 group-hover:border-zen-brown/60 transition-all cursor-pointer shadow-md"
           : "w-full px-1 pb-4 bg-transparent border-b-[2px] border-zen-brown/30 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/60 group-focus-within:border-zen-brown transition-all"
         }
       >
         <div className="flex items-center gap-4 overflow-hidden">
-          {Icon && <Icon size={18} className={variant === 'pill' ? "text-zen-brown/50 group-hover:text-zen-brown flex-shrink-0" : "text-zen-brown/40 flex-shrink-0"} />}
+          {Icon && <Icon size={16} className={variant === 'pill' ? "text-zen-brown/50 group-hover:text-zen-brown flex-shrink-0" : "text-zen-brown/40 flex-shrink-0"} />}
           <span 
             className={variant === 'pill' 
-              ? `font-serif text-base truncate ${value ? 'text-zen-brown font-black' : 'text-zen-brown/40'}`
-              : `font-serif text-xl truncate ${value ? 'text-zen-brown font-bold' : 'text-zen-brown/30'}`
+              ? `font-serif text-sm sm:text-base truncate ${value ? 'text-zen-brown font-black' : 'text-zen-brown/40'}`
+              : `font-serif text-lg sm:text-xl truncate ${value ? 'text-zen-brown font-bold' : 'text-zen-brown/30'}`
             }
             style={fontFamily ? { fontFamily } : {}}
           >
             {value || placeholder}
           </span>
         </div>
-        <ChevronDown size={variant === 'pill' ? 14 : 18} className={`text-zen-brown/20 flex-shrink-0 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={variant === 'pill' ? 13 : 18} className={`text-zen-brown/20 flex-shrink-0 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
       </div>
       
       {isOpen && createPortal(
@@ -129,7 +129,7 @@ export const ZenDropdown = ({
             {window.innerWidth < 640 && (
               <div className="px-8 pt-6 pb-2 border-b border-zen-brown/15 mb-2">
                 <p className="text-[10px] font-black text-zen-brown/20 uppercase tracking-[0.3em]">{label || 'Select'}</p>
-                <h3 className="text-lg font-serif font-bold text-zen-brown mt-1">Registry Selection</h3>
+                <h3 className="text-base font-serif font-bold text-zen-brown mt-1">Registry Selection</h3>
               </div>
             )}
             {safeOptions.map((opt) => (
@@ -140,7 +140,7 @@ export const ZenDropdown = ({
                   onChange(opt);
                   setIsOpen(false);
                 }}
-                className={`px-6 py-4 text-sm font-medium transition-all cursor-pointer hover:bg-zen-cream underline-offset-4 ${value === opt ? 'bg-zen-cream/50 text-zen-brown font-bold' : 'text-zen-brown/60'}`}
+                className={`px-5 py-3 text-sm font-medium transition-all cursor-pointer hover:bg-zen-cream underline-offset-4 ${value === opt ? 'bg-zen-cream/50 text-zen-brown font-bold' : 'text-zen-brown/60'}`}
                 style={['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Poppins', 'Montserrat'].includes(opt) ? { fontFamily: opt } : {}}
               >
                 {opt}
@@ -266,17 +266,17 @@ export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', 
       <div className="relative flex items-center">
         {variant === 'professional' ? (
           <div className={`w-full relative flex items-center transition-all duration-300 ${props.disabled ? 'opacity-40' : ''}`}>
-            {Icon && <Icon className="absolute left-6 text-zen-brown/30 group-focus-within:text-zen-brown transition-colors" size={18} />}
+            {Icon && <Icon className="absolute left-5 text-zen-brown/30 group-focus-within:text-zen-brown transition-colors" size={16} />}
             <input 
               {...props}
               type={isPassword ? (showPassword ? 'text' : 'password') : type}
-              className={`w-full py-5 ${Icon ? 'pl-16' : 'pl-6'} pr-6 bg-white border border-zen-brown/10 rounded-2xl outline-none transition-all font-serif text-lg text-zen-brown placeholder:text-zen-brown/20 focus:border-zen-sand/40 focus:ring-4 focus:ring-zen-sand/5 shadow-sm group-hover:border-zen-brown/20 ${props.className || ''}`}
+              className={`w-full py-4 ${Icon ? 'pl-14' : 'pl-5'} pr-5 bg-white border border-zen-brown/10 rounded-2xl outline-none transition-all font-serif text-base sm:text-[17px] text-zen-brown placeholder:text-zen-brown/20 focus:border-zen-sand/40 focus:ring-4 focus:ring-zen-sand/5 shadow-sm group-hover:border-zen-brown/20 ${props.className || ''}`}
             />
             {isPassword && (
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-6 text-zen-brown/20 hover:text-zen-brown transition-all"
+                className="absolute right-5 text-zen-brown/20 hover:text-zen-brown transition-all"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -293,7 +293,7 @@ export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', 
             <input 
               {...props}
               type={isPassword ? (showPassword ? 'text' : 'password') : type}
-              className={`w-full pb-3 ${Icon ? 'pl-9' : 'pl-2'} bg-transparent border-b-[2px] border-zen-brown/30 outline-none transition-all font-serif text-lg text-zen-brown placeholder:text-zen-brown/40 ${prefix ? (Icon ? 'pl-20' : 'pl-16') : ''} ${variant === 'dark' ? 'text-white border-white/20 focus:border-white/60' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''} ${isPassword ? 'pr-10' : ''} group-hover:border-zen-brown/60`}
+              className={`w-full pb-3 ${Icon ? 'pl-9' : 'pl-2'} bg-transparent border-b-[2px] border-zen-brown/30 outline-none transition-all font-serif text-base sm:text-[17px] text-zen-brown placeholder:text-zen-brown/40 ${prefix ? (Icon ? 'pl-20' : 'pl-16') : ''} ${variant === 'dark' ? 'text-white border-white/20 focus:border-white/60' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''} ${isPassword ? 'pr-10' : ''} group-hover:border-zen-brown/60`}
               style={prefix ? { paddingLeft: Icon ? `calc(2rem + ${prefix.length * 0.7}rem + 1rem)` : `calc(0.5rem + ${prefix.length * 0.7}rem + 1rem)` } : {}}
             />
             {isPassword && (
@@ -470,7 +470,7 @@ export const ZenTextarea = ({ label, ...props }: any) => (
     <label className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>
     <textarea 
       {...props}
-      className={`w-full p-4 sm:p-6 bg-white border border-zen-brown/15 rounded-[1.5rem] sm:rounded-[1rem] outline-none focus:border-zen-brown/30 transition-all font-serif text-base sm:text-lg text-zen-brown h-28 sm:h-32 resize-none shadow-sm ${props.className || ''}`}
+              className={`w-full p-4 sm:p-5 bg-white border border-zen-brown/15 rounded-[1.25rem] outline-none focus:border-zen-brown/30 transition-all font-serif text-base text-zen-brown h-24 sm:h-28 resize-none shadow-sm ${props.className || ''}`}
     />
 
   </div>
@@ -520,7 +520,7 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLab
           <div className="w-9 h-9 rounded-xl bg-zen-cream/30 flex items-center justify-center text-zen-brown/30 group-hover/trigger:text-zen-brown transition-all duration-500">
             <Calendar size={16} strokeWidth={1.5} />
           </div>
-          <span className="text-lg font-serif font-bold text-zen-brown tracking-tight">
+          <span className="text-base sm:text-lg font-serif font-bold text-zen-brown tracking-tight">
             {selectedMonth.label}
           </span>
         </div>
@@ -530,7 +530,7 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLab
         />
       </div>
 
-       <div className="h-px w-full bg-zen-brown/5 mt-4 mb-1" />
+       <div className="h-px w-full bg-zen-brown/5 mt-3 mb-1" />
 
       {isOpen && createPortal(
         <div 
@@ -553,7 +553,7 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLab
                   onChange(m.value);
                   setIsOpen(false);
                 }}
-                className={`px-8 py-5 rounded-[1rem] text-sm font-serif transition-all duration-300 cursor-pointer flex items-center justify-between group/item
+                className={`px-6 py-4 rounded-[1rem] text-sm font-serif transition-all duration-300 cursor-pointer flex items-center justify-between group/item
                   ${value === m.value 
                     ? 'bg-zen-brown text-white shadow-xl scale-[1.02]' 
                     : 'text-zen-brown/40 hover:bg-zen-cream/40 hover:text-zen-brown hover:translate-x-1'

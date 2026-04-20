@@ -86,7 +86,7 @@ const Memberships = () => {
        branches: [] as string[],
        isActive: true,
        isUnlimited: false,
-       benefits: [] as string[],
+       benefits: '',
        icon: 'Sparkles',
        isPopular: false
     });
@@ -396,8 +396,7 @@ title="Membership Management"
                        <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Global Service Structure</p>
                     </div>
                     <ZenButton onClick={() => { 
-                      setEditingPlan(null); 
-                      setPlanFormData({ name: '', price: 0, durationDays: 30, maxSessions: 0, applicableServices: [], description: '', branches: [], isActive: true, isUnlimited: false, benefits: [], icon: 'Sparkles', isPopular: false }); 
+                      setEditingPlan(null);                       setPlanFormData({ name: '', price: 0, durationDays: 30, maxSessions: 0, applicableServices: [], description: '', branches: [], isActive: true, isUnlimited: false, benefits: '', icon: 'Sparkles', isPopular: false }); 
                       setIsPlanModalOpen(true); 
                     }} variant="secondary" type="button" className="w-full sm:w-auto">Define New Plan</ZenButton>
                  </div>
@@ -829,7 +828,9 @@ title="Membership Management"
                          >
                             <p className="font-serif font-bold text-sm leading-tight">{service.name}</p>
                             <div className="flex items-center justify-center mt-2">
-                               <span className="text-[8px] uppercase tracking-widest opacity-60">{service.category?.name}</span>
+                               <span className="text-[8px] uppercase tracking-widest opacity-60">
+                                  {typeof service.category === 'object' ? (service.category as any)?.name : (service.category || 'Wellness')}
+                               </span>
                                {isSelected && <CheckCircle2 size={12} className="ml-2" />}
                             </div>
                          </button>

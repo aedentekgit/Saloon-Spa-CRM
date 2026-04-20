@@ -12,7 +12,7 @@ const getPublicServices = async (req, res) => {
       Service,
       {},
       req,
-      { populate: 'branch' }
+      { populate: ['branch', 'category'] }
     );
     res.json(pagination ? { data, pagination } : data);
   } catch (error) {
@@ -26,7 +26,7 @@ const getPublicServices = async (req, res) => {
 const getServices = async (req, res) => {
   try {
     const { data, pagination } = await paginateModelQuery(Service, {}, req, {
-      populate: ['branch', 'inventoryUsage.inventoryItem']
+      populate: ['branch', 'inventoryUsage.inventoryItem', 'category']
     });
     res.json(pagination ? { data, pagination } : data);
   } catch (error) {

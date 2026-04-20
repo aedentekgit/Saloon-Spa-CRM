@@ -310,8 +310,8 @@ const LandingServices = () => {
                       
                       {/* Title & Category - partially visible unhovered, fully brightens on hover */}
                       <div className="space-y-2 mb-6">
-                        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.3em] text-zen-sand opacity-80 group-hover:opacity-100 transition-opacity duration-700">
-                             <Icon size={12} />
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.35em] text-white/90 group-hover:text-white transition-all duration-700">
+                             <Icon size={14} strokeWidth={2.5} className="text-zen-sand" />
                              {service.category || 'Wellness'}
                         </div>
                         <h3 className="text-3xl font-serif font-bold text-white leading-tight opacity-90 group-hover:opacity-100 transition-opacity duration-700">{service.name}</h3>
