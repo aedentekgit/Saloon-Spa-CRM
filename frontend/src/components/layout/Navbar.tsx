@@ -22,7 +22,7 @@ const Navbar = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -94,7 +94,7 @@ const Navbar = ({
   };
 
   return (
-    <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40">
+    <header className="h-16 bg-white border-b border-zen-brown/10 shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40">
       
       {/* Left section: Breadcrumb & Title */}
       <div className="flex items-center gap-4">
@@ -106,13 +106,13 @@ const Navbar = ({
               setIsCollapsed(!isCollapsed);
             }
           }}
-          className="text-gray-500 hover:text-slate-900 transition-colors p-1 rounded-md hover:bg-gray-50"
+          className="text-zen-brown/40 hover:text-zen-brown transition-colors p-1 rounded-md hover:bg-zen-stone/30"
           aria-label="Toggle Menu"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
 
-        <div className="h-5 w-px bg-gray-200 hidden sm:block"></div>
+        <div className="h-5 w-px bg-zen-stone hidden sm:block"></div>
 
         <AnimatePresence mode="wait">
           <motion.div 
@@ -124,7 +124,7 @@ const Navbar = ({
             className="hidden sm:flex items-center gap-3"
           >
             <div className="w-1 h-4 bg-zen-primary rounded-full opacity-50"></div>
-            <span className="text-[15px] font-black tracking-[0.2em] text-slate-900 uppercase font-sans">
+            <span className="text-[15px] font-black tracking-[0.2em] text-zen-brown uppercase font-sans">
               {getPageTitle()}
             </span>
           </motion.div>
@@ -138,7 +138,7 @@ const Navbar = ({
         <div className="relative" ref={notifRef}>
            <button 
               onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className={`relative p-2 transition-all rounded-lg ${isNotifOpen ? 'bg-zen-cream text-zen-sand' : 'text-slate-400 hover:text-slate-900 hover:bg-gray-50'}`}
+              className={`relative p-2 transition-all rounded-lg ${isNotifOpen ? 'bg-zen-cream text-zen-sand' : 'text-zen-brown/40 hover:text-zen-brown hover:bg-zen-stone/30'}`}
            >
               <Bell size={18} />
               {unreadCount > 0 && (
@@ -152,10 +152,10 @@ const Navbar = ({
                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
                  animate={{ opacity: 1, y: 0, scale: 1 }}
                  exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                 className="absolute right-0 mt-3 w-80 bg-white rounded-3xl border border-gray-100 shadow-2xl overflow-hidden z-[60]"
+                 className="absolute right-0 mt-3 w-80 bg-white rounded-3xl border border-zen-stone/30 shadow-2xl overflow-hidden z-[60]"
                >
-                  <div className="p-6 pb-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-                     <h4 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-900">Notifications</h4>
+                  <div className="p-6 pb-4 border-b border-zen-stone/20 flex items-center justify-between bg-zen-cream/30">
+                     <h4 className="text-[11px] font-black uppercase tracking-[0.25em] text-zen-brown">Notifications</h4>
                      {notifications.length > 0 && (
                         <button 
                            onClick={handleClearAll}
@@ -168,35 +168,35 @@ const Navbar = ({
                   <div className="max-h-[350px] overflow-y-auto scrollbar-hide py-2">
                      {notifications.length === 0 ? (
                         <div className="py-12 px-6 text-center">
-                           <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
+                           <div className="w-12 h-12 bg-zen-cream rounded-2xl flex items-center justify-center mx-auto mb-4 text-zen-brown/20">
                               <Bell size={20} strokeWidth={1} />
                            </div>
-                           <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Your sanctuary is quiet</p>
-                           <p className="text-[10px] text-slate-300 mt-1">No new updates right now.</p>
+                           <p className="text-[11px] font-black uppercase tracking-widest text-zen-brown/30">Your sanctuary is quiet</p>
+                           <p className="text-[10px] text-zen-brown/20 mt-1">No new updates right now.</p>
                         </div>
                      ) : (
                         notifications.map((notif) => (
                            <div 
                               key={notif._id} 
                               onClick={() => markAsRead(notif._id)}
-                              className={`px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer group ${!notif.isRead ? 'bg-slate-50/30' : ''}`}
+                              className={`px-6 py-4 hover:bg-zen-cream/50 transition-colors cursor-pointer group ${!notif.isRead ? 'bg-zen-primary/[0.02]' : ''}`}
                            >
                               <div className="flex items-start gap-3">
-                                 <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${notif.isRead ? 'bg-transparent border border-slate-200' : 'bg-zen-sand'}`} />
+                                 <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${notif.isRead ? 'bg-transparent border border-zen-stone' : 'bg-zen-sand'}`} />
                                  <div className="flex-1">
                                     <div className="flex justify-between items-center bg">
-                                       <p className="text-xs font-bold text-slate-900 leading-tight">{notif.title}</p>
-                                       <span className="text-[8px] font-bold text-slate-400 uppercase">{new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                       <p className="text-xs font-bold text-zen-brown leading-tight">{notif.title}</p>
+                                       <span className="text-[8px] font-bold text-zen-brown/30 uppercase">{new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                     </div>
-                                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">{notif.message}</p>
+                                    <p className="text-[11px] text-zen-brown/50 mt-1 line-clamp-2 leading-relaxed">{notif.message}</p>
                                  </div>
                               </div>
                            </div>
                         ))
                      )}
                   </div>
-                  <div className="p-4 border-t border-gray-50 text-center">
-                     <button className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors">View all updates</button>
+                  <div className="p-4 border-t border-zen-stone/20 text-center">
+                     <button className="text-[10px] font-black uppercase tracking-widest text-zen-brown/30 hover:text-zen-brown transition-colors">View all updates</button>
                   </div>
                </motion.div>
              )}
@@ -204,22 +204,22 @@ const Navbar = ({
         </div>
 
 
-        <div className="h-6 w-px bg-gray-200 hidden sm:block mr-2"></div>
+        <div className="h-6 w-px bg-zen-stone/60 hidden sm:block mr-2"></div>
 
         {/* Profile Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <div 
-            className="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-1.5 rounded-xl transition-colors pr-3"
+            className="flex items-center gap-3 cursor-pointer group hover:bg-zen-cream/60 p-1.5 rounded-xl transition-colors pr-3"
             onClick={() => setIsOpen(!isOpen)}
           >
-            <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-zen-primary text-white flex items-center justify-center shadow-sm">
               <UserRound size={16} />
             </div>
             <div className="hidden md:flex flex-col">
-              <span className="text-[13px] font-bold text-slate-900 leading-tight">
+              <span className="text-[13px] font-bold text-zen-brown leading-tight">
                 {user?.name || 'Admin User'}
               </span>
-              <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">
+              <span className="text-[9px] uppercase tracking-widest font-bold text-zen-brown/40">
                 {user?.role || 'ADMIN'}
               </span>
             </div>
@@ -231,17 +231,17 @@ const Navbar = ({
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden py-2 z-50"
+                className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-zen-stone/30 shadow-xl overflow-hidden py-2 z-50"
               >
                 <Link 
                   to="/settings" 
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                  className="flex items-center gap-3 px-5 py-2.5 text-sm font-semibold text-zen-brown hover:bg-zen-cream transition-colors"
                 >
-                  <Settings size={16} className="text-slate-400" />
+                  <Settings size={16} className="text-zen-brown/30" />
                   Settings
                 </Link>
-                <div className="mx-5 my-1 border-t border-gray-100" />
+                <div className="mx-5 my-1 border-t border-zen-stone/30" />
                 <button 
                   onClick={() => {
                     setIsOpen(false);

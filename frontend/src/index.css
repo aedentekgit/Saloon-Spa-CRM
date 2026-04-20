@@ -1,31 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Italiana&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-accent: "Italiana", serif;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", serif;
+  --font-accent: "Outfit", sans-serif;
   
-  /* Modern Purple & Slate Palette - Requested Theme */
-  --color-zen-cream: #FDFEFE; /* Pure cleaner background */
-  --color-zen-brown: #1E293B; /* Deep slate for Text */
-  --color-zen-primary: #332766; /* Deep Indigo Sidebar Background */
-  --color-zen-sand: #8B5CF6;  /* Bright Purple for Buttons/Active states */
-  --color-zen-leaf: #10B981;  /* Emerald Green Accents */
-  --color-zen-stone: #E2E8F0; /* Slate 200 */
+  /* Modern Luxury & High-Contrast Palette */
+  --color-zen-cream: var(--zen-bg, #FFFFFF);
+  --color-zen-brown: var(--zen-text, #0F172A);
+  --color-zen-primary: var(--zen-primary, #6366F1);
+  --color-zen-sand: var(--zen-accent, #F43F5E);
+  --color-zen-leaf: #10B981;
+  --color-zen-stone: #CBD5E1;
   --color-zen-contrast: #FFFFFF;
   
-  /* Extended Lavender Palette */
-  --color-lavender-50: #F5F3FF;
-  --color-lavender-100: #EDE9FE;
-  --color-lavender-200: #DDD6FE;
-  --color-lavender-300: #C4B5FD;
-  --color-lavender-400: #A78BFA;
-  --color-lavender-500: #8B5CF6;
-  --color-lavender-600: #7C3AED;
-  --color-lavender-700: #6D28D9;
-  --color-lavender-800: #5B21B6;
-  --color-lavender-900: #4C1D95;
+  /* Extended Modern Palette */
+  --color-aurora-50: #EEF2FF;
+  --color-aurora-100: #E0E7FF;
+  --color-aurora-500: #6366F1;
+  --color-aurora-600: #4F46E5;
+  --color-aurora-900: #312E81;
 }
 
 @layer base {
@@ -145,6 +140,11 @@
   .table-container::-webkit-scrollbar {
     display: none !important;
   }
+
+  /* Global hover effect for cards - reflects theme color in border */
+  .zen-card-hover {
+    @apply transition-all duration-500 hover:border-zen-sand/40 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.1)] hover:-translate-y-1 cursor-pointer;
+  }
 }
 
 /* Custom animations */
@@ -180,9 +180,9 @@
 .animate-text-shine {
   background: linear-gradient(
     110deg,
-    rgba(50, 23, 42, 1) 45%,
-    rgba(255, 255, 255, 0.7) 50%,
-    rgba(50, 23, 42, 1) 55%
+    var(--color-zen-sand) 40%,
+    rgba(255, 255, 255, 0.9) 50%,
+    var(--color-zen-sand) 60%
   );
   background-size: 200% 100%;
   background-clip: text;
@@ -190,8 +190,8 @@
   color: transparent !important;
   animation: text-shine 3s linear infinite;
   display: inline-block;
-  padding: 0.2em 0.15em;
-  margin: -0.2em -0.15em;
+  padding: 0.25em 0.15em;
+  margin: -0.25em -0.15em;
 }
 
 .animate-float {

@@ -26,7 +26,7 @@ const ApplyLeave = () => {
     daysCount: 1
   });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
     if (user?.role === 'Admin' || user?.role === 'Manager') {
@@ -97,7 +97,7 @@ const ApplyLeave = () => {
   };
 
   return (
-    <div className="min-h-full bg-[#F9FAFB] p-4 sm:p-10 pb-32">
+    <div className="min-h-full bg-zen-cream p-4 sm:p-10 pb-32">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">

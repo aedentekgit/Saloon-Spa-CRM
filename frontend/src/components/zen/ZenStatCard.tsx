@@ -24,7 +24,7 @@ export const ZenStatCard: React.FC<ZenStatCardProps> = ({
   delay = 0 
 }) => {
   return (
-    <div className="flex-shrink-0 w-[260px] lg:w-auto bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] shadow-sm border border-white relative group hover:-translate-y-2 hover:z-50 hover:shadow-xl transition-all duration-700 overflow-hidden">
+    <div className="flex-shrink-0 w-[260px] lg:w-auto bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] shadow-sm border border-transparent relative group transition-all duration-700 overflow-hidden zen-card-hover">
       {/* 3D Icon Effect on Right */}
       <div className={`absolute -top-10 -right-10 w-40 h-40 ${glow} rounded-full blur-3xl -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000 opacity-50`}></div>
       

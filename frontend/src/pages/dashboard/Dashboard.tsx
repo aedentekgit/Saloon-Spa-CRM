@@ -53,7 +53,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const fetchStats = async (silent: boolean = false) => {
     try {
@@ -152,14 +152,14 @@ const AdminDashboard = () => {
 
   const ritualData = stats?.topServices?.length > 0 ? stats.topServices.map((s: any, i: number) => ({
     ...s,
-    color: i === 0 ? 'var(--theme-primary)' : i === 1 ? '#5b21b6' : '#a78bfa'
+    color: i === 0 ? `var(--zen-primary, #332766)` : i === 1 ? `var(--zen-sand, #8B5CF6)` : 'rgba(139,92,246,0.4)'
   })) : [
     { name: 'Loading Rituals...', value: 100, color: '#F3F4F6' }
   ];
 
 
   return (
-    <div style={{ '--theme-primary': settings?.theme?.primaryColor || '#8B5CF6' } as React.CSSProperties} className="space-y-8 font-sans pb-20">
+    <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="space-y-8 font-sans pb-20">
 
       {/* Quick Actions Bar */}
       <div className="flex flex-wrap items-center gap-4">
@@ -190,16 +190,16 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Analytics Overview */}
-        <div className="lg:col-span-8 bg-white p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col overflow-hidden hover:-translate-y-1 hover:shadow-[0_10px_30px_rgb(0,0,0,0.08)] hover:border-[color:var(--theme-primary)] transition-all duration-300">
+        <div className="lg:col-span-8 bg-white p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col overflow-hidden transition-all duration-300 zen-card-hover">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 z-10 relative">
              <h3 className="text-xl font-bold text-gray-900 tracking-tight">Analytics Overview</h3>
              <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'var(--theme-primary)' }}></div>
+                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'var(--zen-primary, #332766)' }}></div>
                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Revenue</span>
                 </div>
                 <div className="flex items-center gap-2">
-                   <div className="w-2.5 h-2.5 rounded-full bg-[#5b21b6]"></div>
+                   <div className="w-2.5 h-2.5 rounded-full bg-zen-sand/50"></div>
                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Expenses</span>
                 </div>
              </div>
@@ -210,8 +210,8 @@ const AdminDashboard = () => {
               <AreaChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
                 <defs>
                    <linearGradient id="colorRevs" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--theme-primary)" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="var(--theme-primary)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--zen-primary, #332766)" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="var(--zen-primary, #332766)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
@@ -229,7 +229,7 @@ const AdminDashboard = () => {
                 <Area 
                   type="monotone" 
                   dataKey="expenses" 
-                  stroke="#5b21b6" 
+                  stroke="var(--zen-sand, #8B5CF6)" 
                   strokeWidth={2} 
                   strokeDasharray="5 5" 
                   fill="none" 
@@ -238,7 +238,7 @@ const AdminDashboard = () => {
                 <Area 
                   type="monotone" 
                   dataKey="revenue" 
-                  stroke="var(--theme-primary)" 
+                  stroke="var(--zen-primary, #332766)" 
                   strokeWidth={3} 
                   fillOpacity={1} 
                   fill="url(#colorRevs)" 
@@ -250,7 +250,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Daily Overview */}
-        <div className="lg:col-span-4 bg-white p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-[0_10px_30px_rgb(0,0,0,0.08)] hover:border-[color:var(--theme-primary)] transition-all duration-300">
+        <div className="lg:col-span-4 bg-white p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-[0_10px_30px_rgb(0,0,0,0.08)] hover:border-zen-sand/30 transition-all duration-300">
            <h3 className="text-xl font-bold text-gray-900 tracking-tight mb-8">Daily Overview</h3>
            <div className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-[1rem] bg-orange-50 hover:bg-orange-100/60 hover:-translate-y-1 transition-all duration-300 cursor-pointer">
@@ -265,14 +265,14 @@ const AdminDashboard = () => {
                  </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-[1rem] bg-blue-50 hover:bg-blue-100/60 hover:-translate-y-1 transition-all duration-300 cursor-pointer">
+              <div className="flex items-center justify-between p-4 rounded-[1rem] bg-zen-sand/5 hover:bg-zen-sand/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer">
                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full border border-blue-200/50 bg-white shadow-sm flex items-center justify-center text-blue-500">
+                    <div className="w-10 h-10 rounded-full border border-zen-sand/20 bg-white shadow-sm flex items-center justify-center text-zen-sand">
                        <Calendar size={18} strokeWidth={2} />
                     </div>
                     <span className="font-bold text-gray-800 text-sm">Bookings</span>
                  </div>
-                 <div className="px-3 py-1.5 rounded-full bg-blue-100/60 text-blue-600 text-[10px] font-bold">
+                 <div className="px-3 py-1.5 rounded-full bg-zen-sand/10 text-zen-sand text-[10px] font-bold">
                     {stats?.appointments?.activeCount || 0} Today
                  </div>
               </div>
@@ -419,7 +419,7 @@ const EmployeeDashboard = () => {
   const [stats, setStats] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
     const fetchEmployeeStats = async (silent: boolean = false) => {
@@ -449,10 +449,10 @@ const EmployeeDashboard = () => {
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div></div>;
 
   const cards = [
-    { label: "Today's Rituals", value: (stats?.performance?.today || 0).toString(), icon: Calendar, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'Sanctuary Load', delay: 0 },
+    { label: "Today's Rituals", value: (stats?.performance?.today || 0).toString(), icon: Calendar, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Sanctuary Load', delay: 0 },
     { label: 'Rituals Completed', value: (stats?.performance?.completed || 0).toString(), icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Mission Status', delay: 0.2 },
     { label: 'Est. Earnings', value: `QR ${stats?.performance?.earnings || 0}`, icon: Coins, color: 'text-orange-500', bg: 'bg-orange-500/10', glow: 'bg-orange-500/20', trend: 'Value Created', delay: 0.4 },
-    { label: 'Zen Score', value: `${stats?.performance?.score || 0} pts`, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', trend: 'Harmony Metric', delay: 0.6 },
+    { label: 'Zen Score', value: `${stats?.performance?.score || 0} pts`, icon: TrendingUp, color: 'text-zen-brown', bg: 'bg-zen-brown/[0.06]', glow: 'bg-zen-brown/10', trend: 'Harmony Metric', delay: 0.6 },
   ];
 
   return (
@@ -526,7 +526,7 @@ const ClientDashboard = () => {
   const [stats, setStats] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
     const fetchClientStats = async (silent = false) => {
@@ -558,8 +558,8 @@ const ClientDashboard = () => {
   const cards = [
     { label: 'Zen Affinity Points', value: `${stats?.loyalty?.points || 0} pts`, icon: Sparkles, color: 'text-yellow-500', bg: 'bg-yellow-500/10', glow: 'bg-yellow-500/20', trend: 'Loyalty Reward', delay: 0 },
     { label: 'Upcoming Ritual', value: stats?.nextAppointment ? stats.nextAppointment.date : 'Discovery', icon: Clock, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Next Sanctuary', delay: 0.2 },
-    { label: 'Sanctuary Visits', value: (stats?.visits?.total || 0).toString(), icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'History Log', delay: 0.4 },
-    { label: 'Loyalty Tier', value: stats?.loyalty?.tier || 'Silver', icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', trend: 'Status Level', delay: 0.6 },
+    { label: 'Sanctuary Visits', value: (stats?.visits?.total || 0).toString(), icon: Users, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'History Log', delay: 0.4 },
+    { label: 'Loyalty Tier', value: stats?.loyalty?.tier || 'Silver', icon: TrendingUp, color: 'text-zen-brown', bg: 'bg-zen-brown/[0.06]', glow: 'bg-zen-brown/10', trend: 'Status Level', delay: 0.6 },
   ];
 
   return (

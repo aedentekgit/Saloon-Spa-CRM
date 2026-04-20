@@ -94,7 +94,7 @@ const Clients = () => {
   const [historyMonth, setHistoryMonth] = useState(dayjs().format('YYYY-MM'));
   const [selectedMembershipHistory, setSelectedMembershipHistory] = useState<any>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const [confirmState, setConfirmState] = useState<{
     isOpen: boolean;
@@ -384,7 +384,7 @@ const Clients = () => {
             { label: 'Total Registry', value: counts.total, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', trend: 'Base population' },
             { label: 'Active Clients', value: counts.active, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Currently engaged' },
             { label: 'Membership Zen', value: counts.membership, icon: Sparkles, color: 'text-amber-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Loyalty tier' },
-            { label: 'Security Roles', value: roles.length, icon: Lock, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'Access levels' }
+            { label: 'Security Roles', value: roles.length, icon: Lock, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Access levels' }
           ].map((stat, i) => (
             <ZenStatCard key={i} {...stat} delay={i * 0.2} />
           ))}
@@ -509,7 +509,7 @@ const Clients = () => {
                             )}
                         </div>
                         {client.role && (
-                           <span className="text-[8px] sm:text-[9px] font-bold text-indigo-400 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 rounded-md">
+                           <span className="text-[8px] sm:text-[9px] font-bold text-zen-sand/70 uppercase tracking-widest px-2 py-0.5 bg-zen-sand/10 rounded-md">
                               {client.role}
                            </span>
                         )}

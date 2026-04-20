@@ -4,7 +4,7 @@ import { Sparkles } from 'lucide-react';
 
 export const ZenLoadingBarrier: React.FC = () => {
   return (
-    <div className="fixed inset-0 bg-[#fdfaf7] z-[9999] flex flex-col items-center justify-center">
+    <div className="fixed inset-0 bg-zen-cream z-[9999] flex flex-col items-center justify-center">
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}

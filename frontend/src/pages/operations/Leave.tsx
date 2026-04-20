@@ -40,7 +40,7 @@ const Leave = () => {
   const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const fetchData = async () => {
     refreshData();

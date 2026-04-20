@@ -117,8 +117,8 @@ const Reports = () => {
                  <AreaChart data={revenueData}>
                     <defs>
                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#332766" stopOpacity={0.1}/>
-                          <stop offset="95%" stopColor="#332766" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="var(--zen-primary, #332766)" stopOpacity={0.1}/>
+                          <stop offset="95%" stopColor="var(--zen-primary, #332766)" stopOpacity={0}/>
                        </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
@@ -136,7 +136,7 @@ const Reports = () => {
                     <Tooltip 
                        contentStyle={{backgroundColor: '#fff', borderRadius: '1.5rem', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.05)', padding: '1.5rem'}}
                     />
-                    <Area type="monotone" dataKey="revenue" stroke="#332766" fillOpacity={1} fill="url(#colorRev)" strokeWidth={4} />
+                    <Area type="monotone" dataKey="revenue" stroke="var(--zen-primary, #332766)" fillOpacity={1} fill="url(#colorRev)" strokeWidth={4} />
                  </AreaChart>
               </ResponsiveContainer>
            </div>
@@ -207,7 +207,7 @@ const Reports = () => {
                        cursor={{fill: '#f5f5f5'}}
                        contentStyle={{backgroundColor: '#fff', borderRadius: '1.5rem', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.05)', padding: '1.5rem'}}
                     />
-                    <Bar dataKey="revenue" fill="#8B5CF6" radius={[10, 10, 0, 0]} barSize={40} />
+                    <Bar dataKey="revenue" fill="var(--zen-sand, #8B5CF6)" radius={[10, 10, 0, 0]} barSize={40} />
                  </BarChart>
               </ResponsiveContainer>
            </div>

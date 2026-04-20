@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AlertCircle,
   ArrowRight,
   Award,
   BadgeCheck,
@@ -17,8 +18,10 @@ import {
 import { Link } from 'react-router-dom';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
 import { motion, AnimatePresence } from 'motion/react';
+import PublicNavbar from '../../components/landing/PublicNavbar';
+import PublicFooter from '../../components/landing/PublicFooter';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const BASE_URL = API_URL.replace('/api', '');
 
 interface Branch {
@@ -41,8 +44,12 @@ interface Employee {
 
 function getImageUrl(path?: string): string {
   if (!path) return '';
-  if (path.startsWith('http')) return path;
+  if (path.startsWith('http') || path.startsWith('data:')) return path;
   const clean = path.replace(/^\.?\/?/, '');
+  // If it doesn't already have 'uploads/' and isn't in 'images/', assume it's in uploads
+  if (!clean.startsWith('uploads/') && !clean.startsWith('images/')) {
+    return `${BASE_URL}/uploads/${clean}`;
+  }
   return `${BASE_URL}/${clean}`;
 }
 
@@ -93,21 +100,27 @@ const OurTeam = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError('');
+        
         const [empRes, branchRes] = await Promise.all([
           fetch(`${API_URL}/employees/public`),
           fetch(`${API_URL}/branches/public`),
         ]);
 
         if (!empRes.ok || !branchRes.ok) {
-          throw new Error('Failed to fetch registry');
+          throw new Error(`Data synchronization failed (${empRes.status})`);
         }
 
-        const [empData, branchData] = await Promise.all([empRes.json(), branchRes.json()]);
+        const [empRaw, branchRaw] = await Promise.all([empRes.json(), branchRes.json()]);
+        
+        const empData = Array.isArray(empRaw) ? empRaw : (empRaw?.data || []);
+        const branchDataList = Array.isArray(branchRaw) ? branchRaw : (branchRaw?.data || []);
 
-        setEmployees(Array.isArray(empData) ? empData : []);
-        setBranches(Array.isArray(branchData) ? branchData.filter((branch: Branch) => branch.isActive) : []);
-      } catch (err) {
-        setError('The team directory could not be loaded right now.');
+        setEmployees(empData);
+        setBranches(branchDataList.filter((branch: Branch) => branch.isActive));
+      } catch (err: any) {
+        console.error('Zen Team Synchronization Error:', err.message);
+        setError('The artisan registry is currently unreachable.');
       } finally {
         setLoading(false);
       }
@@ -141,41 +154,95 @@ const OurTeam = () => {
       : branchMap.get(selectedBranch)?.name || 'Selected sanctuary';
 
   return (
-    <div className="relative min-h-screen bg-zen-cream overflow-hidden selection:bg-zen-sand/20">
+    <div className="relative min-h-screen bg-zen-cream text-zen-brown overflow-hidden selection:bg-zen-sand/20">
+      <PublicNavbar />
+      
       {/* Immersive Background */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] right-[-5%] w-[60%] h-[60%] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.08),_transparent_70%)] animate-pulse" />
         <div className="absolute bottom-[-5%] left-[-5%] w-[50%] h-[50%] bg-[radial-gradient(circle_at_center,_rgba(51,39,102,0.05),_transparent_70%)]" style={{ animation: 'float 20s ease-in-out infinite' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.02]" />
       </div>
 
-      {/* Modern Hero Section */}
-      <header className="relative z-10 px-6 pt-32 pb-16 lg:px-24">
+      {/* Dynamic Collective Header for Team */}
+      <header className="relative z-10 px-6 pt-48 pb-32 lg:px-24 overflow-hidden">
         <div className="mx-auto max-w-7xl">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="flex flex-col items-center text-center"
-          >
-            <div className="inline-flex items-center gap-3 rounded-full border border-zen-sand/20 bg-zen-sand/5 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.4em] text-zen-sand mb-8">
-              <Sparkles size={14} className="animate-pulse" />
-              Artisans of Wellness
-            </div>
-            
-            <h1 className="text-6xl md:text-8xl font-black text-zen-primary mb-8 tracking-tight leading-[0.9] font-accent">
-              Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-zen-primary via-zen-sand to-zen-primary animate-text-shine inline-block">Curated</span> Team
-            </h1>
-            
-            <p className="max-w-xl text-lg text-zen-brown/60 leading-relaxed font-medium">
-              Meet the master practitioners and specialized artisans who define the {siteName} standard of excellence across our {branches.length} sanctuaries.
-            </p>
-          </motion.div>
+          <div className="grid lg:grid-cols-2 gap-20 items-center">
+            <motion.div 
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.5 }}
+              className="relative order-2 lg:order-1"
+            >
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-6 pt-12">
+                   <div className="aspect-[3/4] rounded-full overflow-hidden border-4 border-white shadow-2xl">
+                      <img src="https://images.unsplash.com/photo-1552693673-1bf958298935?auto=format&fit=crop&q=80" alt="Team member" className="w-full h-full object-cover" />
+                   </div>
+                   <div className="aspect-square rounded-[2rem] overflow-hidden border-4 border-white shadow-2xl">
+                      <img src="https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&q=80" alt="Environment" className="w-full h-full object-cover" />
+                   </div>
+                </div>
+                <div className="space-y-6">
+                   <div className="aspect-[4/5] rounded-[3rem] overflow-hidden border-8 border-white shadow-2xl">
+                      <img src="/images/hero_team.png" alt="Main Team" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80'; }} />
+                   </div>
+                   <div className="aspect-[3/2] rounded-full overflow-hidden border-4 border-white shadow-2xl">
+                      <img src="https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&q=80" alt="Action" className="w-full h-full object-cover" />
+                   </div>
+                </div>
+              </div>
+
+              {/* Decorative elements */}
+              <div className="absolute -top-10 -left-10 w-40 h-40 bg-zen-sand/10 rounded-full blur-3xl -z-10" />
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="space-y-10 order-1 lg:order-2"
+            >
+              <div className="space-y-6">
+                <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/50 backdrop-blur-sm rounded-full border border-zen-stone/20 text-[10px] font-bold tracking-[0.2em] uppercase text-zen-brown">
+                  <Users size={12} className="text-zen-sand" />
+                   The Zen Collective
+                </div>
+                
+                <h1 className="text-6xl md:text-7xl lg:text-8xl font-serif font-bold leading-[0.9] tracking-tighter">
+                  Masters of<br />
+                  <span className="italic relative animate-text-shine">
+                    The Art
+                    <motion.span 
+                      initial={{ width: 0 }}
+                      whileInView={{ width: '100%' }}
+                      className="absolute -bottom-2 left-0 h-[2px] bg-zen-sand" 
+                    />
+                  </span>
+                </h1>
+              </div>
+
+              <p className="text-xl text-zen-brown/70 max-w-xl leading-relaxed font-sans font-light">
+                Meet the master practitioners and specialized artisans who define the {siteName} standard of excellence across our {branches.length} sanctuaries.
+              </p>
+
+              <div className="pt-6">
+                <Link 
+                  to="/contact"
+                  className="group inline-flex items-center gap-6 text-sm font-bold uppercase tracking-[0.3em] overflow-hidden"
+                >
+                  <span className="relative group-hover:text-zen-sand transition-colors">Join our mission</span>
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full border border-zen-brown/20 group-hover:bg-zen-brown group-hover:text-white transition-all">
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </Link>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </header>
 
       {/* Interactive Filter Bar */}
-      <nav className="sticky top-0 z-50 py-6 px-6 lg:px-24 backdrop-blur-md bg-zen-cream/60 border-y border-zen-stone/10">
+      <nav className="sticky top-20 z-40 py-6 px-6 lg:px-24 backdrop-blur-md bg-zen-cream/60 border-y border-zen-stone/10">
         <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="h-10 w-1 bg-zen-sand rounded-full" />
@@ -190,7 +257,7 @@ const OurTeam = () => {
               onClick={() => setSelectedBranch('all')}
               className={`px-6 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border ${
                 selectedBranch === 'all'
-                  ? 'bg-zen-primary text-white border-zen-primary shadow-lg shadow-zen-primary/20'
+                  ? 'bg-zen-primary text-white border-zen-primary'
                   : 'bg-white/50 text-zen-brown/50 border-white/80 hover:border-zen-sand/30 hover:text-zen-sand'
               }`}
             >
@@ -202,7 +269,7 @@ const OurTeam = () => {
                 onClick={() => setSelectedBranch(branch._id)}
                 className={`px-6 py-2.5 rounded-full whitespace-nowrap text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border ${
                   selectedBranch === branch._id
-                    ? 'bg-zen-primary text-white border-zen-primary shadow-lg shadow-zen-primary/20'
+                    ? 'bg-zen-primary text-white border-zen-primary'
                     : 'bg-white/50 text-zen-brown/50 border-white/80 hover:border-zen-sand/30 hover:text-zen-sand'
                 }`}
               >
@@ -221,25 +288,17 @@ const OurTeam = () => {
               {Array.from({ length: 6 }).map((_, i) => <TeamCardSkeleton key={i} />)}
             </div>
           ) : error ? (
-            <div className="flex flex-col items-center justify-center py-40 bg-white/40 rounded-[4rem] border border-white/60">
-              <div className="h-20 w-20 rounded-full bg-red-50 flex items-center justify-center text-red-500 mb-6">
-                <Loader2 size={32} className="animate-spin" />
+            <div className="flex flex-col items-center justify-center py-40 glass rounded-[4rem] border border-white/60 backdrop-blur-xl animate-in zoom-in duration-500">
+              <div className="h-24 w-24 rounded-full bg-zen-primary/5 flex items-center justify-center text-zen-primary mb-8 border border-zen-primary/10">
+                <AlertCircle size={40} strokeWidth={1.5} />
               </div>
-              <h2 className="text-3xl font-bold text-zen-primary mb-4 font-accent">Connection Lost</h2>
-              <p className="text-zen-brown/60 mb-8">{error}</p>
-              <button onClick={() => window.location.reload()} className="px-8 py-3 bg-zen-primary text-white rounded-full text-xs font-bold uppercase tracking-widest">Reestablish Connection</button>
-            </div>
-          ) : filteredEmployees.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-40 bg-white/40 rounded-[4rem] border border-white/60">
-              <Building2 className="w-24 h-24 text-zen-sand/20 mb-8" strokeWidth={1} />
-              <h2 className="text-4xl font-bold text-zen-primary mb-4 text-center font-accent">The Sanctuary Awaits <br />New Artisans</h2>
-              <p className="text-zen-brown/60 mb-12 text-center max-w-md">Our team is currently expanding in this location. Check other branches for available experts.</p>
+              <h2 className="text-4xl font-bold text-zen-primary mb-4 font-accent">Equilibrium Interrupted</h2>
+              <p className="text-zen-brown/60 mb-10 text-center max-w-sm italic">{error}</p>
               <button 
-                onClick={() => setSelectedBranch('all')}
-                className="group flex items-center gap-3 px-8 py-4 bg-white border border-zen-stone/40 rounded-full text-[10px] font-bold uppercase tracking-widest text-zen-primary transition-all hover:bg-zen-primary hover:text-white"
+                onClick={() => window.location.reload()} 
+                className="px-12 py-4 bg-zen-primary text-white rounded-full text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-zen-sand transition-all shadow-2xl shadow-zen-primary/20"
               >
-                View Global Directory
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                Reestablish Connection
               </button>
             </div>
           ) : (
@@ -260,27 +319,31 @@ const OurTeam = () => {
                       transition={{ duration: 0.5, delay: idx * 0.05 }}
                       className={`group relative flex flex-col ${idx % 3 === 1 ? 'lg:mt-24' : ''}`}
                     >
-                      {/* Image Container */}
+                      {/* Image Container - Removed Grayscale */}
                       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[3rem] bg-white shadow-2xl shadow-zen-primary/10 transition-all duration-700 group-hover:-translate-y-4 group-hover:shadow-zen-sand/20">
-                        {picUrl ? (
-                          <img
-                            src={picUrl}
-                            alt={staff.name}
-                            className="h-full w-full object-cover transition-all duration-1000 group-hover:scale-110 grayscale-[0.3] group-hover:grayscale-0"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).style.display = 'none';
-                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        <img
+                          src={picUrl || `https://images.unsplash.com/photo-1544161515-4ae6ce6fe858?auto=format&fit=crop&q=80&employee=${staff._id}`}
+                          alt={staff.name}
+                          className="h-full w-full object-cover transition-all duration-1000 group-hover:scale-110"
+                          onError={(e) => {
+                            // If even the high-quality fallback fails or the original failed, try a distinct backup portrait before the initials
+                            const target = e.currentTarget as HTMLImageElement;
+                            if (target.src !== `https://images.unsplash.com/photo-1594744803329-a584af1cae23?auto=format&fit=crop&q=80`) {
+                              target.src = `https://images.unsplash.com/photo-1594744803329-a584af1cae23?auto=format&fit=crop&q=80`;
+                            } else {
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
                               if (fallback) fallback.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
+                            }
+                          }}
+                        />
 
                         <div
                           className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zen-primary/10 to-zen-sand/5"
-                          style={{ display: picUrl ? 'none' : 'flex' }}
+                          style={{ display: 'none' }}
                         >
-                          <span className="text-6xl font-black text-white/50 blur-[2px] absolute select-none">ZEN</span>
-                          <span className="text-5xl font-black text-zen-primary tracking-tighter font-accent">{initials}</span>
+                          <span className="text-6xl font-black text-white/10 absolute select-none">ZEN</span>
+                          <span className="text-5xl font-black text-zen-primary tracking-tighter font-accent opacity-20">{initials}</span>
                         </div>
 
                         {/* Overlays */}
@@ -360,6 +423,8 @@ const OurTeam = () => {
         </div>
       </section>
       
+      <PublicFooter />
+
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
@@ -371,4 +436,3 @@ const OurTeam = () => {
 };
 
 export default OurTeam;
-

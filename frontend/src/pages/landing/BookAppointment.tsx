@@ -11,7 +11,7 @@ import { ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
 import { notify } from '../../components/shared/ZenNotification';
 import { useSettings } from '../../context/SettingsContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
 const BookAppointment = () => {
   const { settings } = useSettings();
@@ -209,7 +209,7 @@ const BookAppointment = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB] font-sans text-zen-brown py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-zen-cream font-sans text-zen-brown py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         
         {/* Header */}

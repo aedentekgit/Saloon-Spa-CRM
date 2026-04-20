@@ -51,7 +51,7 @@ const Admins = () => {
     status: 'Active' as 'Active' | 'Inactive'
   });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const [confirmState, setConfirmState] = useState<{
     isOpen: boolean;
@@ -234,7 +234,7 @@ const Admins = () => {
             { label: 'Total Administrators', value: admins.length, icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', trend: 'Admin users' },
             { label: 'High Command', value: admins.filter(a => a.role === 'Admin').length, icon: Sparkles, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Root access' },
             { label: 'Branch Officers', value: admins.filter(a => a.role !== 'Admin').length, icon: User, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', trend: 'Localized control' },
-            { label: 'Registry Era', value: dayjs().format('YYYY'), icon: Info, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'Current cycle' }
+            { label: 'Registry Era', value: dayjs().format('YYYY'), icon: Info, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Current cycle' }
           ].map((stat, i) => (
             <ZenStatCard key={i} {...stat} delay={i * 0.2} />
           ))}

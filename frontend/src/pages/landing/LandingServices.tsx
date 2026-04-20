@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowRight, Sparkles, Waves, Leaf, Sun, Coffee, Music, Clock, Coins, AlertCircle, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import PublicNavbar from '../../components/landing/PublicNavbar';
+import PublicFooter from '../../components/landing/PublicFooter';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const BASE_URL = API_URL.replace('/api', '');
 
 // Category → icon mapping
@@ -29,8 +32,11 @@ function getCategoryIcon(category?: string): React.ElementType {
 
 function getImageUrl(path?: string): string {
   if (!path) return '';
-  if (path.startsWith('http')) return path;
+  if (path.startsWith('http') || path.startsWith('data:')) return path;
   const clean = path.replace(/^\.?\/?/, '');
+  if (!clean.startsWith('uploads/') && !clean.startsWith('images/')) {
+    return `${BASE_URL}/uploads/${clean}`;
+  }
   return `${BASE_URL}/${clean}`;
 }
 
@@ -86,13 +92,17 @@ const LandingServices = () => {
 
         if (!servRes.ok || !branchRes.ok) throw new Error('Failed to fetch ritual registry');
 
-        const [servData, branchData] = await Promise.all([
+        const [servRaw, branchRaw] = await Promise.all([
           servRes.json(),
           branchRes.json()
         ]);
 
-        setServices(Array.isArray(servData) ? servData : []);
-        setBranches(Array.isArray(branchData) ? branchData.filter((b: Branch) => b.isActive) : []);
+        // Robust handling for both direct arrays and { data: [...] } formats
+        const servData = Array.isArray(servRaw) ? servRaw : (servRaw?.data || []);
+        const branchDataList = Array.isArray(branchRaw) ? branchRaw : (branchRaw?.data || []);
+
+        setServices(servData);
+        setBranches(branchDataList.filter((b: Branch) => b.isActive));
       } catch (err) {
         setError('Unable to load our ritual offerings. Please check your connection.');
       } finally {
@@ -115,27 +125,53 @@ const LandingServices = () => {
   }, [services, selectedBranch]);
 
   return (
-    <div className="min-h-screen bg-zen-cream text-zen-primary">
-      {/* Hero Section */}
-      <section className="px-6 lg:px-24 mb-16 pt-12">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-end">
-          <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
-             <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-zen-brown/60">
-                <span className="w-8 h-[1px] bg-zen-primary/30" />
-                Sacred Rituals
-             </div>
-             <h1 className="text-6xl lg:text-7xl font-serif font-bold leading-tight">
-                The Path to <br />
-                <span className="italic animate-text-shine">Renewal</span>
-             </h1>
-          </div>
-          <div className="pb-4 animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">
-             <p className="text-xl text-zen-primary/70 leading-relaxed font-sans max-w-md">
-                Our services are passages of renewal. Each treatment is tailored to your immediate state of being, facilitated by masters of their craft.
-             </p>
-          </div>
+    <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-sand/20">
+      <PublicNavbar />
+      {/* Distinct Centered Header for Services */}
+      <header className="relative z-10 px-6 pt-48 pb-32 text-center overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none">
+          <span className="text-[25vw] font-serif font-bold tracking-tighter leading-none">RITUALS</span>
         </div>
-      </section>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
+          className="mx-auto max-w-4xl relative z-10"
+        >
+          <div className="flex items-center justify-center gap-4 text-[10px] md:text-sm font-bold tracking-[0.4em] uppercase text-zen-brown/40 mb-8">
+            <span className="w-12 h-[1px] bg-zen-brown/20" />
+            The Zen Collective Offers
+            <span className="w-12 h-[1px] bg-zen-brown/20" />
+          </div>
+          
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-serif font-bold leading-[0.85] tracking-tight mb-12">
+            The Art of<br />
+            <span className="italic relative animate-text-shine">
+              Self-Renewal
+              <motion.span 
+                initial={{ width: 0 }}
+                animate={{ width: '100%' }}
+                transition={{ delay: 1, duration: 1.5 }}
+                className="absolute -bottom-4 left-0 h-[1px] bg-zen-brown/10" 
+              />
+            </span>
+          </h1>
+
+          <p className="text-xl md:text-2xl text-zen-brown/60 max-w-2xl mx-auto leading-loose font-sans font-light">
+            Our services are choreographed passages of renewal. Each treatment is tailored to your immediate state of being, facilitated by masters of their craft.
+          </p>
+
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.5 }}
+            className="mt-16 flex justify-center"
+          >
+            <div className="w-[1px] h-24 bg-gradient-to-b from-zen-brown/40 to-transparent" />
+          </motion.div>
+        </motion.div>
+      </header>
 
       {/* Branch Tabs */}
       <section className="px-6 lg:px-24 mb-16">
@@ -181,19 +217,19 @@ const LandingServices = () => {
             </div>
           )}
 
-          {/* Error State */}
           {!loading && error && (
-            <div className="flex flex-col items-center justify-center py-32 gap-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
-                <AlertCircle size={28} className="text-red-400" />
-              </div>
-              <p className="text-zen-primary/50 text-lg italic">{error}</p>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-8 py-3 bg-zen-primary text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
-              >
-                Retry Journey
-              </button>
+            <div className="flex flex-col items-center justify-center py-40 glass rounded-[4rem] border border-white/60 backdrop-blur-xl animate-in fade-in duration-700">
+               <div className="h-24 w-24 rounded-full bg-zen-primary/5 flex items-center justify-center text-zen-primary mb-8 border border-zen-primary/10">
+                  <AlertCircle size={40} strokeWidth={1.5} />
+               </div>
+               <h2 className="text-4xl font-bold text-zen-primary mb-4 font-accent tracking-tight">Offerings Interrupted</h2>
+               <p className="text-zen-brown/60 mb-10 text-center max-w-sm italic">{error}</p>
+               <button 
+                  onClick={() => window.location.reload()} 
+                  className="px-12 py-4 bg-zen-primary text-white rounded-full text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-zen-sand transition-all shadow-2xl shadow-zen-primary/20"
+               >
+                  Retry Journey
+               </button>
             </div>
           )}
 
@@ -226,21 +262,24 @@ const LandingServices = () => {
                   >
                     {/* Background Image */}
                     <div className="absolute inset-0">
-                      {imgUrl ? (
-                        <img
-                          src={imgUrl}
-                          alt={service.name}
-                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-90 group-hover:opacity-40"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).style.display = 'none';
-                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                      <img
+                        src={imgUrl || `https://images.unsplash.com/photo-1544161515-4ae6ce6fe858?auto=format&fit=crop&q=80&service=${service._id}`}
+                        alt={service.name}
+                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-90 group-hover:opacity-40"
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          if (target.src !== `https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&q=80`) {
+                            target.src = `https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&q=80`;
+                          } else {
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
                             if (fallback) fallback.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
+                          }
+                        }}
+                      />
                       <div
                         className="w-full h-full bg-gradient-to-br from-zen-primary to-zen-sand flex items-center justify-center opacity-90 group-hover:opacity-40 transition-opacity duration-1000"
-                        style={{ display: imgUrl ? 'none' : 'flex' }}
+                        style={{ display: 'none' }}
                       >
                         <Icon size={72} className="text-zen-primary/20" strokeWidth={0.8} />
                       </div>
@@ -327,6 +366,7 @@ const LandingServices = () => {
           </div>
         </div>
       </section>
+      <PublicFooter />
     </div>
   );
 };

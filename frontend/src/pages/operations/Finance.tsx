@@ -71,7 +71,7 @@ const Finance = () => {
 
   const [trendData, setTrendData] = useState<any[]>([]);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
     fetchData();
@@ -163,12 +163,12 @@ const Finance = () => {
       hideAddButton
       onAddClick={() => setIsModalOpen(true)}
     >
-      <div style={{ '--theme-primary': settings?.theme?.primaryColor || '#8B5CF6' } as React.CSSProperties} className="space-y-10 pb-20 mt-4">
+      <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="space-y-10 pb-20 mt-4">
         <div className="flex overflow-x-auto pt-4 pb-6 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-2">
           {[
             { label: 'Internal Inflow', value: `${settings?.general?.currencySymbol || 'QR'} ${totalIncome.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Total Revenue Generated' },
             { label: 'External Outflow', value: `${settings?.general?.currencySymbol || 'QR'} ${totalExpenses.toLocaleString()}`, icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-500/10', glow: 'bg-red-500/20', trend: 'Operational Expenditure' },
-            { label: 'Net Balance', value: `${settings?.general?.currencySymbol || 'QR'} ${netProfit.toLocaleString()}`, icon: Coins, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'Liquid Asset Position' }
+            { label: 'Net Balance', value: `${settings?.general?.currencySymbol || 'QR'} ${netProfit.toLocaleString()}`, icon: Coins, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Liquid Asset Position' }
           ].map((stat, i) => (
             <ZenStatCard key={stat.label} {...stat} delay={i * 0.2} />
           ))}
@@ -288,7 +288,7 @@ const Finance = () => {
         {/* Right Side: List */}
         {/* Right Side: List */}
         <div className="w-full flex flex-col h-full min-h-[500px] transition-all duration-300">
-           <div className="flex justify-between items-center bg-[#F9FAFB]/80 backdrop-blur-md sticky top-0 z-10 mb-6 border-b border-gray-100 pb-4">
+           <div className="flex justify-between items-center bg-zen-cream/80 backdrop-blur-md sticky top-0 z-10 mb-6 border-b border-gray-100 pb-4">
               <div>
                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Activity</h3>
                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Combined Transaction Registry</p>

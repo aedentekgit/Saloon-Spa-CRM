@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sparkles, MapPin, Loader2, DoorOpen, Wind, Coffee, Music, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import PublicNavbar from '../../components/landing/PublicNavbar';
+import PublicFooter from '../../components/landing/PublicFooter';
 import { resolveRoomImageMeta } from '../../utils/roomImage';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const BASE_URL = API_URL.replace('/api', '');
 
 interface Branch {
@@ -47,13 +50,17 @@ const LandingRooms = () => {
 
         if (!roomRes.ok || !branchRes.ok) throw new Error('Sanctuary records unavailable');
 
-        const [roomData, branchData] = await Promise.all([
+        const [roomRaw, branchRaw] = await Promise.all([
           roomRes.json(),
           branchRes.json()
         ]);
 
-        setRooms(Array.isArray(roomData) ? roomData : []);
-        setBranches(Array.isArray(branchData) ? branchData.filter((b: Branch) => b.isActive) : []);
+        // Robust handling for both direct arrays and { data: [...] } formats
+        const roomData = Array.isArray(roomRaw) ? roomRaw : (roomRaw?.data || []);
+        const branchDataList = Array.isArray(branchRaw) ? branchRaw : (branchRaw?.data || []);
+
+        setRooms(roomData);
+        setBranches(branchDataList.filter((b: Branch) => b.isActive));
       } catch (err) {
         setError('The chamber scrolls could not be unrolled.');
       } finally {
@@ -75,27 +82,75 @@ const LandingRooms = () => {
   }, [rooms, selectedBranch]);
 
   return (
-    <div className="min-h-screen bg-zen-cream text-zen-primary">
-      {/* Hero Section */}
-      <section className="px-6 lg:px-24 mb-16 pt-12">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-end">
-          <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
-             <div className="flex items-center gap-3 text-sm font-bold tracking-[0.2em] uppercase text-zen-brown/60">
-                <span className="w-8 h-[1px] bg-zen-primary/30" />
-                Private Sanctuaries
-             </div>
-             <h1 className="text-6xl lg:text-7xl font-serif font-bold leading-tight">
-                Sacred <br />
-                <span className="italic animate-text-shine">Chambers</span>
-             </h1>
-          </div>
-          <div className="pb-4 animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">
-             <p className="text-xl text-zen-primary/70 leading-relaxed font-sans max-w-md">
-                Each chamber is a cocoon of silence, meticulously designed to facilitate your journey back to yourself.
-             </p>
+    <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-sand/20">
+      <PublicNavbar />
+      {/* Asymmetric Layered Header for Rooms */}
+      <header className="relative z-10 px-6 pt-48 pb-32 lg:px-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid lg:grid-cols-12 gap-12 items-center">
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1 }}
+              className="lg:col-span-6 space-y-10 relative z-20"
+            >
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 text-[10px] font-bold tracking-[0.4em] uppercase text-zen-brown/40">
+                  <span className="w-12 h-[1px] bg-zen-brown/20" />
+                  Space & Atmosphere
+                </div>
+                <h1 className="text-6xl md:text-7xl lg:text-9xl font-serif font-bold leading-[0.8] tracking-tighter">
+                  Sacred<br />
+                  <span className="italic animate-text-shine">Chambers</span>
+                </h1>
+              </div>
+
+              <div className="space-y-8">
+                <p className="text-xl text-zen-brown/60 leading-relaxed font-sans max-w-md font-light">
+                  Each chamber is a cocoon of silence, meticulously designed to facilitate your journey back to yourself.
+                </p>
+                <div className="flex items-center gap-6">
+                   <div className="h-[1px] w-12 bg-zen-brown/10" />
+                   <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/30 italic">Curated Environment</span>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+              className="lg:col-span-6 relative"
+            >
+              {/* Primary Image Frame */}
+              <div className="relative aspect-[16/10] w-full rounded-[3rem] overflow-hidden shadow-2xl z-10 border-[8px] border-white/50 backdrop-blur-sm">
+                <img 
+                  src="/images/hero_chambers.png" 
+                  alt="Sacred Chamber" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1540555700478-4be289a5090a?auto=format&fit=crop&q=80'; }}
+                />
+              </div>
+
+              {/* Secondary Floating Overlap Element */}
+              <motion.div 
+                animate={{ y: [0, -20, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -bottom-12 -right-6 w-48 h-64 hidden xl:block z-20 rounded-[2rem] overflow-hidden border-[6px] border-white shadow-2xl shadow-zen-brown/20"
+              >
+                <img 
+                  src="https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&q=80" 
+                  alt="Detail" 
+                  className="w-full h-full object-cover"
+                />
+              </motion.div>
+
+              {/* Geometric Decorative Accent */}
+              <div className="absolute -top-12 -left-12 w-48 h-48 border border-zen-sand/20 rounded-full -z-0 animate-pulse" />
+            </motion.div>
           </div>
         </div>
-      </section>
+      </header>
 
       {/* Branch Tabs */}
       <section className="px-6 lg:px-24 mb-16">
@@ -137,8 +192,18 @@ const LandingRooms = () => {
                 <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em]">Illuminating Sacred Chambers...</p>
               </div>
             ) : error ? (
-              <div className="text-center py-40">
-                <p className="text-zen-primary/40 italic">{error}</p>
+              <div className="flex flex-col items-center justify-center py-40 glass rounded-[4rem] border border-white/60 backdrop-blur-xl animate-in fade-in duration-700">
+                <div className="h-24 w-24 rounded-full bg-zen-primary/5 flex items-center justify-center text-zen-primary mb-8 border border-zen-primary/10">
+                  <DoorOpen size={40} strokeWidth={1.5} />
+                </div>
+                <h2 className="text-4xl font-bold text-zen-primary mb-4 font-accent tracking-tight">Sanctuaries Sealed</h2>
+                <p className="text-zen-brown/60 mb-10 text-center max-w-sm italic">{error}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="px-12 py-4 bg-zen-primary text-white rounded-full text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-zen-sand transition-all shadow-2xl shadow-zen-primary/20"
+                >
+                  Unveil Chambers
+                </button>
               </div>
             ) : filteredRooms.length === 0 ? (
               <div className="text-center py-40 animate-in fade-in duration-700">
@@ -162,7 +227,7 @@ const LandingRooms = () => {
                           <img 
                             src={roomImg.src} 
                             alt={room.name} 
-                            className="w-full h-full object-cover grayscale-[0.2] transition-transform duration-1000 group-hover:scale-110 group-hover:grayscale-0"
+                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                             style={{ objectPosition: roomImg.objectPosition }}
                             onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -234,6 +299,7 @@ const LandingRooms = () => {
             </p>
          </div>
       </section>
+      <PublicFooter />
     </div>
   );
 };

@@ -38,8 +38,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#f4f5f9] flex items-center justify-center p-4 sm:p-8 font-sans">
-       <div className="w-full max-w-[1000px] bg-[#f8f9fe] rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.03)] flex flex-col lg:flex-row min-h-[600px] border-[4px] border-white/40">
+    <div className="min-h-screen w-full bg-zen-cream flex items-center justify-center p-4 sm:p-8 font-sans">
+       <div className="w-full max-w-[1000px] bg-white rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col lg:flex-row min-h-[600px] border-[4px] border-zen-stone/30">
           
           {/* Left side Image */}
           <div className="hidden lg:block w-1/2 p-3 relative">
@@ -56,8 +56,8 @@ const Login = () => {
           <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative">
              <div className="w-full max-w-sm space-y-8">
                 <div className="space-y-3">
-                   <h1 className="text-[2.75rem] font-black text-[#1e1b4b] tracking-tight leading-none">Let's sign you in.</h1>
-                   <p className="text-sm font-medium text-[#8b87a1] italic mt-2">Hello, welcome back to your account</p>
+                   <h1 className="text-[2.75rem] font-black text-zen-brown tracking-tight leading-none">Let's sign you in.</h1>
+                   <p className="text-sm font-medium text-zen-brown/40 italic mt-2">Hello, welcome back to your account</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -74,10 +74,10 @@ const Login = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Mail id"
-                            className="w-full bg-[#efedfa] text-[#4b4566] text-sm font-bold placeholder:text-[#a09cba] placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-[#4c35de]/30 transition-all border border-transparent"
+                            className="w-full bg-zen-cream text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-zen-sand/30 transition-all border border-zen-stone/60"
                             required
                           />
-                          <Mail size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-[#a09cba]" />
+                          <Mail size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30" />
                        </div>
 
                        <div className="relative">
@@ -86,13 +86,13 @@ const Login = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Password"
-                            className="w-full bg-[#efedfa] text-[#4b4566] text-sm font-bold placeholder:text-[#a09cba] placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-[#4c35de]/30 transition-all border border-transparent"
+                            className="w-full bg-zen-cream text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-zen-sand/30 transition-all border border-zen-stone/60"
                             required
                           />
                           <button 
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-6 top-1/2 -translate-y-1/2 text-[#a09cba] hover:text-[#4c35de] transition-colors"
+                            className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30 hover:text-zen-sand transition-colors"
                           >
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
@@ -100,29 +100,29 @@ const Login = () => {
                     </div>
 
                     <div className="flex justify-start">
-                       <span className="text-[11px] font-bold text-[#8b87a1] hover:text-[#392994] cursor-pointer transition-colors block -mt-2">Forget password?</span>
+                       <span className="text-[11px] font-bold text-zen-brown/35 hover:text-zen-sand cursor-pointer transition-colors block -mt-2">Forget password?</span>
                     </div>
 
                     <div className="pt-2">
                        <button
                          type="submit"
-                         className="w-full py-4 bg-[#392994] hover:bg-[#2a1d70] text-white text-[13px] font-bold shadow-[0_8px_20px_rgba(57,41,148,0.3)] hover:shadow-[0_10px_25px_rgba(57,41,148,0.4)] rounded-3xl transition-all flex items-center justify-center gap-2 group"
+                         className="w-full py-4 bg-zen-sand hover:opacity-90 text-white text-[13px] font-bold shadow-[0_8px_20px_rgba(0,0,0,0.12)] rounded-3xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
                        >
                          Sign in now <span className="w-1.5 h-1.5 rounded-full bg-white ml-2 opacity-80 group-hover:opacity-100"></span>
                        </button>
                     </div>
 
                     <div className="pt-4">
-                       <div className="bg-white/60 border border-white rounded-full py-2.5 px-6 mx-auto w-max shadow-[0_2px_10px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-white transition-colors" onClick={() => {setEmail('admin@gmail.com'); setPassword('admin123');}}>
-                          <p className="text-[8px] font-bold text-[#a09cba] uppercase tracking-widest flex items-center gap-3">
-                             Admin: admin@gmail.com <span className="w-1 h-1 rounded-full bg-[#a09cba]/40"></span> Pass: admin123
+                       <div className="bg-zen-cream border border-zen-stone/60 rounded-full py-2.5 px-6 mx-auto w-max shadow-[0_2px_10px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-white transition-colors" onClick={() => {setEmail('admin@gmail.com'); setPassword('admin123');}}>
+                          <p className="text-[8px] font-bold text-zen-brown/35 uppercase tracking-widest flex items-center gap-3">
+                             Admin: admin@gmail.com <span className="w-1 h-1 rounded-full bg-zen-brown/20"></span> Pass: admin123
                           </p>
                        </div>
                     </div>
 
                     <div className="text-center pt-2">
-                       <p className="text-[11px] font-bold text-[#a09cba]">
-                          Not registered? <Link to="/signup" className="text-[#392994] hover:underline">Sign up</Link>
+                       <p className="text-[11px] font-bold text-zen-brown/35">
+                          Not registered? <Link to="/signup" className="text-zen-sand hover:underline">Sign up</Link>
                        </p>
                     </div>
                 </form>

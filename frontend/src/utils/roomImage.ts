@@ -90,10 +90,10 @@ const normalizeCustomRoomImage = (value: string, baseUrl: string) => {
   }
 
   if (isRoomPhotoPath(clean)) {
-    return `/${clean}`;
+    return `/images/${clean}`;
   }
 
-  return `${baseUrl}/${clean}`;
+  return `${baseUrl}/uploads/${clean}`;
 };
 
 const getRoomSeed = (room: RoomImageSource) => {

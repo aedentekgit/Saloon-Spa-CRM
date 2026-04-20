@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, Sparkles, User, ArrowUpRight } from 'lucide-react';
 import { usePublicSettings } from './usePublicSettings';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const BASE_URL = API_URL.replace('/api', '');
 
 function getImageUrl(path?: string): string {
@@ -55,7 +55,7 @@ const PublicNavbar = () => {
                 <Sparkles size={18} />
               )}
             </div>
-            <span className="hidden sm:block font-serif text-lg font-bold tracking-[0.2em] uppercase text-black">
+            <span className="hidden sm:block font-serif text-lg font-bold tracking-[0.2em] uppercase text-zen-brown">
               {siteName}
             </span>
           </NavLink>
@@ -69,7 +69,7 @@ const PublicNavbar = () => {
                   to={link.path}
                   className={({ isActive }) => `
                     relative text-[10px] font-semibold uppercase tracking-[0.2em] transition-colors
-                    ${isActive ? 'text-black' : 'text-slate-400 hover:text-black'}
+                    ${isActive ? 'text-zen-brown' : 'text-zen-brown/40 hover:text-zen-brown'}
                   `}
                 >
                   {({ isActive }) => (
@@ -92,14 +92,14 @@ const PublicNavbar = () => {
           <div className="hidden lg:flex items-center gap-3 ml-auto shrink-0">
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/50 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.24em] text-black transition-colors hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-full border border-zen-brown/10 bg-white/50 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.24em] text-zen-brown transition-colors hover:bg-white"
             >
               <User size={14} />
               Portal
             </Link>
             <Link
               to="/book"
-              className="inline-flex items-center gap-2 rounded-full bg-zen-primary px-6 py-2.5 text-[10px] font-bold uppercase tracking-[0.24em] text-zen-contrast transition-colors hover:bg-black"
+              className="inline-flex items-center gap-2 rounded-full bg-zen-primary px-6 py-2.5 text-[10px] font-bold uppercase tracking-[0.24em] text-zen-contrast transition-colors hover:bg-zen-brown"
             >
               Book Now
               <ArrowUpRight size={14} />
@@ -109,7 +109,7 @@ const PublicNavbar = () => {
           {/* Mobile hamburger */}
             <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden ml-auto rounded-full border border-black/10 bg-white/70 p-3 text-black backdrop-blur-md"
+            className="lg:hidden ml-auto rounded-full border border-zen-brown/10 bg-white/70 p-3 text-zen-brown backdrop-blur-md"
             aria-label="Toggle navigation menu"
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -124,10 +124,10 @@ const PublicNavbar = () => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-0 z-[200] bg-[#FDFCFB] lg:hidden flex flex-col shadow-2xl overflow-y-auto"
+            className="fixed inset-0 z-[200] bg-zen-cream lg:hidden flex flex-col shadow-2xl overflow-y-auto"
           >
             {/* Elegant Header Area */}
-            <div className="flex h-24 shrink-0 items-center justify-between px-8 bg-[#FDFCFB] border-b border-zen-primary/5">
+            <div className="flex h-24 shrink-0 items-center justify-between px-8 bg-zen-cream border-b border-zen-primary/5">
               <NavLink to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zen-primary text-zen-contrast shadow-xl shadow-zen-primary/20">
                   {logoUrl ? (
@@ -136,11 +136,11 @@ const PublicNavbar = () => {
                     <Sparkles size={20} />
                   )}
                 </div>
-                <span className="font-serif text-xl font-bold tracking-[0.2em] uppercase text-black">{siteName}</span>
+                <span className="font-serif text-xl font-bold tracking-[0.2em] uppercase text-zen-brown">{siteName}</span>
               </NavLink>
               <button
                 onClick={() => setIsOpen(false)}
-                className="h-14 w-14 rounded-full bg-white border border-black/5 flex items-center justify-center text-black shadow-lg active:scale-95 transition-all"
+                className="h-14 w-14 rounded-full bg-white border border-zen-brown/5 flex items-center justify-center text-zen-brown shadow-lg active:scale-95 transition-all"
               >
                 <X size={28} />
               </button>
@@ -166,7 +166,7 @@ const PublicNavbar = () => {
                       onClick={() => setIsOpen(false)}
                       className={({ isActive }) => `
                         group relative flex flex-col transition-all duration-500
-                        ${isActive ? 'text-zen-primary' : 'text-black/40 hover:text-black'}
+                        ${isActive ? 'text-zen-primary' : 'text-zen-brown/40 hover:text-zen-brown'}
                       `}
                     >
                       {({ isActive }) => (
@@ -192,12 +192,12 @@ const PublicNavbar = () => {
             </div>
 
             {/* Footer Area - Premium CTA */}
-            <div className="p-10 pb-12 space-y-8 bg-[#FDFCFB] border-t border-zen-primary/5">
+            <div className="p-10 pb-12 space-y-8 bg-zen-cream border-t border-zen-primary/5">
               <div className="flex flex-col gap-4">
                 <Link
                   to="/login"
                   onClick={() => setIsOpen(false)}
-                  className="w-full rounded-2xl border border-black/10 bg-white py-6 text-center text-[11px] font-bold uppercase tracking-[0.3em] text-black active:scale-[0.98] transition-all shadow-sm hover:shadow-md"
+                  className="w-full rounded-2xl border border-zen-brown/10 bg-white py-6 text-center text-[11px] font-bold uppercase tracking-[0.3em] text-zen-brown active:scale-[0.98] transition-all shadow-sm hover:shadow-md"
                 >
                   Portal Access
                 </Link>
@@ -211,8 +211,8 @@ const PublicNavbar = () => {
               </div>
               
               <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-[1px] bg-black/10" />
-                <p className="text-[10px] text-black/30 uppercase tracking-[0.5em] font-black">
+                <div className="w-12 h-[1px] bg-zen-brown/10" />
+                <p className="text-[10px] text-zen-brown/30 uppercase tracking-[0.5em] font-black">
                   Since 2024 • Doha, Qatar
                 </p>
               </div>

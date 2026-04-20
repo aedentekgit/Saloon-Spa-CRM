@@ -1,34 +1,38 @@
 import React from 'react';
 import { History, Heart, Sparkles, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
+import PublicNavbar from '../../components/landing/PublicNavbar';
+import PublicFooter from '../../components/landing/PublicFooter';
 
 const About = () => {
   const { settings } = usePublicSettings();
   const siteName = settings.general.siteName;
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-zen-brown">
-      {/* Hero Content - Refined Minimalist */}
-      <section className="px-6 lg:px-24 mb-16 pt-24 lg:pt-32">
+    <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-sand/20">
+      <PublicNavbar />
+      {/* Hero Content - Image 1 Style */}
+      <section className="px-6 lg:px-24 mb-16 pt-40 md:pt-48">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-center">
           <div className="space-y-12 animate-in fade-in slide-in-from-left-8 duration-1000">
             <div className="space-y-8">
-              <div className="flex items-center gap-4 text-[11px] font-black tracking-[0.4em] uppercase text-zen-brown/30">
-                <span className="w-12 h-[1px] bg-zen-brown/10" />
-                Since 2024
+              <div className="flex items-center gap-3 text-[10px] md:text-sm font-bold tracking-[0.2em] uppercase text-zen-brown/60">
+                <span className="w-8 h-[1px] bg-zen-brown/30" />
+                Est. 2024 • {siteName}
               </div>
-              <h1 className="text-6xl lg:text-8xl font-serif font-bold leading-[0.9] tracking-tighter">
-                Our Story at <br />
-                <span className="italic text-zen-sand">Sanctuary</span>
+              <h1 className="text-5xl md:text-6xl lg:text-[6.5rem] font-serif font-bold leading-[0.9] tracking-tight">
+                Our Story at<br />
+                <span className="italic relative animate-text-shine">
+                  Sanctuary
+                  <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-zen-brown/10" />
+                </span>
               </h1>
             </div>
 
             <div className="space-y-8 text-xl text-zen-brown/60 font-light leading-relaxed max-w-xl">
               <p>
                 {siteName} was born from a simple yet profound vision: to create a physical manifestation of inner peace. We believe that true luxury is found in the moments between, when the world fades and clarity emerges.
-              </p>
-              <p className="text-base">
-                Drawing from centuries-old eastern traditions and refined with modern neuro-science, our methods go beyond surface treatment. We study the architecture of the soul, ensuring that every guest leaves not just refreshed, but redefined.
               </p>
             </div>
 
@@ -61,7 +65,7 @@ const About = () => {
       </section>
 
       {/* Philosophy Section - Minimalist Luxury Re-design */}
-      <section className="bg-[#FDFBF7] py-24 lg:py-40 px-6 lg:px-24">
+      <section className="bg-zen-cream py-24 lg:py-40 px-6 lg:px-24">
         <div className="max-w-7xl mx-auto">
           {/* Section Header */}
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-12 mb-32">
@@ -122,7 +126,7 @@ const About = () => {
               <img 
                 src="/about_founder_portrait_1776541198229.png" 
                 alt="Elena Vora" 
-                className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-all duration-1000" 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-zen-brown/40 to-transparent opacity-60" />
               <div className="absolute bottom-12 left-12">
@@ -149,6 +153,7 @@ const About = () => {
           </div>
         </div>
       </section>
+      <PublicFooter />
     </div>
   );
 };

@@ -62,7 +62,7 @@ const Rooms = () => {
     cleaningDuration: 15
   });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const [confirmState, setConfirmState] = useState<{
     isOpen: boolean;
@@ -275,7 +275,7 @@ const Rooms = () => {
             { label: 'Total Rooms', value: rooms.length, icon: Building2, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', trend: 'Global capacity' },
             { label: 'Live Channels', value: rooms.filter(r => r.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Operational now' },
             { label: 'Space Categories', value: roomCategories.length, icon: DoorOpen, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', trend: 'Variety types' },
-            { label: 'Branch Coverage', value: branches.length, icon: Sparkles, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'Full coverage' }
+            { label: 'Branch Coverage', value: branches.length, icon: Sparkles, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Full coverage' }
           ].map((stat, i) => (
             <ZenStatCard key={i} {...stat} delay={i * 0.2} />
           ))}

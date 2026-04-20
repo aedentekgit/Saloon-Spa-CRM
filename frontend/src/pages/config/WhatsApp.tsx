@@ -48,7 +48,7 @@ const WhatsApp = () => {
   const [isSending, setIsSending] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const templates = [
     { id: 1, name: 'Appointment Reminder', icon: Calendar, text: 'Hi [Name], this is a reminder for your appointment at the Workspace on [Date] at [Time]. We look forward to your presence!' },

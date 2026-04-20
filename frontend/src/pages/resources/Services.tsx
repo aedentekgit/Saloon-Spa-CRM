@@ -66,7 +66,7 @@ const Services = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [inventoryList, setInventoryList] = useState<any[]>([]);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const [confirmState, setConfirmState] = useState<{
     isOpen: boolean;
@@ -329,7 +329,7 @@ const Services = () => {
             { label: 'Total Services', value: services.length, icon: Sparkles, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Catalog size' },
             { label: 'Active Presence', value: services.filter(s => s.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live services' },
             { label: 'System Inactive', value: services.filter(s => s.status !== 'Active').length, icon: X, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Offline services' },
-            { label: 'Service Categories', value: serviceCategories.length, icon: Info, color: 'text-indigo-500', bg: 'bg-indigo-500/10', glow: 'bg-indigo-500/20', trend: 'Service groups' }
+            { label: 'Service Categories', value: serviceCategories.length, icon: Info, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Service groups' }
           ].map((stat, i) => (
             <ZenStatCard key={i} {...stat} delay={i * 0.05} />
           ))}

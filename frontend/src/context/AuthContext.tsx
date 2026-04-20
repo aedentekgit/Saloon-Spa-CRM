@@ -33,9 +33,9 @@ const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
 // Safely access Vite environment variables
 const getApiUrl = () => {
   try {
-    return (import.meta as any).env?.VITE_API_URL || 'http://localhost:5001/api';
+    return (import.meta as any).env?.VITE_API_URL || 'http://localhost:5005/api';
   } catch (e) {
-    return 'http://localhost:5001/api';
+    return 'http://localhost:5005/api';
   }
 };
 

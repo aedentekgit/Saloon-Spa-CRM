@@ -70,7 +70,7 @@ const Roles = () => {
     status: 'Active' as 'Active' | 'Inactive'
   });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const fetchRoles = async () => {
     refreshData();

@@ -50,7 +50,7 @@ export const ZenPagination: React.FC<ZenPaginationProps> = ({ currentPage, total
   return (
     <nav
       aria-label="Pagination"
-      className="w-full rounded-[1.5rem] border border-zen-brown/10 bg-white/90 backdrop-blur-xl px-4 sm:px-6 py-4 shadow-[0_20px_60px_-35px_rgba(74,55,40,0.45)]"
+      className="w-full mt-10 lg:mt-12 rounded-[1.5rem] border border-zen-brown/10 bg-white/90 backdrop-blur-xl px-4 sm:px-6 py-4 shadow-[0_20px_60px_-35px_rgba(74,55,40,0.45)]"
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3 sm:gap-4">

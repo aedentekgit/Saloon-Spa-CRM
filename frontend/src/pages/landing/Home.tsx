@@ -1,7 +1,10 @@
 import React from 'react';
 import { ArrowRight, Leaf, Waves, Wind, Sun, Star, Award, ShieldCheck, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
+import PublicNavbar from '../../components/landing/PublicNavbar';
+import PublicFooter from '../../components/landing/PublicFooter';
 
 const Home = () => {
   const { settings } = usePublicSettings();
@@ -40,6 +43,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-brown/10 font-sans">
+      <PublicNavbar />
       {/* Hero Section */}
       <section className="relative min-h-[90vh] lg:h-screen flex items-center px-4 md:px-6 lg:px-24 overflow-hidden">
         {/* Background Elements */}
@@ -110,7 +114,7 @@ const Home = () => {
                <img 
                  src="/images/hero_sanctuary.png" 
                  alt="Warm sanctuary interior with water and lantern light" 
-                 className="w-full h-full object-cover grayscale-[0.2] hover:grayscale-0 transition-all duration-1000 scale-110 hover:scale-100"
+                 className="w-full h-full object-cover hover:scale-100 transition-all duration-1000 scale-110"
                />
             </div>
             {/* Glass Card Overlay - Positioned for mobile/desktop */}
@@ -149,7 +153,7 @@ const Home = () => {
               {signatureTreatments.map((item, i) => (
                 <div key={i} className="group cursor-pointer">
                   <div className="aspect-[3/4] rounded-[1rem] overflow-hidden mb-6 relative">
-                    <img src={item.img} alt={item.title} className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000 scale-100 group-hover:scale-110" loading="lazy" />
+                    <img src={item.img} alt={item.title} className="w-full h-full object-cover transition-all duration-1000 scale-100 group-hover:scale-110" loading="lazy" />
                     <div className="absolute inset-x-6 bottom-6 p-6 backdrop-blur-3xl bg-white/20 border border-white/40 rounded-3xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
                        <Sparkles className="text-white mb-2" size={20} />
                        <h4 className="text-white font-serif font-bold text-xl">{item.title}</h4>
@@ -224,6 +228,7 @@ const Home = () => {
            </div>
         </div>
       </section>
+      <PublicFooter />
     </div>
   );
 };

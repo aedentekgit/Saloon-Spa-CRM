@@ -213,7 +213,7 @@ const Appointments = () => {
     }
   }, [formData.membershipId, serviceOptions]);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const fetchAppointments = async (silent: boolean = false) => {
     try {
@@ -562,7 +562,7 @@ const Appointments = () => {
       addButtonIcon={<Plus size={18} />}
       onAddClick={() => handleOpenModal()}
     >
-      <div style={{ '--theme-primary': settings?.theme?.primaryColor || '#8B5CF6' } as React.CSSProperties} className="contents font-sans">
+      <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="contents font-sans">
         <div className="flex flex-col lg:flex-row gap-10">
           <div className="flex-1 space-y-8">
            {/* Calendar Controls - Now visible in both Grid and Table view */}
@@ -657,7 +657,7 @@ const Appointments = () => {
                   ) : (
                      <div className="p-4 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 animate-in fade-in zoom-in duration-1000 pb-20 sm:pb-8">
                          {filteredAppointments.map((apt) => (
-                            <div key={apt._id} className="group relative bg-white border border-gray-100 p-6 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] transition-all duration-500 hover:border-[color:var(--theme-primary)] hover:shadow-lg hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
+                            <div key={apt._id} className="group relative bg-white border border-gray-100 p-6 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] transition-all duration-500 hover:border-zen-sand/30 hover:shadow-lg hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
                                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                                
                                <div className="relative z-10">
@@ -686,8 +686,8 @@ const Appointments = () => {
                                         <span className="text-[10px] sm:text-xs font-serif font-medium text-zen-brown/70">{apt.service}</span>
                                      </div>
                                      {apt.room && (
-                                        <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-50/50 border border-indigo-100 rounded-xl sm:rounded-2xl flex items-center gap-2 group-hover:bg-indigo-50 transition-colors duration-500">
-                                           <MapPin size={12} className="text-indigo-400" />
+                                        <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-zen-sand/5 border border-zen-sand/15 rounded-xl sm:rounded-2xl flex items-center gap-2 group-hover:bg-zen-sand/10 transition-colors duration-500">
+                                           <MapPin size={12} className="text-zen-sand/60" />
                                            <span className="text-[10px] sm:text-xs font-serif font-medium text-zen-brown/70">{apt.room}</span>
                                         </div>
                                      )}
@@ -800,7 +800,7 @@ const Appointments = () => {
 
         {/* Sidebar */}
         <div className="w-full lg:w-96 space-y-6 sm:space-y-10">
-           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:border-[color:var(--theme-primary)] transition-all duration-300">
+           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:border-zen-sand/30 transition-all duration-300">
               <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 tracking-tight">Daily Insight</h3>
               <div className="space-y-6 sm:space-y-8">
                   <div className="bg-gray-50/50 p-6 sm:p-8 rounded-2xl border border-gray-100 group transition-all duration-500">
@@ -811,7 +811,7 @@ const Appointments = () => {
               </div>
            </div>
 
-           <div style={{ backgroundColor: 'var(--theme-primary)' }} className="p-8 rounded-3xl text-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
+           <div style={{ backgroundColor: 'var(--zen-primary, #332766)' }} className="p-8 rounded-3xl text-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
               <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-125 transition-transform duration-1000">
                  <Sparkles size={150} />
               </div>

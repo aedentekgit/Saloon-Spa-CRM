@@ -124,7 +124,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const fetchSettings = async (silent: boolean = false) => {
     if (!user) {
@@ -280,19 +280,51 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       root.style.setProperty('--sidebar-gradient-end', DEFAULT_SIDEBAR_END);
     }
 
-      // Update Favicon
+      // Update Favicon — render as circle using canvas
       if (settings.general && settings.general.logo) {
         const logoUrl = settings.general.logo.startsWith('http') 
           ? settings.general.logo 
           : `${API_URL.split('/api')[0]}/${settings.general.logo.replace(/^\.?\//, '')}`;
         
-        let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-        if (!link) {
-          link = document.createElement('link');
-          link.rel = 'icon';
-          document.getElementsByTagName('head')[0].appendChild(link);
-        }
-        link.href = logoUrl;
+        const makeCircularFavicon = (src: string) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            // Draw circular clip
+            ctx.beginPath();
+            ctx.arc(32, 32, 32, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(img, 0, 0, 64, 64);
+            // Set favicon
+            let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+            if (!link) {
+              link = document.createElement('link');
+              link.rel = 'icon';
+              document.getElementsByTagName('head')[0].appendChild(link);
+            }
+            link.type = 'image/png';
+            link.href = canvas.toDataURL('image/png');
+          };
+          img.onerror = () => {
+            // fallback: set raw URL if canvas fails
+            let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+            if (!link) {
+              link = document.createElement('link');
+              link.rel = 'icon';
+              document.getElementsByTagName('head')[0].appendChild(link);
+            }
+            link.href = src;
+          };
+          img.src = src;
+        };
+
+        makeCircularFavicon(logoUrl);
       }
     }
   }, [settings]);

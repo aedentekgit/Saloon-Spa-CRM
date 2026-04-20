@@ -53,7 +53,7 @@ const Attendance = () => {
 
   const isAdminOrManager = user?.role === 'Admin' || user?.role === 'Manager';
   
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
     fetchHistory();
@@ -250,7 +250,7 @@ const Attendance = () => {
        return new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
              enableHighAccuracy: true,
-             timeout: 5001,
+             timeout: 5005,
              maximumAge: 0
           });
        });
@@ -388,7 +388,7 @@ const Attendance = () => {
               <ZenButton 
                 onClick={handleAttendance}
                 disabled={loading}
-                className={`w-full py-5 sm:py-6 rounded-xl text-base sm:text-lg font-serif transition-all duration-700 ${isCheckedIn ? 'bg-[#FF6B6B] hover:bg-[#FF5252] shadow-sm shadow-red-500/20' : 'bg-zen-brown hover:bg-zen-brown/90 shadow-sm'} ${loading ? 'opacity-50 cursor-wait' : ''}`}
+                className={`w-full py-5 sm:py-6 rounded-xl text-base sm:text-lg font-serif transition-all duration-700 ${isCheckedIn ? 'bg-red-500 hover:bg-red-600 shadow-sm shadow-red-500/20' : 'bg-zen-brown hover:bg-zen-brown/90 shadow-sm'} ${loading ? 'opacity-50 cursor-wait' : ''}`}
               >
                   <span className="flex items-center justify-center gap-3 sm:gap-4">
                      {loading ? <Loader2 className="animate-spin sm:w-6 sm:h-6" size={20} /> : (isCheckedIn ? <LogOut size={20} className="sm:w-6 sm:h-6" /> : <LogIn size={20} className="sm:w-6 sm:h-6" />)}
