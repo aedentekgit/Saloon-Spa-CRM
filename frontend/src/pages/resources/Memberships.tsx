@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { 
-  Users, 
-  Crown, 
-  Clock, 
-  Hash, 
-  CreditCard, 
-  Calendar, 
-  Sparkles, 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  X, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  Users,
+  Crown,
+  Clock,
+  Hash,
+  CreditCard,
+  Calendar,
+  Sparkles,
+  Plus,
+  Trash2,
+  Edit3,
+  X,
+  CheckCircle2,
+  AlertCircle,
   BarChart3,
   ShieldCheck,
   History,
@@ -28,7 +28,7 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenButton, ZenIconButton, ZenBadge } from '../../components/zen/ZenButtons';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
-import { ZenInput, ZenDropdown, ZenTextarea, ZenDatePicker } from '../../components/zen/ZenInputs';
+import { ZenInput, ZenDropdown, ZenTextarea, ZenDatePicker, ZenAutocomplete } from '../../components/zen/ZenInputs';
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 
@@ -59,7 +59,7 @@ const Memberships = () => {
     const [selectedHistory, setSelectedHistory] = useState<any>(null);
     const [editingPlan, setEditingPlan] = useState<any>(null);
     const [editingEnrollmentId, setEditingEnrollmentId] = useState<string | null>(null);
-    
+
     // Confirm Dialog State
     const [confirmState, setConfirmState] = useState<{
         isOpen: boolean;
@@ -164,23 +164,23 @@ const Memberships = () => {
     const handleCreatePlan = async (e: React.FormEvent) => {
        e.preventDefault();
        try {
-          const url = editingPlan 
-             ? `${API_URL}/memberships/plans/${editingPlan._id}` 
+          const url = editingPlan
+             ? `${API_URL}/memberships/plans/${editingPlan._id}`
              : `${API_URL}/memberships/plans`;
-          
+
           const method = editingPlan ? 'PUT' : 'POST';
-          
+
           const response = await fetch(url, {
              method,
-             headers: { 
+             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${user?.token}` 
+                'Authorization': `Bearer ${user?.token}`
              },
              body: JSON.stringify({
                 ...planFormData,
                 durationDays: planFormData.isUnlimited ? 36500 : planFormData.durationDays,
-                benefits: typeof planFormData.benefits === 'string' 
-                  ? (planFormData.benefits as string).split('\n').filter(b => b.trim()) 
+                benefits: typeof planFormData.benefits === 'string'
+                  ? (planFormData.benefits as string).split('\n').filter(b => b.trim())
                   : planFormData.benefits
              })
           });
@@ -200,15 +200,15 @@ const Memberships = () => {
     const handleEnroll = async (e: React.FormEvent) => {
        e.preventDefault();
        try {
-          const url = editingEnrollmentId 
+          const url = editingEnrollmentId
              ? `${API_URL}/memberships/${editingEnrollmentId}`
              : `${API_URL}/memberships/enroll`;
-          
+
           const method = editingEnrollmentId ? 'PUT' : 'POST';
 
           const response = await fetch(url, {
              method,
-             headers: { 
+             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${user?.token}`
              },
@@ -242,7 +242,7 @@ const Memberships = () => {
        try {
           const response = await fetch(`${API_URL}/memberships/${redeemData.membershipId}/redeem`, {
              method: 'POST',
-             headers: { 
+             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${user?.token}`
              },
@@ -262,7 +262,7 @@ const Memberships = () => {
 
     const deleteMembershipConfirmed = async (id: string) => {
        try {
-          const response = await fetch(`${API_URL}/memberships/${id}`, { 
+          const response = await fetch(`${API_URL}/memberships/${id}`, {
              method: 'DELETE',
              headers: { 'Authorization': `Bearer ${user?.token}` }
           });
@@ -280,7 +280,7 @@ const Memberships = () => {
 
     const deletePlanConfirmed = async (id: string) => {
        try {
-          const response = await fetch(`${API_URL}/memberships/plans/${id}`, { 
+          const response = await fetch(`${API_URL}/memberships/plans/${id}`, {
              method: 'DELETE',
              headers: { 'Authorization': `Bearer ${user?.token}` }
           });
@@ -334,14 +334,14 @@ const Memberships = () => {
        }
     };
 
-    const filteredMemberships = memberships.filter(m => 
+    const filteredMemberships = memberships.filter(m =>
        m.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
        m.client?.phone?.includes(searchTerm)
     );
 
     return (
-    <ZenPageLayout 
-title="Membership Management" 
+    <ZenPageLayout
+title="Membership Management"
       addButtonLabel={user?.role === 'Client' ? "" : "New Enrollment"}
       addButtonIcon={user?.role === 'Client' ? null : <Crown size={18} />}
       onAddClick={user?.role === 'Client' ? () => {} : () => {
@@ -361,7 +361,7 @@ title="Membership Management"
       onViewModeChange={setViewMode}
     >
       {/* Tabs Header */}
-      <div className="flex items-center gap-4 sm:gap-8 mb-8 border-b border-zen-brown/15 px-2 overflow-x-auto scrollbar-none whitespace-nowrap">
+      <div className="mb-8 bg-white/80 backdrop-blur-xl p-2.5 rounded-2xl border border-zen-brown/15 shadow-sm overflow-x-auto scrollbar-none whitespace-nowrap px-2">
          {[
            { id: 'registry', label: user?.role === 'Client' ? 'My Memberships' : 'Memberships', icon: Users },
            ...(user?.role !== 'Client' ? [{ id: 'plans', label: 'Tier Management', icon: Crown }] : [])
@@ -369,13 +369,10 @@ title="Membership Management"
            <button
              key={tab.id}
              onClick={() => setActiveTab(tab.id as any)}
-             className={`py-4 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.3em] relative transition-all duration-500 ${activeTab === tab.id ? 'text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/60'}`}
+             className={`py-3.5 px-5 rounded-2xl flex items-center gap-3 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.22em] relative transition-all duration-500 ${activeTab === tab.id ? 'bg-zen-brown text-white shadow-sm' : 'text-zen-brown/35 hover:text-zen-brown hover:bg-white'}`}
            >
             <tab.icon size={14} className="sm:w-4 sm:h-4" strokeWidth={activeTab === tab.id ? 2.5 : 2} />
             {tab.label}
-            {activeTab === tab.id && (
-              <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-zen-brown shadow-[0_-2px_8px_rgba(0,0,0,0.1)]" />
-            )}
           </button>
          ))}
       </div>
@@ -389,33 +386,33 @@ title="Membership Management"
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
          >
             {activeTab === 'plans' && (
-              <div className="space-y-10">
+              <div className="space-y-8">
                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-2">
                     <div>
                        <h3 className="text-lg sm:text-xl font-serif font-bold text-zen-brown">Membership Plan Setup</h3>
                        <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Global Service Structure</p>
                     </div>
-                    <ZenButton onClick={() => { 
-                      setEditingPlan(null);                       setPlanFormData({ name: '', price: 0, durationDays: 30, maxSessions: 0, applicableServices: [], description: '', branches: [], isActive: true, isUnlimited: false, benefits: '', icon: 'Sparkles', isPopular: false }); 
-                      setIsPlanModalOpen(true); 
+                    <ZenButton onClick={() => {
+                      setEditingPlan(null);                       setPlanFormData({ name: '', price: 0, durationDays: 30, maxSessions: 0, applicableServices: [], description: '', branches: [], isActive: true, isUnlimited: false, benefits: '', icon: 'Sparkles', isPopular: false });
+                      setIsPlanModalOpen(true);
                     }} variant="secondary" type="button" className="w-full sm:w-auto">Define New Plan</ZenButton>
                  </div>
-                 
+
                  {viewMode === 'grid' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                      {plans.map((plan) => (
-                        <div key={plan._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-sm border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 hover:z-10 h-full flex flex-col justify-between">
+                        <div key={plan._id} className="group relative bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-zen-brown/15 transition-all duration-500 hover:shadow-xl hover:translate-y-[-4px] hover:z-10 h-full flex flex-col justify-between">
                            {/* Background Glow */}
-                           <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-[2.5rem] sm:rounded-bl-[3.5rem] rounded-tr-[2.5rem] sm:rounded-tr-[3.5rem] overflow-hidden -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
-                           
+                           <div className="absolute top-0 right-0 w-28 h-28 bg-zen-sand/5 rounded-bl-3xl rounded-tr-3xl overflow-hidden -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
+
                            <div className="absolute -bottom-4 -right-4 text-zen-sand opacity-[0.03] group-hover:opacity-[0.07] transition-all duration-700 pointer-events-none">
                               <Crown size={150} />
                            </div>
 
                            <div className="relative z-10 flex flex-col h-full justify-between">
                               <div>
-                                 <div className="flex items-center justify-between mb-8">
-                                    <div className="w-16 h-16 rounded-[1.80rem] bg-zen-sand/10 text-zen-sand flex items-center justify-center group-hover:scale-110 transition-transform duration-700 shadow-xl border border-white/80">
+                                 <div className="flex items-center justify-between mb-6">
+                                    <div className="w-14 h-14 rounded-2xl bg-zen-sand/10 text-zen-sand flex items-center justify-center group-hover:scale-110 transition-transform duration-700 shadow-sm border border-zen-brown/10">
                                        <Crown size={28} strokeWidth={1.5} />
                                     </div>
                                     <div className="flex flex-col items-end gap-2">
@@ -437,15 +434,15 @@ title="Membership Management"
                                        </div>
                                     </div>
                                  </div>
-                                 
-                                 <h4 className="text-2xl font-serif font-black text-zen-brown mb-2 group-hover:text-zen-sand transition-colors duration-500">{plan.name}</h4>
-                                 <div className="flex items-baseline gap-2 mb-6">
-                                    <span className="text-4xl font-black tracking-tighter text-zen-brown">QR {plan.price}</span>
+
+                                 <h4 className="text-xl font-serif font-black text-zen-brown mb-2 group-hover:text-zen-sand transition-colors duration-500">{plan.name}</h4>
+                                 <div className="flex items-baseline gap-2 mb-5">
+                                    <span className="text-3xl font-black tracking-tighter text-zen-brown">QR {plan.price}</span>
                                     <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.2em]">Renewal Rate</span>
                                  </div>
 
                                  {/* Applicable Services List */}
-                                 <div className="mb-8">
+                                 <div className="mb-6">
                                     <p className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.3em] mb-3 px-1">Included Services</p>
                                     <div className="flex flex-wrap gap-1.5">
                                        {(plan.applicableServices || []).slice(0, 3).map((s: any) => (
@@ -464,8 +461,8 @@ title="Membership Management"
                                     </div>
                                  </div>
                               </div>
-                              
-                              <div className="grid grid-cols-2 gap-6 pt-8 border-t border-zen-brown/15 relative z-10">
+
+                              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-zen-brown/15 relative z-10">
                                  <div className="flex flex-col gap-1">
                                     <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-[0.3em]">Usage Limit</span>
                                     <span className="text-sm font-black text-zen-brown flex items-center gap-2">
@@ -547,10 +544,10 @@ title="Membership Management"
                                       <div className="flex items-center justify-center gap-2">
                                          <ZenIconButton icon={Edit3} onClick={() => {
                                             setEditingPlan(plan);
-                                            setPlanFormData({ 
-                                               ...plan as any, 
+                                            setPlanFormData({
+                                               ...plan as any,
                                                applicableServices: plan.applicableServices?.map((s: any) => typeof s === 'string' ? s : s._id) || [],
-                                               isUnlimited: plan.durationDays >= 36500 
+                                               isUnlimited: plan.durationDays >= 36500
                                             });
                                             setIsPlanModalOpen(true);
                                          }} />
@@ -568,7 +565,7 @@ title="Membership Management"
             )}
 
             {activeTab === 'registry' && (
-              <div className="space-y-12">
+              <div className="space-y-10">
                   <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
                      {[
                       { label: 'Total Clients', value: memberships.length.toString(), icon: Users, trend: `${stats?.totalActive || 0} active currently`, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', delay: 0 },
@@ -661,20 +658,20 @@ title="Membership Management"
                           </div>
                        </div>
                     ) : (
-                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {filteredMemberships.map((m) => (
-                             <div key={m._id} className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] sm:rounded-[3.5rem] p-6 sm:p-8 shadow-sm border border-white transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
+                             <div key={m._id} className="group relative bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-zen-brown/15 transition-all duration-500 hover:shadow-xl hover:translate-y-[-4px] h-full flex flex-col justify-between overflow-hidden">
                                 {/* Background Glow Overlay */}
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
-                                
+                                <div className="absolute top-0 right-0 w-28 h-28 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
+
                                 <div className="relative z-10">
-                                   <div className="flex items-center justify-between mb-8">
-                                      <div className="flex items-center gap-5">
-                                         <div className="w-16 h-16 rounded-[1.8rem] bg-zen-sand/10 text-zen-sand flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700 shadow-xl border border-white/80">
+                                   <div className="flex items-center justify-between mb-6">
+                                      <div className="flex items-center gap-4">
+                                         <div className="w-14 h-14 rounded-2xl bg-zen-sand/10 text-zen-sand flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700 shadow-sm border border-zen-brown/10">
                                             <Users size={24} strokeWidth={1.5} />
                                          </div>
                                          <div className="min-w-0">
-                                            <h4 className="font-serif font-black text-xl text-zen-brown group-hover:text-zen-sand transition-colors duration-500 truncate">{m.client?.name}</h4>
+                                            <h4 className="font-serif font-black text-lg text-zen-brown group-hover:text-zen-sand transition-colors duration-500 truncate">{m.client?.name}</h4>
                                             <div className="flex items-center gap-2 mt-1">
                                                <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.2em]">{m.client?.phone}</span>
                                                <span className={`px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest border ${getStatusColor(m.status)}`}>
@@ -706,7 +703,7 @@ title="Membership Management"
                                    </div>
 
                                    <div className="space-y-4">
-                                      <div className="flex items-center justify-between p-5 bg-white border border-zen-brown/15 rounded-[2rem] shadow-sm hover:shadow-lg transition-all duration-500 group/tier">
+                                      <div className="flex items-center justify-between p-5 bg-white border border-zen-brown/10 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-500 group/tier">
                                          <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-2xl bg-zen-sand/5 flex items-center justify-center text-zen-sand group-hover/tier:scale-110 transition-transform">
                                                <ShieldCheck size={18} />
@@ -748,10 +745,10 @@ title="Membership Management"
       </AnimatePresence>
 
       {/* Plan Configuration Modal */}
-      <Modal 
-        isOpen={isPlanModalOpen} 
-        onClose={() => setIsPlanModalOpen(false)} 
-        title={editingPlan ? 'Edit Membership Plan' : 'New Membership Plan'} 
+      <Modal
+        isOpen={isPlanModalOpen}
+        onClose={() => setIsPlanModalOpen(false)}
+        title={editingPlan ? 'Edit Membership Plan' : 'New Membership Plan'}
         subtitle="Configure pricing, duration, and included services"
         maxWidth="max-w-4xl"
         headerIcon={CreditCard}
@@ -771,18 +768,18 @@ title="Membership Management"
                <ZenInput label="Total Sessions" icon={Hash} type="number" value={planFormData.maxSessions} onChange={(e: any) => setPlanFormData({...planFormData, maxSessions: Number(e.target.value)})} />
                <ZenInput label="Plan Price (QR)" icon={CreditCard} type="number" value={planFormData.price} onChange={(e: any) => setPlanFormData({...planFormData, price: Number(e.target.value)})} />
                <div className="space-y-4">
-                  <ZenInput 
-                     label="Duration (Days)" 
-                     icon={Clock} 
-                     type="number" 
+                  <ZenInput
+                     label="Duration (Days)"
+                     icon={Clock}
+                     type="number"
                      disabled={planFormData.isUnlimited}
-                     value={planFormData.isUnlimited ? '' : planFormData.durationDays} 
-                     onChange={(e: any) => setPlanFormData({...planFormData, durationDays: Number(e.target.value)})} 
+                     value={planFormData.isUnlimited ? '' : planFormData.durationDays}
+                     onChange={(e: any) => setPlanFormData({...planFormData, durationDays: Number(e.target.value)})}
                   />
                   <label className="flex items-center gap-3 cursor-pointer group mt-2">
-                     <input 
-                       type="checkbox" 
-                       checked={planFormData.isUnlimited} 
+                     <input
+                       type="checkbox"
+                       checked={planFormData.isUnlimited}
                        onChange={e => setPlanFormData({...planFormData, isUnlimited: e.target.checked})}
                        className="w-4 h-4 rounded border-zen-brown/25 text-zen-sand focus:ring-zen-sand transition-all"
                      />
@@ -841,10 +838,10 @@ title="Membership Management"
         </form>
       </Modal>
 
-      <Modal 
-         isOpen={isEnrollModalOpen} 
-         onClose={() => setIsEnrollModalOpen(false)} 
-         title={editingEnrollmentId ? 'Edit Enrollment' : 'New Enrollment'} 
+      <Modal
+         isOpen={isEnrollModalOpen}
+         onClose={() => setIsEnrollModalOpen(false)}
+         title={editingEnrollmentId ? 'Edit Enrollment' : 'New Enrollment'}
          subtitle="Assign a client to a membership plan"
          maxWidth="max-w-2xl"
          headerIcon={Plus}
@@ -856,38 +853,38 @@ title="Membership Management"
          }
       >
          <form id="enroll-form" onSubmit={handleEnroll} className="space-y-10">
-            <ZenDropdown 
-               label="Select Client" 
-               options={(clients || []).map(c => `${c.name || 'Unknown'} (${c.phone || 'No Phone'})`)} 
-               value={(() => {
-                  const client = (clients || []).find(c => c._id === enrollData.clientId);
-                  return client ? `${client.name} (${client.phone})` : '';
-               })()}
-               disabled={!!editingEnrollmentId} // Don't allow changing client on edit
-               onChange={val => {
-                  const client = (clients || []).find(c => `${c.name} (${c.phone})` === val);
-                  if (client) setEnrollData({...enrollData, clientId: client._id});
-               }} 
+            <ZenAutocomplete
+               label="Select Client"
+               placeholder="Search client by name or phone..."
+               options={(clients || []).map(c => ({
+                  id: c._id,
+                  name: c.name || 'Unknown',
+                  subtext: c.phone || 'No Phone'
+               }))}
+               value={enrollData.clientId}
+               onChange={(val: string) => setEnrollData({...enrollData, clientId: val})}
+               disabled={!!editingEnrollmentId}
+               icon={Users}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               <ZenDropdown 
-                  label="Membership Plan" 
-                  options={(plans || []).map(p => p.name)} 
-                  value={(plans || []).find(p => p._id === enrollData.planId)?.name || ''} 
+               <ZenDropdown
+                  label="Membership Plan"
+                  options={(plans || []).map(p => p.name)}
+                  value={(plans || []).find(p => p._id === enrollData.planId)?.name || ''}
                   onChange={val => {
                      const plan = (plans || []).find(p => p.name === val);
                      if (plan) setEnrollData({...enrollData, planId: plan._id});
                   }}
                />
-               <ZenDropdown 
-                  label="Assign Branch" 
-                  options={(branches || []).map(b => b.name)} 
-                  value={(branches || []).find(b => b._id === enrollData.branchId)?.name || ''} 
+               <ZenDropdown
+                  label="Assign Branch"
+                  options={(branches || []).map(b => b.name)}
+                  value={(branches || []).find(b => b._id === enrollData.branchId)?.name || ''}
                   onChange={val => {
                      const branch = (branches || []).find(b => b.name === val);
                      if (branch) setEnrollData({...enrollData, branchId: branch._id});
-                  }} 
+                  }}
                />
             </div>
 
@@ -896,11 +893,11 @@ title="Membership Management"
       </Modal>
 
       {/* Redemption Modal */}
-      <Modal 
-         isOpen={isRedeemModalOpen} 
-         onClose={() => setIsRedeemModalOpen(false)} 
-         title="Redeem Service" 
-         maxWidth="max-w-xl" 
+      <Modal
+         isOpen={isRedeemModalOpen}
+         onClose={() => setIsRedeemModalOpen(false)}
+         title="Redeem Service"
+         maxWidth="max-w-xl"
          headerIcon={Sparkles}
          footer={
             <div className="flex gap-4">
@@ -919,10 +916,10 @@ title="Membership Management"
                </div>
             )}
 
-            <ZenDropdown 
-               label="Service" 
-               options={(services || []).map((s: any) => s.name)} 
-               value={(services || []).find((s: any) => s._id === redeemData.serviceId)?.name || ''} 
+            <ZenDropdown
+               label="Service"
+               options={(services || []).map((s: any) => s.name)}
+               value={(services || []).find((s: any) => s._id === redeemData.serviceId)?.name || ''}
                onChange={(val: any) => {
                   const s = (services || []).find((serv: any) => serv.name === val);
                   if (s) setRedeemData({...redeemData, serviceId: s._id});
@@ -934,12 +931,12 @@ title="Membership Management"
       </Modal>
 
       {/* Usage History Modal */}
-      <Modal 
-         isOpen={isHistoryModalOpen} 
-         onClose={() => setIsHistoryModalOpen(false)} 
-         title="Membership History" 
+      <Modal
+         isOpen={isHistoryModalOpen}
+         onClose={() => setIsHistoryModalOpen(false)}
+         title="Membership History"
          subtitle="Historical usage records"
-         maxWidth="max-w-4xl" 
+         maxWidth="max-w-4xl"
          headerIcon={History}
          footer={
             <div className="flex justify-between items-center">
