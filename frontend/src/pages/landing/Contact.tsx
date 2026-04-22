@@ -43,7 +43,7 @@ const Contact = () => {
       </div>
 
       <header className="relative z-10 px-6 pt-12 md:pt-24 lg:pt-32 pb-32">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-[1400px]">
           <div className="grid lg:grid-cols-2 gap-20 lg:gap-32 items-center">
             
             {/* Left Narrative Column */}
@@ -59,10 +59,11 @@ const Contact = () => {
                   Request Reservation
                 </div>
                 
-                <h1 className="text-7xl md:text-8xl lg:text-9xl font-serif font-bold leading-[0.8] tracking-tighter">
+                <h1 className="text-5xl md:text-6xl lg:text-[6.5rem] font-serif font-bold leading-[0.9] tracking-tight">
                   Start Your <br />
                   <span className="italic relative animate-text-shine">
                     Ascent
+                    <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-zen-brown/10" />
                     <Sparkles className="absolute -top-8 -right-8 text-zen-sand/40 scale-150" size={32} strokeWidth={1} />
                   </span>
                 </h1>
@@ -228,7 +229,7 @@ const Contact = () => {
 
       {/* Map Section */}
       <section className="px-6 lg:px-24 pb-32">
-        <div className="max-w-7xl mx-auto rounded-[5rem] overflow-hidden relative group h-[700px] border border-white/50">
+        <div className="max-w-[1400px] mx-auto rounded-[5rem] overflow-hidden relative group h-[700px] border border-white/50">
           <img 
             src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80"
             alt="Sanctuary Entrance"

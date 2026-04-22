@@ -87,7 +87,7 @@ const MembershipTiers = () => {
       <div className="absolute top-0 right-0 w-[60vw] h-[60vw] bg-[radial-gradient(circle_at_center,_#d4a37308,_transparent_70%)] -z-0" />
       <div className="absolute bottom-10 left-10 w-[40vw] h-[40vw] bg-[radial-gradient(circle_at_center,_#53433705,_transparent_70%)] animate-pulse -z-0" />
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="max-w-[1400px] mx-auto relative z-10">
         <div className="text-center space-y-4 mb-20">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -102,9 +102,13 @@ const MembershipTiers = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-5xl lg:text-7xl font-serif font-black text-zen-brown tracking-tighter italic"
+            className="text-5xl md:text-6xl lg:text-[6.5rem] font-serif font-bold text-zen-brown leading-[0.9] tracking-tight"
           >
-            Join the Sanctuary <br /> <span className="text-zen-sand underline decoration-zen-sand/10 underline-offset-8">Inner Circle</span>
+            Join the Sanctuary <br /> 
+            <span className="italic relative animate-text-shine">
+              Inner Circle
+              <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-zen-brown/10" />
+            </span>
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}

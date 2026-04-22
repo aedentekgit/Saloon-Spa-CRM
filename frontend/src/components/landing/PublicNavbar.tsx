@@ -54,7 +54,7 @@ const PublicNavbar = () => {
         scrolled ? 'bg-zen-cream/95 backdrop-blur-2xl shadow-lg shadow-zen-primary/5' : 'bg-zen-cream/90 backdrop-blur-xl'
       }`}
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center">
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-3 group shrink-0">

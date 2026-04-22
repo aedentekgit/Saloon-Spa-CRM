@@ -42,12 +42,12 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-brown/10 font-sans">
       {/* Hero Section - Elevated breathing room */}
-      <section className="relative min-h-[90vh] flex items-start px-4 md:px-6 lg:px-24 overflow-hidden pt-20 md:pt-32 lg:pt-40">
+      <section className="relative min-h-[90vh] flex items-start px-4 md:px-6 lg:px-24 overflow-hidden pt-16 md:pt-24 lg:pt-32">
         {/* Background Elements */}
         <div className="absolute top-[-10%] right-[-5%] w-[60%] h-[80%] bg-zen-sand/10 rounded-full blur-[120px] -z-10 animate-pulse" />
         <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-zen-primary/5 rounded-full blur-[100px] -z-10" />
 
-        <div className="max-w-7xl w-full mx-auto grid lg:grid-cols-2 gap-12 lg:gap-24 items-start">
+        <div className="max-w-[1400px] w-full mx-auto grid lg:grid-cols-2 gap-12 lg:gap-24 items-start">
           <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000 mt-4 lg:mt-12">
             <div className="flex items-center gap-3 text-[10px] md:text-sm font-bold tracking-[0.2em] uppercase text-zen-brown/60">
               <span className="w-8 h-[1px] bg-zen-brown/30" />
@@ -111,7 +111,7 @@ const Home = () => {
               initial={{ rotate: 0 }}
               animate={{ rotate: 2 }}
               transition={{ duration: 20, repeat: Infinity, repeatType: "reverse" }}
-              className="aspect-[4/5] w-full rounded-[3rem] md:rounded-[5rem] overflow-hidden shadow-2xl relative z-0 group"
+              className="aspect-square w-full rounded-[3rem] md:rounded-[5rem] overflow-hidden shadow-2xl relative z-0 group"
             >
                <img 
                  src="/images/hero_sanctuary.png" 
@@ -159,7 +159,7 @@ const Home = () => {
 
       {/* Signature Journeys - Mobile First Grid */}
       <section className="py-24 md:py-32 px-4 md:px-6 lg:px-24 bg-white/50">
-        <div className="max-w-7xl mx-auto space-y-16">
+        <div className="max-w-[1400px] mx-auto space-y-16">
            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
               <div className="space-y-4 max-w-2xl">
                 <div className="text-[11px] font-bold text-zen-brown/60 uppercase tracking-[0.3em]">Signature Treatments</div>
@@ -193,7 +193,7 @@ const Home = () => {
 
       {/* Philosophy Section */}
       <section className="py-24 md:py-32 px-4 md:px-6 lg:px-24">
-        <div className="max-w-7xl mx-auto space-y-16">
+        <div className="max-w-[1400px] mx-auto space-y-16">
           <div className="text-center max-w-3xl mx-auto space-y-6 px-4">
             <h2 className="text-4xl lg:text-6xl font-serif font-bold leading-tight">The Pillars of <span className="italic">Equilibrium</span></h2>
             <p className="text-zen-primary/60 leading-relaxed font-sans">Our philosophy is rooted in the four essential elements that define the human experience and natural balance.</p>
@@ -221,7 +221,7 @@ const Home = () => {
       {/* Professional Distinction / Awards */}
       <section className="py-24 md:py-32 px-4 md:px-6 lg:px-24 bg-zen-primary text-white rounded-[1.5rem] md:rounded-[5rem] mx-4 md:mx-6 mb-24 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-1/2 h-full bg-white/5 skew-x-12 -z-0" />
-        <div className="max-w-7xl mx-auto relative z-10 grid lg:grid-cols-2 gap-16 items-center">
+        <div className="max-w-[1400px] mx-auto relative z-10 grid lg:grid-cols-2 gap-16 items-center">
            <div className="space-y-10">
               <div className="space-y-4">
                 <div className="text-[11px] font-bold text-zen-sand uppercase tracking-[0.4em]">Refined Excellence</div>

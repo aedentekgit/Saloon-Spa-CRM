@@ -244,7 +244,7 @@ const BookAppointment = () => {
       </div>
 
       {/* Main Container */}
-      <div className="relative z-10 flex-1 flex flex-col max-w-[1000px] mx-auto w-full px-6 lg:px-12 py-8 lg:py-12">
+      <div className="relative z-10 flex-1 flex flex-col max-w-[1400px] mx-auto w-full px-6 lg:px-12 py-8 lg:py-12">
 
         {/* Compact Header */}
         <header className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6 lg:mb-10 shrink-0">
@@ -253,8 +253,12 @@ const BookAppointment = () => {
                  <span className="w-6 h-px bg-zen-brown/20" />
                  Ritual Registry
               </div>
-              <h1 className="text-4xl lg:text-5xl font-serif font-black tracking-tight text-zen-brown leading-tight">
-                Secure Your <span className="italic text-zen-sand underline decoration-zen-sand/10 underline-offset-4 decoration-2">Tranquillity</span>
+              <h1 className="text-5xl md:text-6xl lg:text-[6.5rem] font-serif font-bold text-zen-brown leading-[0.9] tracking-tight">
+                Secure Your <br />
+                <span className="italic relative animate-text-shine">
+                  Tranquillity
+                  <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-zen-brown/10" />
+                </span>
               </h1>
            </div>
 

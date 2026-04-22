@@ -34,9 +34,14 @@ interface Employee {
 }
 
 function getImageUrl(path?: string): string {
-  if (!path) return '';
+  if (!path || path === 'undefined' || path === 'null') return '';
   if (path.startsWith('http') || path.startsWith('data:')) return path;
+  
   const clean = path.replace(/^\.?\/?/, '');
+  
+  // If it already contains the full URL or localhost, return as is
+  if (clean.includes('://') || clean.includes('localhost:')) return clean;
+
   // If it doesn't already have 'uploads/' and isn't in 'images/', assume it's in uploads
   if (!clean.startsWith('uploads/') && !clean.startsWith('images/')) {
     return `${BASE_URL}/uploads/${clean}`;
@@ -62,6 +67,19 @@ function getInitials(name?: string): string {
 
   return initials.toUpperCase() || 'ZT';
 }
+
+const DUMMY_PORTRAITS = [
+  'https://images.unsplash.com/photo-1544161515-4ae6ce6fe858', // Therapist
+  'https://images.unsplash.com/photo-1594744803329-a584af1cae23', // Woman Prof
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', // Man Prof
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330', // Woman Prof 2
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', // Man Prof 2
+  'https://images.unsplash.com/photo-1552693673-1bf958298935', // Woman Prof 3
+  'https://images.unsplash.com/photo-1560250097-0b93528c311a', // Man Prof 3
+  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2', // Woman Prof 4
+  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', // Man Prof 4
+  'https://images.unsplash.com/photo-1580489944761-15a19d654956', // Woman Prof 5
+];
 
 const TeamCardSkeleton = () => (
   <div className="group relative overflow-hidden rounded-[2.5rem] bg-white/40 p-4 backdrop-blur-sm border border-white/50 shadow-xl shadow-zen-primary/5">
@@ -154,7 +172,7 @@ const OurTeam = () => {
 
       {/* Dynamic Collective Header for Team - Reduced top padding */}
       <header className="relative z-10 px-6 pt-12 md:pt-24 lg:pt-32 pb-32 lg:px-24 overflow-hidden">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-[1400px]">
           <div className="grid lg:grid-cols-2 gap-20 items-center">
             <motion.div 
               initial={{ opacity: 0, scale: 1.1 }}
@@ -197,15 +215,11 @@ const OurTeam = () => {
                    The Zen Collective
                 </div>
                 
-                <h1 className="text-6xl md:text-7xl lg:text-8xl font-serif font-bold leading-[0.9] tracking-tighter">
+                <h1 className="text-5xl md:text-6xl lg:text-[6.5rem] font-serif font-bold leading-[0.9] tracking-tight">
                   Masters of<br />
                   <span className="italic relative animate-text-shine">
                     The Art
-                    <motion.span 
-                      initial={{ width: 0 }}
-                      whileInView={{ width: '100%' }}
-                      className="absolute -bottom-2 left-0 h-[2px] bg-zen-sand" 
-                    />
+                    <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-zen-brown/10" />
                   </span>
                 </h1>
               </div>
@@ -232,7 +246,7 @@ const OurTeam = () => {
 
       {/* Interactive Filter Bar */}
       <nav className="sticky top-20 z-40 py-6 px-6 lg:px-24 backdrop-blur-md bg-zen-cream/60 border-y border-zen-stone/10">
-        <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="mx-auto max-w-[1400px] flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="h-10 w-1 bg-zen-sand rounded-full" />
             <div>
@@ -271,10 +285,10 @@ const OurTeam = () => {
 
       {/* Team Roster Grid */}
       <main className="relative z-10 px-6 py-24 lg:px-24">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-[1400px]">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-              {Array.from({ length: 6 }).map((_, i) => <TeamCardSkeleton key={i} />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {Array.from({ length: 8 }).map((_, i) => <TeamCardSkeleton key={i} />)}
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-40 glass rounded-[4rem] border border-white/60 backdrop-blur-xl animate-in zoom-in duration-500">
@@ -291,93 +305,85 @@ const OurTeam = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-20 items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-16 items-start">
               <AnimatePresence mode="popLayout">
                 {filteredEmployees.map((staff, idx) => {
                   const branchName = getBranchName(staff.branch);
                   const picUrl = getImageUrl(staff.profilePic);
                   const initials = getInitials(staff.name);
 
+                  const fallbackPortrait = DUMMY_PORTRAITS[idx % DUMMY_PORTRAITS.length] + '?q=80&w=800&auto=format&fit=crop&crop=faces&facepad=2';
+
                   return (
                     <motion.article
                       key={staff._id}
                       layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.5, delay: idx * 0.05 }}
-                      className={`group relative flex flex-col ${idx % 3 === 1 ? 'lg:mt-24' : ''}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.6, delay: idx * 0.04 }}
+                      className="group relative flex flex-col"
                     >
-                      {/* Image Container - Removed Grayscale */}
-                      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[3rem] bg-white shadow-2xl shadow-zen-primary/10 transition-all duration-700 group-hover:-translate-y-4 group-hover:shadow-zen-sand/20">
+                      {/* Boutique Image Container */}
+                      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[2.5rem] bg-zen-stone/5 border border-zen-stone/10 transition-all duration-700 group-hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)]">
                         <img
-                          src={picUrl || `https://images.unsplash.com/photo-1544161515-4ae6ce6fe858?auto=format&fit=crop&q=80&employee=${staff._id}`}
+                          src={picUrl || fallbackPortrait}
                           alt={staff.name}
-                          className="h-full w-full object-cover transition-all duration-1000 group-hover:scale-110"
+                          className="h-full w-full object-cover transition-all duration-1000 scale-105 group-hover:scale-110"
                           onError={(e) => {
-                            // If even the high-quality fallback fails or the original failed, try a distinct backup portrait before the initials
-                            const target = e.currentTarget as HTMLImageElement;
-                            if (target.src !== `https://images.unsplash.com/photo-1594744803329-a584af1cae23?auto=format&fit=crop&q=80`) {
-                              target.src = `https://images.unsplash.com/photo-1594744803329-a584af1cae23?auto=format&fit=crop&q=80`;
-                            } else {
-                              target.style.display = 'none';
-                              const fallback = target.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'flex';
-                            }
+                             const target = e.currentTarget as HTMLImageElement;
+                             // Prevent infinite loop if fallback also fails
+                             if (target.src !== fallbackPortrait) {
+                                target.src = fallbackPortrait;
+                             }
                           }}
                         />
-
-                        <div
-                          className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zen-primary/10 to-zen-sand/5"
-                          style={{ display: 'none' }}
-                        >
-                          <span className="text-6xl font-black text-white/10 absolute select-none">ZEN</span>
-                          <span className="text-5xl font-black text-zen-primary tracking-tighter font-accent opacity-20">{initials}</span>
-                        </div>
-
-                        {/* Overlays */}
-                        <div className="absolute inset-x-0 bottom-0 p-8 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
-                          <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.3em] text-white/90 mb-3">
-                            <MapPin size={10} className="text-zen-sand" />
-                            {branchName}
-                          </div>
-                          <h3 className="text-4xl font-bold text-white mb-1 leading-none font-accent">{staff.name}</h3>
-                          <div className="flex items-center gap-2">
-                             <div className="h-px flex-1 bg-white/20" />
-                             <span className="text-[10px] font-bold uppercase tracking-widest text-zen-sand italic">{staff.role || 'Therapist'}</span>
-                          </div>
-                        </div>
-
-                        {/* Floating Interaction Button */}
+                        
+                        {/* Elegant Minimal Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-zen-brown/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                        
+                        {/* Quick View Button */}
                         <Link 
                           to="/contact"
-                          className="absolute bottom-6 right-6 h-12 w-12 bg-white rounded-full flex items-center justify-center text-zen-primary shadow-xl opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500 hover:bg-zen-sand hover:text-white"
+                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                         >
-                          <ExternalLink size={20} />
+                          <div className="px-6 py-3 bg-white/90 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-[0.3em] text-zen-brown shadow-2xl scale-90 group-hover:scale-100 transition-transform duration-500">
+                             Connect
+                          </div>
                         </Link>
                       </div>
 
-                      {/* Info Section */}
-                      <div className="mt-8 px-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex -space-x-2">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star key={s} size={14} className="fill-zen-sand text-zen-sand" />
-                            ))}
-                          </div>
-                          <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Top Rated Specialist</span>
+                      {/* Professional Meta Section */}
+                      <div className="mt-8 space-y-4 px-2">
+                        <div className="space-y-1">
+                           <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.4em] text-zen-gold">
+                              <span>{staff.role || 'Therapist'}</span>
+                              <span className="text-zen-brown/20">{branchName}</span>
+                           </div>
+                           <h3 className="text-2xl font-serif font-bold text-zen-brown group-hover:text-zen-gold transition-colors duration-500">{staff.name}</h3>
                         </div>
 
-                        <p className="text-sm text-zen-brown/60 leading-relaxed line-clamp-3 mb-6">
-                          {staff.bio || `Specializing in ${staff.role?.toLowerCase() || 'premium holistic treatments'}, ensuring every guest experiences the peak of ${siteName} hospitality.`}
+                        <p className="text-[13px] text-zen-brown/40 font-serif leading-relaxed line-clamp-2 italic">
+                          {staff.bio || `A master of restorative arts, dedicated to the sublime ${siteName} experience.`}
                         </p>
 
-                        <div className="flex flex-wrap gap-2">
-                           {['Holistic', 'Clinical', 'Expert'].map((tag) => (
-                             <span key={tag} className="px-3 py-1 bg-zen-sand/5 border border-zen-sand/10 rounded-full text-[9px] font-bold text-zen-sand uppercase tracking-wider">
+                        <div className="flex flex-wrap gap-2 pt-1">
+                           {(staff.specialties && staff.specialties.length > 0 ? staff.specialties : []).map((tag) => (
+                             <span key={tag} className="px-3 py-1 bg-zen-sand/5 border border-zen-sand/10 rounded-full text-[8px] font-black uppercase tracking-widest text-zen-gold/80">
                                {tag}
                              </span>
                            ))}
+                        </div>
+
+                        <div className="flex items-center gap-4 pt-4 border-t border-zen-stone/5">
+                           <div className="flex gap-0.5">
+                             {Array.from({ length: 5 }).map((_, s) => (
+                               <Star key={s} size={10} className="fill-zen-gold/40 text-transparent" />
+                             ))}
+                           </div>
+                           <span className="text-[9px] font-black uppercase tracking-widest text-zen-brown/10 group-hover:text-zen-gold/60 transition-colors">
+                             {staff.yearsOfExperience ? `${staff.yearsOfExperience} Years Experience` : 'Specialist'}
+                           </span>
                         </div>
                       </div>
                     </motion.article>

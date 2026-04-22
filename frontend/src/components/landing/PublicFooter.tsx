@@ -17,7 +17,7 @@ const PublicFooter = () => {
       <div className="absolute top-0 left-1/4 w-[60%] h-[40%] bg-zen-sand/5 blur-[160px] rounded-full -translate-y-1/2 opacity-40" />
       <div className="absolute bottom-0 right-0 w-[40%] h-[40%] bg-zen-primary/10 blur-[140px] rounded-full translate-y-1/3 opacity-30" />
       
-      <div className="container mx-auto px-6 lg:px-24 relative z-10">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-24 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 mb-32">
           
           {/* Brand Vision */}
@@ -116,7 +116,7 @@ const PublicFooter = () => {
         </div>
 
         {/* Designer Bottom Bar */}
-        <div className="pt-20 border-t border-white/5">
+        <div className="pt-20 border-t border-white/5 max-w-[1400px] mx-auto">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
             <div className="flex flex-col md:flex-row items-center gap-12 text-[10px] font-bold uppercase tracking-[0.4em] text-white/20">
                <span className="hover:text-white/40 transition-colors">&copy; 2026 {siteName} Sanctuary</span>

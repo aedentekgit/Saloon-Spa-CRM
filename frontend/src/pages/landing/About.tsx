@@ -11,7 +11,7 @@ const About = () => {
     <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-sand/20">
       {/* Hero Content - Reduced top gap by lowering padding */}
       <section className="px-6 lg:px-24 mb-16 pt-12 md:pt-24 lg:pt-32">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-center">
+        <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-24 items-center">
           <div className="space-y-12 animate-in fade-in slide-in-from-left-8 duration-1000">
             <div className="space-y-8">
               <div className="flex items-center gap-3 text-[10px] md:text-sm font-bold tracking-[0.2em] uppercase text-zen-brown/60">
@@ -19,9 +19,9 @@ const About = () => {
                 Est. 2024 • {siteName}
               </div>
               <h1 className="text-5xl md:text-6xl lg:text-[6.5rem] font-serif font-bold leading-[0.9] tracking-tight">
-                Our Story at<br />
+                Ancient Rituals,<br />
                 <span className="italic relative animate-text-shine">
-                  Sanctuary
+                  Modern Soul
                   <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-zen-brown/10" />
                 </span>
               </h1>
@@ -63,7 +63,7 @@ const About = () => {
 
       {/* Philosophy Section - Minimalist Luxury Re-design */}
       <section className="bg-zen-cream py-24 lg:py-40 px-6 lg:px-24">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           {/* Section Header */}
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-12 mb-32">
             <div className="max-w-2xl space-y-6">

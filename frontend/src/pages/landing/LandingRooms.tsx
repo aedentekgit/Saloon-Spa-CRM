@@ -83,7 +83,7 @@ const LandingRooms = () => {
     <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-sand/20">
       {/* Reduced top padding for header */}
       <header className="relative z-10 px-6 pt-12 md:pt-24 lg:pt-32 pb-32 lg:px-24">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-[1400px]">
           <div className="grid lg:grid-cols-12 gap-12 items-center">
             <motion.div 
               initial={{ opacity: 0, x: -30 }}
@@ -96,9 +96,12 @@ const LandingRooms = () => {
                   <span className="w-12 h-[1px] bg-zen-brown/20" />
                   Space & Atmosphere
                 </div>
-                <h1 className="text-6xl md:text-7xl lg:text-9xl font-serif font-bold leading-[0.8] tracking-tighter">
+                <h1 className="text-5xl md:text-6xl lg:text-[6.5rem] font-serif font-bold leading-[0.9] tracking-tight">
                   Sacred<br />
-                  <span className="italic animate-text-shine">Chambers</span>
+                  <span className="italic relative animate-text-shine">
+                    Chambers
+                    <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-zen-brown/10" />
+                  </span>
                 </h1>
               </div>
 
@@ -151,7 +154,7 @@ const LandingRooms = () => {
 
       {/* Branch Tabs */}
       <section className="px-6 lg:px-24 mb-16">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           <div className="flex flex-wrap items-center gap-4 lg:gap-8 px-4 -mx-4 pt-4 -mt-4 pb-8 border-b border-zen-primary/5 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setSelectedBranch('all')}
@@ -182,7 +185,7 @@ const LandingRooms = () => {
 
       {/* Rooms Grid */}
       <section className="px-6 lg:px-24 pb-32 min-h-[500px]">
-         <div className="max-w-7xl mx-auto">
+         <div className="max-w-[1400px] mx-auto">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-40 gap-6">
                 <Loader2 className="w-12 h-12 text-zen-brown/20 animate-spin" />
