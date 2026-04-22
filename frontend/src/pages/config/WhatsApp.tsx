@@ -134,25 +134,72 @@ const WhatsApp = () => {
       hideSearch
       hideAddButton
     >
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-        <div className="lg:col-span-3 space-y-10">
+      <div className="space-y-12">
+        {/* Top Summary / Status */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+           <div className="bg-zen-brown p-8 rounded-[1.5rem] shadow-lg relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-1000">
+                 <Zap size={100} />
+              </div>
+              <div className="relative z-10 flex items-center gap-6">
+                 <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-xl">
+                    <MessageSquare className="text-white" size={32} />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-1">Today's Flow</p>
+                    <p className="text-3xl font-serif font-bold text-white">124</p>
+                 </div>
+              </div>
+           </div>
+
+           <div className="bg-white/80 backdrop-blur-sm p-8 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+              <div className="flex items-center gap-6">
+                 <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500">
+                    <Sparkles size={32} />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.3em] mb-1">Impact Level</p>
+                    <p className="text-3xl font-serif font-bold text-emerald-600">99%</p>
+                 </div>
+              </div>
+           </div>
+
+           <div className="bg-white/80 backdrop-blur-sm p-8 rounded-[1.5rem] border border-zen-brown/15 shadow-sm flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                 <div className="w-16 h-16 bg-zen-sand/10 rounded-2xl flex items-center justify-center text-zen-sand">
+                    <CheckCircle2 size={32} />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.3em] mb-1">Gateway Status</p>
+                    <p className="text-3xl font-serif font-bold text-zen-brown">Active</p>
+                 </div>
+              </div>
+              <div className="flex items-center gap-2 bg-emerald-500/10 px-4 py-2 rounded-full border border-emerald-500/20">
+                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                 <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Resonant</span>
+              </div>
+           </div>
+        </div>
+
+        <div className="space-y-12">
+           {/* Templates Section */}
            <div className="bg-white/60 backdrop-blur-sm p-10 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
               <div className="flex items-center justify-between mb-8">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Message Templates</h3>
-                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[.4em] mt-2">Predefined Message Templates</p>
+                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[.4em] mt-2 italic">Predefined Dissemination Protocols</p>
                  </div>
                  <ZenIconButton icon={Layout} />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                  {templates.map((tpl) => (
                     <div
                       key={tpl.id}
                       onClick={() => handleSelectTemplate(tpl)}
-                      className={`group p-8 rounded-[1rem] border transition-all duration-500 cursor-pointer relative overflow-hidden ${selectedTemplate?.id === tpl.id 
-                        ? 'bg-zen-brown text-white border-zen-brown shadow-sm' 
-                        : 'bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-cream hover:border-zen-sand'}`}
+                      className={`group p-8 rounded-[1.25rem] border transition-all duration-500 cursor-pointer relative overflow-hidden ${selectedTemplate?.id === tpl.id 
+                        ? 'bg-zen-brown text-white border-zen-brown shadow-xl scale-[1.02]' 
+                        : 'bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-cream hover:border-zen-sand hover:scale-[1.02]'}`}
                     >
                        {selectedTemplate?.id === tpl.id && (
                           <div className="absolute top-0 right-0 p-6 opacity-10">
@@ -166,127 +213,118 @@ const WhatsApp = () => {
                           </div>
                           <span className="text-lg font-serif font-bold tracking-tight">{tpl.name}</span>
                        </div>
-                       <p className={`text-sm leading-relaxed relative z-10 ${selectedTemplate?.id === tpl.id ? 'text-white/60' : 'text-zen-brown/40 italic'}`}>"{tpl.text}"</p>
+                       <p className={`text-sm leading-relaxed relative z-10 ${selectedTemplate?.id === tpl.id ? 'text-white/70' : 'text-zen-brown/40 italic'}`}>"{tpl.text}"</p>
                     </div>
                  ))}
               </div>
            </div>
 
-           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+           {/* Campaign Terminal */}
+           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[1.5rem] border border-zen-brown/15 shadow-xl">
               <div className="flex items-center justify-between mb-10">
                  <div>
                     <h3 className="text-2xl font-serif font-bold text-zen-brown tracking-tight">Campaign Terminal</h3>
-                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2">Campaign Management</p>
+                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2 italic">Global Broadcast Orchestration</p>
                  </div>
                  <ZenIconButton icon={Settings} />
               </div>
 
-              <div className="space-y-10">
-                 <ZenDropdown 
-                   label="Target Audience"
-                   options={['All Clients', 'Active Only', 'Birthdays', 'No Visit']}
-                   value={selectedAudience}
-                   onChange={setSelectedAudience}
-                 />
-                 
-                 <ZenTextarea 
-                   label="Dissemination Content"
-                   placeholder="Refine your message or select a template above..."
-                   value={message}
-                   onChange={(e: any) => setMessage(e.target.value)}
-                 />
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                 <div className="lg:col-span-8 space-y-10">
+                    <ZenDropdown 
+                      label="Target Audience"
+                      options={['All Clients', 'Active Only', 'Birthdays', 'No Visit']}
+                      value={selectedAudience}
+                      onChange={setSelectedAudience}
+                    />
+                    
+                    <ZenTextarea 
+                      label="Dissemination Content"
+                      placeholder="Refine your message or select a template above..."
+                      value={message}
+                      onChange={(e: any) => setMessage(e.target.value)}
+                      rows={6}
+                    />
 
-                 <div className="flex items-center justify-between p-6 bg-zen-cream/10 rounded-[1rem] border border-zen-brown/15">
-                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em]">* Personalize with [Name] placeholder</p>
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-zen-leaf uppercase tracking-widest">
-                       <Zap size={14} />
-                       Instant Delivery
-                    </div>
-                 </div>
-
-                 <ZenButton 
-                   className="w-full py-6 rounded-[1rem] text-xl shadow-sm shadow-emerald-500/10 flex items-center justify-center gap-4 bg-[#25D366] hover:bg-[#20bd5c] text-white border-none" 
-                   onClick={handleSend}
-                   disabled={!message || isSending}
-                 >
-                    {isSending ? (
-                       <div className="flex items-center gap-4">
-                          <div className="w-6 h-6 border-4 border-white/40 border-t-white rounded-full animate-spin"></div>
-                          <span>Sending...</span>
+                    <div className="flex items-center justify-between p-6 bg-zen-cream/30 rounded-[1rem] border border-zen-brown/15">
+                       <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">* Personalize with [Name] placeholder</p>
+                       <div className="flex items-center gap-2 text-[10px] font-black text-zen-leaf uppercase tracking-widest">
+                          <Zap size={14} />
+                          Instant Relay
                        </div>
-                    ) : (
-                       <>
-                          <Send size={24} />
-                          <span>Send Bulk Message</span>
-                       </>
-                    )}
-                 </ZenButton>
-              </div>
-           </div>
-        </div>
-
-        <div className="space-y-10">
-           <div className="bg-zen-brown p-10 rounded-[1.5rem] shadow-sm relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-1000">
-                 <Zap size={150} />
-              </div>
-              <div className="relative z-10 text-center">
-                 <div className="w-20 h-20 bg-white/10 rounded-[1rem] flex items-center justify-center mx-auto mb-6 backdrop-blur-xl">
-                    <MessageSquare className="text-white" size={36} />
-                 </div>
-                 <h3 className="text-xl font-serif font-bold text-white tracking-tight">Messaging Hub</h3>
-                 <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em] mt-2 mb-8">Campaign Status</p>
-                 
-                 <div className="flex items-center justify-center gap-3 bg-emerald-500/20 px-4 py-2 rounded-full border border-emerald-500/20 w-fit mx-auto mb-8">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest leading-none">Fully Resonant</span>
+                    </div>
                  </div>
 
-                 <div className="grid grid-cols-2 gap-6 text-left">
-                    <div>
-                       <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-1">Today's Flow</p>
-                       <p className="text-2xl font-serif font-bold text-white">124</p>
+                 <div className="lg:col-span-4 flex flex-col justify-end gap-6">
+                    <div className="p-8 bg-zen-sand/10 rounded-[1.5rem] border border-zen-sand/20 italic">
+                       <p className="text-sm text-zen-brown/60 leading-relaxed">
+                          "Messages are broadcasted through the primary WhatsApp Gateway. Ensure your device is connected before initiating large campaigns."
+                       </p>
                     </div>
-                    <div>
-                       <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-1">Impact Level</p>
-                       <p className="text-2xl font-serif font-bold text-emerald-400">99%</p>
-                    </div>
+                    <ZenButton 
+                      className="w-full py-8 rounded-[1.5rem] text-xl shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-4 bg-[#25D366] hover:bg-[#20bd5c] text-white border-none transform transition-transform hover:scale-[1.02] active:scale-95" 
+                      onClick={handleSend}
+                      disabled={!message || isSending}
+                    >
+                       {isSending ? (
+                          <div className="flex items-center gap-4">
+                             <div className="w-6 h-6 border-4 border-white/40 border-t-white rounded-full animate-spin"></div>
+                             <span>Sending...</span>
+                          </div>
+                       ) : (
+                          <>
+                             <Send size={28} />
+                             <span className="font-bold">Initiate Broadcast</span>
+                          </>
+                       )}
+                    </ZenButton>
                  </div>
               </div>
            </div>
 
-           <div className="bg-white/60 backdrop-blur-sm rounded-[1.5rem] border border-zen-brown/15 overflow-hidden shadow-sm flex flex-col h-[600px]">
+           {/* History Section */}
+           <div className="bg-white/60 backdrop-blur-sm rounded-[1.5rem] border border-zen-brown/15 overflow-hidden shadow-sm flex flex-col">
               <div className="p-8 border-b border-zen-brown/15 bg-white/40 flex justify-between items-center">
                  <div>
-                    <h3 className="text-lg font-serif font-bold text-zen-brown">Campaign History</h3>
-                    <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-1">Archived Campaigns</p>
+                    <h3 className="text-xl font-serif font-bold text-zen-brown tracking-tight">Campaign History</h3>
+                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-1">Archived Dissemination Logs</p>
                  </div>
                  <ZenIconButton icon={Clock} />
               </div>
               
-              <div className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-4">
-                 {campaigns.map((cam) => (
-                    <div key={cam._id} className="group p-6 bg-white hover:bg-zen-cream/30 border border-zen-brown/15 rounded-[1rem] transition-all duration-500">
-                       <div className="flex justify-between items-start mb-4">
-                          <div>
-                             <p className="text-sm font-serif font-bold text-zen-brown tracking-tight">{cam.templateName}</p>
-                             <p className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-[.2em] mt-1">{cam.audience}</p>
+              <div className="p-8">
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {campaigns.map((cam) => (
+                       <div key={cam._id} className="group p-8 bg-white hover:bg-zen-cream/30 border border-zen-brown/10 rounded-[1.25rem] transition-all duration-500 shadow-sm hover:shadow-md">
+                          <div className="flex justify-between items-start mb-6">
+                             <div>
+                                <p className="text-lg font-serif font-bold text-zen-brown tracking-tight mb-1">{cam.templateName}</p>
+                                <div className="flex items-center gap-3">
+                                   <ZenBadge variant="stone" className="text-[8px] uppercase font-black">{cam.audience}</ZenBadge>
+                                   <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">{dayjs(cam.date).format('MMM DD, YYYY')}</span>
+                                </div>
+                             </div>
+                             <ZenBadge variant="leaf" className="bg-emerald-50 text-emerald-600 border-none shadow-none text-[9px]">{cam.status}</ZenBadge>
                           </div>
-                          <ZenBadge variant="leaf" className="bg-emerald-50 text-emerald-600 border-none shadow-none">{cam.status}</ZenBadge>
-                       </div>
-                       
-                       <div className="flex justify-between items-end border-t border-zen-brown/15 pt-4">
-                          <div className="flex items-center gap-2">
-                             <Users size={12} className="text-zen-sand" />
-                             <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{cam.sentCount} Ambassadors</span>
+                          
+                          <p className="text-sm text-zen-brown/60 line-clamp-2 italic mb-6">"{cam.message}"</p>
+                          
+                          <div className="flex justify-between items-center border-t border-zen-brown/5 pt-6">
+                             <div className="flex items-center gap-2">
+                                <Users size={14} className="text-zen-sand" />
+                                <span className="text-[10px] font-black text-zen-brown uppercase tracking-widest">{cam.sentCount} Recipients</span>
+                             </div>
+                             <div className="w-8 h-8 rounded-full bg-zen-cream/50 flex items-center justify-center text-zen-sand group-hover:bg-zen-sand group-hover:text-white transition-colors">
+                                <Send size={12} />
+                             </div>
                           </div>
-                          <p className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-[.2em]">{dayjs(cam.date).format('MMM DD, YYYY')}</p>
                        </div>
-                    </div>
-                 ))}
+                    ))}
+                 </div>
                  {campaigns.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center py-20 opacity-20 italic font-serif">
-                       No messages sent yet.
+                    <div className="py-32 flex flex-col items-center justify-center opacity-20 italic font-serif">
+                       <MessageSquare size={48} className="mb-4" />
+                       <p>No messaging history recorded.</p>
                     </div>
                  )}
               </div>

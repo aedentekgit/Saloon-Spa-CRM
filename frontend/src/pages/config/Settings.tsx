@@ -189,6 +189,7 @@ const Settings = () => {
       if (response.ok) {
         notify('success', 'Status Updated', `Taxation mode is now ${newState ? 'active' : 'paused'}.`);
         await refreshSettings();
+        await fetchSettings();
       }
     } catch (e) {
       notify('error', 'Error', 'Failed to update system settings.');
@@ -232,6 +233,26 @@ const Settings = () => {
       }
     } catch (e) {
       notify('error', 'Error', 'Failed to remove rate.');
+    }
+  };
+
+  const handleToggleTaxRate = async (rate: GSTRate) => {
+    try {
+      const response = await fetch(`${API_URL}/gst/${rate._id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        body: JSON.stringify({ isActive: !rate.isActive })
+      });
+
+      if (response.ok) {
+        notify('success', 'Status Updated', `Tax protocol ${rate.name} is now ${!rate.isActive ? 'active' : 'inactive'}.`);
+        fetchTaxRates();
+      }
+    } catch (e) {
+      notify('error', 'Error', 'Failed to update tax rate status.');
     }
   };
 
@@ -516,8 +537,8 @@ const Settings = () => {
                 className="h-full"
               >
                   {activeSection === 'foundations' && (
-                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
-                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                     <div className="w-full">
+                        <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
                            <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Business Profile</h3>
@@ -528,79 +549,116 @@ const Settings = () => {
                               </div>
                            </header>
 
-                           <div className="space-y-8">
-                              <ZenInput 
-                                 label="Business Name"
-                                 value={settings.general.siteName}
-                                 onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, siteName: e.target.value}} : null)}
-                              />
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                              <div className="lg:col-span-8 space-y-8">
                                  <ZenInput 
-                                   label="Official Email"
-                                   icon={Mail}
-                                   value={settings.general.email}
-                                   onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, email: e.target.value}} : null)}
+                                    label="Business Name"
+                                    value={settings.general.siteName}
+                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, siteName: e.target.value}} : null)}
                                  />
-                                  <div className="relative">
-                                     <ZenInput 
-                                       label="Contact Number"
-                                       icon={Phone}
-                                       prefix={settings.general.dialingCode}
-                                       value={settings.general.contactNumber}
-                                       maxLength={countries.find(c => c.iso === settings.general.countryIso)?.phoneLength || 10}
-                                       onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, contactNumber: e.target.value.replace(/\D/g, '')}} : null)}
-                                     />
-                                     <div className="flex items-center gap-2 mt-2 px-1">
-                                        <Info size={10} className="text-zen-brown/40" />
-                                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">
-                                          {getPhoneValidationProtocol(settings.general.countryIso)}
-                                        </p>
+                                 
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <ZenInput 
+                                      label="Official Email"
+                                      icon={Mail}
+                                      value={settings.general.email}
+                                      onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, email: e.target.value}} : null)}
+                                    />
+                                     <div className="relative">
+                                        <ZenInput 
+                                          label="Contact Number"
+                                          icon={Phone}
+                                          prefix={settings.general.dialingCode}
+                                          value={settings.general.contactNumber}
+                                          maxLength={countries.find(c => c.iso === settings.general.countryIso)?.phoneLength || 10}
+                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, contactNumber: e.target.value.replace(/\D/g, '')}} : null)}
+                                        />
+                                        <div className="flex items-center gap-2 mt-2 px-1">
+                                           <Info size={10} className="text-zen-brown/40" />
+                                           <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">
+                                             {getPhoneValidationProtocol(settings.general.countryIso)}
+                                           </p>
+                                        </div>
                                      </div>
-                                  </div>
+                                 </div>
+
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <ZenInput 
+                                      label="Currency"
+                                      placeholder="e.g. Qatari Riyal"
+                                      value={settings.general.currency}
+                                      onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, currency: e.target.value}} : null)}
+                                    />
+                                    <ZenInput 
+                                      label="Currency Symbol"
+                                      placeholder="e.g. QR"
+                                      value={settings.general.currencySymbol}
+                                      onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, currencySymbol: e.target.value}} : null)}
+                                    />
+                                 </div>
+
+                                 <ZenDropdown
+                                    label="Country"
+                                    icon={Map}
+                                    options={countries.map(c => c.name)}
+                                    value={settings.general.country}
+                                    onChange={(val) => {
+                                       const country = countries.find(c => c.name === val);
+                                       if (country) {
+                                          setSettings(prev => prev ? {
+                                             ...prev, 
+                                             general: {
+                                                ...prev.general, 
+                                                country: country.name,
+                                                countryIso: country.iso,
+                                                dialingCode: country.code
+                                             }
+                                          } : null);
+                                       }
+                                    }}
+                                 />
+
+                                 <ZenTextarea 
+                                    label="Business Address"
+                                    value={settings.general.address}
+                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, address: e.target.value}} : null)}
+                                 />
                               </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                 <ZenInput 
-                                   label="Currency"
-                                   placeholder="e.g. Qatari Riyal"
-                                   value={settings.general.currency}
-                                   onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, currency: e.target.value}} : null)}
-                                 />
-                                 <ZenInput 
-                                   label="Currency Symbol"
-                                   placeholder="e.g. QR"
-                                   value={settings.general.currencySymbol}
-                                   onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, currencySymbol: e.target.value}} : null)}
-                                 />
+                              <div className="lg:col-span-4">
+                                 <div className="bg-zen-cream/30 p-8 rounded-[1.5rem] border border-zen-brown/10 shadow-sm relative overflow-hidden group min-h-[400px] flex flex-col items-center justify-center text-center">
+                                    <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-150 transition-transform duration-1000">
+                                       <Camera size={150} />
+                                    </div>
+                                    <h4 className="text-xl font-serif font-bold mb-10 relative z-10 text-zen-brown">Brand Logo</h4>
+                                    <div className="relative group w-fit mx-auto mb-10 z-10">
+                                       {(logoFile || settings.general.logo) ? (
+                                         <div className="relative p-3 bg-white zen-pointed-surface border border-zen-brown/15 shadow-sm">
+                                            <img 
+                                              src={logoFile ? URL.createObjectURL(logoFile) : (settings.general.logo && settings.general.logo.startsWith('http') ? settings.general.logo : `${API_URL.split('/api')[0]}/${settings.general.logo?.replace(/^\.?\//, '')}`)} 
+                                              alt="Logo" 
+                                              className="h-40 w-40 object-cover zen-pointed-surface shadow-sm" 
+                                            />
+                                            <label htmlFor="logo-upload-final" className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 rounded-[1rem] flex items-center justify-center transition-all cursor-pointer backdrop-blur-md">
+                                               <Camera className="text-white" size={32} />
+                                            </label>
+                                         </div>
+                                       ) : (
+                                         <label htmlFor="logo-upload-final" className="h-40 w-40 bg-white rounded-[1rem] flex items-center justify-center text-zen-brown/20 border border-zen-brown/15 cursor-pointer hover:bg-zen-cream/50 transition-all">
+                                            <Camera size={40} />
+                                         </label>
+                                       )}
+                                    </div>
+                                    <input type="file" id="logo-upload-final" className="hidden" accept="image/*" onChange={e => setLogoFile(e.target.files?.[0] || null)} />
+                                    
+                                    {logoFile && (
+                                       <ZenButton onClick={handleLogoUpload} className="w-full bg-zen-brown text-white hover:bg-zen-brown/90 py-5 rounded-[1.5rem] font-bold shadow-xl relative z-10">
+                                          Synchronize Logo
+                                       </ZenButton>
+                                    )}
+                                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-4">Recommended: 512x512 PNG</p>
+                                 </div>
                               </div>
-
-                              <ZenDropdown
-                                 label="Country"
-                                 icon={Map}
-                                 options={countries.map(c => c.name)}
-                                 value={settings.general.country}
-                                 onChange={(val) => {
-                                    const country = countries.find(c => c.name === val);
-                                    if (country) {
-                                       setSettings(prev => prev ? {
-                                          ...prev, 
-                                          general: {
-                                             ...prev.general, 
-                                             country: country.name,
-                                             countryIso: country.iso,
-                                             dialingCode: country.code
-                                          }
-                                       } : null);
-                                    }
-                                 }}
-                              />
-
-                              <ZenTextarea 
-                                 label="Business Address"
-                                 value={settings.general.address}
-                                 onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, address: e.target.value}} : null)}
-                              />
                            </div>
 
                            <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
@@ -612,40 +670,6 @@ const Settings = () => {
                                  Update Profile
                               </ZenButton>
                            </footer>
-                        </div>
-
-                        <div className="xl:col-span-4 space-y-6">
-                           <div className="bg-zen-brown p-8 sm:p-12 rounded-[1.5rem] text-white shadow-sm relative overflow-hidden group min-h-[400px]">
-                              <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-150 transition-transform duration-1000">
-                                 <Camera size={150} />
-                              </div>
-                              <h4 className="text-xl font-serif font-bold mb-10 relative z-10">Brand Assets</h4>
-                              <div className="relative group w-fit mx-auto mb-10 z-10">
-                                 {(logoFile || settings.general.logo) ? (
-                                   <div className="relative p-3 bg-white/5 zen-pointed-surface border border-white/10 backdrop-blur-sm">
-                                      <img 
-                                        src={logoFile ? URL.createObjectURL(logoFile) : (settings.general.logo && settings.general.logo.startsWith('http') ? settings.general.logo : `${API_URL.split('/api')[0]}/${settings.general.logo?.replace(/^\.?\//, '')}`)} 
-                                        alt="Logo" 
-                                        className="h-40 w-40 object-cover zen-pointed-surface shadow-sm" 
-                                      />
-                                      <label htmlFor="logo-upload-final" className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 rounded-[1rem] flex items-center justify-center transition-all cursor-pointer backdrop-blur-md">
-                                         <Camera className="text-white" size={32} />
-                                      </label>
-                                   </div>
-                                 ) : (
-                                   <label htmlFor="logo-upload-final" className="h-40 w-40 bg-white/5 rounded-[1rem] flex items-center justify-center text-white/20 border border-white/10 cursor-pointer hover:bg-white/10 transition-all">
-                                      <Camera size={40} />
-                                   </label>
-                                 )}
-                              </div>
-                              <input type="file" id="logo-upload-final" className="hidden" accept="image/*" onChange={e => setLogoFile(e.target.files?.[0] || null)} />
-                              
-                              {logoFile && (
-                                 <ZenButton onClick={handleLogoUpload} className="w-full bg-white text-zen-brown hover:bg-zen-cream py-5 rounded-[1.5rem] font-bold shadow-xl relative z-10">
-                                    Synchronize Logo
-                                 </ZenButton>
-                              )}
-                           </div>
                         </div>
                      </div>
                   )}
@@ -1125,8 +1149,8 @@ const Settings = () => {
                     )}
 
                   {activeSection === 'smtp' && (
-                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                        <div className="xl:col-span-8 bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                     <div className="w-full">
+                        <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
                            <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
                               <div>
                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">SMTP Gateway</h3>
@@ -1237,110 +1261,92 @@ const Settings = () => {
                               </ZenButton>
                            </footer>
                         </div>
-
-                        <div className="xl:col-span-4 h-full">
-                           <div className="bg-zen-brown p-6 sm:p-10 rounded-[2rem] text-white shadow-xl relative overflow-hidden h-full group">
-                              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-150 transition-transform duration-1000">
-                                 <ShieldCheck size={180} />
-                              </div>
-                              <h4 className="text-2xl font-serif font-bold mb-6 flex items-center gap-3 relative z-10">
-                                 Security Protocol
-                              </h4>
-                              <p className="text-sm font-medium text-white/90 leading-relaxed relative z-10">
-                                 Your SMTP credentials are encrypted and stored securely within our infrastructure. 
-                                 For standard configuration, use port **587** with TLS. For legacy systems, port **465** provides direct SSL.
-                              </p>
-                              <div className="mt-8 space-y-4 relative z-10">
-                                 <div className="p-6 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
-                                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-2">Service Status</p>
-                                    <div className="flex items-center gap-3">
-                                       <div className={`w-2.5 h-2.5 rounded-full ${settings.smtp?.host ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)] animate-pulse' : 'bg-rose-400 shadow-[0_0_12px_rgba(251,113,113,0.5)]'}`} />
-                                       <p className="text-sm font-bold text-white tracking-tight">{settings.smtp?.host ? 'Communication Active' : 'Provider Pending'}</p>
-                                    </div>
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
                      </div>
                   )}
 
                   {activeSection === 'whatsapp' && (
-                     <div className="space-y-12 max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <div className="flex items-center gap-6 mb-12">
-                           <div className="w-16 h-16 rounded-[1.5rem] bg-[#25D366]/10 flex items-center justify-center text-[#25D366]">
-                              <MessageSquare size={32} />
-                           </div>
-                           <div>
-                              <h2 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">WhatsApp Gateway</h2>
-                              <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2 italic">Automated Customer Dissemination</p>
-                           </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                           <div className="space-y-8 p-10 bg-white/40 rounded-[2rem] border border-zen-brown/15 shadow-sm group hover:bg-white/80 transition-all duration-700">
-                              <div className="flex items-center justify-between mb-4">
-                                 <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-zen-brown">Instance Credentials</h3>
-                                 <ZenBadge variant={settings.whatsapp.enabled ? 'leaf' : 'stone'}>
-                                    {settings.whatsapp.enabled ? 'Channel Live' : 'Channel Paused'}
-                                 </ZenBadge>
+                     <div className="w-full">
+                        <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                           <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                              <div className="flex items-center gap-6">
+                                 <div className="w-16 h-16 rounded-[1.5rem] bg-[#25D366]/10 flex items-center justify-center text-[#25D366]">
+                                    <MessageSquare size={32} />
+                                 </div>
+                                 <div>
+                                    <h2 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">WhatsApp Gateway</h2>
+                                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-2 italic">Automated Customer Dissemination</p>
+                                 </div>
                               </div>
+                           </header>
 
-                              <ZenInput 
-                                label="Provider"
-                                placeholder="e.g. ultramsg"
-                                value={settings.whatsapp.provider}
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, provider: e.target.value}} : null)}
-                                icon={Layout}
-                              />
+                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                              <div className="space-y-8">
+                                 <ZenDropdown 
+                                    label="Provider Platform"
+                                    options={['UltraMsg', 'Wati', 'Twilio']}
+                                    value={settings.whatsapp.provider}
+                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, provider: e.target.value}} : null)}
+                                    icon={Layout}
+                                 />
 
-                              <ZenInput 
-                                label="Instance ID"
-                                placeholder="e.g. instance12345"
-                                value={settings.whatsapp.instanceId}
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, instanceId: e.target.value}} : null)}
-                                icon={Zap}
-                              />
+                                 <ZenInput 
+                                    label="Instance ID"
+                                    placeholder="e.g. instance12345"
+                                    value={settings.whatsapp.instanceId}
+                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, instanceId: e.target.value}} : null)}
+                                    icon={Zap}
+                                 />
 
-                              <ZenInput 
-                                label="Token / API Key"
-                                type="password"
-                                placeholder="Your private access token"
-                                value={settings.whatsapp.token}
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, token: e.target.value}} : null)}
-                                icon={ShieldCheck}
-                              />
+                                 <ZenInput 
+                                    label="Token / API Key"
+                                    type="password"
+                                    placeholder="Your private access token"
+                                    value={settings.whatsapp.token}
+                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, token: e.target.value}} : null)}
+                                    icon={ShieldCheck}
+                                 />
 
-                              <div className="flex items-center justify-between pt-4">
-                                 <span className="text-[11px] font-bold text-zen-brown/50 uppercase tracking-widest">Enable Messaging</span>
-                                 <button 
-                                   onClick={() => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, enabled: !prev.whatsapp.enabled}} : null)}
-                                   className={`w-12 h-6 rounded-full transition-all duration-500 relative ${settings.whatsapp.enabled ? 'bg-[#25D366]' : 'bg-stone-300'}`}
-                                 >
-                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-500 ${settings.whatsapp.enabled ? 'left-7' : 'left-1'}`} />
-                                 </button>
-                              </div>
-                              
-                              <ZenButton onClick={() => handleSave('whatsapp')} className="w-full py-4 rounded-[1.5rem]">
-                                 Update Gateway
-                              </ZenButton>
-                           </div>
-
-                           <div className="p-10 bg-gradient-to-tr from-zen-brown to-stone-800 rounded-[2rem] text-white shadow-xl shadow-zen-brown/20 relative overflow-hidden group">
-                              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-1000">
-                                 <Sparkles size={180} />
-                              </div>
-                              <div className="relative z-10">
-                                 <h4 className="text-xl font-serif font-bold mb-6 tracking-tight">Active Reach Protocol</h4>
-                                 <p className="text-sm text-stone-300 leading-relaxed mb-10 italic">"Ensure your WhatsApp Instance is paired with a physical device before enabling. This connection allows the CRM to broadcast directly through your primary business line."</p>
-                                 
-                                 <div className="space-y-6">
-                                    <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
-                                       <div className="w-2 h-2 rounded-full bg-zen-sand" />
-                                       UltraMsg Certified
+                                 <div className="flex items-center justify-between p-6 bg-zen-cream/30 rounded-2xl border border-zen-brown/10">
+                                    <div className="flex flex-col">
+                                       <span className="text-[11px] font-bold text-zen-brown uppercase tracking-widest">Enable Messaging Relay</span>
+                                       <span className="text-[9px] font-medium text-zen-brown/40 mt-1 uppercase tracking-widest italic">Global activation for customer notifications</span>
                                     </div>
-                                    <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
-                                       <div className="w-2 h-2 rounded-full bg-zen-sand" />
-                                       E2E Encryption Maintained
+                                    <button 
+                                       onClick={() => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, enabled: !prev.whatsapp.enabled}} : null)}
+                                       className={`w-14 h-7 rounded-full transition-all duration-500 relative border ${settings.whatsapp.enabled ? 'bg-[#25D366] border-[#25D366]' : 'bg-stone-200 border-stone-300'}`}
+                                    >
+                                       <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-500 ${settings.whatsapp.enabled ? 'left-8' : 'left-1'}`} />
+                                    </button>
+                                 </div>
+
+                                 <ZenButton onClick={() => handleSave('whatsapp')} className="w-full py-5 rounded-[1.5rem] shadow-sm text-lg">
+                                    Update Gateway
+                                 </ZenButton>
+                              </div>
+
+                              <div className="p-10 bg-gradient-to-tr from-zen-brown to-stone-800 rounded-[2rem] text-white shadow-xl shadow-zen-brown/20 relative overflow-hidden flex flex-col justify-center">
+                                 <div className="absolute top-0 right-0 p-8 opacity-10">
+                                    <Sparkles size={180} />
+                                 </div>
+                                 <div className="relative z-10">
+                                    <h4 className="text-2xl font-serif font-bold mb-6 tracking-tight">Active Reach Protocol</h4>
+                                    <p className="text-base text-stone-300 leading-relaxed mb-10 italic">"Ensure your WhatsApp Instance is paired with a physical device before enabling. This connection allows the CRM to broadcast directly through your primary business line."</p>
+                                    
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                       <div className="p-6 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                                          <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] text-zen-sand mb-2">
+                                             <div className="w-2 h-2 rounded-full bg-zen-sand" />
+                                             Authentication
+                                          </div>
+                                          <p className="text-xs text-white/60 font-medium">UltraMsg Certified Relay</p>
+                                       </div>
+                                       <div className="p-6 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                                          <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] text-zen-sand mb-2">
+                                             <div className="w-2 h-2 rounded-full bg-zen-sand" />
+                                             Security
+                                          </div>
+                                          <p className="text-xs text-white/60 font-medium">E2E Encryption Maintained</p>
+                                       </div>
                                     </div>
                                  </div>
                               </div>
@@ -1350,96 +1356,71 @@ const Settings = () => {
                   )}
 
                   {activeSection === 'hours' && (
-                     <div className="bg-white/80 backdrop-blur-xl rounded-[2.75rem_1.35rem_2.75rem_1.35rem] border border-zen-brown/15 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <div className="grid grid-cols-1 xl:grid-cols-12">
-                           <div className="xl:col-span-8 p-8 sm:p-12 border-r border-zen-brown/5">
-                              <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
-                                  <div>
-                                     <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Business Hours</h3>
-                                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Manage daily sanctuary operational windows.</p>
-                                  </div>
-                                  <div className="w-16 h-16 bg-zen-cream/20 rounded-[1rem] flex items-center justify-center text-zen-sand border border-zen-brown/15 shrink-0">
-                                     <CalendarIcon size={28} strokeWidth={1.5} />
-                                  </div>
-                              </header>
-                              
-                              <div className="space-y-6">
-                                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
-                                  <div key={day} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-[1.5rem] border border-zen-brown/10 bg-white/50 gap-4">
-                                     <div className="flex items-center gap-4">
-                                        <button 
-                                           className={`w-12 h-6 rounded-full transition-colors flex items-center px-1 ${settings?.workingHours?.[day as keyof typeof settings.workingHours]?.isOpen ? 'bg-zen-sand' : 'bg-zen-brown/10'}`}
-                                           onClick={() => setSettings(prev => prev ? { ...prev, workingHours: { ...prev.workingHours, [day]: { ...prev.workingHours?.[day as keyof typeof settings.workingHours]!, isOpen: !prev.workingHours?.[day as keyof typeof settings.workingHours]?.isOpen } } } : null)}
-                                        >
-                                           <div className={`w-4 h-4 rounded-full bg-white transition-transform ${settings?.workingHours?.[day as keyof typeof settings.workingHours]?.isOpen ? 'translate-x-6' : ''}`} />
-                                        </button>
-                                        <span className="font-serif font-bold text-lg text-zen-brown capitalize">{day}</span>
-                                     </div>
-                                     
-                                     <div className={`flex flex-col sm:flex-row sm:items-center gap-4 transition-opacity ${!settings?.workingHours?.[day as keyof typeof settings.workingHours]?.isOpen ? 'opacity-40 pointer-events-none' : ''}`}>
-                                       <div className="w-full sm:w-40 border border-zen-brown/10 p-2 rounded-[1rem] bg-white">
-                                          <input 
-                                             type="time" 
-                                             className="w-full bg-transparent border-none outline-none font-bold text-zen-brown text-center uppercase tracking-widest text-xs h-[30px]"
-                                             value={settings?.workingHours?.[day as keyof typeof settings.workingHours]?.openTime || '09:00'} 
-                                             onChange={(e: any) => setSettings(prev => prev ? { ...prev, workingHours: { ...prev.workingHours, [day]: { ...prev.workingHours?.[day as keyof typeof settings.workingHours]!, openTime: e.target.value } } } : null)}
-                                          />
-                                       </div>
-                                       <span className="text-zen-brown/40 font-black tracking-[0.2em] text-[10px] uppercase text-center hidden sm:block">to</span>
-                                       <div className="w-full sm:w-40 border border-zen-brown/10 p-2 rounded-[1rem] bg-white">
-                                          <input 
-                                             type="time" 
-                                             className="w-full bg-transparent border-none outline-none font-bold text-zen-brown text-center uppercase tracking-widest text-xs h-[30px]"
-                                             value={settings?.workingHours?.[day as keyof typeof settings.workingHours]?.closeTime || '21:00'} 
-                                             onChange={(e: any) => setSettings(prev => prev ? { ...prev, workingHours: { ...prev.workingHours, [day]: { ...prev.workingHours?.[day as keyof typeof settings.workingHours]!, closeTime: e.target.value } } } : null)}
-                                          />
-                                       </div>
-                                     </div>
-                                  </div>
-                                ))}
-                              </div>
-
-                              <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
-                                 <ZenButton 
-                                    onClick={() => handleSave('workingHours')}
-                                    disabled={saving}
-                                    className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
-                                 >
-                                    Save Hours
-                                 </ZenButton>
-                              </footer>
-                           </div>
+                     <div className="w-full">
+                        <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                           <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                               <div>
+                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Business Hours</h3>
+                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Manage daily sanctuary operational windows.</p>
+                               </div>
+                               <div className="w-16 h-16 bg-zen-cream/20 rounded-[1rem] flex items-center justify-center text-zen-sand border border-zen-brown/15 shrink-0">
+                                  <CalendarIcon size={28} strokeWidth={1.5} />
+                               </div>
+                           </header>
                            
-                           <div className="xl:col-span-4 bg-zen-sand p-8 sm:p-12 text-white relative overflow-hidden group">
-                               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-bl-[100%] transition-transform duration-700 ease-out group-hover:scale-110" />
-                               <div className="relative z-10 flex flex-col h-full">
-                                  <div className="w-16 h-16 bg-white/10 rounded-[1.5rem] flex items-center justify-center backdrop-blur-md mb-12 shadow-inner border border-white/10">
-                                     <Sparkles size={28} className="text-white" />
+                           <div className="space-y-6">
+                             {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
+                               <div key={day} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-[1.5rem] border border-zen-brown/10 bg-white/50 gap-4">
+                                  <div className="flex items-center gap-4">
+                                     <button 
+                                        className={`w-12 h-6 rounded-full transition-colors flex items-center px-1 ${settings?.workingHours?.[day as keyof typeof settings.workingHours]?.isOpen ? 'bg-zen-sand' : 'bg-zen-brown/10'}`}
+                                        onClick={() => setSettings(prev => prev ? { ...prev, workingHours: { ...prev.workingHours, [day]: { ...prev.workingHours?.[day as keyof typeof settings.workingHours]!, isOpen: !prev.workingHours?.[day as keyof typeof settings.workingHours]?.isOpen } } } : null)}
+                                     >
+                                        <div className={`w-4 h-4 rounded-full bg-white transition-transform ${settings?.workingHours?.[day as keyof typeof settings.workingHours]?.isOpen ? 'translate-x-6' : ''}`} />
+                                     </button>
+                                     <span className="font-serif font-bold text-lg text-zen-brown capitalize">{day}</span>
                                   </div>
-                                  <h4 className="text-2xl font-serif font-bold tracking-tight mb-4 leading-tight">Control Operations Dynamic Availability</h4>
-                                  <p className="text-sm text-white/70 leading-relaxed font-sans mb-12">
-                                     Define specific operational bounds.
-                                  </p>
-
-                                  <div className="mt-auto space-y-6">
-                                     <div className="p-6 bg-black/10 rounded-[1.5rem] border border-white/5 backdrop-blur-md">
-                                        <div className="flex items-center justify-between mb-2">
-                                           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">Source of Truth</span>
-                                        </div>
-                                        <div className="text-lg font-serif font-bold">Booking Engine</div>
-                                     </div>
+                                  
+                                  <div className={`flex flex-col sm:flex-row sm:items-center gap-4 transition-opacity ${!settings?.workingHours?.[day as keyof typeof settings.workingHours]?.isOpen ? 'opacity-40 pointer-events-none' : ''}`}>
+                                    <div className="w-full sm:w-40 border border-zen-brown/10 p-2 rounded-[1rem] bg-white">
+                                       <input 
+                                          type="time" 
+                                          className="w-full bg-transparent border-none outline-none font-bold text-zen-brown text-center uppercase tracking-widest text-xs h-[30px]"
+                                          value={settings?.workingHours?.[day as keyof typeof settings.workingHours]?.openTime || '09:00'} 
+                                          onChange={(e: any) => setSettings(prev => prev ? { ...prev, workingHours: { ...prev.workingHours, [day]: { ...prev.workingHours?.[day as keyof typeof settings.workingHours]!, openTime: e.target.value } } } : null)}
+                                       />
+                                    </div>
+                                    <span className="text-zen-brown/40 font-black tracking-[0.2em] text-[10px] uppercase text-center hidden sm:block">to</span>
+                                    <div className="w-full sm:w-40 border border-zen-brown/10 p-2 rounded-[1rem] bg-white">
+                                       <input 
+                                          type="time" 
+                                          className="w-full bg-transparent border-none outline-none font-bold text-zen-brown text-center uppercase tracking-widest text-xs h-[30px]"
+                                          value={settings?.workingHours?.[day as keyof typeof settings.workingHours]?.closeTime || '21:00'} 
+                                          onChange={(e: any) => setSettings(prev => prev ? { ...prev, workingHours: { ...prev.workingHours, [day]: { ...prev.workingHours?.[day as keyof typeof settings.workingHours]!, closeTime: e.target.value } } } : null)}
+                                       />
+                                    </div>
                                   </div>
                                </div>
+                             ))}
                            </div>
+
+                           <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
+                              <ZenButton 
+                                 onClick={() => handleSave('workingHours')}
+                                 disabled={saving}
+                                 className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
+                              >
+                                 Save Hours
+                              </ZenButton>
+                           </footer>
                         </div>
                      </div>
                   )}
 
                   {activeSection === 'payroll' && (
-                     <div className="bg-white/80 backdrop-blur-xl rounded-[2.75rem_1.35rem_2.75rem_1.35rem] border border-zen-brown/15 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <div className="grid grid-cols-1 xl:grid-cols-12">
-                           <div className="xl:col-span-8 p-8 sm:p-12 border-r border-zen-brown/5">
-                              <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                     <div className="w-full">
+                        <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                           <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
                                  <div>
                                     <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Leave & Payroll Policy</h3>
                                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Harmonize employment compensation and absence thresholds.</p>
@@ -1447,92 +1428,64 @@ const Settings = () => {
                                  <div className="w-16 h-16 bg-zen-cream/20 rounded-[1rem] flex items-center justify-center text-zen-sand border border-zen-brown/15 shrink-0">
                                     <Clock size={28} strokeWidth={1.5} />
                                  </div>
-                              </header>
+                           </header>
 
-                              <div className="space-y-12">
-                                 {/* Leave Thresholds */}
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="p-6 sm:p-10 rounded-[2rem] border transition-all duration-500 bg-white border-zen-sand shadow-lg">
-                                       <div className="flex items-center gap-4 mb-8">
-                                          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-zen-sand text-white">
-                                             <Sun size={24} />
-                                          </div>
-                                          <div>
-                                             <h4 className="text-lg font-serif font-bold text-zen-brown">Monthly Threshold</h4>
-                                             <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Paid leaves per month</p>
-                                          </div>
+                           <div className="space-y-12">
+                              {/* Leave Thresholds */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                 <div className="p-6 sm:p-10 rounded-[2rem] border transition-all duration-500 bg-white border-zen-sand shadow-lg">
+                                    <div className="flex items-center gap-4 mb-8">
+                                       <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-zen-sand text-white">
+                                          <Sun size={24} />
                                        </div>
-                                       <ZenInput 
-                                          label="Allowed Paid Leaves (Days)"
-                                          type="number"
-                                          value={settings.payroll.allowedPaidLeaves}
-                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, payroll: {...prev.payroll, allowedPaidLeaves: parseFloat(e.target.value)}} : null)}
-                                       />
-                                       <p className="text-[10px] font-medium text-zen-brown/40 leading-relaxed mt-4 italic">
-                                          Absence exceeding this limit will trigger daily rate deductions for monthly employees.
-                                       </p>
-                                    </div>
-
-                                    <div className="p-6 sm:p-10 rounded-[2rem] border transition-all duration-500 bg-white border-zen-sand shadow-lg">
-                                       <div className="flex items-center gap-4 mb-8">
-                                          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-zen-sand text-white">
-                                             <Activity size={24} />
-                                          </div>
-                                          <div>
-                                             <h4 className="text-lg font-serif font-bold text-zen-brown">Hourly Threshold</h4>
-                                             <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Paid hours per month</p>
-                                          </div>
+                                       <div>
+                                          <h4 className="text-lg font-serif font-bold text-zen-brown">Monthly Threshold</h4>
+                                          <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Paid leaves per month</p>
                                        </div>
-                                       <ZenInput 
-                                          label="Allowed Paid Hours (Hours)"
-                                          type="number"
-                                          value={settings.payroll.allowedPaidHours}
-                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, payroll: {...prev.payroll, allowedPaidHours: parseFloat(e.target.value)}} : null)}
-                                       />
-                                       <p className="text-[10px] font-medium text-zen-brown/40 leading-relaxed mt-4 italic">
-                                          Absence exceeding this limit will trigger hourly rate deductions for hourly employees.
-                                       </p>
                                     </div>
+                                    <ZenInput 
+                                       label="Allowed Paid Leaves (Days)"
+                                       type="number"
+                                       value={settings.payroll.allowedPaidLeaves}
+                                       onChange={(e: any) => setSettings(prev => prev ? {...prev, payroll: {...prev.payroll, allowedPaidLeaves: parseFloat(e.target.value)}} : null)}
+                                    />
+                                    <p className="text-[10px] font-medium text-zen-brown/40 leading-relaxed mt-4 italic">
+                                       Absence exceeding this limit will trigger daily rate deductions for monthly employees.
+                                    </p>
                                  </div>
-                              </div>
 
-                              <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
-                                 <ZenButton 
-                                    onClick={() => handleSave('payroll')}
-                                    disabled={saving}
-                                    className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
-                                 >
-                                    Sync Policy
-                                 </ZenButton>
-                              </footer>
-                           </div>
-
-                           <div className="xl:col-span-4 bg-stone-50/50 p-8 flex items-center">
-                              <div className="bg-zen-brown p-10 rounded-[2rem] text-white shadow-xl relative overflow-hidden group w-full">
-                                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-150 transition-transform duration-1000">
-                                    <ShieldCheck size={180} />
-                                 </div>
-                                 <h4 className="text-2xl font-serif font-bold mb-8 relative z-10">Payroll Equilibrium</h4>
-                                 <p className="text-sm font-medium text-white/95 leading-relaxed relative z-10 mb-8">
-                                    The Sanctuary payroll engine automatically recalibrates employee compensation based on these global thresholds.
-                                 </p>
-                                 
-                                 <div className="space-y-6 relative z-10">
-                                    <div className="p-6 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
-                                       <h5 className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 text-amber-200">Monthly Logic</h5>
-                                       <p className="text-xs text-white/85 leading-relaxed">
-                                          Payroll = Base Salary - ((Leaves - Paid Threshold) * Daily Rate)
-                                       </p>
+                                 <div className="p-6 sm:p-10 rounded-[2rem] border transition-all duration-500 bg-white border-zen-sand shadow-lg">
+                                    <div className="flex items-center gap-4 mb-8">
+                                       <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-zen-sand text-white">
+                                          <Activity size={24} />
+                                       </div>
+                                       <div>
+                                          <h4 className="text-lg font-serif font-bold text-zen-brown">Hourly Threshold</h4>
+                                          <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Paid hours per month</p>
+                                       </div>
                                     </div>
-                                    <div className="p-6 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
-                                       <h5 className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 text-amber-200">Hourly Logic</h5>
-                                       <p className="text-xs text-white/85 leading-relaxed">
-                                          Payroll = (Hours Worked - (Max Potential - Paid Threshold)) * Hourly Rate
-                                       </p>
-                                    </div>
+                                    <ZenInput 
+                                       label="Allowed Paid Hours (Hours)"
+                                       type="number"
+                                       value={settings.payroll.allowedPaidHours}
+                                       onChange={(e: any) => setSettings(prev => prev ? {...prev, payroll: {...prev.payroll, allowedPaidHours: parseFloat(e.target.value)}} : null)}
+                                    />
+                                    <p className="text-[10px] font-medium text-zen-brown/40 leading-relaxed mt-4 italic">
+                                       Absence exceeding this limit will trigger hourly rate deductions for hourly employees.
+                                    </p>
                                  </div>
                               </div>
                            </div>
+
+                           <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
+                              <ZenButton 
+                                 onClick={() => handleSave('payroll')}
+                                 disabled={saving}
+                                 className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
+                              >
+                                 Sync Policy
+                              </ZenButton>
+                           </footer>
                         </div>
                      </div>
                   )}
@@ -1540,115 +1493,105 @@ const Settings = () => {
                   {activeSection === 'tax' && (
                      <div className="bg-white/80 backdrop-blur-xl rounded-[2.75rem_1.35rem_2.75rem_1.35rem] border border-zen-brown/15 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
                         <div className="grid grid-cols-1 lg:grid-cols-12">
-                           <div className="lg:col-span-8 border-r border-zen-brown/5">
-                              <header className="p-8 sm:p-12 pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-8 mb-8">
+                           <div className="lg:col-span-12">
+                              <header className="p-8 sm:p-12 pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-8 mb-12">
                                  <div>
                                     <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Taxation Registry</h3>
                                     <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Standardized Fiscal Control & Audit Compliance.</p>
                                  </div>
-                                 <ZenButton onClick={() => openTaxModal()} className="px-8 py-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-zen-sand transition-all duration-500">
-                                    <Plus size={18} />
-                                    <span className="font-black">Create Rate</span>
-                                 </ZenButton>
+
+                                 <div className="flex items-center gap-6">
+                                    <div className="flex items-center gap-3 px-6 py-3 bg-zen-cream/30 rounded-2xl border border-zen-brown/10">
+                                       <span className="text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Master Switch</span>
+                                       <button 
+                                          onClick={handleToggleGST}
+                                          className={`w-11 h-5.5 rounded-full transition-all duration-500 relative border ${settings?.billing?.gstEnabled ? 'bg-emerald-500 border-emerald-600 shadow-sm shadow-emerald-500/20' : 'bg-gray-100 border-gray-200'}`}
+                                       >
+                                          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-500 ${settings?.billing?.gstEnabled ? 'left-6' : 'left-0.5'}`} />
+                                       </button>
+                                    </div>
+
+                                    <ZenButton onClick={() => openTaxModal()} className="px-8 py-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-zen-sand transition-all duration-500">
+                                       <Plus size={18} />
+                                       <span className="font-black">Create Rate</span>
+                                    </ZenButton>
+                                 </div>
                               </header>
     
-                              <div className="table-container min-h-[400px] overflow-hidden overflow-x-auto">
-                                 {taxLoading ? (
-                                    <div className="p-20 text-center italic opacity-20">Syncing registry...</div>
-                                 ) : (
-                                    <table className="w-full text-center border-collapse min-w-[700px]">
-                                       <thead>
-                                          <tr>
-                                             <th className="!text-left pl-12">S NO</th>
-                                             <th>Rate Protocol</th>
-                                             <th>Calculated Value</th>
-                                             <th>Status</th>
-                                             <th className="!text-right pr-12">Actions</th>
-                                          </tr>
-                                       </thead>
-                                       <tbody className="bg-white/40">
-                                          {taxRates.length === 0 && (
-                                             <tr>
-                                                <td colSpan={5} className="p-24 text-center text-zen-brown/20 font-serif italic text-lg">No tax protocols established in sanctuary.</td>
-                                             </tr>
-                                          )}
-                                          {taxRates.map((rate, index) => (
-                                             <tr key={rate._id} className="transition-all duration-500 group border-b border-zen-brown/5 hover:bg-white/80">
-                                                <td className="p-8 text-left pl-12">
-                                                   <span className="font-serif italic opacity-30 text-sm font-medium tracking-tighter">
-                                                      {(index + 1).toString().padStart(2, '0')}
-                                                   </span>
-                                                </td>
-                                                <td className="p-8">
-                                                   <div className="flex flex-col items-center">
-                                                      <span className="zen-table-primary text-lg">{rate.name}</span>
-                                                      <span className="zen-table-meta mt-1 opacity-60">System Standard Protocol</span>
-                                                   </div>
-                                                </td>
-                                                <td className="p-8 text-center">
-                                                   <div className="inline-flex flex-col items-center">
-                                                      <span className="text-2xl font-serif font-black text-zen-brown tracking-tighter">{rate.percentage}%</span>
-                                                      <div className="w-8 h-0.5 bg-zen-sand/20 mt-1 rounded-full group-hover:w-12 transition-all duration-700" />
-                                                   </div>
-                                                </td>
-                                                <td className="p-8 text-center">
-                                                   <ZenBadge variant={rate.isActive ? 'leaf' : 'danger'} className="shadow-sm">
-                                                      {rate.isActive ? 'Active' : 'Inactive'}
-                                                   </ZenBadge>
-                                                </td>
-                                                <td className="p-8 text-right pr-12">
-                                                   <div className="flex items-center justify-end gap-3">
-                                                      <ZenIconButton 
-                                                         icon={Edit2} 
-                                                         variant="outline" 
-                                                         size="lg"
-                                                         className="shadow-sm hover:scale-110 active:scale-95"
-                                                         onClick={() => openTaxModal(rate)} 
-                                                      />
-                                                      <ZenIconButton 
-                                                         icon={Trash2} 
-                                                         variant="danger" 
-                                                         size="lg"
-                                                         className="shadow-sm hover:scale-110 active:scale-95"
-                                                         onClick={() => setTaxConfirmState({ isOpen: true, id: rate._id })} 
-                                                      />
-                                                   </div>
-                                                </td>
-                                             </tr>
-                                          ))}
-                                       </tbody>
-                                    </table>
-                                 )}
-                              </div>
-                           </div>
-   
-                           <div className="lg:col-span-4 bg-stone-50/50 p-8 flex flex-col gap-8 justify-center">
-                              <div className="bg-zen-brown p-10 rounded-[2rem] text-white shadow-xl relative overflow-hidden group">
-                                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-150 transition-transform duration-1000">
-                                    <Percent size={180} />
-                                 </div>
-                                 <h3 className="text-2xl font-serif font-bold mb-8 relative z-10">Global Tax Master</h3>
-                                 <div className="flex items-center justify-between p-6 bg-white/5 rounded-[1.35rem_0.75rem_1.35rem_0.75rem] border border-white/10 backdrop-blur-sm shadow-xl relative z-10">
-                                    <div>
-                                       <span className="block font-black text-[10px] uppercase tracking-widest text-white/40 mb-1">Taxation Status</span>
-                                       <span className={`font-bold text-sm ${settings.billing?.gstEnabled ? 'text-emerald-400' : 'text-amber-200'}`}>
-                                          {settings.billing?.gstEnabled ? 'OPERATIONAL' : 'PAUSED'}
-                                       </span>
+                              <div className="px-8 pb-12">
+                                 <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+                                    <div className="table-container min-h-[400px]">
+                                       {taxLoading ? (
+                                          <div className="p-20 text-center italic opacity-20">Syncing registry...</div>
+                                       ) : (
+                                          <table className="w-full text-center border-collapse min-w-[700px]">
+                                             <thead>
+                                                <tr>
+                                                   <th>S NO</th>
+                                                   <th>Rate Protocol</th>
+                                                   <th>Calculated Value</th>
+                                                   <th>Status</th>
+                                                   <th>Actions</th>
+                                                </tr>
+                                             </thead>
+                                             <tbody className="">
+                                                {(!taxRates || taxRates.length === 0) && (
+                                                   <tr>
+                                                      <td colSpan={5} className="px-6 py-20 text-center text-[13px] font-sans text-gray-400 bg-gray-50/30">No tax protocols established in sanctuary.</td>
+                                                   </tr>
+                                                )}
+                                                {taxRates.map((rate, index) => (
+                                                   <tr key={rate._id} className="group">
+                                                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                                                         <span className="italic opacity-40 text-[11px]">{(index + 1).toString().padStart(2, '0')}</span>
+                                                      </td>
+                                                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                                                         <div className="flex flex-col items-center">
+                                                            <span className="zen-table-primary">{rate.name}</span>
+                                                            <span className="zen-table-meta text-[10px]">System Standard Protocol</span>
+                                                         </div>
+                                                      </td>
+                                                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                                                         <div className="flex flex-col items-center">
+                                                            <span className="zen-table-primary font-black text-lg">{rate.percentage}%</span>
+                                                            <div className="w-6 h-0.5 bg-zen-sand/20 mt-1 rounded-full group-hover:w-10 transition-all duration-700" />
+                                                         </div>
+                                                      </td>
+                                                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                                                         <div className="flex justify-center">
+                                                            <button 
+                                                               onClick={() => handleToggleTaxRate(rate)}
+                                                               className={`w-11 h-5.5 rounded-full transition-all duration-500 relative border ${rate.isActive ? 'bg-emerald-500 border-emerald-600 shadow-sm shadow-emerald-500/20' : 'bg-gray-100 border-gray-200'}`}
+                                                            >
+                                                               <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-500 ${rate.isActive ? 'left-6' : 'left-0.5'}`} />
+                                                            </button>
+                                                         </div>
+                                                      </td>
+                                                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                                                         <div className="flex items-center justify-center gap-2 lg:gap-3">
+                                                            <ZenIconButton 
+                                                               icon={Edit2} 
+                                                               size="md"
+                                                               onClick={() => openTaxModal(rate)} 
+                                                            />
+                                                            <ZenIconButton 
+                                                               icon={Trash2} 
+                                                               variant="danger" 
+                                                               size="md"
+                                                               onClick={() => setTaxConfirmState({ isOpen: true, id: rate._id })} 
+                                                            />
+                                                         </div>
+                                                      </td>
+                                                   </tr>
+                                                ))}
+                                             </tbody>
+                                          </table>
+                                       )}
                                     </div>
-                                    <button 
-                                       onClick={handleToggleGST}
-                                       className={`w-14 h-7 rounded-full transition-all duration-500 relative ${settings.billing?.gstEnabled ? 'bg-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-white/10'}`}
-                                    >
-                                       <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-500 ${settings.billing?.gstEnabled ? 'left-8' : 'left-1'}`} />
-                                    </button>
                                  </div>
-                                 <p className="mt-8 text-[11px] font-medium leading-relaxed text-white/60 relative z-10">
-                                    Toggling this master switch enables or disables tax calculations across all checkout rituals and financial statements.
-                                 </p>
                               </div>
-
-                           </div>
                         </div>
+                     </div>
                      </div>
                   )}
                </motion.div>

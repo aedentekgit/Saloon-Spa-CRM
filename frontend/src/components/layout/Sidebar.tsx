@@ -155,34 +155,44 @@ const Sidebar = ({
   );
 
   return (
-    <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] ${isCollapsed ? 'lg:w-[70px] w-60 md:w-60' : 'w-[210px]'}`}>
+    <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] ${isCollapsed ? 'lg:w-[70px] w-60' : 'w-[210px]'}`}>
       
-      {/* Top Logo Section — logo only, always centered */}
+      {/* Top Logo Section — Professional 3D Branding */}
       <div 
-        className={`flex items-center justify-center border-b-2 border-zen-stone/20 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-all duration-300 ${isCollapsed ? 'h-16' : 'h-24'}`}
+        className={`flex items-center justify-center border-b border-zen-stone/40 bg-gradient-to-b from-white to-stone-50/20 relative overflow-hidden transition-all duration-500 ${isCollapsed ? 'h-20' : 'h-32'}`}
       >
-        <div className="relative">
+        <div className={`relative transition-all duration-700 ${isCollapsed ? 'scale-90' : 'scale-100'}`}>
           {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt="Logo"
-              className={`
-                object-cover rounded-full transition-all duration-300
-                ${isCollapsed ? 'w-11 h-11' : 'w-16 h-16'} 
-                border-2 border-white/80
-                shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15),0_8px_10px_-6px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.8)]
-              `}
-            />
+            <div className={`
+              relative p-1.5 bg-white zen-pointed-surface zen-shimmer-effect
+              ${isCollapsed ? 'w-12 h-12' : 'w-18 h-18'}
+              transition-all duration-500
+              shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)]
+              before:absolute before:inset-0 before:rounded-[inherit] before:shadow-[0_0_0_1px_rgba(0,0,0,0.05)]
+            `}>
+               <img
+                 src={logoUrl}
+                 alt="Logo"
+                 className="w-full h-full object-cover zen-pointed-surface brightness-[1.02]"
+               />
+               {/* 3D Glossy Finish */}
+               <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/30 pointer-events-none rounded-[inherit]" />
+               {/* Subtle Rim Light */}
+               <div className="absolute inset-[1px] border border-white/40 pointer-events-none rounded-[inherit]" />
+            </div>
           ) : (
             <div className={`
-              ${isCollapsed ? 'w-11 h-11' : 'w-16 h-16'} 
-              rounded-full bg-zen-cream border-2 border-white flex items-center justify-center 
-              shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.8)]
+              ${isCollapsed ? 'w-12 h-12' : 'w-18 h-18'} 
+              zen-pointed-surface zen-shimmer-effect bg-zen-cream border border-zen-brown/10 flex items-center justify-center 
+              shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,1)]
             `}>
               <Sparkles className="text-zen-sand" size={isCollapsed ? 20 : 28} />
             </div>
           )}
         </div>
+
+        {/* Decorative elements for professionalism */}
+        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-zen-sand/20 to-transparent opacity-40" />
       </div>
 
       {/* Navigation Menu */}
