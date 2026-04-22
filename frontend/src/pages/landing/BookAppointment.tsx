@@ -289,7 +289,7 @@ const BookAppointment = () => {
                 className="h-full max-w-[900px] mx-auto grid lg:grid-cols-12 gap-10"
               >
                 <div className="lg:col-span-12 h-full flex flex-col">
-                   <div className="flex-1 bg-white/80 backdrop-blur-xl rounded-[4rem_1.35rem_4rem_1.35rem] p-10 lg:p-14 border border-zen-stone/60 shadow-2xl relative overflow-hidden flex flex-col">
+                    <div className="flex-1 bg-white/80 backdrop-blur-xl rounded-[2.5rem_1rem_2.5rem_1rem] p-12 lg:p-16 border border-zen-stone/60 shadow-2xl relative overflow-hidden flex flex-col">
 
                       <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none">
                          <MapIcon size={400} strokeWidth={1} />

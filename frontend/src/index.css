@@ -169,13 +169,13 @@
 
   /* Global hover effect for cards - reflects theme color in border */
   .zen-pointed-surface {
-    --zen-point-radius: 2.75rem 1.35rem 2.75rem 1.35rem;
+    --zen-point-radius: 2rem 1rem 2rem 1rem;
     @apply relative border border-zen-stone/70;
     border-radius: var(--zen-point-radius);
   }
 
   .zen-card-hover {
-    --zen-point-radius: 2.75rem 1.35rem 2.75rem 1.35rem;
+    --zen-point-radius: 2rem 1rem 2rem 1rem;
     @apply relative border border-zen-stone/70 bg-white/90 backdrop-blur-xl transition-all duration-500 hover:border-zen-sand/40 hover:-translate-y-1 cursor-pointer;
     border-radius: var(--zen-point-radius);
     box-shadow: var(--shadow-md);
@@ -277,19 +277,22 @@
   }
 
   table thead th {
-    background-color: var(--color-zen-stone) !important;
-    color: var(--color-zen-brown) !important;
-    font-size: 13px !important;
-    font-weight: 900 !important;
+    background-color: var(--zen-primary, var(--color-zen-brown)) !important;
+    color: var(--zen-contrast-text, #FFFFFF) !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.16em !important;
+    letter-spacing: 0.25em !important;
     line-height: 1.2 !important;
-    padding: 1.35rem 1.75rem !important;
+    padding: 1.5rem 1.75rem !important;
     font-family: var(--font-sans) !important;
     text-align: center !important;
     border: none !important;
     white-space: nowrap !important;
     opacity: 1 !important;
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
 
   table thead tr th:first-child,

@@ -91,12 +91,17 @@ const Finance = () => {
       const expData = await expRes.json();
       const statsData = await statsRes.json();
       
-      if (Array.isArray(invData)) setInvoices(invData);
-      if (Array.isArray(expData)) setExpenses(expData);
+      const invoicesList = Array.isArray(invData) ? invData : (invData.data || []);
+      const expensesList = Array.isArray(expData) ? expData : (expData.data || []);
+      
+      setInvoices(invoicesList);
+      setExpenses(expensesList);
+      
       if (statsData.revenue?.trend) {
         setTrendData(statsData.revenue.trend);
       }
     } catch (error) {
+      console.error('Finance Sync Error:', error);
       notify('error', 'Sync Failure', 'Failed to retrieve finance records');
     } finally {
       setLoading(false);
@@ -211,7 +216,7 @@ const Finance = () => {
         </div>
 
         {/* Global Filter Bar */}
-        <div className="zen-pointed-surface border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-5">
+        <div className="zen-pointed-surface border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-10 py-10">
            <div className="flex flex-col xl:flex-row xl:items-end gap-5 xl:gap-8">
               <div className="flex-1 w-full flex flex-col gap-2.5">
                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Registry Search</label>
@@ -241,7 +246,7 @@ const Finance = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 font-sans">
         {/* Left Side: Chart */}
         <div className="lg:col-span-7 w-full flex flex-col">
-           <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-6 sm:p-8 min-h-[420px] relative overflow-hidden">
+           <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-10 lg:p-12 min-h-[420px] relative overflow-hidden">
              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-zen-brown/5">
                 <div>
                    <h3 className="text-xl font-bold text-gray-900 tracking-tight">Financial Status</h3>
@@ -267,8 +272,8 @@ const Finance = () => {
                  </div>
                </div>
              )}
-             <div className="h-[320px] w-full relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
+             <div className="h-[320px] w-full relative z-10" style={{ minWidth: 0, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                  <AreaChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
                     <defs>
                        <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">

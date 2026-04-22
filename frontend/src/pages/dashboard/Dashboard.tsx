@@ -217,8 +217,8 @@ const AdminDashboard = () => {
              </div>
           </div>
 
-          <div className="h-[300px] w-full mt-auto relative z-10 -ml-4">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[300px] w-full mt-auto relative z-10 -ml-4" style={{ minWidth: 0, minHeight: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <AreaChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
                 <defs>
                    <linearGradient id="colorRevs" x1="0" y1="0" x2="0" y2="1">
@@ -311,8 +311,8 @@ const AdminDashboard = () => {
            <div className="mt-12">
               <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-6">Ritual Distribution</h4>
               <div className="flex items-center justify-between">
-                <div className="h-[140px] w-1/2">
-                   <ResponsiveContainer width="100%" height="100%">
+                <div className="h-[140px] w-1/2" style={{ minWidth: 0, minHeight: 0 }}>
+                   <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <PieChart>
                         <Pie
                           data={ritualData}
@@ -346,7 +346,7 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
          {/* Recent Ceremonies */}
-         <div className="lg:col-span-12 bg-white/80 backdrop-blur-3xl p-10 rounded-[3rem] border border-zen-stone/80 shadow-sm">
+         <div className="lg:col-span-12 bg-white/80 backdrop-blur-3xl p-10 rounded-[2rem] border border-zen-stone/80 shadow-sm">
 
             <div className="flex items-center justify-between mb-10">
                <div>

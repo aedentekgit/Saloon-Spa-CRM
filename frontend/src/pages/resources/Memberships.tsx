@@ -614,7 +614,7 @@ title="Membership Management"
                                    <th>CLIENT IDENTITY</th>
                                    <th>PLAN SUBSCRIBED</th>
                                    <th>METRICS & CYCLE</th>
-                                   <th>USAGE (SESS.)</th>
+                                   <th>USAGE</th>
                                    <th>STATUS</th>
                                    {user?.role !== 'Client' && <th>ACTIONS</th>}
                                 </tr>
@@ -645,7 +645,6 @@ title="Membership Management"
                                      <td>
                                         <div className="flex flex-col items-center">
                                            <p className="zen-table-primary">{(m.totalSessions || 0) - (m.remainingSessions || 0)} / {m.totalSessions || 0}</p>
-                                           <p className="zen-table-meta">Sessions Utilized</p>
                                         </div>
                                      </td>
                                      <td>
@@ -741,7 +740,7 @@ title="Membership Management"
                                             <span className="text-2xl font-black text-zen-brown tracking-tighter">
                                                {Math.max(0, (m.totalSessions > 0 ? m.totalSessions : (m.plan?.maxSessions || 0)) - m.remainingSessions)}<span className="text-sm text-zen-brown/30 mx-1">/</span>{m.totalSessions > 0 ? m.totalSessions : (m.plan?.maxSessions || 0)}
                                             </span>
-                                            <span className="text-[8px] font-black text-zen-brown/20 uppercase tracking-widest">Services Used</span>
+
                                          </div>
                                       </div>
 

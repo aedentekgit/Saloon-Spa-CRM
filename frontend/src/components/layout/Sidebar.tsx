@@ -159,19 +159,30 @@ const Sidebar = ({
       
       {/* Top Logo Section — logo only, always centered */}
       <div 
-        className="h-16 flex items-center justify-center transition-colors duration-300 border-b border-zen-stone/20 bg-white"
+        className={`flex items-center justify-center border-b-2 border-zen-stone/20 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-all duration-300 ${isCollapsed ? 'h-16' : 'h-24'}`}
       >
-        {logoUrl ? (
-          <img
-            src={logoUrl}
-            alt="Logo"
-            className="w-12 h-12 object-cover rounded-full border-2 border-white/30 shadow-lg"
-          />
-        ) : (
-          <div className="w-12 h-12 rounded-full bg-zen-cream border-2 border-zen-stone/20 flex items-center justify-center shadow-sm">
-            <Sparkles className="text-zen-sand" size={20} />
-          </div>
-        )}
+        <div className="relative">
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className={`
+                object-cover rounded-full transition-all duration-300
+                ${isCollapsed ? 'w-11 h-11' : 'w-16 h-16'} 
+                border-2 border-white/80
+                shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15),0_8px_10px_-6px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.8)]
+              `}
+            />
+          ) : (
+            <div className={`
+              ${isCollapsed ? 'w-11 h-11' : 'w-16 h-16'} 
+              rounded-full bg-zen-cream border-2 border-white flex items-center justify-center 
+              shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.8)]
+            `}>
+              <Sparkles className="text-zen-sand" size={isCollapsed ? 20 : 28} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Navigation Menu */}

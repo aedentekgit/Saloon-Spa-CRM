@@ -122,8 +122,8 @@ const Reports = () => {
               </h3>
               <ZenBadge variant="leaf">Live Data</ZenBadge>
            </div>
-           <div className="h-80 w-full">
-              <ResponsiveContainer width="100%" height="100%" minHeight={320}>
+           <div className="h-80 w-full" style={{ minWidth: 0, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={320} minWidth={0}>
                  <AreaChart data={revenueData}>
                     <defs>
                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
@@ -160,8 +160,8 @@ const Reports = () => {
               </h3>
               <ZenBadge variant="sand">Top Categories</ZenBadge>
            </div>
-           <div className="h-80 w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%" minHeight={320}>
+           <div className="h-80 w-full flex items-center justify-center" style={{ minWidth: 0, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={320} minWidth={0}>
                  <PieChart>
                     <Pie
                        data={serviceData}
@@ -198,8 +198,8 @@ const Reports = () => {
               </h3>
               <ZenBadge variant="sand">Performance</ZenBadge>
            </div>
-           <div className="h-80 w-full">
-              <ResponsiveContainer width="100%" height="100%" minHeight={320}>
+           <div className="h-80 w-full" style={{ minWidth: 0, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={320} minWidth={0}>
                  <BarChart data={revenueData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
                     <XAxis 
