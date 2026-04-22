@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const Settings = require('../models/core/Settings');
+const { decrypt } = require('./secretCrypto');
 
 /**
  * Sends a push notification to a list of tokens or a specific user's registered tokens
@@ -23,7 +24,7 @@ const sendPushNotification = async ({ title, body, tokens, data = {} }) => {
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId: settings.notifications.firebaseProjectId,
-          privateKey: settings.notifications.firebasePrivateKey.replace(/\\n/g, '\n'),
+          privateKey: decrypt(settings.notifications.firebasePrivateKey).replace(/\\n/g, '\n'),
           clientEmail: settings.notifications.firebaseClientEmail,
         }),
       });

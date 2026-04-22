@@ -26,6 +26,7 @@ interface AttendanceRecord {
   overtimeMinutes?: number;
   dailyEarnings?: number;
   shift?: string;
+  user?: any;
 }
 
 const Attendance = () => {
@@ -48,6 +49,7 @@ const Attendance = () => {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [shifts, setShifts] = useState<any[]>([]);
 
   const isAdminOrManager = user?.role === 'Admin' || user?.role === 'Manager';
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
@@ -57,7 +59,10 @@ const Attendance = () => {
   }, [selectedBranch, page]);
 
   useEffect(() => {
-    if (isAdminOrManager) fetchEmployees();
+    if (isAdminOrManager) {
+      fetchEmployees();
+      fetchShifts();
+    }
   }, [user]);
 
   const fetchEmployees = async () => {
@@ -66,7 +71,18 @@ const Attendance = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) setEmployees(data.filter((e: any) => e.status === 'Active'));
+      const empData = Array.isArray(data) ? data : (data.data || []);
+      setEmployees(empData.filter((e: any) => e.status === 'Active'));
+    } catch (e) {}
+  };
+
+  const fetchShifts = async () => {
+    try {
+      const response = await fetch(`${API_URL}/shifts`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const data = await response.json();
+      if (Array.isArray(data)) setShifts(data);
     } catch (e) {}
   };
 
@@ -134,6 +150,43 @@ const Attendance = () => {
       record.date?.includes(searchTerm)
     );
   }, [attendance, searchTerm]);
+
+  const handleManualEntrySubmit = async () => {
+    if (!manualFormData.employeeId) return notify('warning', 'Missing Selection', 'Please select a specialist first');
+    
+    try {
+      setIsSubmitting(true);
+      const selectedEmp = employees.find(e => e._id === manualFormData.employeeId);
+      const payload = {
+        ...manualFormData,
+        targetUserId: manualFormData.employeeId,
+        employeeName: selectedEmp?.name,
+        shift: selectedEmp?.shift
+      };
+
+      const response = await fetch(`${API_URL}/attendance`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${user?.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        notify('success', 'Registry Synchronized', 'Manual attendance record has been verified and committed');
+        setIsManualModalOpen(false);
+        fetchHistory();
+      } else {
+        const error = await response.json();
+        notify('error', 'Commit Failed', error.message || 'Verification protocol rejected');
+      }
+    } catch (error) {
+      notify('error', 'Network Failure', 'Could not establish connection with orchestration layer');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <ZenPageLayout
@@ -358,11 +411,12 @@ const Attendance = () => {
             </ZenButton>
             <ZenButton
               type="button"
-              onClick={() => { notify('success', 'Update Request Sent', 'Synchronizing registry overrides...'); setIsManualModalOpen(false); }}
+              onClick={handleManualEntrySubmit}
               className="flex-[2] !rounded-[1.35rem] !py-4 text-white shadow-xl"
               style={{ backgroundColor: primaryColor }}
+              disabled={isSubmitting}
             >
-              Commit Registry Change
+              {isSubmitting ? 'Committing...' : 'Commit Registry Change'}
             </ZenButton>
           </div>
         )}
@@ -390,9 +444,22 @@ const Attendance = () => {
                   <div className="md:col-span-2">
                      <ZenDropdown
                         label="Select Specialist"
-                        options={employees.map(e => e.name)}
+                        options={employees
+                           .filter(e => !attendance.some(a => (a.user === e._id || a.user?._id === e._id) && a.date === manualFormData.date))
+                           .map(e => e.name)}
                         value={employees.find(e => e._id === manualFormData.employeeId)?.name || ''}
-                        onChange={(val) => setManualFormData({...manualFormData, employeeId: employees.find(e => e.name === val)?._id || ''})}
+                        onChange={(val) => {
+                           const emp = employees.find(e => e.name === val);
+                           if (emp) {
+                              const shiftInfo = shifts.find(s => s.name === emp.shift);
+                              setManualFormData({
+                                 ...manualFormData,
+                                 employeeId: emp._id,
+                                 checkIn: shiftInfo?.startTime || '09:00 AM',
+                                 checkOut: shiftInfo?.endTime || '06:00 PM'
+                              });
+                           }
+                        }}
                         icon={User}
                      />
                   </div>

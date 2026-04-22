@@ -5,7 +5,7 @@ import {
   Gem, FileText, Landmark, Boxes, MessageCircle, TrendingUp,
   LogOut, ChevronRight, Settings2, ShieldCheck,
   MapPin, Award, Layers, CreditCard, Percent,
-  Fingerprint, Timer, Shapes, Key, UserRound, Sparkles, Scissors, Clock
+  Fingerprint, Timer, Shapes, Key, UserRound, Sparkles, Scissors, Clock, ArrowDownRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
@@ -76,6 +76,7 @@ const Sidebar = ({
       label: 'Finance',
       items: [
         { name: 'Finance', icon: Landmark, path: '/finance', permission: 'finance' },
+        { name: 'Expenses', icon: ArrowDownRight, path: '/expenses', permission: 'finance' },
         { name: 'Transactions', icon: FileText, path: '/transactions', permission: 'finance' },
         { name: 'Reports', icon: TrendingUp, path: '/reports', permission: 'reports' },
       ]
@@ -158,8 +159,7 @@ const Sidebar = ({
       
       {/* Top Logo Section — logo only, always centered */}
       <div 
-        className="h-16 flex items-center justify-center transition-colors duration-300"
-        style={{ backgroundColor: 'var(--zen-primary)' }}
+        className="h-16 flex items-center justify-center transition-colors duration-300 border-b border-zen-stone/20 bg-white"
       >
         {logoUrl ? (
           <img
@@ -168,8 +168,8 @@ const Sidebar = ({
             className="w-12 h-12 object-cover rounded-full border-2 border-white/30 shadow-lg"
           />
         ) : (
-          <div className="w-12 h-12 rounded-full bg-white/15 border-2 border-white/30 flex items-center justify-center shadow-lg">
-            <Sparkles className="text-white" size={20} />
+          <div className="w-12 h-12 rounded-full bg-zen-cream border-2 border-zen-stone/20 flex items-center justify-center shadow-sm">
+            <Sparkles className="text-zen-sand" size={20} />
           </div>
         )}
       </div>
@@ -198,7 +198,7 @@ const Sidebar = ({
       <div className="p-3 border-t border-zen-stone/30 relative group cursor-pointer" onClick={() => setShowLogoutConfirm(true)}>
          <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-red-50 transition-colors">
             <div className="flex items-center gap-2.5">
-               <div className="relative w-8 h-8 rounded-md bg-zen-primary text-white flex items-center justify-center shrink-0">
+               <div className="relative w-8 h-8 rounded-md bg-zen-cream text-zen-brown flex items-center justify-center shrink-0 border border-zen-stone/50">
                   <UserRound size={15} />
                   <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
                </div>

@@ -1,9 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Italiana&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Italiana&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", serif;
   --font-accent: "Italiana", serif;
   
   /* Purple-lilac dashboard palette */
@@ -11,6 +11,7 @@
   --color-zen-brown: var(--zen-brown, #2B2440);
   --color-zen-primary: var(--zen-primary, #6D28D9);
   --color-zen-sand: var(--zen-sand, #8B5CF6);
+  --color-zen-gold: #C5A358;
   --color-zen-leaf: #10B981;
   --color-zen-stone: #E8ECF5;
   --color-zen-contrast: #FFFFFF;
@@ -42,13 +43,15 @@
   html {
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
+    font-size: 15px;
   }
 
   body {
     background:
-      radial-gradient(circle at top left, rgba(139, 92, 246, 0.08), transparent 32%),
-      radial-gradient(circle at top right, rgba(109, 40, 217, 0.06), transparent 26%),
-      linear-gradient(180deg, #F7F8FC 0%, #F4F6FB 100%);
+      radial-gradient(circle at top left, rgba(197, 163, 88, 0.05), transparent 32%),
+      radial-gradient(circle at top right, rgba(139, 92, 246, 0.04), transparent 26%),
+      url("https://www.transparenttextures.com/patterns/natural-paper.png"),
+      linear-gradient(180deg, #F9F9F7 0%, #F5F6F8 100%);
     @apply text-slate-900 font-sans antialiased overflow-x-hidden;
   }
 
@@ -274,8 +277,8 @@
   }
 
   table thead th {
-    background-color: var(--zen-primary) !important;
-    color: rgba(255, 255, 255, 0.94) !important;
+    background-color: var(--color-zen-stone) !important;
+    color: var(--color-zen-brown) !important;
     font-size: 13px !important;
     font-weight: 900 !important;
     text-transform: uppercase !important;

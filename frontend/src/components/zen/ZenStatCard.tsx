@@ -62,7 +62,7 @@ export const ZenStatCard: React.FC<ZenStatCardProps> = ({
         </div>
 
         {/* Bottom subtle bar */}
-        <div className="mt-8 h-1 w-12 bg-zen-brown/5 rounded-full group-hover:w-20 group-hover:bg-zen-sand/20 transition-all duration-700"></div>
+        <div className="mt-8 h-1 w-12 bg-zen-gold/20 rounded-full group-hover:w-24 group-hover:bg-zen-gold/40 transition-all duration-700"></div>
       </div>
     </div>
   );

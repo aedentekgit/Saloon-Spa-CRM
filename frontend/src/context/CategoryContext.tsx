@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
 
 interface Category {
   _id: string;
@@ -117,8 +118,9 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       fetchCategories();
       
       const interval = setInterval(() => {
+        if (!shouldPollNow()) return;
         fetchCategories(undefined, true);
-      }, 60000); // Pulse every 60 seconds
+      }, getPollIntervalMs(60000)); // default 60s
       
       return () => clearInterval(interval);
     }

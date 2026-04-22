@@ -18,6 +18,13 @@ export interface PublicSettings {
     headingFont: string;
     bodyFont: string;
   };
+  workingHours?: {
+    [key in 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday']: {
+      isOpen: boolean;
+      openTime: string;
+      closeTime: string;
+    }
+  };
 }
 
 const defaultSettings: PublicSettings = {
@@ -35,6 +42,15 @@ const defaultSettings: PublicSettings = {
     primaryColor: '#2D1622',
     headingFont: 'Italiana',
     bodyFont: 'Plus Jakarta Sans'
+  },
+  workingHours: {
+    monday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+    tuesday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+    wednesday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+    thursday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+    friday: { isOpen: true, openTime: '14:00', closeTime: '23:00' },
+    saturday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+    sunday: { isOpen: true, openTime: '09:00', closeTime: '21:00' }
   }
 };
 
@@ -68,7 +84,8 @@ export const PublicSettingsProvider: React.FC<{ children: React.ReactNode }> = (
         const data = await response.json();
         setSettings({
           general: { ...defaultSettings.general, ...(data?.general || {}) },
-          theme: { ...defaultSettings.theme, ...(data?.theme || {}) }
+          theme: { ...defaultSettings.theme, ...(data?.theme || {}) },
+          workingHours: data?.workingHours || defaultSettings.workingHours
         });
       } catch (err: any) {
         if (err?.name !== 'AbortError') {

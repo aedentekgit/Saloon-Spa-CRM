@@ -81,7 +81,7 @@ export const Modal: React.FC<ModalProps> = ({
                       <HeaderIcon size={26} strokeWidth={1} />
                    </div>
                    <div className="min-w-0">
-                      <h3 className="text-xl sm:text-3xl font-serif font-bold text-zen-brown tracking-tighter truncate leading-tight">{title}</h3>
+                      <h3 className="text-lg sm:text-2xl font-serif font-bold text-zen-brown tracking-tighter truncate leading-tight">{title}</h3>
                       {subtitle && (
                         <p className="mt-1.5 text-[10px] sm:text-[11px] font-bold text-zen-brown/20 uppercase tracking-[0.4em] truncate font-sans">
                           {subtitle}

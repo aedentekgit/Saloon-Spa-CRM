@@ -1,5 +1,6 @@
 const Attendance = require('../../models/human-resources/Attendance');
 const Employee = require('../../models/human-resources/Employee');
+const Leave = require('../../models/human-resources/Leave');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 
@@ -133,6 +134,18 @@ const markAttendance = async (req, res) => {
              return res.status(403).json({ message: `Network Restriction` });
           }
        }
+    }
+    
+    // Conflict Check: Prevent marking Present/Absent if on Approved Leave
+    const conflictLeave = await Leave.findOne({
+      user: userId,
+      status: 'Approved',
+      startDate: { $lte: date },
+      endDate: { $gte: date }
+    });
+
+    if (conflictLeave && (status === 'Present' || status === 'Absent')) {
+       return res.status(400).json({ message: `Override Blocked: Staff is on approved ${conflictLeave.type} for this date.` });
     }
     
     let record = await Attendance.findOne({ user: userId, date: date });

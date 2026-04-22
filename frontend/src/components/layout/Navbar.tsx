@@ -5,6 +5,7 @@ import { Bell, ChevronLeft, ChevronRight, Settings, LogOut, UserRound } from 'lu
 import { useAuth } from '../../context/AuthContext';
 import { notify } from '../../components/shared/ZenNotification';
 import { motion, AnimatePresence } from 'motion/react';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 
 const Navbar = ({ 
   onMenuClick, 
@@ -54,7 +55,10 @@ const Navbar = ({
   useEffect(() => {
     if (user) {
       fetchNotifications();
-      const interval = setInterval(fetchNotifications, 20000);
+      const interval = setInterval(() => {
+        if (!shouldPollNow()) return;
+        fetchNotifications();
+      }, getPollIntervalMs(30000));
       return () => clearInterval(interval);
     }
   }, [user]);
@@ -133,8 +137,8 @@ const Navbar = ({
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="hidden sm:flex items-center gap-3"
           >
-            <div className="w-1 h-4 bg-zen-primary rounded-full opacity-50"></div>
-            <span className="text-[15px] font-black tracking-[0.2em] text-zen-brown uppercase font-sans">
+            <div className="w-1 h-4 bg-zen-gold rounded-full opacity-80"></div>
+            <span className="text-[16px] font-serif font-black tracking-[0.1em] text-zen-brown uppercase">
               {getPageTitle()}
             </span>
           </motion.div>
@@ -222,7 +226,7 @@ const Navbar = ({
             className="flex items-center gap-3 cursor-pointer group hover:bg-zen-cream/60 p-1.5 rounded-xl transition-colors pr-3"
             onClick={() => setIsOpen(!isOpen)}
           >
-            <div className="w-8 h-8 rounded-lg bg-zen-primary text-white flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-zen-cream text-zen-brown flex items-center justify-center shadow-sm border border-zen-stone/50">
               <UserRound size={16} />
             </div>
             <div className="hidden md:flex flex-col">

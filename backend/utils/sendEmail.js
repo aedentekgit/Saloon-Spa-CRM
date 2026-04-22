@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const Settings = require('../models/core/Settings');
+const { decrypt } = require('./secretCrypto');
 
 const sendEmail = async (options) => {
   // Fetch settings from database
@@ -11,7 +12,7 @@ const sendEmail = async (options) => {
         port: settings.smtp.port,
         auth: {
           user: settings.smtp.user,
-          pass: settings.smtp.password
+          pass: decrypt(settings.smtp.password)
         },
         fromName: settings.smtp.fromName,
         fromEmail: settings.smtp.fromEmail,

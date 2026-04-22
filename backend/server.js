@@ -36,6 +36,7 @@ const notificationRoutes = require('./routes/core/notificationRoutes');
 connectDB();
 
 const app = express();
+const isDev = process.env.NODE_ENV !== 'production';
 
 // Standard Middleware
 app.use(compression());
@@ -53,15 +54,27 @@ app.use(cors({
 // Security Middleware
 app.use(helmet({
   crossOriginResourcePolicy: false,
-  contentSecurityPolicy: false,
-})); 
-// app.use(mongoSanitize()); // Prevent NoSQL injection
+  contentSecurityPolicy: isDev ? false : {
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com', 'https:'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https:'],
+      scriptSrc: ["'self'"],
+      connectSrc: ["'self'", 'https:', 'http:'],
+      upgradeInsecureRequests: []
+    }
+  }
+}));
 
 // Rate Limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // increased from 100 to 1000 for SPA robustness
-  message: 'Too many requests from this IP, please try again after 15 minutes'
+  windowMs: 15 * 60 * 1000, 
+  max: isDev ? 10000 : 1000,
+  message: { success: false, message: 'Too many requests from this IP, please try again after 15 minutes' }
 });
 app.use('/api', limiter);
 
@@ -76,6 +89,15 @@ app.use('/api/users/forgotpassword', authLimiter);
 
 app.use(express.json({ limit: '10kb' })); // Limit body size to prevent DOS
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
+// Custom middleware to sanitize NoSQL injections without overwriting search properties (fix for Express 5)
+app.use('/api', (req, res, next) => {
+  const options = { replaceWith: '_' };
+  if (req.body) mongoSanitize.sanitize(req.body, options);
+  if (req.params) mongoSanitize.sanitize(req.params, options);
+  if (req.query) mongoSanitize.sanitize(req.query, options);
+  if (req.headers) mongoSanitize.sanitize(req.headers, options);
+  next();
+});
 app.use(paginationMiddleware);
 
 // Static folder for uploads
@@ -136,6 +158,24 @@ app.use('/notifications', notificationRoutes);
 // Root route / Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'API is running...', database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected' });
+});
+
+// Central error handler (e.g. uploads / validation)
+app.use((err, req, res, next) => {
+  if (!err) return next();
+
+  // Multer errors come through with a code
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ message: 'Upload too large' });
+  }
+
+  // uploadMiddleware fileFilter errors
+  if (typeof err.message === 'string' && err.message.startsWith('Unsupported upload type')) {
+    return res.status(415).json({ message: err.message });
+  }
+
+  console.error('Unhandled error:', err);
+  return res.status(500).json({ message: 'Internal Server Error' });
 });
 
 // Final Catch-all fallback (Pure API focus)

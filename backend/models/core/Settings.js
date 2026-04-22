@@ -65,6 +65,15 @@ const settingsSchema = new mongoose.Schema({
     type: { type: String, enum: ['Monthly', 'Hourly'], default: 'Monthly' },
     allowedPaidLeaves: { type: Number, default: 1.5 },
     allowedPaidHours: { type: Number, default: 12 }
+  },
+  workingHours: {
+    monday: { isOpen: { type: Boolean, default: true }, openTime: { type: String, default: '09:00' }, closeTime: { type: String, default: '21:00' } },
+    tuesday: { isOpen: { type: Boolean, default: true }, openTime: { type: String, default: '09:00' }, closeTime: { type: String, default: '21:00' } },
+    wednesday: { isOpen: { type: Boolean, default: true }, openTime: { type: String, default: '09:00' }, closeTime: { type: String, default: '21:00' } },
+    thursday: { isOpen: { type: Boolean, default: true }, openTime: { type: String, default: '09:00' }, closeTime: { type: String, default: '21:00' } },
+    friday: { isOpen: { type: Boolean, default: true }, openTime: { type: String, default: '14:00' }, closeTime: { type: String, default: '23:00' } },
+    saturday: { isOpen: { type: Boolean, default: true }, openTime: { type: String, default: '09:00' }, closeTime: { type: String, default: '21:00' } },
+    sunday: { isOpen: { type: Boolean, default: true }, openTime: { type: String, default: '09:00' }, closeTime: { type: String, default: '21:00' } }
   }
 }, { timestamps: true });
 

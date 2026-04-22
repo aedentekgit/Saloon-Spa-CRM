@@ -148,8 +148,70 @@ const getInvoiceById = async (req, res) => {
   }
 };
 
+// @desc    Update invoice (partial)
+// @route   PATCH /api/invoices/:id
+// @access  Private
+const updateInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id);
+
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // IDOR Check
+    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
+    const isBranchStaff = sameBranch(invoice.branch, req.user.branch);
+    const isAdmin = req.user.role === 'Admin';
+
+    if (!isAdmin && !isBranchStaff && !isOwner) {
+      return res.status(403).json({ message: 'Access Denied: You do not have permission to update this invoice' });
+    }
+
+    const { paymentMode, date, clientName } = req.body || {};
+    // Note: We intentionally do NOT allow updating totals/items here; that requires a full recalculation workflow.
+    if (paymentMode !== undefined) invoice.paymentMode = paymentMode;
+    if (date !== undefined) invoice.date = date;
+    if (clientName !== undefined) invoice.clientName = clientName;
+
+    const updated = await invoice.save();
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// @desc    Delete invoice
+// @route   DELETE /api/invoices/:id
+// @access  Private
+const deleteInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id);
+
+    if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // IDOR Check
+    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(invoice.branch, req.user.branch);
+    const isAdmin = req.user.role === 'Admin';
+
+    if (!isAdmin && !isBranchManager && !isOwner) {
+       return res.status(403).json({ message: 'Access Denied: You do not have permission to delete this invoice record.' });
+    }
+
+    await invoice.deleteOne();
+    res.json({ message: 'Invoice removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getInvoices,
   createInvoice,
-  getInvoiceById
+  getInvoiceById,
+  updateInvoice,
+  deleteInvoice
 };

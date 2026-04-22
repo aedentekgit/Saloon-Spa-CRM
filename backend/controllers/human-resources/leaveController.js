@@ -63,6 +63,18 @@ const createLeave = async (req, res) => {
       leaveBranch = getBranchId(targetEmployee.branch) || leaveBranch;
     }
 
+    // Conflict Check: Prevent leave application if already marked Present in Attendance
+    const Attendance = require('../../models/human-resources/Attendance');
+    const conflictAttendance = await Attendance.findOne({
+      user: leaveOwnerId,
+      date: { $gte: startDate, $lte: endDate },
+      status: 'Present'
+    });
+
+    if (conflictAttendance) {
+       return res.status(400).json({ message: `Conflict Detected: Specialist was marked Present on ${conflictAttendance.date}. Please rectify attendance record first.` });
+    }
+
     const leave = await Leave.create({
       user: leaveOwnerId,
       employeeName: leaveEmployeeName,

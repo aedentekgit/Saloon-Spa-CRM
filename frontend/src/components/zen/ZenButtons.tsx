@@ -3,9 +3,9 @@ import React from 'react';
 export const ZenButton = ({ children, variant = 'primary', className = '', ...props }: any) => {
   const base = "flex items-center justify-center gap-3 py-3.5 px-8 rounded-2xl font-bold transition-all duration-300 text-xs uppercase tracking-widest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zen-sand/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white active:scale-[0.98]";
   const variants: any = {
-    primary: "bg-zen-brown text-zen-cream hover:bg-black",
-    secondary: "bg-zen-stone text-zen-brown hover:bg-zen-sand/10",
-    outline: "bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-brown hover:text-white"
+    primary: "bg-zen-sand text-white hover:bg-zen-primary shadow-sm shadow-zen-sand/20",
+    secondary: "bg-zen-stone text-zen-brown hover:bg-zen-stone/80",
+    outline: "bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-sand hover:text-white"
   };
 
   return (
@@ -17,8 +17,8 @@ export const ZenButton = ({ children, variant = 'primary', className = '', ...pr
 
 export const ZenIconButton = ({ icon: Icon, variant = 'outline', className = '', type = 'button', size = 'md', ...props }: any) => {
   const variants: any = {
-    outline: "bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-brown hover:text-white",
-    cream: "bg-zen-cream text-zen-brown hover:bg-zen-brown hover:text-white",
+    outline: "bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-sand hover:text-white",
+    cream: "bg-zen-cream text-zen-brown hover:bg-zen-sand hover:text-white",
     danger: "bg-white text-red-500 border border-zen-brown/15 hover:bg-red-500 hover:text-white",
     leaf: "bg-zen-leaf/10 text-zen-leaf border border-zen-leaf/20 hover:bg-zen-leaf hover:text-white",
     sand: "bg-zen-sand/10 text-zen-brown border border-zen-sand/20 hover:bg-zen-sand hover:text-white"

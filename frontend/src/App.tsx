@@ -48,6 +48,7 @@ const ServiceCategories = React.lazy(() => import('./pages/config/ServiceCategor
 const Payroll = React.lazy(() => import('./pages/operations/Payroll'));
 const Shifts = React.lazy(() => import('./pages/config/Shifts'));
 const Transactions = React.lazy(() => import('./pages/operations/Transactions'));
+const Expenses = React.lazy(() => import('./pages/operations/Expenses'));
 const Categories = React.lazy(() => import('./pages/config/Categories'));
 
 // Pages - Landing (Public)
@@ -187,6 +188,7 @@ const AppRoutes = () => {
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/shifts" element={<Shifts />} />
           <Route path="/transactions" element={<Transactions />} />
+          <Route path="/expenses" element={<Expenses />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

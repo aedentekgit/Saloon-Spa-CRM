@@ -22,6 +22,7 @@ import { ZenDropdown, ZenInput, ZenTextarea, ZenDatePicker } from '../../compone
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { useBranches } from '../../context/BranchContext';
 import { useData } from '../../context/DataContext';
 
@@ -197,8 +198,9 @@ const Employees = () => {
     fetchEmployees();
     
     const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
       fetchEmployees(true);
-    }, 10000); // 10s sync
+    }, getPollIntervalMs(30000)); // default 30s
 
     return () => clearInterval(interval);
   }, [selectedBranch, page, debouncedSearch, user?.token]);
@@ -735,7 +737,7 @@ const Employees = () => {
                         {((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}
                       </td>
                       <td>
-                         <div className="w-12 h-12 rounded-full overflow-hidden mx-auto bg-stone-50 border border-black/5 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
+                         <div className="w-12 h-12 zen-pointed-surface overflow-hidden mx-auto bg-stone-50 border border-black/5 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
                             {emp.profilePic ? (
                                <img src={getImageUrl(emp.profilePic)} alt={emp.name} className="w-full h-full object-cover" />
                             ) : (
@@ -807,7 +809,7 @@ const Employees = () => {
         <form id="employee-form" onSubmit={handleSubmit} className="w-full space-y-5">
           <section className="grid grid-cols-1 lg:grid-cols-[96px_minmax(0,1fr)] gap-5 lg:gap-6 items-start">
             <div className="relative mx-auto lg:mx-0 w-24 h-24 sm:w-28 sm:h-28 group cursor-pointer shrink-0">
-              <div className="w-full h-full rounded-full ring-4 ring-zen-cream overflow-hidden bg-zen-cream flex items-center justify-center transition-all group-hover:ring-zen-brown/20 shadow-xl">
+              <div className="w-full h-full zen-pointed-surface ring-4 ring-zen-cream overflow-hidden bg-zen-cream flex items-center justify-center transition-all group-hover:ring-zen-brown/20 shadow-xl">
                 {(profilePicFile || (editingEmp && editingEmp.profilePic)) ? (
                   <img src={profilePicFile ? URL.createObjectURL(profilePicFile) : getImageUrl(editingEmp?.profilePic)} className="w-full h-full object-cover" />
                 ) : <UserCircle className="text-zen-brown/10" size={56} />}
@@ -824,13 +826,17 @@ const Employees = () => {
             </div>
           </section>
 
-          <div className="flex flex-wrap gap-1.5 p-1.5 bg-zen-brown/5 rounded-[1.5rem] border border-zen-brown/10">
+          <div className="flex items-center gap-3 mb-10 overflow-x-auto scrollbar-hide pb-2 border-b border-zen-brown/5">
             {employeeModalTabs.map(tab => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 sm:px-5 py-2.5 rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.22em] transition-all duration-500 ${activeTab === tab.id ? 'bg-zen-brown text-white shadow-sm' : 'text-zen-brown/35 hover:text-zen-brown hover:bg-white'}`}
+                className={`flex items-center gap-2 px-6 py-3 rounded-t-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 whitespace-nowrap border-b-2 ${
+                  activeTab === tab.id 
+                    ? 'bg-zen-brown/5 text-zen-brown border-zen-brown' 
+                    : 'bg-transparent text-zen-brown/30 border-transparent hover:text-zen-brown/60 hover:bg-zen-cream/30'
+                }`}
               >
                 {tab.label}
               </button>
@@ -1213,7 +1219,7 @@ const Employees = () => {
 
                     {/* Upload Area — only when editing an existing employee */}
                     {editingEmp ? (
-                      <div className="border-2 border-dashed border-zen-brown/25 rounded-[1.75rem] p-5 flex flex-col items-center gap-3 hover:border-zen-brown/35 transition-all group/upload">
+                      <div className="zen-pointed-surface p-5 flex flex-col items-center gap-3 hover:border-zen-brown/35 transition-all group/upload border-2 border-dashed">
                         <div className="w-14 h-14 rounded-2xl bg-zen-cream flex items-center justify-center text-zen-brown/20 group-hover/upload:text-zen-brown/40 transition-colors">
                           <Upload size={28} />
                         </div>

@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const Settings = require('../models/core/Settings');
+const { decrypt } = require('./secretCrypto');
 
 let firebaseApp = null;
 
@@ -23,7 +24,7 @@ const initializeFirebase = async () => {
 
     if (firebaseServiceAccount) {
       try {
-        serviceAccount = JSON.parse(firebaseServiceAccount);
+        serviceAccount = JSON.parse(decrypt(firebaseServiceAccount));
       } catch (e) {
         console.error('Invalid Firebase Service Account JSON');
       }
@@ -33,7 +34,7 @@ const initializeFirebase = async () => {
       serviceAccount = {
         projectId: firebaseProjectId,
         clientEmail: firebaseClientEmail,
-        privateKey: firebasePrivateKey.replace(/\\n/g, '\n'),
+        privateKey: decrypt(firebasePrivateKey).replace(/\\n/g, '\n'),
       };
     }
 

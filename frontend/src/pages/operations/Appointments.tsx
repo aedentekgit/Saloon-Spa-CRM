@@ -14,6 +14,7 @@ import { ZenButton, ZenBadge, ZenIconButton } from '../../components/zen/ZenButt
 import { ZenAutocomplete, ZenDatePicker, ZenDropdown, useFloatingAnchor } from '../../components/zen/ZenInputs';
 import { useBranches } from '../../context/BranchContext';
 import { useSettings } from '../../context/SettingsContext';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
@@ -277,8 +278,9 @@ const Appointments = () => {
     fetchAllData();
     
     const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
       fetchAllData(true);
-    }, 10000); // 10s sync
+    }, getPollIntervalMs(30000)); // default 30s
     
     return () => clearInterval(interval);
   }, [user, page]);
@@ -371,6 +373,27 @@ const Appointments = () => {
     
     if (end.isBefore(start)) end = end.add(1, 'day');
 
+    // Business Hours Constraint Logic
+    const dayName = dayjs(formData.date).format('dddd').toLowerCase() as keyof NonNullable<typeof settings.workingHours>;
+    const dayHours = settings?.workingHours?.[dayName];
+    
+    if (dayHours && !dayHours.isOpen) {
+       return [];
+    }
+
+    const shopOpenTimeStr = dayHours?.openTime || '09:00';
+    const shopCloseTimeStr = dayHours?.closeTime || '21:00';
+
+    let shopStart = dayjs(`${formData.date} ${shopOpenTimeStr}`, 'YYYY-MM-DD HH:mm');
+    let shopEnd = dayjs(`${formData.date} ${shopCloseTimeStr}`, 'YYYY-MM-DD HH:mm');
+    if (shopEnd.isBefore(shopStart)) shopEnd = shopEnd.add(1, 'day');
+
+    // Intersect shift bounds with shop operational bounds
+    if (start.isBefore(shopStart)) start = shopStart;
+    if (end.isAfter(shopEnd)) end = shopEnd;
+
+    if (!end.isAfter(start)) return [];
+
     const selectedService = rawServices.find(s => s.name === formData.service);
     const serviceDuration = selectedService?.duration || 60;
 
@@ -391,8 +414,7 @@ const Appointments = () => {
       const slotEnd = current.add(serviceDuration, 'minute');
       const roomOccupancyEnd = current.add(totalRoomOccupancy, 'minute');
       
-      if (slotEnd.isAfter(end)) break;
-      
+      // Removed the break to ensure slots generate up until close time.
       // Check Past Time
       const isPastTime = isToday && current.isBefore(now);
 
@@ -1055,7 +1077,7 @@ const Appointments = () => {
                         formData.time === slot.time
                           ? 'bg-zen-brown text-white border-zen-brown shadow-lg scale-105'
                           : slot.isBooked
-                            ? 'bg-zen-cream/10 text-zen-brown/10 border-zen-brown/15 cursor-not-allowed line-through'
+                            ? 'bg-zen-cream/5 text-zen-brown/40 border-zen-brown/10 cursor-not-allowed line-through'
                             : 'bg-white text-zen-brown/60 border-zen-brown/25 hover:border-zen-brown hover:text-zen-brown'
                       }`}
                     >

@@ -76,6 +76,7 @@ const LandingServices = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -95,14 +96,13 @@ const LandingServices = () => {
           branchRes.json()
         ]);
 
-        // Robust handling for both direct arrays and { data: [...] } formats
         const servData = Array.isArray(servRaw) ? servRaw : (servRaw?.data || []);
         const branchDataList = Array.isArray(branchRaw) ? branchRaw : (branchRaw?.data || []);
 
         setServices(servData);
         setBranches(branchDataList.filter((b: Branch) => b.isActive));
       } catch (err) {
-        setError('Unable to load our ritual offerings. Please check your connection.');
+        setError('Unable to load offerings.');
       } finally {
         setLoading(false);
       }
@@ -112,258 +112,197 @@ const LandingServices = () => {
   }, []);
 
   const filteredServices = useMemo(() => {
-    // Only show Active services
-    const active = services.filter(s => s.status === 'Active');
-    if (selectedBranch === 'all') return active;
+    let active = services.filter(s => s.status === 'Active');
     
-    return active.filter(s => {
-      const bId = typeof s.branch === 'object' ? s.branch?._id : s.branch;
-      return bId === selectedBranch;
-    });
+    if (selectedBranch !== 'all') {
+      active = active.filter(s => {
+        const bId = typeof s.branch === 'object' ? s.branch?._id : s.branch;
+        return bId === selectedBranch;
+      });
+    }
+
+    if (selectedCategory !== 'all') {
+      active = active.filter(s => (s.category || 'Wellness') === selectedCategory);
+    }
+    
+    return active;
+  }, [services, selectedBranch, selectedCategory]);
+
+  const categories = useMemo(() => {
+    const active = services.filter(s => s.status === 'Active');
+    const branchSpecific = selectedBranch === 'all' 
+      ? active 
+      : active.filter(s => {
+          const bId = typeof s.branch === 'object' ? s.branch?._id : s.branch;
+          return bId === selectedBranch;
+        });
+    const cats = Array.from(new Set(branchSpecific.map(s => s.category || 'Wellness')));
+    return ['all', ...cats.sort()];
   }, [services, selectedBranch]);
 
   return (
-    <div className="min-h-screen bg-zen-cream text-zen-brown selection:bg-zen-sand/20">
-      {/* Adjusted top padding to fix the large gap issue */}
-      <header className="relative z-10 px-6 pt-10 md:pt-16 lg:pt-20 pb-16 text-center overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none">
-          <span className="text-[25vw] font-serif font-bold tracking-tighter leading-none">RITUALS</span>
+    <div className="min-h-screen bg-[#FDFDFD] text-zen-brown font-sans">
+      
+      {/* Compact, Professional Header */}
+      <header className="relative pt-24 pb-16 px-6 lg:px-20 border-b border-zen-stone/10 bg-white">
+        <div className="max-w-[1000px] mx-auto flex flex-col md:flex-row md:items-end justify-between gap-8">
+           <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                 <div className="w-12 h-[1px] bg-zen-gold/40"></div>
+                 <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-zen-gold font-sans">Curated Registry</span>
+              </div>
+              <h1 className="text-6xl lg:text-8xl font-serif font-black text-zen-brown leading-[0.9] tracking-tighter">
+                Ritual <span className="text-zen-gold italic font-accent lowercase tracking-normal">Catalogue</span>
+              </h1>
+           </div>
+           
+           {/* Boutique Branch Selector */}
+           <div className="flex bg-zen-stone/5 p-1 rounded-full border border-zen-stone/10 self-start">
+              <button
+               onClick={() => setSelectedBranch('all')}
+               className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all ${
+                selectedBranch === 'all' ? 'bg-zen-brown text-white shadow-xl' : 'text-zen-brown/40 hover:text-zen-brown/60'
+               }`}
+             >
+               All Locations
+             </button>
+             {branches.map((branch) => (
+               <button
+                 key={branch._id}
+                  onClick={() => setSelectedBranch(branch._id)}
+                  className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap ${
+                    selectedBranch === branch._id ? 'bg-zen-brown text-white shadow-xl' : 'text-zen-brown/40 hover:text-zen-brown/60'
+                  }`}
+                >
+                 {branch.name}
+               </button>
+             ))}
+           </div>
         </div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          className="mx-auto max-w-4xl relative z-10"
-        >
-          <div className="flex items-center justify-center gap-4 text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase text-zen-brown/40 mb-6">
-            <span className="w-10 h-[1px] bg-zen-brown/20" />
-            The Zen Collective Offers
-            <span className="w-10 h-[1px] bg-zen-brown/20" />
-          </div>
-          
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-black leading-[0.9] tracking-tight mb-8">
-            The Art of<br />
-            <span className="italic relative animate-text-shine text-zen-sand">
-              Self-Renewal
-              <motion.span 
-                initial={{ width: 0 }}
-                animate={{ width: '100%' }}
-                transition={{ delay: 1, duration: 1.5 }}
-                className="absolute -bottom-2 left-0 h-[1px] bg-zen-sand/20" 
-              />
-            </span>
-          </h1>
-
-          <p className="text-lg md:text-xl text-zen-brown/60 max-w-2xl mx-auto leading-relaxed font-sans font-light">
-            Our services are choreographed passages of renewal. Each treatment is tailored to your immediate state of being, facilitated by masters of their craft.
-          </p>
-
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
-            className="mt-10 flex justify-center"
-          >
-            <div className="w-[1px] h-16 bg-gradient-to-b from-zen-brown/20 to-transparent" />
-          </motion.div>
-        </motion.div>
       </header>
 
-
-      {/* Branch Tabs */}
-      <section className="px-6 lg:px-24 mb-16">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap items-center gap-4 lg:gap-8 px-4 -mx-4 pt-4 -mt-4 pb-8 border-b border-zen-primary/5 overflow-x-auto scrollbar-hide">
-            <button
-              onClick={() => setSelectedBranch('all')}
-              className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap
-                ${selectedBranch === 'all' 
-                  ? 'bg-zen-primary text-white shadow-xl scale-105' 
-                  : 'bg-white text-zen-primary/40 hover:text-zen-primary border border-zen-primary/5'}
-              `}
-            >
-              All Sanctuaries
-            </button>
-            {branches.map((branch) => (
-              <button
-                key={branch._id}
-                onClick={() => setSelectedBranch(branch._id)}
-                className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap
-                  ${selectedBranch === branch._id 
-                    ? 'bg-zen-primary text-white shadow-xl scale-105' 
-                    : 'bg-white text-zen-primary/40 hover:text-zen-primary border border-zen-primary/5'}
-                `}
-              >
-                {branch.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Services Grid */}
-      <section className="px-6 lg:px-24 pb-32 min-h-[500px]">
-        <div className="max-w-7xl mx-auto">
-
-          {/* Loading State */}
-          {loading && (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
-            </div>
-          )}
-
-          {!loading && error && (
-            <div className="flex flex-col items-center justify-center py-40 glass rounded-[4rem] border border-white/60 backdrop-blur-xl animate-in fade-in duration-700">
-               <div className="h-24 w-24 rounded-full bg-zen-primary/5 flex items-center justify-center text-zen-primary mb-8 border border-zen-primary/10">
-                  <AlertCircle size={40} strokeWidth={1.5} />
-               </div>
-               <h2 className="text-4xl font-bold text-zen-primary mb-4 font-accent tracking-tight">Offerings Interrupted</h2>
-               <p className="text-zen-brown/60 mb-10 text-center max-w-sm italic">{error}</p>
-               <button 
-                  onClick={() => window.location.reload()} 
-                  className="px-12 py-4 bg-zen-primary text-white rounded-full text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-zen-sand transition-all shadow-2xl shadow-zen-primary/20"
-               >
-                  Retry Journey
-               </button>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {!loading && !error && filteredServices.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-32 gap-6 text-center animate-in fade-in duration-700">
-              <div className="w-20 h-20 rounded-full bg-zen-primary/5 flex items-center justify-center opacity-30">
-                <Sparkles size={32} className="text-zen-brown" strokeWidth={1} />
-              </div>
-              <h3 className="text-2xl font-serif text-zen-primary/60">No rituals found in this sanctuary</h3>
-              <p className="text-zen-primary/30 text-sm max-w-sm font-bold uppercase tracking-widest">
-                Our masters are preparing special offerings for this location.
-              </p>
-            </div>
-          )}
-
-          {/* Services Grid */}
-          {!loading && !error && filteredServices.length > 0 && (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12">
-              {filteredServices.map((service, i) => {
-                const Icon = getCategoryIcon(service.category);
-                const imgUrl = getImageUrl(service.image);
-                const branchName = typeof service.branch === 'object' ? service.branch?.name : 'Sanctuary';
-
-                return (
-                  <div
-                    key={service._id}
-                    className="group relative rounded-[1.5rem] overflow-hidden bg-zen-primary hover:shadow-2xl transition-all duration-700 animate-in fade-in slide-in-from-bottom-8 aspect-[4/5] cursor-pointer"
-                    style={{ animationDelay: `${i * 80}ms` }}
-                  >
-                    {/* Background Image */}
-                    <div className="absolute inset-0">
-                      <img
-                        src={imgUrl || `https://images.unsplash.com/photo-1544161515-4ae6ce6fe858?auto=format&fit=crop&q=80&service=${service._id}`}
-                        alt={service.name}
-                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-90 group-hover:opacity-40"
-                        onError={(e) => {
-                          const target = e.currentTarget as HTMLImageElement;
-                          if (target.src !== `https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&q=80`) {
-                            target.src = `https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&q=80`;
-                          } else {
-                            target.style.display = 'none';
-                            const fallback = target.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.style.display = 'flex';
-                          }
-                        }}
-                      />
-                      <div
-                        className="w-full h-full bg-gradient-to-br from-zen-primary to-zen-sand flex items-center justify-center opacity-90 group-hover:opacity-40 transition-opacity duration-1000"
-                        style={{ display: 'none' }}
+      {/* Main Interaction Area */}
+      <div className="max-w-[1000px] mx-auto flex flex-col lg:flex-row min-h-[70vh]">
+        
+        {/* Category Side Navigation */}
+        <aside className="w-full lg:w-72 lg:border-r border-zen-stone/10 p-6 lg:py-20 lg:sticky lg:top-0 h-fit">
+           <div className="space-y-12">
+              <div className="space-y-4">
+                 <p className="text-[9px] font-black uppercase tracking-[0.5em] text-zen-brown/20 italic">Select Passage</p>
+                 <div className="flex lg:flex-col overflow-x-auto no-scrollbar gap-2 lg:gap-1">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                         onClick={() => setSelectedCategory(cat)}
+                        className={`group flex items-center justify-between px-8 py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap lg:whitespace-normal text-left border ${
+                          selectedCategory === cat ? 'bg-white border-zen-gold text-zen-brown shadow-2xl' : 'text-zen-brown/30 border-transparent hover:bg-white hover:border-zen-stone/40'
+                        }`}
                       >
-                        <Icon size={72} className="text-zen-primary/20" strokeWidth={0.8} />
-                      </div>
-                    </div>
+                          <span className="truncate">{cat === 'all' ? 'The Complete Registry' : cat}</span>
+                          <div className={`hidden lg:block w-1.5 h-1.5 rounded-full transition-all ${selectedCategory === cat ? 'bg-zen-gold' : 'bg-transparent group-hover:bg-zen-gold/20'}`} />
+                       </button>
+                    ))}
+                 </div>
+              </div>
 
-                    {/* Permanent Gradient for text legibility */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-zen-primary via-zen-primary/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-700 pointer-events-none" />
+              <div className="hidden lg:block p-8 border border-zen-stone/10 rounded-3xl bg-white space-y-6">
+                 <Sparkles className="text-zen-sand" size={24} />
+                 <p className="text-[10px] text-zen-brown/40 leading-relaxed font-serif italic">
+                   Can't find a specific ritual? Our masters can architect a custom passage for your energy.
+                 </p>
+                 <Link to="/contact" className="block text-[9px] font-black uppercase tracking-widest text-zen-brown border-b border-zen-stone/10 pb-2 hover:text-zen-sand transition-colors">
+                    Request Consultation
+                 </Link>
+              </div>
+           </div>
+        </aside>
 
-                    {/* Top Right Badges (Always visible) */}
-                    <div className="absolute top-6 right-6 flex flex-col items-end gap-2 z-10 transition-transform duration-700 group-hover:-translate-y-2">
-                      <div className="px-5 py-2 backdrop-blur-3xl bg-white/90 rounded-full text-[10px] font-bold tracking-widest text-zen-brown flex items-center gap-1.5 shadow-lg">
-                        <Clock size={12} />
-                        {service.duration} MIN
-                      </div>
-                      <div className="px-5 py-2 backdrop-blur-3xl bg-zen-primary/90 rounded-full text-[10px] font-bold tracking-widest text-white flex items-center gap-1.5 shadow-lg">
-                        <Coins size={12} />
-                        {service.price > 0 ? `QR ${service.price}` : 'On Request'}
-                      </div>
-                    </div>
+        {/* Dynamic Ritual Gallery */}
+        <main className="flex-1 p-6 lg:p-20">
+           {loading ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+               {Array.from({ length: 6 }).map((_, i) => (
+                 <div key={i} className="space-y-6 animate-pulse">
+                    <div className="aspect-[4/3] bg-zen-stone/5 rounded-2xl" />
+                    <div className="h-4 bg-zen-stone/5 w-1/2" />
+                    <div className="h-8 bg-zen-stone/5 w-full" />
+                 </div>
+               ))}
+             </div>
+           ) : error ? (
+             <div className="h-[50vh] flex flex-col items-center justify-center text-center space-y-6">
+                <AlertCircle size={48} className="text-zen-brown/10" strokeWidth={0.5} />
+                <p className="text-2xl font-serif italic text-zen-brown/30">{error}</p>
+             </div>
+           ) : filteredServices.length === 0 ? (
+             <div className="h-[50vh] flex flex-col items-center justify-center text-center space-y-6">
+                <Sparkles size={64} className="text-zen-brown/10" strokeWidth={0.5} />
+                <p className="text-2xl font-serif italic text-zen-brown/30">No rituals found in this category.</p>
+             </div>
+           ) : (
+             <div className="grid grid-cols-1 md:grid-cols-2 flex-wrap xl:grid-cols-3 gap-x-8 gap-y-16">
+               <AnimatePresence mode="popLayout">
+                 {filteredServices.map((service, idx) => {
+                   const imgUrl = getImageUrl(service.image);
+                   return (
+                     <motion.div
+                       key={service._id}
+                       layout
+                       initial={{ opacity: 0, scale: 0.95 }}
+                       animate={{ opacity: 1, scale: 1 }}
+                       exit={{ opacity: 0, scale: 0.95 }}
+                       transition={{ duration: 0.4 }}
+                       className="group"
+                     >
+                       <Link to="/book" className="block space-y-6">
+                          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-zen-stone/5 shadow-sm group-hover:shadow-xl transition-all duration-700">
+                             <img 
+                                src={imgUrl || `https://images.unsplash.com/photo-1544161515-4ae6ce6fe858?auto=format&fit=crop&q=80&service=${service._id}`}
+                                alt={service.name}
+                                className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105"
+                             />
+                              <div className="absolute top-6 right-6 bg-white border border-zen-gold/20 px-6 py-2 rounded-full text-[10px] font-black text-zen-brown shadow-xl">
+                                <span className="text-zen-gold mr-1">QR</span> {service.price}
+                              </div>
+                          </div>
+                          
+                          <div className="space-y-3">
+                              <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.4em] text-zen-gold/50">
+                                 <span>{service.category}</span>
+                                 <span>{service.duration} MIN</span>
+                              </div>
+                              <h3 className="text-3xl font-serif font-black text-zen-brown group-hover:text-zen-gold transition-colors leading-tight">{service.name}</h3>
+                             <p className="text-sm text-zen-brown/40 font-serif leading-relaxed line-clamp-2 italic">
+                                {service.description || `Experience absolute restoration through this masterfully architected ritual sequence.`}
+                             </p>
+                          </div>
+                       </Link>
+                     </motion.div>
+                   );
+                 })}
+               </AnimatePresence>
+             </div>
+           )}
+        </main>
+      </div>
 
-                    {/* Top Left Branch Badge (Visible on Hover) */}
-                    <div className="absolute top-6 left-6 opacity-0 group-hover:opacity-100 transition-all duration-700 -translate-y-4 group-hover:translate-y-0 z-10">
-                        <span className="px-4 py-2 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-bold tracking-widest text-white uppercase border border-white/40 shadow-xl">
-                           {branchName}
-                        </span>
-                    </div>
-
-                    {/* Main Content Overlay (Translates up on hover) */}
-                    <div className="absolute bottom-0 inset-x-0 p-8 flex flex-col justify-end z-10 translate-y-12 group-hover:translate-y-0 transition-all duration-700">
-                      
-                      {/* Title & Category - partially visible unhovered, fully brightens on hover */}
-                      <div className="space-y-2 mb-6">
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.35em] text-white/90 group-hover:text-white transition-all duration-700">
-                             <Icon size={14} strokeWidth={2.5} className="text-zen-sand" />
-                             {service.category || 'Wellness'}
-                        </div>
-                        <h3 className="text-3xl font-serif font-bold text-white leading-tight opacity-90 group-hover:opacity-100 transition-opacity duration-700">{service.name}</h3>
-                      </div>
-
-                      {/* Description & Button - strictly hidden until hover */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-all duration-700 max-h-0 group-hover:max-h-40 overflow-hidden space-y-6">
-                        <p className="text-white/80 text-sm leading-relaxed italic line-clamp-3">
-                          {service.description
-                            ? service.description
-                            : `A masterfully orchestrated ${service.category?.toLowerCase() || 'wellness'} ritual, designed to harmonize the spirit and rejuvenate the body.`}
-                        </p>
-                        
-                        <div className="pt-4 flex items-center justify-between border-t border-white/20">
-                          <Link
-                            to="/book"
-                            className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-zen-sand group/btn hover:text-white transition-colors"
-                          >
-                            Book Ritual
-                            <ArrowRight size={14} className="group-hover/btn:translate-x-2 transition-transform" />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+      {/* Simplified Professional Footer */}
+      <footer className="py-16 border-t border-zen-stone/10 bg-white">
+         <div className="max-w-[1000px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8 opacity-40">
+            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-brown">The Zen Collective Ritual Registry</span>
+            <div className="flex gap-10">
+               <Waves size={14} />
+               <Leaf size={14} />
+               <Sparkles size={14} />
+               <Sun size={14} />
             </div>
-          )}
-        </div>
-      </section>
+         </div>
+      </footer>
 
-      {/* Full Width CTA */}
-      <section className="px-6 lg:px-24 pb-32">
-        <div className="max-w-7xl mx-auto bg-zen-primary rounded-[5rem] overflow-hidden relative p-12 lg:p-24 text-center group">
-          <div className="absolute inset-0 bg-gradient-to-r from-zen-primary to-transparent opacity-50" />
-          <div className="relative z-10 space-y-10">
-            <h2 className="text-5xl lg:text-7xl font-serif font-bold text-white max-w-2xl mx-auto leading-tight italic">
-              Experience Personal <br /> <span className="not-italic opacity-50">Transcendence.</span>
-            </h2>
-            <p className="text-white/50 text-xl max-w-xl mx-auto leading-relaxed">
-              Tailor your path with our Equilibrium Master for a wellness blueprint unique to your soul.
-            </p>
-            <Link
-              to="/contact"
-              className="inline-block px-14 py-6 bg-zen-cream text-zen-primary rounded-full text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-zen-sand transition-all shadow-sm"
-            >
-              Request Consultation
-            </Link>
-          </div>
-        </div>
-      </section>
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 };

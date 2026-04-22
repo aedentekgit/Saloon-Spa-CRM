@@ -270,7 +270,7 @@ const Billing = () => {
         <div className="xl:col-span-8 space-y-8">
           
           {/* Client & Status Section */}
-          <div className="zen-pointed-surface bg-white rounded-[2.5rem] border border-black/5 p-8 shadow-sm">
+          <div className="zen-pointed-surface bg-white border border-black/5 p-8 shadow-sm">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
               <div className="flex-1 w-full max-w-md">
                 <div className="flex items-center gap-3 mb-4">
@@ -345,7 +345,7 @@ const Billing = () => {
           </div>
 
           {/* Service Registry Section */}
-          <div className="zen-pointed-surface bg-white rounded-[2.5rem] border border-black/5 shadow-sm flex flex-col">
+          <div className="zen-pointed-surface bg-white border border-black/5 shadow-sm flex flex-col">
             <div className="p-8 border-b border-black/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-zen-leaf/10 flex items-center justify-center text-zen-leaf">
@@ -455,7 +455,7 @@ const Billing = () => {
         <div className="xl:col-span-4 space-y-8">
           
           {/* Summary Card */}
-          <div className="zen-pointed-surface bg-white rounded-[2.5rem] border border-black/10 shadow-2xl p-8 relative group">
+          <div className="zen-pointed-surface bg-white border border-black/10 shadow-2xl p-8 relative group">
             <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:rotate-12 group-hover:scale-125 transition-transform duration-1000">
               <Receipt size={200} />
             </div>
@@ -537,7 +537,7 @@ const Billing = () => {
           </div>
 
           {/* Payment Mode Selection */}
-          <div className="zen-pointed-surface bg-gray-50/50 rounded-[2.5rem] border border-black/5 p-8 space-y-6">
+          <div className="zen-pointed-surface bg-gray-50/50 border border-black/5 p-8 space-y-6">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-black/40">Engagement Logic</h3>
             
             <div className="grid grid-cols-2 gap-3">

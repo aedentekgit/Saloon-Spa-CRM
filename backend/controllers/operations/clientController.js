@@ -21,6 +21,14 @@ exports.getClients = async (req, res) => {
     const total = paginate ? await User.countDocuments(query) : null;
     const clients = paginate ? await clientsQuery.skip(skip).limit(limit) : await clientsQuery;
     
+    // Lightweight mode for simple lists (e.g. dropdowns)
+    if (req.query.strict === 'true' || req.query.lightweight === 'true') {
+      return res.json(paginate ? {
+        data: clients,
+        pagination: buildPaginationMeta(total || 0, page, limit)
+      } : clients);
+    }
+    
     // Fetch all memberships for these clients
     const clientIds = clients.map(c => c._id);
     const memberships = await Membership.find({ 

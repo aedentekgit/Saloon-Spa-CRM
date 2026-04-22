@@ -4,6 +4,28 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const path = require('path');
 const fs = require('fs');
 const Settings = require('../models/core/Settings');
+const { decrypt } = require('../utils/secretCrypto');
+
+const MAX_UPLOAD_SIZE_BYTES = Number.parseInt(process.env.MAX_UPLOAD_SIZE_BYTES || '', 10) || (10 * 1024 * 1024); // 10MB default
+const ALLOWED_MIME_TYPES = new Set([
+  // Images
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  // Documents
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  // Fonts
+  'font/ttf',
+  'font/otf',
+  'font/woff',
+  'font/woff2',
+  'application/font-woff',
+  'application/font-woff2',
+  // JSON (for firebase service account upload use-case)
+  'application/json'
+]);
 
 // Helper to get active settings
 const getActiveSettings = async () => {
@@ -24,7 +46,8 @@ const localStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`);
+    const safeName = path.basename(file.originalname).replace(/[^\w.\-]+/g, '_');
+    cb(null, `${Date.now()}-${safeName}`);
   }
 });
 
@@ -38,7 +61,7 @@ const dynamicStorage = {
         if (provider === 'cloudinary') {
           const cloudName = settings.upload.cloudinaryCloudName || process.env.CLOUDINARY_CLOUD_NAME;
           const apiKey = settings.upload.cloudinaryApiKey || process.env.CLOUDINARY_API_KEY;
-          const apiSecret = settings.upload.cloudinaryApiSecret || process.env.CLOUDINARY_API_SECRET;
+          const apiSecret = decrypt(settings.upload.cloudinaryApiSecret) || process.env.CLOUDINARY_API_SECRET;
 
           cloudinary.config({
             cloud_name: cloudName,
@@ -72,7 +95,24 @@ const dynamicStorage = {
   }
 };
 
-const upload = multer({ storage: dynamicStorage });
+const upload = multer({
+  storage: dynamicStorage,
+  limits: { fileSize: MAX_UPLOAD_SIZE_BYTES },
+  fileFilter: (req, file, cb) => {
+    const mimetype = file?.mimetype;
+    const isZipAllowed = typeof req?.originalUrl === 'string' && req.originalUrl.includes('/settings/upload-font');
+    const zipTypes = new Set(['application/zip', 'application/x-zip-compressed']);
+
+    if (!mimetype) {
+      return cb(new Error('Unsupported upload type: unknown'));
+    }
+
+    if (!ALLOWED_MIME_TYPES.has(mimetype) && !(isZipAllowed && zipTypes.has(mimetype))) {
+      return cb(new Error(`Unsupported upload type: ${mimetype}`));
+    }
+    return cb(null, true);
+  }
+});
 
 // Helper to delete file from any provider
 const deleteFile = async (url) => {
@@ -85,7 +125,7 @@ const deleteFile = async (url) => {
     if (url.includes('cloudinary.com')) {
       const cloudName = settings.upload.cloudinaryCloudName || process.env.CLOUDINARY_CLOUD_NAME;
       const apiKey = settings.upload.cloudinaryApiKey || process.env.CLOUDINARY_API_KEY;
-      const apiSecret = settings.upload.cloudinaryApiSecret || process.env.CLOUDINARY_API_SECRET;
+      const apiSecret = decrypt(settings.upload.cloudinaryApiSecret) || process.env.CLOUDINARY_API_SECRET;
 
       cloudinary.config({
         cloud_name: cloudName,

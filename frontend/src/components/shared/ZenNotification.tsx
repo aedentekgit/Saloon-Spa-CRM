@@ -76,7 +76,7 @@ export const NotificationContainer: React.FC = () => {
   const remove = (id: number) => setNotifications(prev => prev.filter(n => n.id !== id));
 
   return (
-    <div className="fixed bottom-12 right-12 z-[10000] flex flex-col gap-3">
+    <div className="fixed bottom-12 right-12 z-[99999] flex flex-col gap-3">
       <AnimatePresence>
         {notifications.map(n => (
           <ZenNotification key={n.id} {...n} onClose={remove} />

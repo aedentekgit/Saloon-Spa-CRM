@@ -18,6 +18,7 @@ import { ZenDropdown, ZenInput, ZenTextarea, ZenDatePicker, ZenMonthPicker } fro
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 
 
 interface MembershipPlan {
@@ -191,8 +192,9 @@ const Clients = () => {
     fetchRoles();
 
     const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
       fetchClients(true);
-    }, 10000); // 10s sync
+    }, getPollIntervalMs(30000)); // default 30s
 
     return () => clearInterval(interval);
   }, [page, user?.token]);
@@ -552,7 +554,7 @@ const Clients = () => {
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
                       <div className="flex justify-center">
-                        <div className="w-10 lg:w-12 h-10 lg:h-12 rounded-full overflow-hidden bg-zen-cream border-2 border-white shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
+                        <div className="w-10 lg:w-12 h-10 lg:h-12 zen-pointed-surface overflow-hidden bg-zen-cream border-2 border-white shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
                           {client.profilePic ? (
                             <img src={getImageUrl(client.profilePic)} alt={client.name} className="w-full h-full object-cover" />
                           ) : (
@@ -665,16 +667,16 @@ const Clients = () => {
         }
       >
         <form id="client-modal-form" onSubmit={handleSubmit} className="space-y-6">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-3 mb-10 overflow-x-auto scrollbar-hide pb-2 border-b border-zen-brown/5">
             {clientTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`rounded-full border px-4 py-2 text-[11px] font-semibold transition-all ${
+                className={`flex items-center gap-2 px-6 py-3 rounded-t-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 whitespace-nowrap border-b-2 ${
                   activeTab === tab.id
-                    ? 'border-zen-brown bg-zen-brown text-white shadow-sm'
-                    : 'border-zen-brown/10 bg-white text-zen-brown/55 hover:border-zen-brown/20 hover:text-zen-brown'
+                    ? 'bg-zen-brown/5 text-zen-brown border-zen-brown'
+                    : 'bg-transparent text-zen-brown/30 border-transparent hover:text-zen-brown/60 hover:bg-zen-cream/30'
                 }`}
               >
                 {tab.label}
@@ -696,7 +698,7 @@ const Clients = () => {
                     <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Profile photo</p>
                     <div className="relative mx-auto mt-5 aspect-square w-40 sm:w-48 group">
                       <div className="absolute inset-0 rounded-full bg-zen-cream/30 blur-sm" />
-                      <div className="relative h-full w-full overflow-hidden rounded-full border-4 border-white bg-zen-cream flex items-center justify-center shadow-lg">
+                      <div className="relative h-full w-full overflow-hidden zen-pointed-surface border-4 border-white bg-zen-cream flex items-center justify-center shadow-lg">
                         {(profilePicFile || (editingClient && editingClient.profilePic)) ? (
                           <img
                             src={profilePicFile ? URL.createObjectURL(profilePicFile) : getImageUrl(editingClient?.profilePic)}

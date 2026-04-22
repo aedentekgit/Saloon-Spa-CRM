@@ -31,6 +31,7 @@ import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ZenInput, ZenDropdown, ZenTextarea, ZenDatePicker, ZenAutocomplete } from '../../components/zen/ZenInputs';
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -118,34 +119,56 @@ const Memberships = () => {
        if (!silent) setIsLoading(true);
        try {
           const headers = { 'Authorization': `Bearer ${user?.token}` };
-          const [plansRes, enrollRes, servicesRes, branchRes, clientsRes, statsRes] = await Promise.all([
-             fetch(`${API_URL}/memberships/plans`, { headers }),
-             fetch(`${API_URL}/memberships/client/all?page=${page}&limit=${PAGE_LIMIT}`, { headers }),
-             fetch(`${API_URL}/services`, { headers }),
-             fetch(`${API_URL}/branches`, { headers }),
-             fetch(`${API_URL}/clients`, { headers }),
-             fetch(`${API_URL}/memberships/stats`, { headers })
-          ]);
+          
+          // Define a safe fetch wrapper
+          const safeFetch = async (url: string, defaultValue: any) => {
+             try {
+                const res = await fetch(url, { headers });
+                if (!res.ok) {
+                   const errorData = await res.json().catch(() => ({}));
+                   console.error(`API Error (${url}):`, errorData.message || res.statusText);
+                   return defaultValue;
+                }
+                const data = await res.json();
+                return data;
+             } catch (err) {
+                console.error(`Fetch error (${url}):`, err);
+                return defaultValue;
+             }
+          };
 
-          const [plansData, membershipsData, servicesData, branchesData, clientsData, statsData] = await Promise.all([
-             plansRes.json(),
-             enrollRes.json(),
-             servicesRes.json(),
-             branchRes.json(),
-             clientsRes.json(),
-             statsRes.json()
+          const [
+             plansData, 
+             membershipsData, 
+             servicesData, 
+             branchesData, 
+             clientsData, 
+             statsData
+          ] = await Promise.all([
+             safeFetch(`${API_URL}/memberships/plans`, []),
+             safeFetch(`${API_URL}/memberships/client/all?page=${page}&limit=${PAGE_LIMIT}`, { data: [], pagination: { pages: 1 } }),
+             safeFetch(`${API_URL}/services`, []),
+             safeFetch(`${API_URL}/branches`, []),
+             safeFetch(`${API_URL}/clients?lightweight=true`, []),
+             safeFetch(`${API_URL}/memberships/stats`, null)
           ]);
 
           setPlans(Array.isArray(plansData) ? plansData : (plansData?.data || []));
-          setMemberships(Array.isArray(membershipsData) ? membershipsData : (membershipsData?.data || []));
+          
+          const mList = Array.isArray(membershipsData) ? membershipsData : (membershipsData?.data || []);
+          setMemberships(mList);
           setTotalPages(membershipsData?.pagination?.pages || 1);
+          
           setServices(Array.isArray(servicesData) ? servicesData : (servicesData?.data || []));
           setBranches(Array.isArray(branchesData) ? branchesData : (branchesData?.data ?? branchesData?.branches ?? []));
           setClients(Array.isArray(clientsData) ? clientsData : (clientsData?.data || []));
-          setStats(statsData?.data || statsData);
+          
+          if (statsData) {
+             setStats(statsData?.data || statsData);
+          }
        } catch (error) {
-          console.error('Error fetching membership data:', error);
-          if (!silent) notify('error', 'Sync Failure', 'Failed to retrieve membership records');
+          console.error('Core fetch failure:', error);
+          if (!silent) notify('error', 'Sync Failure', 'Failed to retrieve membership records. Please check your connection.');
        } finally {
           if (!silent) setIsLoading(false);
        }
@@ -155,8 +178,9 @@ const Memberships = () => {
        fetchData();
 
        const interval = setInterval(() => {
+         if (!shouldPollNow()) return;
           fetchData(true);
-       }, 10000); // 10s sync
+       }, getPollIntervalMs(30000)); // default 30s
 
        return () => clearInterval(interval);
     }, [page, user?.token]);
@@ -361,7 +385,7 @@ title="Membership Management"
       onViewModeChange={setViewMode}
     >
       {/* Tabs Header */}
-      <div className="mb-8 bg-white/80 backdrop-blur-xl p-2.5 rounded-2xl border border-zen-brown/15 shadow-sm overflow-x-auto scrollbar-none whitespace-nowrap px-2">
+       <div className="mb-8 bg-white/80 backdrop-blur-xl p-2.5 rounded-2xl border border-zen-brown/15 shadow-sm flex items-center gap-2 overflow-x-auto scrollbar-none whitespace-nowrap px-2">
          {[
            { id: 'registry', label: user?.role === 'Client' ? 'My Memberships' : 'Memberships', icon: Users },
            ...(user?.role !== 'Client' ? [{ id: 'plans', label: 'Tier Management', icon: Crown }] : [])

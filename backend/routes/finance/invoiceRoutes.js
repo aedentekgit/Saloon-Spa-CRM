@@ -3,7 +3,9 @@ const router = express.Router();
 const {
   getInvoices,
   createInvoice,
-  getInvoiceById
+  getInvoiceById,
+  updateInvoice,
+  deleteInvoice
 } = require('../../controllers/finance/invoiceController');
 const { protect } = require('../../middleware/authMiddleware');
 
@@ -12,6 +14,8 @@ router.route('/')
   .post(protect, createInvoice);
 
 router.route('/:id')
-  .get(protect, getInvoiceById);
+  .get(protect, getInvoiceById)
+  .patch(protect, updateInvoice)
+  .delete(protect, deleteInvoice);
 
 module.exports = router;

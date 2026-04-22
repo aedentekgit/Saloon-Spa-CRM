@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import dayjs from 'dayjs';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Coins, 
   TrendingUp, 
@@ -210,7 +211,7 @@ const Finance = () => {
         </div>
 
         {/* Global Filter Bar */}
-        <div className="rounded-[2.25rem] border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-5">
+        <div className="zen-pointed-surface border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-5">
            <div className="flex flex-col xl:flex-row xl:items-end gap-5 xl:gap-8">
               <div className="flex-1 w-full flex flex-col gap-2.5">
                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Registry Search</label>
@@ -240,7 +241,7 @@ const Finance = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 font-sans">
         {/* Left Side: Chart */}
         <div className="lg:col-span-7 w-full flex flex-col">
-           <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-6 sm:p-8 min-h-[420px] relative overflow-hidden">
+           <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-6 sm:p-8 min-h-[420px] relative overflow-hidden">
              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-zen-brown/5">
                 <div>
                    <h3 className="text-xl font-bold text-gray-900 tracking-tight">Financial Status</h3>
@@ -309,7 +310,7 @@ const Finance = () => {
 
         {/* Right Side: Ledger */}
         <div className="lg:col-span-5 w-full flex flex-col">
-           <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden">
+           <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden">
               <div className="flex justify-between items-center gap-4 px-6 sm:px-8 pt-6 pb-5 border-b border-zen-brown/5">
                  <div>
                     <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Activity</h3>
@@ -318,87 +319,103 @@ const Finance = () => {
                  <ZenBadge variant="leaf" className="px-3 sm:px-5">Ledger</ZenBadge>
               </div>
 
-              <div className="table-container overflow-x-auto">
-                 <table className="w-full min-w-[720px] table-fixed border-collapse">
-                    <colgroup>
-                      <col className="w-[15%]" />
-                      <col className="w-[30%]" />
-                      <col className="w-[22%]" />
-                      <col className="w-[18%]" />
-                      <col className="w-[15%]" />
-                    </colgroup>
-                    <thead>
-                      <tr>
-                        <th>Type</th>
-                        <th>Entry</th>
-                        <th>Date</th>
-                        <th>Amount</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ledgerRows.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="px-6 py-24 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
-                             <div className="flex flex-col items-center gap-4 opacity-20">
-                                <Coins size={60} strokeWidth={0.5} />
-                                <p className="italic font-serif text-xl">Ledger is currently quiet.</p>
-                             </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        ledgerRows.map((row) => {
-                          const isExpense = row.kind === 'Expense';
-                          return (
-                            <tr key={row.id} className="transition-all group">
-                              <td>
-                                <div className="flex flex-col items-center">
-                                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${isExpense ? 'bg-red-500/10 text-red-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                                    {row.kind}
-                                  </span>
-                                  <span className="zen-table-meta mt-2">{isExpense ? 'Outflow' : 'Inflow'}</span>
+               <div className="table-container overflow-x-auto">
+                 <div className="min-w-[800px]">
+                   <table className="w-full text-center border-collapse">
+                     <colgroup>
+                       <col className="w-[10%]" />
+                       <col className="w-[15%]" />
+                       <col className="w-[30%]" />
+                       <col className="w-[15%]" />
+                       <col className="w-[15%]" />
+                       <col className="w-[15%]" />
+                     </colgroup>
+                     <thead>
+                       <tr>
+                         <th>S NO</th>
+                         <th>VISUAL</th>
+                         <th>ENTRY DETAILS</th>
+                         <th>DATE</th>
+                         <th>VOLUME</th>
+                         <th>ACTIONS</th>
+                       </tr>
+                     </thead>
+                     <tbody>
+                       <AnimatePresence mode="popLayout">
+                         {ledgerRows.length === 0 ? (
+                           <tr>
+                             <td colSpan={6} className="px-6 py-24 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
+                                <div className="flex flex-col items-center gap-4 opacity-20">
+                                   <Coins size={60} strokeWidth={0.5} />
+                                   <p className="italic font-serif text-xl">Ledger is currently quiet.</p>
                                 </div>
-                              </td>
-                              <td>
-                                <div className="flex flex-col items-center px-4">
-                                  <span className="zen-table-primary">{row.title}</span>
-                                  <span className="zen-table-meta">{row.subtitle}</span>
-                                </div>
-                              </td>
-                              <td>
-                                <div className="flex flex-col items-center">
-                                  <span className="zen-table-primary !text-[14px]">{dayjs(row.date).format('MMM DD, YYYY')}</span>
-                                  <span className="zen-table-meta">{row.meta}</span>
-                                </div>
-                              </td>
-                              <td>
-                                <p className={`text-base font-serif font-black ${isExpense ? 'text-red-600' : 'text-emerald-600'}`}>
-                                  {isExpense ? '-' : '+'}{settings?.general?.currencySymbol || 'QR'} {row.amount?.toLocaleString()}
-                                </p>
-                              </td>
-                              <td>
-                                <div className="flex items-center justify-center gap-3">
-                                  {isExpense ? (
-                                    <ZenIconButton
-                                      icon={Trash2}
-                                      variant="danger"
-                                      onClick={() => {
-                                        setExpenseToDelete(row.sourceId);
-                                        setIsConfirmOpen(true);
-                                      }}
-                                    />
-                                  ) : (
-                                    <ZenBadge variant="leaf" className="px-4">Settled</ZenBadge>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                 </table>
-              </div>
+                             </td>
+                           </tr>
+                         ) : (
+                           ledgerRows.map((row, idx) => {
+                             const isExpense = row.kind === 'Expense';
+                             return (
+                               <motion.tr 
+                                 key={row.id} 
+                                 initial={{ opacity: 0 }}
+                                 animate={{ opacity: 1 }}
+                                 exit={{ opacity: 0 }}
+                                 className="transition-all group border-b border-black/[0.02]"
+                               >
+                                 <td className="text-center italic opacity-40 text-[11px]">
+                                   {(idx + 1).toString().padStart(2, '0')}
+                                 </td>
+                                 <td>
+                                   <div className="flex justify-center">
+                                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform duration-500 shrink-0 ${isExpense ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-emerald-50 text-emerald-500 border-emerald-100'}`}>
+                                        {isExpense ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                                      </div>
+                                   </div>
+                                 </td>
+                                 <td>
+                                   <div className="flex flex-col items-center justify-center px-4">
+                                     <span className="zen-table-primary">{row.title}</span>
+                                     <div className="flex items-center justify-center gap-2 mt-1">
+                                        <span className="zen-table-meta">{row.subtitle}</span>
+                                     </div>
+                                   </div>
+                                 </td>
+                                 <td>
+                                   <div className="flex flex-col items-center">
+                                     <span className="zen-table-primary !text-[14px]">{dayjs(row.date).format('MMM DD, YYYY')}</span>
+                                     <span className="zen-table-meta">{row.meta}</span>
+                                   </div>
+                                 </td>
+                                 <td>
+                                   <p className={`text-base font-serif font-black ${isExpense ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                     {isExpense ? '-' : '+'}{settings?.general?.currencySymbol || 'QR'} {row.amount?.toLocaleString()}
+                                   </p>
+                                 </td>
+                                 <td>
+                                   <div className="flex items-center justify-center gap-3">
+                                     {isExpense ? (
+                                       <ZenIconButton
+                                         icon={Trash2}
+                                         variant="danger"
+                                         onClick={() => {
+                                           setExpenseToDelete(row.sourceId);
+                                           setIsConfirmOpen(true);
+                                         }}
+                                       />
+                                     ) : (
+                                       <ZenBadge variant="leaf" className="px-4">Settled</ZenBadge>
+                                     )}
+                                   </div>
+                                 </td>
+                               </motion.tr>
+                             );
+                           })
+                         )}
+                       </AnimatePresence>
+                     </tbody>
+                   </table>
+                 </div>
+               </div>
            </div>
         </div>
       </div>
@@ -407,8 +424,29 @@ const Finance = () => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         title="Log Expenditure"
+        subtitle="Record an external outflow"
+        headerIcon={TrendingDown}
+        footer={
+          <div className="flex gap-6">
+            <ZenButton 
+               type="button" 
+               variant="secondary" 
+               onClick={() => setIsModalOpen(false)} 
+               className="flex-1 text-[10px] tracking-[0.2em] font-black"
+            >
+               DISCARD
+            </ZenButton>
+            <ZenButton 
+               type="submit" 
+               form="log-expenditure-form" 
+               className="flex-[2] bg-zen-sand hover:bg-zen-sand/90 shadow-lg shadow-zen-sand/20 text-[10px] tracking-[0.2em] font-black"
+            >
+               SAVE ENTRY
+            </ZenButton>
+          </div>
+        }
       >
-        <form onSubmit={handleAddExpense} className="px-10 py-12 space-y-8">
+        <form id="log-expenditure-form" onSubmit={handleAddExpense} className="space-y-8">
            <ZenInput
              label="Resource Identity"
              required
@@ -417,11 +455,11 @@ const Finance = () => {
              onChange={(e: any) => setFormData({...formData, title: e.target.value})}
            />
 
-           <div className="grid grid-cols-2 gap-8">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
               <ZenDropdown
                 label="Tactical Category"
                 value={formData.category}
-                onChange={val => setFormData({...formData, category: val})}
+                onChange={(val: any) => setFormData({...formData, category: val})}
                 options={['Inventory', 'Utilities', 'Staff', 'Marketing', 'Rent', 'Misc']}
               />
               <ZenInput
@@ -429,22 +467,15 @@ const Finance = () => {
                 label={`Exchange Volume (${settings?.general?.currencySymbol || 'QR'})`}
                 required
                 value={formData.amount}
-                onChange={(e: any) => setFormData({...formData, amount: parseInt(e.target.value)})}
+                onChange={(e: any) => setFormData({...formData, amount: parseInt(e.target.value) || 0})}
               />
            </div>
 
            <ZenDatePicker
              label="Ledger Entry Date"
              value={formData.date}
-             onChange={val => setFormData({...formData, date: val})}
+             onChange={(val: any) => setFormData({...formData, date: val})}
            />
-
-           <div className="pt-4 flex gap-4">
-              <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Discard</ZenButton>
-              <ZenButton type="submit" className="flex-[2] py-5 rounded-[1rem] shadow-sm">
-                 Save Entry
-              </ZenButton>
-           </div>
         </form>
       </Modal>
 

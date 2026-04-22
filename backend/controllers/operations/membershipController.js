@@ -2,6 +2,16 @@ const MembershipPlan = require('../../models/operations/MembershipPlan');
 const Membership = require('../../models/operations/Membership');
 const { getPaginationOptions, buildPaginationMeta } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
+const mongoose = require('mongoose');
+
+const toObjectIdIfValid = (value) => {
+  if (!value) return value;
+  const id = getBranchId(value);
+  if (!id) return id;
+  if (id instanceof mongoose.Types.ObjectId) return id;
+  if (mongoose.Types.ObjectId.isValid(id)) return new mongoose.Types.ObjectId(id);
+  return id;
+};
 
 // @desc    Create a new membership plan
 // @route   POST /api/memberships/plans
@@ -186,7 +196,7 @@ exports.getAllMemberships = async (req, res) => {
     if (req.user.role === 'Client') {
       query.client = req.user._id;
     } else if (req.user.role !== 'Admin' && userBranchId) {
-      query.branch = userBranchId;
+      query.branch = toObjectIdIfValid(userBranchId);
     }
 
     const { paginate, page, limit, skip } = getPaginationOptions(req);
@@ -217,7 +227,7 @@ exports.getMembershipStats = async (req, res) => {
     const userBranchId = getBranchId(req.user.branch);
 
     if (req.user.role !== 'Admin' && userBranchId) {
-      matchQuery.branch = userBranchId;
+      matchQuery.branch = toObjectIdIfValid(userBranchId);
     }
 
     const totalActive = await Membership.countDocuments(matchQuery);
@@ -233,7 +243,7 @@ exports.getMembershipStats = async (req, res) => {
     const activeTiers = await Membership.distinct('plan', matchQuery);
 
     const popularity = await Membership.aggregate([
-      { $match: req.user.role === 'Admin' ? {} : { branch: userBranchId } },
+      { $match: req.user.role === 'Admin' ? {} : { branch: toObjectIdIfValid(userBranchId) } },
       { $group: { _id: '$plan', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $lookup: { from: 'membershipplans', localField: '_id', foreignField: '_id', as: 'planDetails' } }

@@ -43,6 +43,7 @@ import { useBranches } from '../../context/BranchContext';
 import { useSettings } from '../../context/SettingsContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -79,8 +80,9 @@ const AdminDashboard = () => {
     
     // Pulse polling for real-time dashboard data
     const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
       fetchStats(true);
-    }, 15000); // 15 seconds
+    }, getPollIntervalMs(30000)); // default 30s
 
     return () => clearInterval(interval);
   }, [selectedBranch]);
@@ -198,8 +200,11 @@ const AdminDashboard = () => {
         {/* Analytics Overview */}
         <div className="lg:col-span-8 bg-white p-8 rounded-3xl border border-zen-stone/80 shadow-[0_8px_40px_rgb(0,0,0,0.03)] flex flex-col transition-all duration-300 zen-card-hover">
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 z-10 relative">
-             <h3 className="text-xl font-bold text-gray-900 tracking-tight">Analytics Overview</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 z-10 relative">
+             <div className="space-y-1">
+                <h3 className="text-2xl font-serif font-black text-gray-900 tracking-tight">Analytics Overview</h3>
+                <div className="w-12 h-1 bg-zen-gold/20 rounded-full"></div>
+             </div>
              <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'var(--zen-primary, #332766)' }}></div>
@@ -259,7 +264,10 @@ const AdminDashboard = () => {
         {/* Daily Overview */}
         <div className="lg:col-span-4 bg-white p-8 rounded-3xl border border-zen-stone/80 shadow-[0_8px_40px_rgb(0,0,0,0.03)] hover:-translate-y-1 hover:shadow-[0_15px_40px_rgb(0,0,0,0.06)] hover:border-zen-sand/30 transition-all duration-300">
 
-           <h3 className="text-xl font-bold text-gray-900 tracking-tight mb-8">Daily Overview</h3>
+           <div className="space-y-1 mb-8">
+              <h3 className="text-2xl font-serif font-black text-gray-900 tracking-tight">Daily Overview</h3>
+              <div className="w-12 h-1 bg-zen-gold/20 rounded-full"></div>
+           </div>
            <div className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-[1rem] bg-orange-50 hover:bg-orange-100/60 hover:-translate-y-1 transition-all duration-300 cursor-pointer">
                  <div className="flex items-center gap-4">
@@ -342,8 +350,8 @@ const AdminDashboard = () => {
 
             <div className="flex items-center justify-between mb-10">
                <div>
-                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Rituals</h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Real-time sanctuary log</p>
+                  <h3 className="text-2xl font-serif font-black text-gray-900 tracking-tight">Recent Rituals</h3>
+                  <div className="w-12 h-1 bg-zen-gold/20 rounded-full mt-2"></div>
                </div>
                <ZenButton size="sm" variant="ghost" icon={ChevronRight}>View All Directory</ZenButton>
             </div>
@@ -454,8 +462,9 @@ const EmployeeDashboard = () => {
     fetchEmployeeStats();
 
     const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
       fetchEmployeeStats(true);
-    }, 15000);
+    }, getPollIntervalMs(30000));
 
     return () => clearInterval(interval);
   }, [user]);
@@ -561,8 +570,9 @@ const ClientDashboard = () => {
     fetchClientStats();
 
     const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
       fetchClientStats(true);
-    }, 15000);
+    }, getPollIntervalMs(30000));
 
     return () => clearInterval(interval);
   }, [user]);

@@ -1,5 +1,6 @@
 const axios = require('axios');
 const Settings = require('../models/core/Settings');
+const { decrypt } = require('./secretCrypto');
 
 /**
  * Sends a WhatsApp message via UltraMsg or equivalent gateway
@@ -15,8 +16,9 @@ const sendWhatsApp = async (to, body) => {
     }
 
     const { instanceId, token, provider } = settings.whatsapp;
+    const apiToken = decrypt(token);
 
-    if (!instanceId || !token) {
+    if (!instanceId || !apiToken) {
       return { success: false, message: 'Invalid credentials' };
     }
 
@@ -28,7 +30,7 @@ const sendWhatsApp = async (to, body) => {
     const cleanTo = to.replace(/[^0-9]/g, '');
 
     const response = await axios.post(url, {
-      token,
+      token: apiToken,
       to: cleanTo,
       body: body,
       priority: 10

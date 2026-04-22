@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
 
 export interface Branch {
   _id: string;
@@ -59,8 +60,9 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     fetchBranches();
 
     const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
       fetchBranches(true);
-    }, 60000); // Pulse every 60 seconds
+    }, getPollIntervalMs(60000)); // default 60s
 
     return () => clearInterval(interval);
   }, [user]);

@@ -4,6 +4,43 @@ const { sendNotification } = require('../../utils/firebase');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { encrypt } = require('../../utils/secretCrypto');
+
+const SECRET_MASK = '********';
+
+const isSecretValueSet = (value) => {
+  if (!value) return false;
+  if (typeof value !== 'string') return true;
+  return value.length > 0;
+};
+
+const maskIfSet = (value) => (isSecretValueSet(value) ? SECRET_MASK : '');
+
+const sanitizeSettingsForResponse = (settingsDoc) => {
+  const settings = settingsDoc?.toObject ? settingsDoc.toObject() : settingsDoc;
+  if (!settings) return settings;
+
+  return {
+    ...settings,
+    upload: {
+      ...settings.upload,
+      cloudinaryApiSecret: maskIfSet(settings.upload?.cloudinaryApiSecret)
+    },
+    notifications: {
+      ...settings.notifications,
+      firebasePrivateKey: maskIfSet(settings.notifications?.firebasePrivateKey),
+      firebaseServiceAccount: maskIfSet(settings.notifications?.firebaseServiceAccount)
+    },
+    smtp: {
+      ...settings.smtp,
+      password: maskIfSet(settings.smtp?.password)
+    },
+    whatsapp: {
+      ...settings.whatsapp,
+      token: maskIfSet(settings.whatsapp?.token)
+    }
+  };
+};
 
 const buildPublicSettings = (settings) => ({
   general: {
@@ -20,6 +57,15 @@ const buildPublicSettings = (settings) => ({
     primaryColor: settings?.theme?.primaryColor || '#2D1622',
     headingFont: settings?.theme?.headingFont || 'Italiana',
     bodyFont: settings?.theme?.bodyFont || 'Plus Jakarta Sans'
+  },
+  workingHours: settings?.workingHours || {
+    monday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+    tuesday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+    wednesday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+    thursday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+    friday: { isOpen: true, openTime: '14:00', closeTime: '23:00' },
+    saturday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+    sunday: { isOpen: true, openTime: '09:00', closeTime: '21:00' }
   }
 });
 
@@ -32,7 +78,7 @@ exports.getSettings = async (req, res) => {
     if (!settings) {
       settings = await Settings.create({});
     }
-    res.json(settings);
+    res.json(sanitizeSettingsForResponse(settings));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -64,14 +110,22 @@ exports.updateSettings = async (req, res) => {
       settings = new Settings();
     }
 
-    const { general, upload, theme, notifications, billing, smtp, payroll } = req.body;
+    const { general, upload, theme, notifications, billing, smtp, payroll, whatsapp, workingHours } = req.body;
 
     if (general) {
       settings.general = { ...settings.general, ...general };
       settings.markModified('general');
     }
     if (upload) {
-      settings.upload = { ...settings.upload, ...upload };
+      const merged = { ...settings.upload, ...upload };
+      if (Object.prototype.hasOwnProperty.call(upload, 'cloudinaryApiSecret')) {
+        if (upload.cloudinaryApiSecret === SECRET_MASK) {
+          merged.cloudinaryApiSecret = settings.upload?.cloudinaryApiSecret;
+        } else {
+          merged.cloudinaryApiSecret = encrypt(upload.cloudinaryApiSecret);
+        }
+      }
+      settings.upload = merged;
       settings.markModified('upload');
     }
     if (theme) {
@@ -79,7 +133,22 @@ exports.updateSettings = async (req, res) => {
       settings.markModified('theme');
     }
     if (notifications) {
-      settings.notifications = { ...settings.notifications, ...notifications };
+      const merged = { ...settings.notifications, ...notifications };
+      if (Object.prototype.hasOwnProperty.call(notifications, 'firebasePrivateKey')) {
+        if (notifications.firebasePrivateKey === SECRET_MASK) {
+          merged.firebasePrivateKey = settings.notifications?.firebasePrivateKey;
+        } else {
+          merged.firebasePrivateKey = encrypt(notifications.firebasePrivateKey);
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(notifications, 'firebaseServiceAccount')) {
+        if (notifications.firebaseServiceAccount === SECRET_MASK) {
+          merged.firebaseServiceAccount = settings.notifications?.firebaseServiceAccount;
+        } else {
+          merged.firebaseServiceAccount = encrypt(notifications.firebaseServiceAccount);
+        }
+      }
+      settings.notifications = merged;
       settings.markModified('notifications');
     }
     if (billing) {
@@ -87,16 +156,40 @@ exports.updateSettings = async (req, res) => {
       settings.markModified('billing');
     }
     if (smtp) {
-      settings.smtp = { ...settings.smtp, ...smtp };
+      const merged = { ...settings.smtp, ...smtp };
+      if (Object.prototype.hasOwnProperty.call(smtp, 'password')) {
+        if (smtp.password === SECRET_MASK) {
+          merged.password = settings.smtp?.password;
+        } else {
+          merged.password = encrypt(smtp.password);
+        }
+      }
+      settings.smtp = merged;
       settings.markModified('smtp');
+    }
+    if (whatsapp) {
+      const merged = { ...settings.whatsapp, ...whatsapp };
+      if (Object.prototype.hasOwnProperty.call(whatsapp, 'token')) {
+        if (whatsapp.token === SECRET_MASK) {
+          merged.token = settings.whatsapp?.token;
+        } else {
+          merged.token = encrypt(whatsapp.token);
+        }
+      }
+      settings.whatsapp = merged;
+      settings.markModified('whatsapp');
     }
     if (payroll) {
       settings.payroll = { ...settings.payroll, ...payroll };
       settings.markModified('payroll');
     }
+    if (workingHours) {
+      settings.workingHours = { ...settings.workingHours, ...workingHours };
+      settings.markModified('workingHours');
+    }
 
     const updatedSettings = await settings.save();
-    res.json(updatedSettings);
+    res.json(sanitizeSettingsForResponse(updatedSettings));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -319,9 +412,25 @@ exports.uploadFirebaseConfig = async (req, res) => {
       fs.unlinkSync(req.file.path);
     }
 
+    // Persist settings securely
+    let settings = await Settings.findOne();
+    if (!settings) settings = new Settings();
+    settings.notifications = {
+      ...settings.notifications,
+      firebaseProjectId: mappedConfig.firebaseProjectId,
+      firebaseClientEmail: mappedConfig.firebaseClientEmail,
+      firebasePrivateKey: encrypt(mappedConfig.firebasePrivateKey)
+    };
+    settings.markModified('notifications');
+    await settings.save();
+
     res.json({ 
       message: 'Service credentials synchronized successfully.', 
-      config: mappedConfig 
+      config: {
+        firebaseProjectId: mappedConfig.firebaseProjectId,
+        firebaseClientEmail: mappedConfig.firebaseClientEmail,
+        firebasePrivateKey: SECRET_MASK
+      }
     });
   } catch (error) {
     if (req.file && !req.file.path.startsWith('http') && fs.existsSync(req.file.path)) {

@@ -103,7 +103,7 @@ export const ZenDropdown = ({
           <span 
             className={variant === 'pill' 
               ? `font-serif text-sm sm:text-base truncate ${value ? 'text-zen-brown font-black' : 'text-zen-brown/40'}`
-              : `font-serif text-lg sm:text-xl truncate ${value ? 'text-zen-brown font-bold' : 'text-zen-brown/30'}`
+              : `font-serif text-sm sm:text-base truncate ${value ? 'text-zen-brown font-semibold' : 'text-zen-brown/30'}`
             }
             style={fontFamily ? { fontFamily } : {}}
           >
@@ -202,7 +202,7 @@ export const ZenAutocomplete = ({
           {Icon && <Icon size={16} className="text-zen-brown/20 group-focus-within:text-zen-brown" />}
           <input 
             type="text"
-            className="w-full bg-transparent outline-none font-serif text-lg text-zen-brown placeholder:text-zen-brown/20"
+            className="w-full bg-transparent outline-none font-serif text-sm sm:text-base text-zen-brown placeholder:text-zen-brown/20"
             placeholder={placeholder || `Search ${label}...`}
             value={searchTerm}
             onChange={(e) => {
@@ -270,7 +270,7 @@ export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', 
             <input 
               {...props}
               type={isPassword ? (showPassword ? 'text' : 'password') : type}
-              className={`w-full py-4 ${Icon ? 'pl-14' : 'pl-5'} pr-5 bg-white border border-zen-brown/10 rounded-2xl outline-none transition-all font-serif text-base sm:text-[17px] text-zen-brown placeholder:text-zen-brown/20 focus:border-zen-sand/40 focus:ring-4 focus:ring-zen-sand/5 shadow-sm group-hover:border-zen-brown/20 ${props.className || ''}`}
+              className={`w-full py-3 sm:py-3.5 ${Icon ? 'pl-12' : 'pl-4'} pr-4 bg-white border border-zen-brown/10 rounded-2xl outline-none transition-all font-serif text-sm sm:text-base text-zen-brown placeholder:text-zen-brown/20 focus:border-zen-sand/40 focus:ring-4 focus:ring-zen-sand/5 shadow-sm group-hover:border-zen-brown/20 ${props.className || ''}`}
             />
             {isPassword && (
               <button
@@ -293,7 +293,7 @@ export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', 
             <input 
               {...props}
               type={isPassword ? (showPassword ? 'text' : 'password') : type}
-              className={`w-full pb-3 ${Icon ? 'pl-9' : 'pl-2'} bg-transparent border-b-[2px] border-zen-brown/30 outline-none transition-all font-serif text-base sm:text-[17px] text-zen-brown placeholder:text-zen-brown/40 ${prefix ? (Icon ? 'pl-20' : 'pl-16') : ''} ${variant === 'dark' ? 'text-white border-white/20 focus:border-white/60' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''} ${isPassword ? 'pr-10' : ''} group-hover:border-zen-brown/60`}
+              className={`w-full pb-3 ${Icon ? 'pl-9' : 'pl-2'} bg-transparent border-b-[2px] border-zen-brown/30 outline-none transition-all font-serif text-sm sm:text-base text-zen-brown placeholder:text-zen-brown/40 ${prefix ? (Icon ? 'pl-20' : 'pl-16') : ''} ${variant === 'dark' ? 'text-white border-white/20 focus:border-white/60' : 'text-zen-brown focus:border-zen-brown'} ${props.disabled ? 'opacity-40 cursor-not-allowed' : ''} ${props.className || ''} ${isPassword ? 'pr-10' : ''} group-hover:border-zen-brown/60`}
               style={prefix ? { paddingLeft: Icon ? `calc(2rem + ${prefix.length * 0.7}rem + 1rem)` : `calc(0.5rem + ${prefix.length * 0.7}rem + 1rem)` } : {}}
             />
             {isPassword && (
@@ -470,7 +470,7 @@ export const ZenTextarea = ({ label, ...props }: any) => (
     <label className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>
     <textarea 
       {...props}
-              className={`w-full p-4 sm:p-5 bg-white border border-zen-brown/15 rounded-[1.25rem] outline-none focus:border-zen-brown/30 transition-all font-serif text-base text-zen-brown h-24 sm:h-28 resize-none shadow-sm ${props.className || ''}`}
+              className={`w-full p-3.5 sm:p-4 bg-white border border-zen-brown/15 rounded-[1.25rem] outline-none focus:border-zen-brown/30 transition-all font-serif text-sm sm:text-base text-zen-brown h-24 sm:h-28 resize-none shadow-sm ${props.className || ''}`}
     />
 
   </div>
@@ -520,7 +520,7 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLab
           <div className="w-9 h-9 rounded-xl bg-zen-cream/30 flex items-center justify-center text-zen-brown/30 group-hover/trigger:text-zen-brown transition-all duration-500">
             <Calendar size={16} strokeWidth={1.5} />
           </div>
-          <span className="text-base sm:text-lg font-serif font-bold text-zen-brown tracking-tight">
+          <span className="text-sm sm:text-base font-serif font-bold text-zen-brown tracking-tight">
             {selectedMonth.label}
           </span>
         </div>

@@ -34,6 +34,7 @@ import { ZenInput, ZenDropdown } from '../../components/zen/ZenInputs';
 import { Modal } from '../../components/shared/Modal';
 import { notify } from '../../components/shared/ZenNotification';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 
 interface InventoryItem {
   _id: string;
@@ -99,8 +100,9 @@ const Inventory = () => {
     fetchInventory();
 
     const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
       fetchInventory(true);
-    }, 10000); // 10s sync
+    }, getPollIntervalMs(30000)); // default 30s
 
     return () => clearInterval(interval);
   }, [page, debouncedSearch, selectedBranch, selectedCategory, user?.token]);
@@ -458,7 +460,7 @@ const Inventory = () => {
                              </td>
                              <td>
                                 <div className="flex justify-center">
-                                   <div className="w-12 h-10 rounded-xl bg-zen-cream overflow-hidden border border-zen-brown/10 shadow-sm group-hover:scale-110 transition-transform duration-500 flex items-center justify-center shrink-0">
+                                   <div className="w-12 h-10 zen-pointed-surface bg-zen-cream overflow-hidden border border-zen-brown/10 shadow-sm group-hover:scale-110 transition-transform duration-500 flex items-center justify-center shrink-0">
                                       {item.image ? (
                                       <img src={getImageUrl(item.image)} className="w-full h-full object-cover" />
                                       ) : (
@@ -540,7 +542,7 @@ const Inventory = () => {
       >
         <form id="inventory-form" onSubmit={handleSubmit} className="space-y-8">
            <div className="flex items-center gap-8 mb-4">
-              <div className="relative w-24 h-24 rounded-3xl overflow-hidden bg-zen-cream flex items-center justify-center group shadow-sm border border-white transition-all duration-700 hover:scale-105">
+              <div className="relative w-24 h-24 zen-pointed-surface overflow-hidden bg-zen-cream flex items-center justify-center group shadow-sm border border-white transition-all duration-700 hover:scale-105">
                 {(imageFile || formData.image) ? (
                   <img src={imageFile ? URL.createObjectURL(imageFile) : getImageUrl(formData.image)} className="w-full h-full object-cover" />
                 ) : (

@@ -29,7 +29,7 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
-import { ZenInput, ZenDropdown } from '../../components/zen/ZenInputs';
+import { ZenInput, ZenDropdown, ZenDatePicker } from '../../components/zen/ZenInputs';
 import { useSettings } from '../../context/SettingsContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { notify } from '../../components/shared/ZenNotification';
@@ -48,15 +48,21 @@ interface Transaction {
   method: string;
   status: 'Completed' | 'Pending' | 'Failed';
   reference?: string;
+  branch?: string;
 }
+
+import { useData } from '../../context/DataContext';
+
+const PAYMENT_MODES = ['Cash', 'Card', 'UPI', 'GPay', 'Split'] as const;
 
 const Transactions = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
+  const { branches } = useData();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'All' | 'Inflow' | 'Outflow'>('All');
+  const [branchFilter, setBranchFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Completed' | 'Pending'>('All');
   const [dateRange, setDateRange] = useState<'All' | 'Today' | 'Week' | 'Month'>('All');
   const [page, setPage] = useState(1);
@@ -93,7 +99,8 @@ const Transactions = () => {
           date: inv.date,
           method: inv.paymentMode || 'Cash',
           status: 'Completed' as const,
-          reference: inv.invoiceNumber
+          reference: inv.invoiceNumber,
+          branch: inv.branch?.name || 'Main Branch'
         })) : []),
         ...(Array.isArray(expData) ? expData.map((exp: any) => ({
           id: exp._id || exp.id,
@@ -103,7 +110,8 @@ const Transactions = () => {
           amount: exp.amount || 0,
           date: exp.date,
           method: 'Direct Outflow',
-          status: 'Completed' as const
+          status: 'Completed' as const,
+          branch: exp.branch?.name || 'Main Branch'
         })) : [])
       ];
 
@@ -140,7 +148,7 @@ const Transactions = () => {
                            t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            t.id.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesType = typeFilter === 'All' || t.type === typeFilter;
+      const matchesBranch = branchFilter === 'All' || t.branch === branchFilter;
       const matchesStatus = statusFilter === 'All' || t.status === statusFilter;
       
       let matchesDate = true;
@@ -149,9 +157,9 @@ const Transactions = () => {
       else if (dateRange === 'Week') matchesDate = dayjs(t.date).isAfter(now.subtract(7, 'day'));
       else if (dateRange === 'Month') matchesDate = dayjs(t.date).isAfter(now.subtract(1, 'month'));
 
-      return matchesSearch && matchesType && matchesStatus && matchesDate;
+      return matchesSearch && matchesBranch && matchesStatus && matchesDate;
     });
-  }, [transactions, searchTerm, typeFilter, statusFilter, dateRange]);
+  }, [transactions, searchTerm, branchFilter, statusFilter, dateRange]);
 
   const stats = useMemo(() => {
     const inflow = filteredTransactions.filter(t => t.type === 'Inflow').reduce((acc, t) => acc + t.amount, 0);
@@ -202,18 +210,25 @@ const Transactions = () => {
     try {
       setIsSubmitting(true);
       const endpoint = selectedTransaction.type === 'Inflow' ? 'invoices' : 'expenses';
+      const payload =
+        selectedTransaction.type === 'Inflow'
+          ? {
+              paymentMode: selectedTransaction.method,
+              date: dayjs(selectedTransaction.date).format('YYYY-MM-DD')
+            }
+          : {
+              title: selectedTransaction.title,
+              category: selectedTransaction.category,
+              amount: selectedTransaction.amount,
+              date: dayjs(selectedTransaction.date).format('YYYY-MM-DD')
+            };
       const response = await fetch(`${API_URL}/${endpoint}/${selectedTransaction.id}`, {
         method: 'PATCH',
         headers: { 
           'Authorization': `Bearer ${user?.token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          title: selectedTransaction.title,
-          amount: selectedTransaction.amount,
-          status: selectedTransaction.status,
-          paymentMode: selectedTransaction.method
-        })
+        body: JSON.stringify(payload)
       });
       
       if (response.ok) {
@@ -267,7 +282,7 @@ const Transactions = () => {
         </div>
 
         {/* Global Filter Bar */}
-        <div className="rounded-[2.25rem] border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-5">
+        <div className="zen-pointed-surface border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-5">
           <div className="flex flex-col xl:flex-row xl:items-end gap-5 xl:gap-8">
             <div className="flex-1 w-full flex flex-col gap-2.5">
                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Registry Search</label>
@@ -285,11 +300,11 @@ const Transactions = () => {
 
             <div className="flex flex-wrap xl:flex-nowrap gap-4 w-full xl:w-auto items-end">
               <ZenDropdown 
-                label="Type"
-                value={typeFilter}
-                onChange={(val: any) => setTypeFilter(val)}
-                options={['All', 'Inflow', 'Outflow']}
-                className="w-full sm:w-[150px]"
+                label="Branch"
+                value={branchFilter}
+                onChange={(val: any) => setBranchFilter(val)}
+                options={['All', ...branches.map(b => b.name)]}
+                className="w-full sm:w-[200px]"
               />
               <ZenDropdown 
                 label="Status"
@@ -317,7 +332,7 @@ const Transactions = () => {
         </div>
 
         {/* Immersive Transaction Table */}
-        <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden animate-in fade-in duration-700">
+        <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden animate-in fade-in duration-700">
           <div className="flex items-center justify-between gap-4 px-6 sm:px-8 pt-6 pb-5 border-b border-zen-brown/5">
             <div>
               <h3 className="text-xl font-bold text-gray-900 tracking-tight">Transaction Registry</h3>
@@ -465,27 +480,53 @@ const Transactions = () => {
         >
           {selectedTransaction && (
             <form id="update-transaction-form" onSubmit={handleUpdate} className="space-y-8">
-              <ZenInput 
-                label="Protocol Title"
-                value={selectedTransaction.title}
-                onChange={(e) => setSelectedTransaction({...selectedTransaction, title: e.target.value})}
-                placeholder="e.g., Boutique Maintenance"
-              />
-              
-              <div className="grid grid-cols-2 gap-8">
-                <ZenInput 
-                  label="Volume Value"
-                  type="number"
-                  value={selectedTransaction.amount}
-                  onChange={(e) => setSelectedTransaction({...selectedTransaction, amount: parseFloat(e.target.value)})}
-                />
-                <ZenDropdown 
-                  label="Current Status"
-                  value={selectedTransaction.status}
-                  onChange={(val: any) => setSelectedTransaction({...selectedTransaction, status: val})}
-                  options={['Completed', 'Pending', 'Failed']}
-                />
-              </div>
+              {selectedTransaction.type === 'Inflow' ? (
+                <>
+                  <ZenInput label="Invoice" value={selectedTransaction.reference || selectedTransaction.id} disabled />
+                  <ZenInput label="Client" value={selectedTransaction.title.replace(/^Service:\\s*/i, '')} disabled />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <ZenDropdown
+                      label="Payment Mode"
+                      value={selectedTransaction.method}
+                      onChange={(val: any) => setSelectedTransaction({ ...selectedTransaction, method: val })}
+                      options={[...PAYMENT_MODES]}
+                    />
+                    <ZenDatePicker
+                      label="Invoice Date"
+                      value={dayjs(selectedTransaction.date).format('YYYY-MM-DD')}
+                      onChange={(val: string) => setSelectedTransaction({ ...selectedTransaction, date: val })}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <ZenInput 
+                    label="Expense Title"
+                    value={selectedTransaction.title}
+                    onChange={(e) => setSelectedTransaction({...selectedTransaction, title: e.target.value})}
+                    placeholder="e.g., Inventory Purchase"
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <ZenDropdown
+                      label="Category"
+                      value={selectedTransaction.category}
+                      onChange={(val: any) => setSelectedTransaction({ ...selectedTransaction, category: val })}
+                      options={['Inventory', 'Rent', 'Salary', 'Utilities', 'Marketing', 'Maintenance', 'Other']}
+                    />
+                    <ZenDatePicker
+                      label="Expense Date"
+                      value={dayjs(selectedTransaction.date).format('YYYY-MM-DD')}
+                      onChange={(val: string) => setSelectedTransaction({ ...selectedTransaction, date: val })}
+                    />
+                  </div>
+                  <ZenInput 
+                    label="Amount"
+                    type="number"
+                    value={selectedTransaction.amount}
+                    onChange={(e) => setSelectedTransaction({...selectedTransaction, amount: parseFloat(e.target.value) || 0})}
+                  />
+                </>
+              )}
             </form>
           )}
         </Modal>

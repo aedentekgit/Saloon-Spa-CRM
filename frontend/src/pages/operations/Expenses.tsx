@@ -1,0 +1,490 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import dayjs from 'dayjs';
+import {
+  ArrowDownRight,
+  Filter,
+  Plus,
+  Search,
+  Edit2,
+  Trash2
+} from 'lucide-react';
+import { motion } from 'motion/react';
+import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
+import { useBranches } from '../../context/BranchContext';
+import { ZenPageLayout } from '../../components/zen/ZenLayout';
+import { ZenPagination } from '../../components/zen/ZenPagination';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
+import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
+import { ZenInput, ZenDropdown } from '../../components/zen/ZenInputs';
+import { BranchSelector } from '../../components/zen/BranchSelector';
+import { Modal } from '../../components/shared/Modal';
+import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { notify } from '../../components/shared/ZenNotification';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+
+interface Expense {
+  _id: string;
+  title: string;
+  category: string;
+  amount: number;
+  date: string;
+  branch?: any;
+}
+
+const CATEGORIES = ['All', 'Inventory', 'Utilities', 'Staff', 'Marketing', 'Rent', 'Misc'] as const;
+
+const Expenses = () => {
+  const { user } = useAuth();
+  const { settings } = useSettings();
+  const { selectedBranch } = useBranches();
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+  const PAGE_LIMIT = 12;
+
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('All');
+  const [dateRange, setDateRange] = useState<'All' | 'Today' | 'Week' | 'Month'>('All');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [formData, setFormData] = useState({
+    title: '',
+    category: 'Inventory',
+    amount: 0,
+    date: dayjs().format('YYYY-MM-DD')
+  });
+
+  const dateWindow = useMemo(() => {
+    if (dateRange === 'All') return { startDate: '', endDate: '' };
+    const now = dayjs();
+    const start =
+      dateRange === 'Today'
+        ? now
+        : dateRange === 'Week'
+          ? now.subtract(7, 'day')
+          : now.subtract(1, 'month');
+    return { startDate: start.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+  }, [dateRange]);
+
+  const fetchExpenses = async (silent: boolean = false) => {
+    if (!user?.token) return;
+    try {
+      if (!silent) setLoading(true);
+      const queryParams = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_LIMIT),
+        search: searchTerm,
+        category: category !== 'All' ? category : '',
+        startDate: dateWindow.startDate,
+        endDate: dateWindow.endDate
+      });
+      if (selectedBranch && selectedBranch !== 'all') {
+        queryParams.set('branch', selectedBranch);
+      }
+
+      const res = await fetch(`${API_URL}/expenses?${queryParams.toString()}`, {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      });
+      const data = await res.json();
+
+      if (data?.data) {
+        setExpenses(data.data);
+        setTotalPages(data.pagination?.pages || 1);
+      } else if (Array.isArray(data)) {
+        setExpenses(data);
+        setTotalPages(1);
+      } else {
+        setExpenses([]);
+        setTotalPages(1);
+      }
+    } catch (e) {
+      if (!silent) notify('error', 'Sync Failure', 'Failed to retrieve expenses.');
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExpenses();
+    const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
+      fetchExpenses(true);
+    }, getPollIntervalMs(30000));
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, selectedBranch, user?.token, category, dateRange, searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedBranch, category, dateRange, searchTerm]);
+
+  const totals = useMemo(() => {
+    const total = expenses.reduce((acc, exp) => acc + (Number(exp.amount) || 0), 0);
+    return { total };
+  }, [expenses]);
+
+  const openCreateModal = () => {
+    setEditingExpense(null);
+    setFormData({
+      title: '',
+      category: 'Inventory',
+      amount: 0,
+      date: dayjs().format('YYYY-MM-DD')
+    });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (exp: Expense) => {
+    setEditingExpense(exp);
+    setFormData({
+      title: exp.title || '',
+      category: exp.category || 'Inventory',
+      amount: Number(exp.amount) || 0,
+      date: exp.date ? dayjs(exp.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD')
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.token) return;
+
+    if (!formData.title?.trim()) {
+      notify('error', 'Missing Title', 'Please provide an expense title.');
+      return;
+    }
+    if (!Number.isFinite(Number(formData.amount)) || Number(formData.amount) <= 0) {
+      notify('error', 'Invalid Amount', 'Amount must be greater than zero.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const url = editingExpense ? `${API_URL}/expenses/${editingExpense._id}` : `${API_URL}/expenses`;
+      const method = editingExpense ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...formData,
+          amount: Number(formData.amount),
+          date: dayjs(formData.date).format('YYYY-MM-DD')
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || 'Save failed');
+      }
+
+      notify('success', editingExpense ? 'Expense Updated' : 'Expense Logged', 'Expense record saved successfully.');
+      setIsModalOpen(false);
+      fetchExpenses();
+    } catch (err: any) {
+      notify('error', 'Save Failed', err?.message || 'Could not save expense.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const executeDelete = async () => {
+    if (!expenseToDelete || !user?.token) return;
+    try {
+      setIsSubmitting(true);
+      const res = await fetch(`${API_URL}/expenses/${expenseToDelete}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || 'Delete failed');
+      }
+      notify('success', 'Expense Removed', 'Expense entry deleted.');
+      setIsConfirmOpen(false);
+      setExpenseToDelete(null);
+      fetchExpenses();
+    } catch (err: any) {
+      notify('error', 'Removal Failed', err?.message || 'Could not delete expense.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <ZenPageLayout
+      title="Expenses"
+      hideSearch
+      hideViewToggle
+      hideAddButton
+      hideBranchSelector
+    >
+      <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="space-y-10 pb-20 mt-4">
+        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+          {[
+            {
+              label: 'Total Outflow',
+              value: `${settings?.general?.currencySymbol || 'QR'} ${totals.total.toLocaleString()}`,
+              icon: ArrowDownRight,
+              color: 'text-rose-500',
+              bg: 'bg-rose-500/10',
+              glow: 'bg-rose-500/20',
+              trend: 'Summed for current view'
+            },
+            {
+              label: 'Filter',
+              value: category === 'All' ? 'All Categories' : category,
+              icon: Filter,
+              color: 'text-sky-500',
+              bg: 'bg-sky-500/10',
+              glow: 'bg-sky-500/20',
+              trend: dateRange === 'All' ? 'All dates' : `Last ${dateRange.toLowerCase()}`
+            },
+            {
+              label: 'Entries',
+              value: expenses.length,
+              icon: Search,
+              color: 'text-emerald-500',
+              bg: 'bg-emerald-500/10',
+              glow: 'bg-emerald-500/20',
+              trend: 'Loaded for this page'
+            }
+          ].map((stat, i) => (
+            <ZenStatCard key={stat.label} {...stat} delay={i * 0.15} />
+          ))}
+        </div>
+
+        {/* Global Filter Bar (match /clients, /finance visual language) */}
+        <div className="zen-pointed-surface border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-5">
+          <div className="flex flex-col xl:flex-row xl:items-end gap-5 xl:gap-8">
+            <div className="flex-1 w-full flex flex-col gap-2.5">
+              <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Registry Search</label>
+              <div className="relative group">
+                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors">
+                  <Search size={16} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search expenses by title..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full h-[58px] pl-[52px] pr-6 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2.5 w-full xl:w-auto">
+              <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Category</label>
+              <ZenDropdown
+                label="Category"
+                value={category}
+                onChange={(v: any) => setCategory(v)}
+                options={[...CATEGORIES]}
+                className="min-w-[220px]"
+                hideLabel
+              />
+            </div>
+
+            <div className="flex flex-col gap-2.5 w-full xl:w-auto">
+              <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Date Range</label>
+              <ZenDropdown
+                label="Date Range"
+                value={dateRange}
+                onChange={(v: any) => setDateRange(v)}
+                options={['All', 'Today', 'Week', 'Month']}
+                className="min-w-[200px]"
+                hideLabel
+              />
+            </div>
+
+            <div className="flex flex-col gap-2.5 w-full xl:w-auto">
+              <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Branch</label>
+              <BranchSelector className="min-w-[220px]" />
+            </div>
+
+            <div className="flex flex-col gap-2.5 w-full xl:w-auto">
+              <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Management</label>
+              <ZenButton
+                onClick={openCreateModal}
+                variant="primary"
+                className="w-full xl:w-auto px-8 h-[58px] shadow-sm flex items-center justify-center gap-2 group rounded-[1.15rem]"
+              >
+                <Plus size={16} className="group-hover:rotate-12 transition-transform duration-500" />
+                <span className="uppercase tracking-[0.2em] text-[10px] font-black">Add Expense</span>
+              </ZenButton>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white/90 backdrop-blur-xl border border-zen-stone/70 zen-pointed-surface shadow-[0_18px_45px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="px-6 sm:px-8 py-6 border-b border-zen-brown/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-bold text-zen-brown tracking-tight">Expense Registry</h3>
+              <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Operational outflow records</p>
+            </div>
+          </div>
+
+          <div className="table-container overflow-x-auto">
+            <table className="w-full text-center border-collapse min-w-[860px]">
+              <thead>
+                <tr>
+                  <th className="!text-left pl-10">Entry</th>
+                  <th>Category</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th className="!text-right pr-10">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white/40">
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="py-20">
+                      <div className="flex flex-col items-center gap-4 opacity-40">
+                        <div className="w-8 h-8 border-2 border-zen-brown/15 border-t-zen-brown rounded-full animate-spin" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Syncing…</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : expenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-20 text-center text-zen-brown/25 font-serif italic text-xl">
+                      No expenses found for this filter.
+                    </td>
+                  </tr>
+                ) : (
+                  expenses.map((exp, idx) => (
+                    <tr key={exp._id} className="group hover:bg-white/80 transition-all duration-300">
+                      <td className="!text-left !pl-10">
+                        <div className="flex flex-col">
+                          <span className="zen-table-primary">{exp.title}</span>
+                          <span className="zen-table-meta">{String(idx + 1).padStart(2, '0')}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <ZenBadge variant="secondary">{exp.category}</ZenBadge>
+                      </td>
+                      <td>
+                        <span className="font-serif text-[16px] font-black text-zen-brown">
+                          {settings?.general?.currencySymbol || 'QR'} {Number(exp.amount || 0).toLocaleString()}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="text-[11px] font-semibold text-zen-brown/60">
+                          {exp.date ? dayjs(exp.date).format('DD MMM YYYY') : '—'}
+                        </span>
+                      </td>
+                      <td className="!text-right !pr-10">
+                        <div className="flex items-center justify-end gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
+                          <ZenIconButton
+                            icon={Edit2}
+                            variant="outline"
+                            size="lg"
+                            onClick={() => openEditModal(exp)}
+                          />
+                          <ZenIconButton
+                            icon={Trash2}
+                            variant="danger"
+                            size="lg"
+                            onClick={() => {
+                              setExpenseToDelete(exp._id);
+                              setIsConfirmOpen(true);
+                            }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+      </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingExpense ? 'Edit Expense' : 'New Expense'}
+        subtitle="Record operational outflow"
+        maxWidth="max-w-3xl"
+        headerIcon={ArrowDownRight}
+        footer={
+          <div className="flex w-full gap-4">
+            <ZenButton type="button" variant="secondary" className="flex-1 rounded-[1.5rem] py-4" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </ZenButton>
+            <ZenButton
+              type="button"
+              className="flex-[2] rounded-[1.5rem] py-4"
+              onClick={(e: any) => handleSave(e)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Saving…' : 'Save Expense'}
+            </ZenButton>
+          </div>
+        }
+      >
+        <form onSubmit={handleSave} className="space-y-8">
+          <ZenInput
+            label="Title"
+            value={formData.title}
+            onChange={(e: any) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            placeholder="e.g. Office Rent"
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <ZenDropdown
+              label="Category"
+              value={formData.category}
+              onChange={(v: any) => setFormData(prev => ({ ...prev, category: v }))}
+              options={['Inventory', 'Utilities', 'Staff', 'Marketing', 'Rent', 'Misc']}
+            />
+            <ZenInput
+              label="Amount"
+              type="number"
+              value={formData.amount}
+              onChange={(e: any) => setFormData(prev => ({ ...prev, amount: Number(e.target.value) }))}
+              placeholder="0"
+            />
+          </div>
+          <ZenInput
+            label="Date"
+            type="date"
+            value={formData.date}
+            onChange={(e: any) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+          />
+          <div className="pt-2">
+            <ZenButton type="submit" className="w-full py-5 rounded-[1.5rem]" disabled={isSubmitting}>
+              {editingExpense ? 'Update Expense' : 'Create Expense'}
+            </ZenButton>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={executeDelete}
+        title="Delete Expense"
+        message="Are you sure you want to delete this expense entry?"
+        confirmText={isSubmitting ? 'Deleting…' : 'Delete'}
+        cancelText="Cancel"
+        type="danger"
+      />
+    </ZenPageLayout>
+  );
+};
+
+export default Expenses;

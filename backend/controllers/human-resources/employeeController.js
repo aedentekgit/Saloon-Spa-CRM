@@ -3,6 +3,16 @@ const path = require('path');
 const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
+const mongoose = require('mongoose');
+
+const toObjectIdIfValid = (value) => {
+  if (!value) return value;
+  const id = getBranchId(value);
+  if (!id) return id;
+  if (id instanceof mongoose.Types.ObjectId) return id;
+  if (mongoose.Types.ObjectId.isValid(id)) return new mongoose.Types.ObjectId(id);
+  return id;
+};
 
 // @desc    Get public employee list (for guest booking — no auth required)
 // @route   GET /api/employees/public
@@ -10,7 +20,7 @@ const { getBranchId, sameBranch } = require('../../utils/branch');
 exports.getPublicEmployees = async (req, res) => {
   try {
     const query = { status: 'Active' };
-    if (req.query.branch) query.branch = req.query.branch;
+    if (req.query.branch) query.branch = toObjectIdIfValid(req.query.branch);
     const employees = await Employee.find(query)
       .select('name role shift branch services status')
       .populate('branch', 'name _id')
@@ -32,7 +42,7 @@ exports.getEmployees = async (req, res) => {
 
     // Filters
     if (req.query.branch && req.query.branch !== 'all') {
-      query.branch = req.query.branch;
+      query.branch = toObjectIdIfValid(req.query.branch);
     }
     
     if (req.query.search) {
@@ -51,12 +61,12 @@ exports.getEmployees = async (req, res) => {
       } else if (req.user.role === 'Manager' || req.user.role === 'Employee') {
         // Managers and Employees are locked to their branch
         if (userBranchId) {
-          query.branch = userBranchId;
+          query.branch = toObjectIdIfValid(userBranchId);
         }
       } else if (req.user.role === 'Client') {
         query.status = 'Active';
         if (userBranchId) {
-          query.branch = userBranchId;
+          query.branch = toObjectIdIfValid(userBranchId);
         }
       }
     } else {

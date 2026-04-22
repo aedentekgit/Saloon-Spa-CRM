@@ -454,7 +454,7 @@ const Rooms = () => {
                        </td>
                       <td>
                         <div className="flex justify-center">
-                          <div className="w-14 lg:w-16 h-10 lg:h-12 rounded-[1.5rem] overflow-hidden bg-zen-cream border-2 border-white shadow-sm shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
+                          <div className="w-14 lg:w-16 h-10 lg:h-12 zen-pointed-surface overflow-hidden bg-zen-cream border-2 border-white shadow-sm shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
                             <img 
                               src={roomImage.src} 
                               alt={room.name} 
@@ -533,7 +533,7 @@ const Rooms = () => {
         <form id="roomForm" onSubmit={handleSubmit} className="space-y-12">
            <div className="flex items-center gap-8 sm:gap-12">
               <div className="relative w-24 sm:w-40 h-24 sm:h-40 group cursor-pointer shrink-0">
-                 <div className="w-full h-full rounded-[1rem] ring-4 ring-zen-sand/20 ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-xl relative">
+                 <div className="w-full h-full zen-pointed-surface ring-4 ring-zen-sand/20 ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-xl relative">
                     {(roomImageFile || previewRoomImage) ? (
                       <img 
                         src={roomImageFile ? URL.createObjectURL(roomImageFile) : previewRoomImage?.src} 

@@ -17,6 +17,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useBranches } from '../../context/BranchContext';
 import { useCategories } from '../../context/CategoryContext';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 
 
 interface Branch {
@@ -141,8 +142,9 @@ const Services = () => {
     fetchServices();
 
     const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
       fetchServices(true);
-    }, 10000); // 10s sync
+    }, getPollIntervalMs(30000)); // default 30s
 
     return () => clearInterval(interval);
   }, [page, debouncedSearch, selectedBranch, user?.token]);
@@ -507,7 +509,7 @@ const Services = () => {
                       </td>
                       <td>
                         <div className="flex justify-center">
-                          <div className="w-12 h-10 rounded-xl overflow-hidden bg-zen-cream border border-zen-brown/10 shadow-sm shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
+                          <div className="w-12 h-10 zen-pointed-surface overflow-hidden bg-zen-cream border border-zen-brown/10 shadow-sm shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center text-xs">
                             {service.image ? (
                               <img src={getImageUrl(service.image)} className="w-full h-full object-cover" />
                             ) : (
@@ -610,7 +612,7 @@ const Services = () => {
              >
                 <div className="flex items-center gap-8 sm:gap-12">
                    <div className="relative w-24 sm:w-40 h-24 sm:h-40 group cursor-pointer shrink-0">
-                      <div className="w-full h-full rounded-[1rem] ring-4 ring-zen-sand/20 ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-xl relative">
+                      <div className="w-full h-full zen-pointed-surface ring-4 ring-zen-sand/20 ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-xl relative">
                          {(imageFile || (editingService && editingService.image)) ? (
                            <img 
                              src={imageFile ? URL.createObjectURL(imageFile) : getImageUrl(editingService?.image)} 

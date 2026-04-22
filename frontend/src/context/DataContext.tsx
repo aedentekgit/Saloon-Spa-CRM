@@ -10,6 +10,7 @@ import {
   expenses as initialExpenses
 } from '../data/mockData';
 import { useAuth } from './AuthContext';
+import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
 
 export interface Client { id?: number; _id?: string; name: string; phone: string; dob?: string; anniversary?: string; notes?: string; preferences?: string; totalSpending: number; visits: number; status?: string; }
 export interface Employee { id?: number; _id?: string; name: string; role: string; phone: string; dept: string; commission: number; services: string[]; attendance: number; earnings: number; status?: string; }
@@ -194,8 +195,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Implement Polling for real-time updates without page refresh
       const interval = setInterval(() => {
+        if (!shouldPollNow()) return;
         refreshData(true); // silent refresh in background
-      }, 10000); // Pulse every 10 seconds
+      }, getPollIntervalMs(30000)); // default 30s
 
       return () => clearInterval(interval);
     }

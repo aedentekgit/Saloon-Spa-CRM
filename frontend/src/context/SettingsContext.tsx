@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
 
 interface SettingsData {
   general: {
@@ -34,6 +35,13 @@ interface SettingsData {
     password: string;
     fromName: string;
     fromEmail: string;
+  };
+  workingHours?: {
+    [key in 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday']: {
+      isOpen: boolean;
+      openTime: string;
+      closeTime: string;
+    }
   };
 }
 
@@ -112,8 +120,8 @@ const deriveSidebarGradient = (primaryColor?: string) => {
   }
 
   return {
-    start: mixHexColors(base, '#000000', 0.2),
-    end: mixHexColors(base, '#FFFFFF', 0.18)
+    start: mixHexColors(base, '#FFFFFF', 0.96),
+    end: mixHexColors(base, '#FFFFFF', 0.92)
   };
 };
 
@@ -179,8 +187,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       fetchSettings();
       
       const interval = setInterval(() => {
+        if (!shouldPollNow()) return;
         fetchSettings(true);
-      }, 30000); // Pulse every 30 seconds for configuration
+      }, getPollIntervalMs(60000)); // default 60s
       
       return () => clearInterval(interval);
     }
