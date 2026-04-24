@@ -167,7 +167,8 @@ const Sidebar = ({
               relative p-1 bg-white classic-shine-effect
               ${isCollapsed ? 'w-14 h-14 rounded-[1.5rem] border-[4px]' : 'w-24 h-24 rounded-[2.5rem] border-[8px]'}
               border-white transition-all duration-500
-              shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15)]
+              shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_0_20px_rgba(197,163,88,0.05)]
+              hover:shadow-[0_25px_50px_-12px_rgba(197,163,88,0.2)] hover:scale-105 transition-all duration-700 cursor-pointer
             `}>
                <img
                  src={logoUrl}

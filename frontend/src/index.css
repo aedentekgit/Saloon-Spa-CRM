@@ -287,10 +287,9 @@
 }
 
 @keyframes classic-shine {
-  0% { transform: translateX(-100%); opacity: 0; }
-  20% { opacity: 0.3; }
-  50% { opacity: 0.3; }
-  100% { transform: translateX(100%); opacity: 0; }
+  0% { transform: translateX(-150%) skewX(-25deg); opacity: 0; }
+  50% { opacity: 0.8; }
+  100% { transform: translateX(150%) skewX(-25deg); opacity: 0; }
 }
 
 .classic-shine-effect {
@@ -308,10 +307,10 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0.8),
     transparent
   );
-  animation: classic-shine 4s infinite linear;
+  animation: classic-shine 3s infinite ease-in-out;
 }
 
 @layer base {
