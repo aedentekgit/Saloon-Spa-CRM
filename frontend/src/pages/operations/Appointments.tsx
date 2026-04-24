@@ -13,8 +13,9 @@ import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenButton, ZenBadge, ZenIconButton } from '../../components/zen/ZenButtons';
 import { ZenAutocomplete, ZenDatePicker, ZenDropdown, useFloatingAnchor } from '../../components/zen/ZenInputs';
 import { useBranches } from '../../context/BranchContext';
-import { useSettings } from '../../context/SettingsContext';
+import { useSettings, SettingsData } from '../../context/SettingsContext';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { motion, AnimatePresence } from 'motion/react';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
@@ -305,7 +306,7 @@ const Appointments = () => {
     const interval = setInterval(() => {
       if (!shouldPollNow()) return;
       fetchAllData(true);
-    }, getPollIntervalMs(30000)); // default 30s
+    }, getPollIntervalMs(30000));
     
     return () => clearInterval(interval);
   }, [user, page]);
@@ -400,7 +401,7 @@ const Appointments = () => {
     if (end.isBefore(start)) end = end.add(1, 'day');
 
     // Business Hours Constraint Logic
-    const dayName = dayjs(formData.date).format('dddd').toLowerCase() as keyof NonNullable<typeof settings.workingHours>;
+    const dayName = dayjs(formData.date).format('dddd').toLowerCase() as keyof NonNullable<SettingsData['workingHours']>;
     const dayHours = settings?.workingHours?.[dayName];
     
     if (dayHours && !dayHours.isOpen) {
@@ -431,8 +432,15 @@ const Appointments = () => {
     const slots = [];
     let current = start;
     
-    const employeeApts = dayAppointments.filter(a => a.employee === formData.employee);
-    const roomApts = dayAppointments.filter(a => a.room === formData.room);
+    const employeeApts = dayAppointments.filter(a => {
+      const empName = (a.employee as any)?.name || a.employee;
+      return empName === formData.employee;
+    });
+    
+    const roomApts = dayAppointments.filter(a => {
+      const rName = (a.room as any)?.name || a.room;
+      return rName === formData.room;
+    });
 
     const now = dayjs();
     const isToday = dayjs(formData.date).isSame(now, 'day');
@@ -450,11 +458,13 @@ const Appointments = () => {
         if (editingApt && apt._id === editingApt._id) return false;
         const aptStart = parseTime(apt.time, formData.date);
         if (!aptStart) return false;
-        const aptService = rawServices.find(s => s.name === apt.service);
+        const aptServiceName = (apt.service as any)?.name || apt.service;
+        const aptService = rawServices.find(s => s.name === aptServiceName);
         const aptDuration = aptService?.duration || 60;
         
         // Use the room's cleaning duration for the specialist too, as they are usually tied to the room prep
-        const aptRoom = rawRooms.find(r => r.name === apt.room);
+        const aptRoomName = (apt.room as any)?.name || apt.room;
+        const aptRoom = rawRooms.find(r => r.name === aptRoomName);
         const aptCleaning = aptRoom?.cleaningDuration || 0;
         const aptTotalOccupancy = aptDuration + aptCleaning;
         
@@ -467,10 +477,12 @@ const Appointments = () => {
         if (editingApt && apt._id === editingApt._id) return false;
         const aptStart = parseTime(apt.time, formData.date);
         if (!aptStart) return false;
-        const aptService = rawServices.find(s => s.name === apt.service);
+        const aptServiceName = (apt.service as any)?.name || apt.service;
+        const aptService = rawServices.find(s => s.name === aptServiceName);
         const aptDuration = aptService?.duration || 60;
         
-        const aptRoom = rawRooms.find(r => r.name === apt.room);
+        const aptRoomName = (apt.room as any)?.name || apt.room;
+        const aptRoom = rawRooms.find(r => r.name === aptRoomName);
         const aptRoomCleaning = aptRoom?.cleaningDuration || 0;
         const aptTotalOccupancy = aptDuration + aptRoomCleaning;
         
@@ -488,7 +500,7 @@ const Appointments = () => {
     }
     
     return slots;
-  }, [formData.date, formData.employee, formData.service, formData.room, rawStaff, rawShifts, dayAppointments, rawServices, rawRooms, editingApt]);
+  }, [formData.date, formData.employee, formData.service, formData.room, rawStaff, rawShifts, dayAppointments, rawServices, rawRooms, editingApt, settings]);
 
   const handleOpenModal = (apt: Appointment | null = null) => {
     if (apt) {
@@ -1119,23 +1131,30 @@ const Appointments = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 gap-3 sm:gap-4">
-                  {availableSlots.map(slot => (
-                    <button
-                      key={slot.time}
-                      type="button"
-                      disabled={slot.isBooked}
-                      onClick={() => setFormData({ ...formData, time: slot.time })}
-                      className={`py-3 px-1 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black transition-all duration-300 border ${
-                        formData.time === slot.time
-                          ? 'bg-zen-brown text-white border-zen-brown shadow-lg scale-105'
-                          : slot.isBooked
-                            ? 'bg-zen-cream/5 text-zen-brown/40 border-zen-brown/10 cursor-not-allowed line-through'
-                            : 'bg-white text-zen-brown/60 border-zen-brown/25 hover:border-zen-brown hover:text-zen-brown'
-                      }`}
-                    >
-                      {slot.display}
-                    </button>
-                  ))}
+                  <AnimatePresence mode="popLayout">
+                    {availableSlots.map((slot, idx) => (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.01 }}
+                        key={slot.time}
+                        type="button"
+                        disabled={slot.isBooked}
+                        onClick={() => setFormData({ ...formData, time: slot.time })}
+                        whileHover={!slot.isBooked ? { scale: 1.05 } : {}}
+                        whileTap={!slot.isBooked ? { scale: 0.95 } : {}}
+                        className={`py-3 px-1 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black transition-all duration-300 border ${
+                          formData.time === slot.time
+                            ? 'bg-zen-brown text-white border-zen-brown shadow-lg z-10'
+                            : slot.isBooked
+                              ? 'bg-zen-cream/5 text-zen-brown/40 border-zen-brown/10 cursor-not-allowed line-through'
+                              : 'bg-white text-zen-brown/60 border-zen-brown/25 hover:border-zen-brown hover:text-zen-brown'
+                        }`}
+                      >
+                        {slot.display}
+                      </motion.button>
+                    ))}
+                  </AnimatePresence>
                 </div>
               )}
             </div>
@@ -1212,7 +1231,7 @@ const Appointments = () => {
         footer={
            <div className="flex justify-end gap-3">
               <ZenButton variant="secondary" onClick={() => setIsCancelModalOpen(false)}>Back</ZenButton>
-              <ZenButton variant="primary" onClick={() => handleUpdateStatus(aptToCancel!, 'Cancelled', cancelReason)} disabled={!cancelReason || statusLoading === aptToCancel}>
+              <ZenButton variant="primary" onClick={() => aptToCancel && handleUpdateStatus(aptToCancel, 'Cancelled', cancelReason)} disabled={!cancelReason || statusLoading === aptToCancel}>
                  {statusLoading === aptToCancel ? 'Processing...' : 'Confirm Cancellation'}
               </ZenButton>
            </div>

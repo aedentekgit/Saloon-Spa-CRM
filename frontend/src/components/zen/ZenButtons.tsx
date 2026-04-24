@@ -1,17 +1,23 @@
 import React from 'react';
+import { motion } from 'motion/react';
 
 export const ZenButton = ({ children, variant = 'primary', className = '', ...props }: any) => {
-  const base = "flex items-center justify-center gap-3 py-3.5 px-8 rounded-2xl font-bold transition-all duration-300 text-xs uppercase tracking-widest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zen-sand/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white active:scale-[0.98]";
+  const base = "flex items-center justify-center gap-3 py-3.5 px-8 rounded-2xl font-bold transition-all duration-300 text-xs uppercase tracking-widest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zen-sand/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
   const variants: any = {
-    primary: "bg-zen-sand text-white hover:bg-zen-primary shadow-sm shadow-zen-sand/20",
+    primary: "bg-zen-sand text-white hover:bg-zen-primary shadow-sm shadow-zen-sand/20 hover:zen-soft-glow",
     secondary: "bg-zen-stone text-zen-brown hover:bg-zen-stone/80",
     outline: "bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-sand hover:text-white"
   };
 
   return (
-    <button className={`${base} ${variants[variant] || variants.primary} ${className}`} {...props}>
+    <motion.button 
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
+      className={`${base} ${variants[variant] || variants.primary} ${className}`} 
+      {...props}
+    >
       {children}
-    </button>
+    </motion.button>
   );
 };
 
@@ -37,13 +43,15 @@ export const ZenIconButton = ({ icon: Icon, variant = 'outline', className = '',
   };
 
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
       type={type}
-      className={`zen-icon-button ${sizes[size]} rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zen-sand/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white active:scale-[0.98] ${variants[variant] || variants.outline} ${className}`}
+      className={`zen-icon-button ${sizes[size]} rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zen-sand/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${variants[variant] || variants.outline} ${className}`}
       {...props}
     >
       <Icon size={iconSizes[size]} />
-    </button>
+    </motion.button>
   );
 };
 
@@ -59,8 +67,13 @@ export const ZenBadge = ({ children, variant = 'leaf', className = '', ...props 
   };
 
   return (
-    <span className={`zen-badge inline-flex items-center justify-center whitespace-nowrap text-[9px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border ${variants[variant] || variants.default} ${className}`} {...props}>
+    <motion.span 
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`zen-badge inline-flex items-center justify-center whitespace-nowrap text-[9px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border ${variants[variant] || variants.default} ${className}`} 
+      {...props}
+    >
       {children}
-    </span>
+    </motion.span>
   );
 };

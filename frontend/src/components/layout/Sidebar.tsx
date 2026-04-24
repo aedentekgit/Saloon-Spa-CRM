@@ -157,42 +157,40 @@ const Sidebar = ({
   return (
     <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] ${isCollapsed ? 'lg:w-[70px] w-60' : 'w-[210px]'}`}>
       
-      {/* Top Logo Section — Professional 3D Branding */}
+      {/* Top Logo Section — Professional Classic Branding */}
       <div 
         className={`flex items-center justify-center border-b border-zen-stone/40 bg-gradient-to-b from-white to-stone-50/20 relative overflow-hidden transition-all duration-500 ${isCollapsed ? 'h-20' : 'h-32'}`}
       >
         <div className={`relative transition-all duration-700 ${isCollapsed ? 'scale-90' : 'scale-100'}`}>
           {logoUrl ? (
             <div className={`
-              relative p-1.5 bg-white zen-pointed-surface zen-shimmer-effect
-              ${isCollapsed ? 'w-12 h-12' : 'w-18 h-18'}
-              transition-all duration-500
-              shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)]
-              before:absolute before:inset-0 before:rounded-[inherit] before:shadow-[0_0_0_1px_rgba(0,0,0,0.05)]
+              relative p-1 bg-white classic-shine-effect
+              ${isCollapsed ? 'w-14 h-14 rounded-[1.5rem] border-[4px]' : 'w-24 h-24 rounded-[2.5rem] border-[8px]'}
+              border-white transition-all duration-500
+              shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15)]
             `}>
                <img
                  src={logoUrl}
                  alt="Logo"
-                 className="w-full h-full object-cover zen-pointed-surface brightness-[1.02]"
+                 className="w-full h-full object-contain rounded-[inherit] brightness-[1.02]"
                />
-               {/* 3D Glossy Finish */}
-               <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/30 pointer-events-none rounded-[inherit]" />
-               {/* Subtle Rim Light */}
-               <div className="absolute inset-[1px] border border-white/40 pointer-events-none rounded-[inherit]" />
+               {/* Classic Inner Frame */}
+               <div className="absolute inset-0 border border-black/[0.03] pointer-events-none rounded-[inherit]" />
             </div>
           ) : (
             <div className={`
-              ${isCollapsed ? 'w-12 h-12' : 'w-18 h-18'} 
-              zen-pointed-surface zen-shimmer-effect bg-zen-cream border border-zen-brown/10 flex items-center justify-center 
-              shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,1)]
+              ${isCollapsed ? 'w-12 h-12 rounded-xl' : 'w-20 h-20 rounded-2xl'} 
+              professional-frame classic-shine-effect bg-zen-cream border border-zen-stone/40 flex items-center justify-center 
+              shadow-[0_8px_25px_-10px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,1)]
             `}>
               <Sparkles className="text-zen-sand" size={isCollapsed ? 20 : 28} />
             </div>
           )}
         </div>
 
-        {/* Decorative elements for professionalism */}
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-zen-sand/20 to-transparent opacity-40" />
+        {/* Decorative architectural line */}
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-white/80" />
+        <div className="absolute top-[1px] left-0 w-full h-[1px] bg-zen-sand/5" />
       </div>
 
       {/* Navigation Menu */}

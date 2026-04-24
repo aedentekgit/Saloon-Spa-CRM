@@ -2,6 +2,8 @@ import React from 'react';
 import { Search, LayoutGrid, List, Plus, Grid } from 'lucide-react';
 import { BranchSelector } from './BranchSelector';
 import { ZenButton } from './ZenButtons';
+import { useData } from '../../context/DataContext';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface ZenLayoutProps {
   children: React.ReactNode;
@@ -38,9 +40,23 @@ export const ZenPageLayout = ({
   hideViewToggle = false,
   headerActions
 }: ZenLayoutProps) => {
+  const { loading } = useData();
 
   return (
-    <div className="page-container min-h-screen p-6 sm:p-10 lg:p-12 pt-8 sm:pt-14 lg:pt-16 animate-in fade-in duration-1000">
+    <div className="page-container min-h-screen p-6 sm:p-10 lg:p-12 pt-8 sm:pt-14 lg:pt-16 animate-zen-entrance relative">
+      
+      {/* Top Loading Progress Bar */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div 
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: '100%', opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.5, ease: "easeInOut" }}
+            className="fixed top-0 left-0 h-0.5 bg-gradient-to-r from-zen-sand via-zen-primary to-zen-sand z-[1000]"
+          />
+        )}
+      </AnimatePresence>
       
       {/* Search and Action Bar removed Page Title Section */}
       

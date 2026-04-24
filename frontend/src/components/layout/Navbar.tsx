@@ -108,7 +108,7 @@ const Navbar = ({
   };
 
   return (
-    <header className="h-16 bg-white/90 backdrop-blur-md border-b border-zen-stone/20 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40 shadow-sm shadow-black/[0.02]">
+    <header className="h-[72px] bg-white/80 backdrop-blur-xl border-b border-zen-stone/40 flex items-center justify-between px-6 sm:px-10 sticky top-0 z-40 shadow-[0_2px_15px_-10px_rgba(0,0,0,0.05)]">
       
       {/* Left section: Breadcrumb & Title */}
       <div className="flex items-center gap-4">
@@ -137,8 +137,8 @@ const Navbar = ({
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="hidden sm:flex items-center gap-3"
           >
-            <div className="w-1 h-4 bg-zen-gold rounded-full opacity-80"></div>
-            <span className="text-[16px] font-serif font-black tracking-[0.1em] text-zen-brown uppercase">
+            <div className="w-1.5 h-5 bg-zen-sand rounded-sm opacity-90 shadow-[0_0_10px_rgba(139,92,246,0.3)]"></div>
+            <span className="text-[15px] font-black tracking-[0.15em] text-zen-brown uppercase font-sans">
               {getPageTitle()}
             </span>
           </motion.div>
@@ -168,8 +168,8 @@ const Navbar = ({
                  exit={{ opacity: 0, y: 15, scale: 0.95 }}
                  className="absolute right-0 mt-3 w-80 bg-white rounded-3xl border border-zen-stone/30 shadow-2xl overflow-hidden z-[60]"
                >
-                  <div className="p-6 pb-4 border-b border-zen-stone/20 flex items-center justify-between bg-zen-cream/30">
-                     <h4 className="text-[11px] font-black uppercase tracking-[0.25em] text-zen-brown">Notifications</h4>
+                 <div className="p-5 border-b border-zen-stone/20 flex items-center justify-between bg-gradient-to-r from-stone-50/50 to-white">
+                     <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zen-brown/40">Communications</h4>
                      {notifications.length > 0 && (
                         <button 
                            onClick={handleClearAll}
@@ -223,18 +223,20 @@ const Navbar = ({
         {/* Profile Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <div 
-            className="flex items-center gap-3 cursor-pointer group hover:bg-zen-cream/60 p-1.5 rounded-xl transition-colors pr-3"
+            className="flex items-center gap-3 cursor-pointer group hover:bg-stone-50/80 p-1 rounded-2xl transition-all pr-4 border border-transparent hover:border-zen-stone/40"
             onClick={() => setIsOpen(!isOpen)}
           >
-            <div className="w-8 h-8 rounded-lg bg-zen-cream text-zen-brown flex items-center justify-center shadow-sm border border-zen-stone/50">
-              <UserRound size={16} />
+            <div className="w-10 h-10 professional-frame classic-shine-effect flex items-center justify-center bg-white shadow-sm border-zen-stone/50 shrink-0">
+              <div className="w-full h-full bg-zen-cream flex items-center justify-center text-zen-brown/40 group-hover:text-zen-brown transition-colors">
+                <UserRound size={18} />
+              </div>
             </div>
             <div className="hidden md:flex flex-col">
-              <span className="text-[13px] font-bold text-zen-brown leading-tight">
+              <span className="text-[13px] font-black text-zen-brown tracking-tight leading-tight">
                 {user?.name || 'Admin User'}
               </span>
-              <span className="text-[9px] uppercase tracking-widest font-bold text-zen-brown/40">
-                {user?.role || 'ADMIN'}
+              <span className="text-[9px] uppercase tracking-[0.2em] font-black text-zen-brown/30 mt-0.5">
+                {user?.role || 'ADMINISTRATOR'}
               </span>
             </div>
           </div>

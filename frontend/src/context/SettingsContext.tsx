@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
 
-interface SettingsData {
+export interface SettingsData {
   general: {
     siteName: string;
     logo: string;
