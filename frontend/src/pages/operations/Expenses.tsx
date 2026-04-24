@@ -22,6 +22,7 @@ import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { notify } from '../../components/shared/ZenNotification';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 interface Expense {
   _id: string;
@@ -42,8 +43,8 @@ const Expenses = () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
   const PAGE_LIMIT = 12;
 
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [expenses, setExpenses] = useState<Expense[]>(() => getCachedJson('zen_page_expenses_list', []));
+  const [loading, setLoading] = useState(() => getCachedJson<Expense[]>('zen_page_expenses_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('All');
   const [dateRange, setDateRange] = useState<'All' | 'Today' | 'Week' | 'Month'>('All');
@@ -78,7 +79,7 @@ const Expenses = () => {
   const fetchExpenses = async (silent: boolean = false) => {
     if (!user?.token) return;
     try {
-      if (!silent) setLoading(true);
+      if (!silent && expenses.length === 0) setLoading(true);
       const queryParams = new URLSearchParams({
         page: String(page),
         limit: String(PAGE_LIMIT),
@@ -112,6 +113,8 @@ const Expenses = () => {
       if (!silent) setLoading(false);
     }
   };
+
+  useEffect(() => setCachedJson('zen_page_expenses_list', expenses), [expenses]);
 
   useEffect(() => {
     fetchExpenses();

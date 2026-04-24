@@ -40,6 +40,7 @@ import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { countries } from '../../utils/countries';
 import { validatePhoneNumber, getPhoneValidationProtocol } from '../../utils/validation';
 import { useSettings } from '../../context/SettingsContext';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 interface SettingsData {
   general: {
@@ -128,9 +129,9 @@ type SettingsSection = 'foundations' | 'hours' | 'storage' | 'visuals' | 'alerts
 const Settings = () => {
   const { user } = useAuth();
   const { refreshSettings } = useSettings();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !getCachedJson<SettingsData | null>('zen_settings_page', null));
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<SettingsData | null>(null);
+  const [settings, setSettings] = useState<SettingsData | null>(() => getCachedJson<SettingsData | null>('zen_settings_page', null));
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection>('foundations');
 
@@ -269,6 +270,7 @@ const Settings = () => {
 
   const fetchSettings = async () => {
     try {
+      if (!settings) setLoading(true);
       const response = await fetch(`${API_URL}/settings`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
@@ -310,6 +312,10 @@ const Settings = () => {
       document.documentElement.style.setProperty('--zen-primary', settings.theme.primaryColor);
     }
   }, [settings?.theme?.primaryColor]);
+
+  useEffect(() => {
+    if (settings) setCachedJson('zen_settings_page', settings);
+  }, [settings]);
 
   useEffect(() => {
     if (settings?.smtp?.port) {

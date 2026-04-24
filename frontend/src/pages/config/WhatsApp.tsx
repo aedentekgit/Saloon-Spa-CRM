@@ -20,6 +20,7 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
 import { ZenInput, ZenDropdown, ZenTextarea } from '../../components/zen/ZenInputs';
 import { notify } from '../../components/shared/ZenNotification';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 interface Client {
   _id: string;
@@ -40,13 +41,17 @@ interface Campaign {
 
 const WhatsApp = () => {
   const { user } = useAuth();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [clients, setClients] = useState<Client[]>(() => getCachedJson('zen_page_whatsapp_clients', []));
+  const [campaigns, setCampaigns] = useState<Campaign[]>(() => getCachedJson('zen_page_whatsapp_campaigns', []));
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [message, setMessage] = useState('');
   const [selectedAudience, setSelectedAudience] = useState('All Clients');
   const [isSending, setIsSending] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    const cachedClients = getCachedJson<Client[]>('zen_page_whatsapp_clients', []);
+    const cachedCampaigns = getCachedJson<Campaign[]>('zen_page_whatsapp_campaigns', []);
+    return cachedClients.length === 0 && cachedCampaigns.length === 0;
+  });
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -63,21 +68,28 @@ const WhatsApp = () => {
 
   const fetchData = async () => {
     try {
+      const hasVisibleData = clients.length > 0 || campaigns.length > 0;
+      if (!hasVisibleData) setLoading(true);
       const [cliRes, camRes] = await Promise.all([
         fetch(`${API_URL}/clients`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
         fetch(`${API_URL}/whatsapp`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
       ]);
       const cliData = await cliRes.json();
       const camData = await camRes.json();
+      const clientList = Array.isArray(cliData) ? cliData : (cliData?.data || []);
+      const campaignList = Array.isArray(camData) ? camData : (camData?.data || []);
       
-      if (Array.isArray(cliData)) setClients(cliData.filter((c: any) => c.status === 'Active'));
-      if (Array.isArray(camData)) setCampaigns(camData);
+      if (Array.isArray(clientList)) setClients(clientList.filter((c: any) => c.status === 'Active'));
+      if (Array.isArray(campaignList)) setCampaigns(campaignList);
     } catch (error) {
       notify('error', 'Sync Failure', 'Failed to retrieve messaging records');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => setCachedJson('zen_page_whatsapp_clients', clients), [clients]);
+  useEffect(() => setCachedJson('zen_page_whatsapp_campaigns', campaigns), [campaigns]);
 
   const handleSelectTemplate = (tpl: any) => {
     setSelectedTemplate(tpl);

@@ -15,6 +15,7 @@ import { ZenAutocomplete, ZenDatePicker, ZenDropdown, useFloatingAnchor } from '
 import { useBranches } from '../../context/BranchContext';
 import { useSettings, SettingsData } from '../../context/SettingsContext';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { motion, AnimatePresence } from 'motion/react';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -137,9 +138,9 @@ const Appointments = () => {
   const { user } = useAuth();
   const { selectedBranch, branches } = useBranches();
   const { settings } = useSettings();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [dayAppointments, setDayAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [appointments, setAppointments] = useState<Appointment[]>(() => getCachedJson('zen_page_appointments', []));
+  const [dayAppointments, setDayAppointments] = useState<Appointment[]>(() => getCachedJson('zen_page_day_appointments', []));
+  const [loading, setLoading] = useState(() => getCachedJson<Appointment[]>('zen_page_appointments', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -161,12 +162,12 @@ const Appointments = () => {
   const PAGE_LIMIT = 12;
 
   // Raw data from backend
-  const [rawClients, setRawClients] = useState<any[]>([]);
-  const [rawServices, setRawServices] = useState<any[]>([]);
-  const [rawStaff, setRawStaff] = useState<any[]>([]);
-  const [rawShifts, setRawShifts] = useState<any[]>([]);
-  const [rawRooms, setRawRooms] = useState<any[]>([]);
-  const [rawAttendance, setRawAttendance] = useState<any[]>([]);
+  const [rawClients, setRawClients] = useState<any[]>(() => getCachedJson('zen_page_appointment_clients', []));
+  const [rawServices, setRawServices] = useState<any[]>(() => getCachedJson('zen_page_appointment_services', []));
+  const [rawStaff, setRawStaff] = useState<any[]>(() => getCachedJson('zen_page_appointment_staff', []));
+  const [rawShifts, setRawShifts] = useState<any[]>(() => getCachedJson('zen_page_appointment_shifts', []));
+  const [rawRooms, setRawRooms] = useState<any[]>(() => getCachedJson('zen_page_appointment_rooms', []));
+  const [rawAttendance, setRawAttendance] = useState<any[]>(() => getCachedJson('zen_page_appointment_attendance', []));
 
   const [formData, setFormData] = useState({
     client: '',
@@ -261,7 +262,16 @@ const Appointments = () => {
   }, [formData.date]);
 
   const fetchAllData = async (silent: boolean = false) => {
-    if (!silent) setLoading(true);
+    const hasVisibleData = (
+      appointments.length ||
+      rawClients.length ||
+      rawServices.length ||
+      rawStaff.length ||
+      rawShifts.length ||
+      rawRooms.length ||
+      rawAttendance.length
+    ) > 0;
+    if (!silent && !hasVisibleData) setLoading(true);
     try {
       const authHeader = { 'Authorization': `Bearer ${user?.token}` };
       
@@ -286,12 +296,19 @@ const Appointments = () => {
         setAppointments(aptsData);
         setTotalPages(1);
       }
-      if (Array.isArray(clients)) setRawClients(clients);
-      if (Array.isArray(services)) setRawServices(services);
-      if (Array.isArray(staff)) setRawStaff(staff);
-      if (Array.isArray(shifts)) setRawShifts(shifts);
-      if (Array.isArray(rooms)) setRawRooms(rooms);
-      if (Array.isArray(presence)) setRawAttendance(presence);
+      const clientsList = Array.isArray(clients) ? clients : (clients?.data || []);
+      const servicesList = Array.isArray(services) ? services : (services?.data || []);
+      const staffList = Array.isArray(staff) ? staff : (staff?.data || []);
+      const shiftsList = Array.isArray(shifts) ? shifts : (shifts?.data || []);
+      const roomsList = Array.isArray(rooms) ? rooms : (rooms?.data || []);
+      const attendanceList = Array.isArray(presence) ? presence : (presence?.data || []);
+
+      if (Array.isArray(clientsList)) setRawClients(clientsList);
+      if (Array.isArray(servicesList)) setRawServices(servicesList);
+      if (Array.isArray(staffList)) setRawStaff(staffList);
+      if (Array.isArray(shiftsList)) setRawShifts(shiftsList);
+      if (Array.isArray(roomsList)) setRawRooms(roomsList);
+      if (Array.isArray(attendanceList)) setRawAttendance(attendanceList);
     } catch (error) {
       console.error('Data sync error:', error);
       if (!silent) notify('error', 'Error', 'Failed to synchronize data');
@@ -310,6 +327,15 @@ const Appointments = () => {
     
     return () => clearInterval(interval);
   }, [user, page]);
+
+  useEffect(() => setCachedJson('zen_page_appointments', appointments), [appointments]);
+  useEffect(() => setCachedJson('zen_page_day_appointments', dayAppointments), [dayAppointments]);
+  useEffect(() => setCachedJson('zen_page_appointment_clients', rawClients), [rawClients]);
+  useEffect(() => setCachedJson('zen_page_appointment_services', rawServices), [rawServices]);
+  useEffect(() => setCachedJson('zen_page_appointment_staff', rawStaff), [rawStaff]);
+  useEffect(() => setCachedJson('zen_page_appointment_shifts', rawShifts), [rawShifts]);
+  useEffect(() => setCachedJson('zen_page_appointment_rooms', rawRooms), [rawRooms]);
+  useEffect(() => setCachedJson('zen_page_appointment_attendance', rawAttendance), [rawAttendance]);
 
   const fetchData = async () => {
     await fetchAllData();

@@ -14,6 +14,7 @@ import { ZenInput, ZenDropdown } from '../../components/zen/ZenInputs';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 
 interface Branch {
@@ -34,8 +35,8 @@ interface Branch {
 const Branches = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [branches, setBranches] = useState<Branch[]>(() => getCachedJson('zen_page_branches_list', []));
+  const [loading, setLoading] = useState(() => getCachedJson<Branch[]>('zen_page_branches_list', []).length === 0);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_branches_view') as 'grid' | 'table') || 'grid';
   });
@@ -83,6 +84,7 @@ const Branches = () => {
 
   const fetchBranches = async () => {
     try {
+      if (branches.length === 0) setLoading(true);
       const response = await fetch(`${API_URL}/branches?page=${page}&limit=${PAGE_LIMIT}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
@@ -100,6 +102,8 @@ const Branches = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => setCachedJson('zen_page_branches_list', branches), [branches]);
 
   const [formData, setFormData] = useState({
     name: '',

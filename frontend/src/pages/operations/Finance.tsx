@@ -27,6 +27,7 @@ import { Modal } from '../../components/shared/Modal';
 import { notify } from '../../components/shared/ZenNotification';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useSettings } from '../../context/SettingsContext';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 interface Expense {
   _id: string;
@@ -58,12 +59,16 @@ interface LedgerRow {
 const Finance = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>(() => getCachedJson('zen_page_finance_invoices', []));
+  const [expenses, setExpenses] = useState<Expense[]>(() => getCachedJson('zen_page_finance_expenses', []));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    const cachedInvoices = getCachedJson<Invoice[]>('zen_page_finance_invoices', []);
+    const cachedExpenses = getCachedJson<Expense[]>('zen_page_finance_expenses', []);
+    return cachedInvoices.length === 0 && cachedExpenses.length === 0;
+  });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -72,7 +77,7 @@ const Finance = () => {
     date: dayjs().format('YYYY-MM-DD')
   });
 
-  const [trendData, setTrendData] = useState<any[]>([]);
+  const [trendData, setTrendData] = useState<any[]>(() => getCachedJson('zen_page_finance_trend', []));
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -82,6 +87,8 @@ const Finance = () => {
 
   const fetchData = async () => {
     try {
+      const hasVisibleData = invoices.length > 0 || expenses.length > 0;
+      if (!hasVisibleData) setLoading(true);
       const [invRes, expRes, statsRes] = await Promise.all([
         fetch(`${API_URL}/invoices`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
         fetch(`${API_URL}/expenses`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
@@ -107,6 +114,10 @@ const Finance = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => setCachedJson('zen_page_finance_invoices', invoices), [invoices]);
+  useEffect(() => setCachedJson('zen_page_finance_expenses', expenses), [expenses]);
+  useEffect(() => setCachedJson('zen_page_finance_trend', trendData), [trendData]);
 
   const totalIncome = useMemo(() => invoices.reduce((acc, inv) => acc + (inv.total || 0), 0), [invoices]);
   const totalExpenses = useMemo(() => expenses.reduce((acc, exp) => acc + (exp.amount || 0), 0), [expenses]);

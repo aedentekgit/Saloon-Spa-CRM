@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
+import { getCachedJson, setCachedJson } from '../utils/localCache';
 
 export interface SettingsData {
   general: {
@@ -129,8 +130,8 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
-  const [settings, setSettings] = useState<SettingsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<SettingsData | null>(() => getCachedJson<SettingsData | null>('zen_settings', null));
+  const [loading, setLoading] = useState(() => !getCachedJson<SettingsData | null>('zen_settings', null));
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -140,7 +141,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return;
     }
     try {
-      if (!silent) setLoading(true);
+      if (!silent && !settings) setLoading(true);
       const response = await fetch(`${API_URL}/settings`, {
         headers: { 'Authorization': `Bearer ${user.token}` }
       });
@@ -194,6 +195,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return () => clearInterval(interval);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (settings) setCachedJson('zen_settings', settings);
+  }, [settings]);
 
   // Update Favicon, Title and Dynamic Theme
   useEffect(() => {

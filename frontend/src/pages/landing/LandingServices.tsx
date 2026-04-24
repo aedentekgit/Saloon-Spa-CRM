@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowRight, Sparkles, Waves, Leaf, Sun, Coffee, Music, Clock, Coins, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const BASE_URL = API_URL.replace('/api', '');
@@ -73,17 +74,17 @@ const SkeletonCard = () => (
 );
 
 const LandingServices = () => {
-  const [services, setServices] = useState<Service[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const [services, setServices] = useState<Service[]>(() => getCachedJson('zen_landing_services', []));
+  const [branches, setBranches] = useState<Branch[]>(() => getCachedJson('zen_landing_service_branches', []));
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => getCachedJson<Service[]>('zen_landing_services', []).length === 0);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
+        if (services.length === 0) setLoading(true);
         const [servRes, branchRes] = await Promise.all([
           fetch(`${API_URL}/services/public`),
           fetch(`${API_URL}/branches/public`)
@@ -110,6 +111,9 @@ const LandingServices = () => {
 
     fetchData();
   }, []);
+
+  useEffect(() => setCachedJson('zen_landing_services', services), [services]);
+  useEffect(() => setCachedJson('zen_landing_service_branches', branches), [branches]);
 
   const filteredServices = useMemo(() => {
     let active = services.filter(s => s.status === 'Active');

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -63,8 +64,8 @@ interface PublicSettingsContextValue {
 const PublicSettingsContext = createContext<PublicSettingsContextValue | undefined>(undefined);
 
 export const PublicSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [settings, setSettings] = useState<PublicSettings>(defaultSettings);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<PublicSettings>(() => getCachedJson('zen_public_settings', defaultSettings));
+  const [loading, setLoading] = useState(() => !localStorage.getItem('zen_public_settings'));
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export const PublicSettingsProvider: React.FC<{ children: React.ReactNode }> = (
 
     const fetchSettings = async () => {
       try {
-        setLoading(true);
+        if (!localStorage.getItem('zen_public_settings')) setLoading(true);
         const response = await fetch(`${API_URL}/settings/public`, {
           signal: controller.signal
         });
@@ -103,6 +104,10 @@ export const PublicSettingsProvider: React.FC<{ children: React.ReactNode }> = (
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    if (settings) setCachedJson('zen_public_settings', settings);
+  }, [settings]);
+
   const value = useMemo(() => ({ settings, loading, error }), [settings, loading, error]);
 
   return <PublicSettingsContext.Provider value={value}>{children}</PublicSettingsContext.Provider>;
@@ -114,4 +119,3 @@ export const usePublicSettings = () => {
 };
 
 export { defaultSettings };
-

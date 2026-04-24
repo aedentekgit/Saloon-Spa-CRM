@@ -18,6 +18,7 @@ import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useBranches } from '../../context/BranchContext';
 import { useCategories } from '../../context/CategoryContext';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 
 interface Branch {
@@ -51,8 +52,8 @@ const Services = () => {
   const { branches, selectedBranch, setSelectedBranch } = useBranches();
   const { getServiceCategories } = useCategories();
   const serviceCategories = getServiceCategories();
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [services, setServices] = useState<Service[]>(() => getCachedJson('zen_page_services_list', []));
+  const [loading, setLoading] = useState(() => getCachedJson<Service[]>('zen_page_services_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -65,7 +66,7 @@ const Services = () => {
   const [activeTab, setActiveTab] = useState<'basic' | 'inventory' | 'commission'>('basic');
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [inventoryList, setInventoryList] = useState<any[]>([]);
+  const [inventoryList, setInventoryList] = useState<any[]>(() => getCachedJson('zen_page_services_inventory', []));
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -109,7 +110,7 @@ const Services = () => {
 
   const fetchServices = async (silent: boolean = false) => {
     try {
-      if (!silent) setLoading(true);
+      if (!silent && services.length === 0) setLoading(true);
       const queryParams = new URLSearchParams({
         page: page.toString(),
         limit: PAGE_LIMIT.toString(),
@@ -164,6 +165,9 @@ const Services = () => {
   useEffect(() => {
     fetchInventory();
   }, []);
+
+  useEffect(() => setCachedJson('zen_page_services_list', services), [services]);
+  useEffect(() => setCachedJson('zen_page_services_inventory', inventoryList), [inventoryList]);
 
   const filteredServices = services;
 

@@ -35,6 +35,7 @@ import { Modal } from '../../components/shared/Modal';
 import { notify } from '../../components/shared/ZenNotification';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 interface InventoryItem {
   _id: string;
@@ -54,21 +55,21 @@ const Inventory = () => {
   const { getInventoryCategories } = useCategories();
   const inventoryCategories = getInventoryCategories();
 
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => getCachedJson('zen_page_inventory_list', []));
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [metrics, setMetrics] = useState({
+  const [metrics, setMetrics] = useState(() => getCachedJson('zen_page_inventory_metrics', {
     totalItems: 0,
     lowStockCount: 0,
     categoryCount: 0
-  });
+  }));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => getCachedJson<InventoryItem[]>('zen_page_inventory_list', []).length === 0);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_inventory_view') as 'grid' | 'table') || 'table';
@@ -120,7 +121,7 @@ const Inventory = () => {
 
   const fetchInventory = async (silent: boolean = false) => {
     try {
-      if (!silent) setLoading(true);
+      if (!silent && inventory.length === 0) setLoading(true);
       const queryParams = new URLSearchParams({
         page: page.toString(),
         limit: PAGE_LIMIT.toString(),
@@ -150,6 +151,9 @@ const Inventory = () => {
       if (!silent) setLoading(false);
     }
   };
+
+  useEffect(() => setCachedJson('zen_page_inventory_list', inventory), [inventory]);
+  useEffect(() => setCachedJson('zen_page_inventory_metrics', metrics), [metrics]);
 
   // Removed filteredInventory useMemo as filtering is now server-side
   const filteredInventory = inventory;

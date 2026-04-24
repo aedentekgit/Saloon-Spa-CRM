@@ -25,6 +25,7 @@ import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { useBranches } from '../../context/BranchContext';
 import { useData } from '../../context/DataContext';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 
 interface Role {
@@ -79,10 +80,10 @@ const Employees = () => {
   const { settings } = useSettings();
   const { branches, selectedBranch, setSelectedBranch } = useBranches();
   const { services, appointments: allAppointments } = useData();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [shifts, setShifts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [employees, setEmployees] = useState<Employee[]>(() => getCachedJson('zen_page_employees_list', []));
+  const [roles, setRoles] = useState<Role[]>(() => getCachedJson('zen_page_employees_roles', []));
+  const [shifts, setShifts] = useState<any[]>(() => getCachedJson('zen_page_employees_shifts', []));
+  const [loading, setLoading] = useState(() => getCachedJson<Employee[]>('zen_page_employees_list', []).length === 0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEmployees, setTotalEmployees] = useState(0);
@@ -224,8 +225,9 @@ const Employees = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) {
-        setShifts(data);
+      const shiftList = Array.isArray(data) ? data : (data?.data || []);
+      if (Array.isArray(shiftList)) {
+        setShifts(shiftList);
       }
     } catch (e) {}
   };
@@ -303,8 +305,9 @@ const Employees = () => {
       // Force refresh activity data
       const res = await fetch(`${API_URL}/attendance`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
       const data = await res.json();
-      if (Array.isArray(data)) {
-        const history = data.filter((item: any) => item.user?._id === editingEmp._id || item.user === editingEmp._id);
+      const attendanceList = Array.isArray(data) ? data : (data?.data || []);
+      if (Array.isArray(attendanceList)) {
+        const history = attendanceList.filter((item: any) => item.user?._id === editingEmp._id || item.user === editingEmp._id);
         history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         setEmployeeAttendance(history);
       }
@@ -321,8 +324,9 @@ const Employees = () => {
         try {
           const res = await fetch(`${API_URL}/attendance`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
           const data = await res.json();
-          if (Array.isArray(data)) {
-            const history = data.filter((item: any) => item.user?._id === editingEmp._id || item.user === editingEmp._id);
+          const attendanceList = Array.isArray(data) ? data : (data?.data || []);
+          if (Array.isArray(attendanceList)) {
+            const history = attendanceList.filter((item: any) => item.user?._id === editingEmp._id || item.user === editingEmp._id);
             history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             setEmployeeAttendance(history);
           }
@@ -378,7 +382,7 @@ const Employees = () => {
 
   const fetchEmployees = async (silent: boolean = false) => {
     try {
-      if (!silent) setLoading(true);
+      if (!silent && employees.length === 0) setLoading(true);
       const queryParams = new URLSearchParams({
         page: page.toString(),
         limit: PAGE_LIMIT.toString(),
@@ -406,6 +410,10 @@ const Employees = () => {
     }
   };
 
+  useEffect(() => setCachedJson('zen_page_employees_list', employees), [employees]);
+  useEffect(() => setCachedJson('zen_page_employees_roles', roles), [roles]);
+  useEffect(() => setCachedJson('zen_page_employees_shifts', shifts), [shifts]);
+
   const filteredEmployees = employees;
 
   const fetchRoles = async () => {
@@ -414,7 +422,8 @@ const Employees = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      setRoles(data);
+      const roleList = Array.isArray(data) ? data : (data?.data || []);
+      setRoles(roleList);
     } catch (error) {
       console.error('Failed to load roles');
     }

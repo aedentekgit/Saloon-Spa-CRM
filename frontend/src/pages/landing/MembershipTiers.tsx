@@ -5,6 +5,7 @@ import {
   Crown, Star, ArrowRight, Zap, Info
 } from 'lucide-react';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -14,8 +15,8 @@ const ICON_MAP: Record<string, any> = {
 
 const MembershipTiers = () => {
   const { settings } = usePublicSettings();
-  const [plans, setPlans] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [plans, setPlans] = useState<any[]>(() => getCachedJson('zen_landing_membership_tiers', []));
+  const [loading, setLoading] = useState(() => getCachedJson<any[]>('zen_landing_membership_tiers', []).length === 0);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -33,6 +34,8 @@ const MembershipTiers = () => {
     };
     fetchPlans();
   }, []);
+
+  useEffect(() => setCachedJson('zen_landing_membership_tiers', plans), [plans]);
 
   const defaultPlans = [
     {

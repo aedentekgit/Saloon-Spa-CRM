@@ -35,6 +35,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { notify } from '../../components/shared/ZenNotification';
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 dayjs.extend(isBetween);
 
@@ -59,8 +60,8 @@ const Transactions = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
   const { branches } = useData();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState<Transaction[]>(() => getCachedJson('zen_page_transactions_list', []));
+  const [loading, setLoading] = useState(() => getCachedJson<Transaction[]>('zen_page_transactions_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [branchFilter, setBranchFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Completed' | 'Pending'>('All');
@@ -80,7 +81,7 @@ const Transactions = () => {
 
   const fetchData = async () => {
     try {
-      setLoading(true);
+      if (transactions.length === 0) setLoading(true);
       const [invRes, expRes] = await Promise.all([
         fetch(`${API_URL}/invoices`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
         fetch(`${API_URL}/expenses`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
@@ -88,9 +89,11 @@ const Transactions = () => {
       
       const invData = await invRes.json();
       const expData = await expRes.json();
+      const invoicesList = Array.isArray(invData) ? invData : (invData?.data || []);
+      const expensesList = Array.isArray(expData) ? expData : (expData?.data || []);
 
       const combined: Transaction[] = [
-        ...(Array.isArray(invData) ? invData.map((inv: any) => ({
+        ...(Array.isArray(invoicesList) ? invoicesList.map((inv: any) => ({
           id: inv._id || inv.id,
           type: 'Inflow' as const,
           title: `Service: ${inv.clientName}`,
@@ -102,7 +105,7 @@ const Transactions = () => {
           reference: inv.invoiceNumber,
           branch: inv.branch?.name || 'Main Branch'
         })) : []),
-        ...(Array.isArray(expData) ? expData.map((exp: any) => ({
+        ...(Array.isArray(expensesList) ? expensesList.map((exp: any) => ({
           id: exp._id || exp.id,
           type: 'Outflow' as const,
           title: exp.title,
@@ -141,6 +144,8 @@ const Transactions = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => setCachedJson('zen_page_transactions_list', transactions), [transactions]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {

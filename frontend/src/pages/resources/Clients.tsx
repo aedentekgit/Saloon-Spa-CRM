@@ -19,6 +19,7 @@ import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButt
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 
 interface MembershipPlan {
@@ -58,14 +59,14 @@ const Clients = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { settings } = useSettings();
-  const [roles, setRoles] = useState<string[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [counts, setCounts] = useState({
+  const [roles, setRoles] = useState<string[]>(() => getCachedJson('zen_page_clients_roles', []));
+  const [clients, setClients] = useState<Client[]>(() => getCachedJson('zen_page_clients_list', []));
+  const [counts, setCounts] = useState(() => getCachedJson('zen_page_clients_counts', {
     total: 0,
     active: 0,
     membership: 0
-  });
-  const [loading, setLoading] = useState(true);
+  }));
+  const [loading, setLoading] = useState(() => getCachedJson<Client[]>('zen_page_clients_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -131,7 +132,7 @@ const Clients = () => {
 
   const fetchClients = async (silent: boolean = false) => {
     try {
-      if (!silent) setLoading(true);
+      if (!silent && clients.length === 0) setLoading(true);
       const response = await fetch(`${API_URL}/clients?page=${page}&limit=${PAGE_LIMIT}`, {
         headers: { 
           'Authorization': `Bearer ${user?.token}`,
@@ -198,6 +199,10 @@ const Clients = () => {
 
     return () => clearInterval(interval);
   }, [page, user?.token]);
+
+  useEffect(() => setCachedJson('zen_page_clients_list', clients), [clients]);
+  useEffect(() => setCachedJson('zen_page_clients_counts', counts), [counts]);
+  useEffect(() => setCachedJson('zen_page_clients_roles', roles), [roles]);
 
   const filteredClients = useMemo(() => {
     let filtered = clients;

@@ -92,11 +92,12 @@ const Billing = () => {
     try {
       const res = await fetch(`${API_URL}/gst`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setGstRates(data);
-        const active = data.find(r => r.isActive);
+      const rates = Array.isArray(data) ? data : (data?.data || []);
+      if (Array.isArray(rates)) {
+        setGstRates(rates);
+        const active = rates.find(r => r.isActive);
         if (active) setSelectedGSTRate(active);
-        else if (data.length > 0) setSelectedGSTRate(data[0]);
+        else if (rates.length > 0) setSelectedGSTRate(rates[0]);
       }
     } catch (e) {}
   };
@@ -120,7 +121,8 @@ const Billing = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await res.json();
-      const active = data.find((m: any) => m.status === 'Active');
+      const memberships = Array.isArray(data) ? data : (data?.data || []);
+      const active = memberships.find((m: any) => m.status === 'Active');
       if (active) {
         setActiveMembership(active);
         if (active.plan.discountValue > 0) {

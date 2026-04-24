@@ -33,6 +33,7 @@ import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { useBranches } from '../../context/BranchContext';
 import { useCategories } from '../../context/CategoryContext';
 import { resolveRoomImageMeta } from '../../utils/roomImage';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 interface Branch {
   _id: string;
@@ -58,8 +59,8 @@ const Rooms = () => {
   const { branches, selectedBranch, setSelectedBranch } = useBranches();
   const { getRoomCategories } = useCategories();
   const roomCategories = getRoomCategories();
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rooms, setRooms] = useState<Room[]>(() => getCachedJson('zen_page_rooms_list', []));
+  const [loading, setLoading] = useState(() => getCachedJson<Room[]>('zen_page_rooms_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_rooms_view') as 'grid' | 'table') || 'grid';
@@ -71,10 +72,10 @@ const Rooms = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const [activeTab, setActiveTab] = useState<'bookings' | 'profile'>('bookings');
-  const [roomAppointments, setRoomAppointments] = useState<any[]>([]);
+  const [roomAppointments, setRoomAppointments] = useState<any[]>(() => getCachedJson('zen_page_room_appointments', []));
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [registryDate, setRegistryDate] = useState(dayjs().format('YYYY-MM-DD'));
-  const [rawServices, setRawServices] = useState<any[]>([]);
+  const [rawServices, setRawServices] = useState<any[]>(() => getCachedJson('zen_page_room_services', []));
 
   const [formData, setFormData] = useState({
     name: '',
@@ -119,16 +120,17 @@ const Rooms = () => {
     fetchRooms();
   }, [selectedBranch, page]);
 
+  useEffect(() => setCachedJson('zen_page_rooms_list', rooms), [rooms]);
+  useEffect(() => setCachedJson('zen_page_room_appointments', roomAppointments), [roomAppointments]);
+  useEffect(() => setCachedJson('zen_page_room_services', rawServices), [rawServices]);
+
   const fetchRooms = async () => {
     try {
-      setLoading(true);
-      console.log('Fetching rooms from:', `${API_URL}/rooms?page=${page}&limit=${PAGE_LIMIT}`);
+      if (rooms.length === 0) setLoading(true);
       const response = await fetch(`${API_URL}/rooms?page=${page}&limit=${PAGE_LIMIT}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
-      console.log('Fetch response status:', response.status);
       const data = await response.json();
-      console.log('Fetch response data:', data);
       if (data.data) {
         setRooms(Array.isArray(data.data) ? data.data : []);
         setTotalPages(data.pagination?.pages || 1);

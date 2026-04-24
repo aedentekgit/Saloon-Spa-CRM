@@ -11,6 +11,7 @@ import {
 } from '../data/mockData';
 import { useAuth } from './AuthContext';
 import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
+import { getCachedJson, setCachedJson } from '../utils/localCache';
 
 export interface Client { id?: number; _id?: string; name: string; phone: string; dob?: string; anniversary?: string; notes?: string; preferences?: string; totalSpending: number; visits: number; status?: string; }
 export interface Employee { id?: number; _id?: string; name: string; role: string; phone: string; dept: string; commission: number; services: string[]; attendance: number; earnings: number; status?: string; }
@@ -66,61 +67,41 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
-
-  const [clients, setClients] = useState<Client[]>(() => {
-    const saved = localStorage.getItem('zen_clients');
-    return saved ? JSON.parse(saved) : initialClients;
-  });
-
-  const [employees, setEmployees] = useState<Employee[]>(() => {
-    const saved = localStorage.getItem('zen_employees');
-    return saved ? JSON.parse(saved) : initialEmployees;
-  });
-
+  const [clients, setClients] = useState<Client[]>(() => getCachedJson('zen_clients', initialClients));
+  const [employees, setEmployees] = useState<Employee[]>(() => getCachedJson('zen_employees', initialEmployees));
   const [services, setServices] = useState<Service[]>(() => {
-    const saved = localStorage.getItem('zen_services');
-    const parsed = saved ? JSON.parse(saved) : initialServices;
-    return parsed.map((s: Service) => {
+    const cached = getCachedJson('zen_services', initialServices) as Service[];
+    return cached.map((s: Service) => {
       const match = initialServices.find(is => is.name === s.name);
       return match ? { ...s, image: match.image } : s;
     });
   });
-
-  const [appointments, setAppointments] = useState<Appointment[]>(() => {
-    const saved = localStorage.getItem('zen_appointments');
-    return saved ? JSON.parse(saved) : initialAppointments;
+  const [appointments, setAppointments] = useState<Appointment[]>(() => getCachedJson('zen_appointments', initialAppointments));
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => getCachedJson('zen_inventory', initialInventory));
+  const [rooms, setRooms] = useState<Room[]>(() => getCachedJson('zen_rooms', initialRooms));
+  const [invoices, setInvoices] = useState<Invoice[]>(() => getCachedJson('zen_invoices', initialInvoices));
+  const [expenses, setExpenses] = useState<Expense[]>(() => getCachedJson('zen_expenses', initialExpenses));
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => getCachedJson('zen_attendance', []));
+  const [leaves, setLeaves] = useState<LeaveRequest[]>(() => getCachedJson('zen_leaves', []));
+  const [roles, setRoles] = useState<Role[]>(() => getCachedJson('zen_roles', []));
+  const [branches, setBranches] = useState<Branch[]>(() => getCachedJson('zen_branches', []));
+  const [loading, setLoading] = useState(() => {
+    return !(
+      clients.length ||
+      employees.length ||
+      services.length ||
+      appointments.length ||
+      inventory.length ||
+      rooms.length ||
+      invoices.length ||
+      expenses.length ||
+      attendance.length ||
+      leaves.length ||
+      roles.length ||
+      branches.length
+    );
   });
-
-  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
-    const saved = localStorage.getItem('zen_inventory');
-    return saved ? JSON.parse(saved) : initialInventory;
-  });
-
-  const [rooms, setRooms] = useState<Room[]>(() => {
-    const saved = localStorage.getItem('zen_rooms');
-    return saved ? JSON.parse(saved) : initialRooms;
-  });
-
-  const [invoices, setInvoices] = useState<Invoice[]>(() => {
-    const saved = localStorage.getItem('zen_invoices');
-    return saved ? JSON.parse(saved) : initialInvoices;
-  });
-
-  const [expenses, setExpenses] = useState<Expense[]>(() => {
-    const saved = localStorage.getItem('zen_expenses');
-    return saved ? JSON.parse(saved) : initialExpenses;
-  });
-
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => {
-    const saved = localStorage.getItem('zen_attendance');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   // Global Sync Logic (Real-time polling)
   const refreshData = async (silent: boolean = false) => {
@@ -130,7 +111,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
-      if (!silent) setLoading(true);
+      const hasVisibleData = (
+        clients.length ||
+        employees.length ||
+        services.length ||
+        appointments.length ||
+        inventory.length ||
+        rooms.length ||
+        invoices.length ||
+        expenses.length ||
+        attendance.length ||
+        leaves.length ||
+        roles.length ||
+        branches.length
+      ) > 0;
+
+      if (!silent && !hasVisibleData) setLoading(true);
       const headers = { 'Authorization': `Bearer ${user.token}` };
       
       const [cliRes, empRes, serRes, invenRes, invoiceRes, appRes, expenseRes, attendanceRes, leavesRes, rolesRes, branchesRes] = await Promise.all([
@@ -204,15 +200,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user?.token]);
 
   // Persistence
-  useEffect(() => localStorage.setItem('zen_clients', JSON.stringify(clients)), [clients]);
-  useEffect(() => localStorage.setItem('zen_employees', JSON.stringify(employees)), [employees]);
-  useEffect(() => localStorage.setItem('zen_services', JSON.stringify(services)), [services]);
-  useEffect(() => localStorage.setItem('zen_appointments', JSON.stringify(appointments)), [appointments]);
-  useEffect(() => localStorage.setItem('zen_inventory', JSON.stringify(inventory)), [inventory]);
-  useEffect(() => localStorage.setItem('zen_rooms', JSON.stringify(rooms)), [rooms]);
-  useEffect(() => localStorage.setItem('zen_invoices', JSON.stringify(invoices)), [invoices]);
-  useEffect(() => localStorage.setItem('zen_expenses', JSON.stringify(expenses)), [expenses]);
-  useEffect(() => localStorage.setItem('zen_attendance', JSON.stringify(attendance)), [attendance]);
+  useEffect(() => setCachedJson('zen_clients', clients), [clients]);
+  useEffect(() => setCachedJson('zen_employees', employees), [employees]);
+  useEffect(() => setCachedJson('zen_services', services), [services]);
+  useEffect(() => setCachedJson('zen_appointments', appointments), [appointments]);
+  useEffect(() => setCachedJson('zen_inventory', inventory), [inventory]);
+  useEffect(() => setCachedJson('zen_rooms', rooms), [rooms]);
+  useEffect(() => setCachedJson('zen_invoices', invoices), [invoices]);
+  useEffect(() => setCachedJson('zen_expenses', expenses), [expenses]);
+  useEffect(() => setCachedJson('zen_attendance', attendance), [attendance]);
+  useEffect(() => setCachedJson('zen_leaves', leaves), [leaves]);
+  useEffect(() => setCachedJson('zen_roles', roles), [roles]);
+  useEffect(() => setCachedJson('zen_branches', branches), [branches]);
 
   // Client Actions
   const addClient = (client: Partial<Client>) => {

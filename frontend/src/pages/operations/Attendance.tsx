@@ -82,7 +82,8 @@ const Attendance = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) setShifts(data);
+      const shiftList = Array.isArray(data) ? data : (data?.data || []);
+      if (Array.isArray(shiftList)) setShifts(shiftList);
     } catch (e) {}
   };
 

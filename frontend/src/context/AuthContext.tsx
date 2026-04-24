@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 
 export type UserRole = 'Admin' | 'Manager' | 'Employee' | 'Client';
 
@@ -42,24 +42,22 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
+  const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('zen_spa_user');
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
         if (parsed && parsed.email) {
-          setUser(parsed);
+          return parsed;
         }
       } catch (error) {
         console.error('Failed to parse saved user:', error);
         localStorage.removeItem('zen_spa_user');
       }
     }
-    setLoading(false);
-  }, []);
+    return null;
+  });
+  const [loading] = useState(false);
 
   const hasPermission = (permId: string): boolean => {
     if (!user) return false;
@@ -113,7 +111,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('zen_spa_user');
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('zen_')) {
+        localStorage.removeItem(key);
+      }
+    });
   };
 
   return (
@@ -130,4 +132,3 @@ export function useAuth() {
   }
   return context;
 }
-

@@ -32,18 +32,19 @@ import { ZenInput, ZenDropdown, ZenTextarea, ZenDatePicker, ZenAutocomplete } fr
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
 const Memberships = () => {
     const { user } = useAuth();
-    const [memberships, setMemberships] = useState<any[]>([]);
-    const [plans, setPlans] = useState<any[]>([]);
-    const [services, setServices] = useState<any[]>([]);
-    const [branches, setBranches] = useState<any[]>([]);
-    const [clients, setClients] = useState<any[]>([]);
-    const [stats, setStats] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [memberships, setMemberships] = useState<any[]>(() => getCachedJson('zen_page_memberships_list', []));
+    const [plans, setPlans] = useState<any[]>(() => getCachedJson('zen_page_memberships_plans', []));
+    const [services, setServices] = useState<any[]>(() => getCachedJson('zen_page_memberships_services', []));
+    const [branches, setBranches] = useState<any[]>(() => getCachedJson('zen_page_memberships_branches', []));
+    const [clients, setClients] = useState<any[]>(() => getCachedJson('zen_page_memberships_clients', []));
+    const [stats, setStats] = useState<any>(() => getCachedJson('zen_page_memberships_stats', null));
+    const [isLoading, setIsLoading] = useState(() => getCachedJson<any[]>('zen_page_memberships_list', []).length === 0);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'registry' | 'plans'>('registry');
     const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
@@ -116,7 +117,7 @@ const Memberships = () => {
     const PAGE_LIMIT = 12;
 
     const fetchData = async (silent: boolean = false) => {
-       if (!silent) setIsLoading(true);
+       if (!silent && memberships.length === 0) setIsLoading(true);
        try {
           const headers = { 'Authorization': `Bearer ${user?.token}` };
           
@@ -184,6 +185,13 @@ const Memberships = () => {
 
        return () => clearInterval(interval);
     }, [page, user?.token]);
+
+    useEffect(() => setCachedJson('zen_page_memberships_list', memberships), [memberships]);
+    useEffect(() => setCachedJson('zen_page_memberships_plans', plans), [plans]);
+    useEffect(() => setCachedJson('zen_page_memberships_services', services), [services]);
+    useEffect(() => setCachedJson('zen_page_memberships_branches', branches), [branches]);
+    useEffect(() => setCachedJson('zen_page_memberships_clients', clients), [clients]);
+    useEffect(() => setCachedJson('zen_page_memberships_stats', stats), [stats]);
 
     const handleCreatePlan = async (e: React.FormEvent) => {
        e.preventDefault();

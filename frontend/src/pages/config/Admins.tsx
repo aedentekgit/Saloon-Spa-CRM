@@ -16,6 +16,7 @@ import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenDropdown, ZenInput } from '../../components/zen/ZenInputs';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 
 interface Admin {
@@ -30,8 +31,8 @@ interface Admin {
 const Admins = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const [admins, setAdmins] = useState<Admin[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [admins, setAdmins] = useState<Admin[]>(() => getCachedJson('zen_page_admins_list', []));
+  const [loading, setLoading] = useState(() => getCachedJson<Admin[]>('zen_page_admins_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_admin_view') as 'grid' | 'table') || 'grid';
@@ -88,7 +89,7 @@ const Admins = () => {
 
   const fetchAdmins = async () => {
     try {
-      setLoading(true);
+      if (admins.length === 0) setLoading(true);
       const response = await fetch(`${API_URL}/admins?page=${page}&limit=${PAGE_LIMIT}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
@@ -109,6 +110,8 @@ const Admins = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => setCachedJson('zen_page_admins_list', admins), [admins]);
 
   const toggleStatus = async (admin: Admin) => {
     const newStatus = admin.status === 'Active' ? 'Inactive' : 'Active';

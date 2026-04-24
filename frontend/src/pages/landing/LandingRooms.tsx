@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Sparkles, MapPin, Loader2, DoorOpen, Wind, Coffee, Music, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { resolveRoomImageMeta } from '../../utils/roomImage';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const BASE_URL = API_URL.replace('/api', '');
@@ -23,10 +24,10 @@ interface Room {
 }
 
 const LandingRooms = () => {
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const [rooms, setRooms] = useState<Room[]>(() => getCachedJson('zen_landing_rooms', []));
+  const [branches, setBranches] = useState<Branch[]>(() => getCachedJson('zen_landing_room_branches', []));
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => getCachedJson<Room[]>('zen_landing_rooms', []).length === 0);
   const [error, setError] = useState('');
 
   // Luxury amenities usually associated with rooms
@@ -40,7 +41,7 @@ const LandingRooms = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
+        if (rooms.length === 0) setLoading(true);
         const [roomRes, branchRes] = await Promise.all([
           fetch(`${API_URL}/rooms/public`),
           fetch(`${API_URL}/branches/public`)
@@ -68,6 +69,9 @@ const LandingRooms = () => {
 
     fetchData();
   }, []);
+
+  useEffect(() => setCachedJson('zen_landing_rooms', rooms), [rooms]);
+  useEffect(() => setCachedJson('zen_landing_room_branches', branches), [branches]);
 
   const filteredRooms = useMemo(() => {
     const active = rooms.filter(r => r.isActive);

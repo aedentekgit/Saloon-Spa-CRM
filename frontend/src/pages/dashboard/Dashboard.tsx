@@ -44,6 +44,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -51,14 +52,14 @@ const AdminDashboard = () => {
   const { employees } = useData();
   const { selectedBranch } = useBranches();
   const navigate = useNavigate();
-  const [stats, setStats] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [stats, setStats] = React.useState<any>(() => getCachedJson('zen_dashboard_admin_stats', null));
+  const [loading, setLoading] = React.useState(() => !getCachedJson('zen_dashboard_admin_stats', null));
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const fetchStats = async (silent: boolean = false) => {
     try {
-      if (!silent) setLoading(true);
+      if (!silent && !stats) setLoading(true);
       const statsUrl = new URL(`${API_URL}/stats/dashboard`);
       if (selectedBranch && selectedBranch !== 'all') {
         statsUrl.searchParams.set('branch', selectedBranch);
@@ -86,6 +87,10 @@ const AdminDashboard = () => {
 
     return () => clearInterval(interval);
   }, [selectedBranch]);
+
+  React.useEffect(() => {
+    if (stats) setCachedJson('zen_dashboard_admin_stats', stats);
+  }, [stats]);
 
   // Fully dynamic metrics mapping
   const displayRevenue = stats?.revenue?.total || 0;
@@ -446,15 +451,15 @@ const AdminDashboard = () => {
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
-  const [stats, setStats] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [stats, setStats] = React.useState<any>(() => getCachedJson('zen_dashboard_employee_stats', null));
+  const [loading, setLoading] = React.useState(() => !getCachedJson('zen_dashboard_employee_stats', null));
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
     const fetchEmployeeStats = async (silent: boolean = false) => {
       try {
-        if (!silent) setLoading(true);
+        if (!silent && !stats) setLoading(true);
         const response = await fetch(`${API_URL}/stats/dashboard`, {
           headers: { 'Authorization': `Bearer ${user?.token}` }
         });
@@ -476,6 +481,10 @@ const EmployeeDashboard = () => {
 
     return () => clearInterval(interval);
   }, [user]);
+
+  useEffect(() => {
+    if (stats) setCachedJson('zen_dashboard_employee_stats', stats);
+  }, [stats]);
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div></div>;
 
@@ -554,15 +563,15 @@ const ManagerDashboard = () => {
 
 const ClientDashboard = () => {
   const { user } = useAuth();
-  const [stats, setStats] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [stats, setStats] = React.useState<any>(() => getCachedJson('zen_dashboard_client_stats', null));
+  const [loading, setLoading] = React.useState(() => !getCachedJson('zen_dashboard_client_stats', null));
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
     const fetchClientStats = async (silent = false) => {
       try {
-        if (!silent) setLoading(true);
+        if (!silent && !stats) setLoading(true);
         const response = await fetch(`${API_URL}/stats/dashboard`, {
           headers: { 'Authorization': `Bearer ${user?.token}` }
         });
@@ -584,6 +593,10 @@ const ClientDashboard = () => {
 
     return () => clearInterval(interval);
   }, [user]);
+
+  useEffect(() => {
+    if (stats) setCachedJson('zen_dashboard_client_stats', stats);
+  }, [stats]);
   
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div></div>;
 

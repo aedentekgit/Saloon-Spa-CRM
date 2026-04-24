@@ -11,6 +11,7 @@ import {
 import { Link } from 'react-router-dom';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
 import { motion, AnimatePresence } from 'motion/react';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const BASE_URL = API_URL.replace('/api', '');
@@ -99,16 +100,16 @@ const OurTeam = () => {
   const { settings } = usePublicSettings();
   const siteName = settings.general.siteName;
 
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>(() => getCachedJson('zen_landing_team_employees', []));
+  const [branches, setBranches] = useState<Branch[]>(() => getCachedJson('zen_landing_team_branches', []));
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => getCachedJson<Employee[]>('zen_landing_team_employees', []).length === 0);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
+        if (employees.length === 0) setLoading(true);
         setError('');
         
         const [empRes, branchRes] = await Promise.all([
@@ -137,6 +138,9 @@ const OurTeam = () => {
 
     fetchData();
   }, []);
+
+  useEffect(() => setCachedJson('zen_landing_team_employees', employees), [employees]);
+  useEffect(() => setCachedJson('zen_landing_team_branches', branches), [branches]);
 
   const activeEmployees = useMemo(
     () => employees.filter((employee) => employee.status === 'Active'),

@@ -12,6 +12,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { notify } from '../../components/shared/ZenNotification';
 import { ZenMonthPicker } from '../../components/zen/ZenInputs';
 import dayjs from 'dayjs';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 // Local high-performance debounce utility to avoid external dependency issues
 const debounce = (fn: Function, ms: number) => {
@@ -47,19 +48,19 @@ interface PaginationMeta {
 const Payroll = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const [loading, setLoading] = useState(true);
-  const [payrollData, setPayrollData] = useState<PayrollRecord[]>([]);
+  const [loading, setLoading] = useState(() => getCachedJson<PayrollRecord[]>('zen_page_payroll_records', []).length === 0);
+  const [payrollData, setPayrollData] = useState<PayrollRecord[]>(() => getCachedJson('zen_page_payroll_records', []));
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(dayjs().format('YYYY-MM'));
   
   const [currentPage, setCurrentPage] = useState(1);
-  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
-  const [stats, setStats] = useState({ total: 0, ot: 0, deductions: 0, hours: 0 });
+  const [pagination, setPagination] = useState<PaginationMeta | null>(() => getCachedJson<PaginationMeta | null>('zen_page_payroll_pagination', null));
+  const [stats, setStats] = useState(() => getCachedJson('zen_page_payroll_stats', { total: 0, ot: 0, deductions: 0, hours: 0 }));
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const fetchPayroll = async (page = 1, search = '') => {
-    setLoading(true);
+    if (payrollData.length === 0) setLoading(true);
     try {
       const queryParams = new URLSearchParams({
         month: selectedMonth,
@@ -87,6 +88,10 @@ const Payroll = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => setCachedJson('zen_page_payroll_records', payrollData), [payrollData]);
+  useEffect(() => setCachedJson('zen_page_payroll_pagination', pagination), [pagination]);
+  useEffect(() => setCachedJson('zen_page_payroll_stats', stats), [stats]);
 
   useEffect(() => {
     fetchPayroll(1, searchTerm);

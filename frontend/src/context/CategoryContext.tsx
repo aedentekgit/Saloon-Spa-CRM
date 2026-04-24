@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
+import { getCachedJson, setCachedJson } from '../utils/localCache';
 
 interface Category {
   _id: string;
@@ -25,21 +26,22 @@ interface CategoryContextType {
 const CategoryContext = createContext<CategoryContextType | undefined>(undefined);
 
 export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>(() => getCachedJson('zen_categories', []));
+  const [loading, setLoading] = useState(() => getCachedJson<Category[]>('zen_categories', []).length === 0);
   const { user } = useAuth();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const fetchCategories = async (type?: string, silent: boolean = false) => {
-    if (!silent) setLoading(true);
+    if (!silent && categories.length === 0) setLoading(true);
     try {
       const url = type ? `${API_URL}/categories?type=${type}` : `${API_URL}/categories`;
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      if (Array.isArray(data)) {
-        setCategories(data);
+      const categoryList = Array.isArray(data) ? data : (data?.data || []);
+      if (Array.isArray(categoryList)) {
+        setCategories(categoryList);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -125,6 +127,10 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return () => clearInterval(interval);
     }
   }, [user]);
+
+  useEffect(() => {
+    setCachedJson('zen_categories', categories);
+  }, [categories]);
 
   return (
     <CategoryContext.Provider value={{ 

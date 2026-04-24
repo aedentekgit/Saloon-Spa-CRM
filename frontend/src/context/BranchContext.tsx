@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
+import { getCachedJson, setCachedJson } from '../utils/localCache';
 
 export interface Branch {
   _id: string;
@@ -24,13 +25,13 @@ const BranchContext = createContext<BranchContextType | undefined>(undefined);
 
 export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branches, setBranches] = useState<Branch[]>(() => getCachedJson('zen_branch_context_list', []));
   const [selectedBranch, setSelectedBranchState] = useState<string>(() => {
     const saved = localStorage.getItem('zen_selected_branch');
     if (user && user.role !== 'Admin' && user.branch) return user.branch;
     return saved || 'all';
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => getCachedJson<Branch[]>('zen_branch_context_list', []).length === 0);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -40,7 +41,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     try {
-      if (!silent) setLoading(true);
+      if (!silent && branches.length === 0) setLoading(true);
       const response = await fetch(`${API_URL}/branches`, {
         headers: { 'Authorization': `Bearer ${user.token}` }
       });
@@ -66,6 +67,10 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return () => clearInterval(interval);
   }, [user]);
+
+  useEffect(() => {
+    setCachedJson('zen_branch_context_list', branches);
+  }, [branches]);
 
   // Validation: If selected branch is not 'all' and not found in branches, reset to 'all'
   useEffect(() => {
