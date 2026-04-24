@@ -165,7 +165,14 @@ const AdminDashboard = () => {
 
 
   return (
-    <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#2D2D2D' } as React.CSSProperties} className="space-y-8 font-sans pb-20">
+    <div 
+      style={{ 
+        '--zen-primary': settings?.theme?.primaryColor || '#2D2D2D',
+        height: 'calc(100vh - 100px)' 
+      } as React.CSSProperties} 
+      className="space-y-8 font-sans overflow-hidden flex flex-col"
+    >
+      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-8 pr-4">
 
 
       {/* Quick Actions Bar */}
@@ -431,6 +438,7 @@ const AdminDashboard = () => {
             </div>
 
          </div>
+       </div>
       </div>
     </div>
   );

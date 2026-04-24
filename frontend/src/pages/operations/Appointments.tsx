@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Calendar, ChevronDown,
-  Sparkles, User as UserIcon, Search, MapPin, Check, X as CloseIcon
+  Sparkles, User as UserIcon, Search, MapPin, Check, X as CloseIcon, UserCheck, History
 } from 'lucide-react';
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
@@ -19,6 +19,15 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
 
+const parseTime = (t: string, d: string) => {
+  if (!t) return null;
+  const formats = ['HH:mm', 'h:mm A', 'hh:mm A', 'H:mm'];
+  for (const f of formats) {
+    const p = dayjs(`${d} ${t}`, `YYYY-MM-DD ${f}`, true);
+    if (p.isValid()) return p;
+  }
+  return null;
+};
 interface Appointment {
   _id: string;
   client: string;
@@ -128,6 +137,7 @@ const Appointments = () => {
   const { selectedBranch, branches } = useBranches();
   const { settings } = useSettings();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [dayAppointments, setDayAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -228,11 +238,26 @@ const Appointments = () => {
         setTotalPages(1);
       }
     } catch (error) {
-       console.error('Appointments fetch error:', error);
+      console.error('Fetch error:', error);
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
   };
+
+  const fetchDayAppointments = async (date: string) => {
+    try {
+      const authHeader = { 'Authorization': `Bearer ${user?.token}` };
+      const res = await fetch(`${API_URL}/appointments?date=${date}&limit=1000`, { headers: authHeader });
+      const data = await res.json();
+      setDayAppointments(data.data || data || []);
+    } catch (error) {
+      console.error('Failed to fetch day appointments:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchDayAppointments(formData.date);
+  }, [formData.date]);
 
   const fetchAllData = async (silent: boolean = false) => {
     if (!silent) setLoading(true);
@@ -294,7 +319,8 @@ const Appointments = () => {
       if (!apt) return false;
       
       const matchesDate = apt.date ? dayjs(apt.date).isSame(selectedDate, viewType.toLowerCase() as any) : false;
-      const matchesSearch = (apt.client || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      const clientName = (apt.clientId?.name || apt.client || '').toLowerCase();
+      const matchesSearch = clientName.includes(searchTerm.toLowerCase()) || 
                             (apt.service || '').toLowerCase().includes(searchTerm.toLowerCase());
       
       if (!matchesDate || !matchesSearch) return false;
@@ -360,7 +386,7 @@ const Appointments = () => {
   }, [rawRooms, formData.branch]);
 
   const availableSlots = useMemo(() => {
-    if (!formData.date || !formData.employee || formData.employee === 'None' || !formData.room || formData.room === 'None') return [];
+    if (!formData.date || !formData.employee || formData.employee === 'None') return [];
     
     const employee = rawStaff.find(e => e.name === formData.employee);
     if (!employee || !employee.shift) return [];
@@ -368,8 +394,8 @@ const Appointments = () => {
     const shift = rawShifts.find(s => s.name === employee.shift);
     if (!shift || !shift.startTime || !shift.endTime) return [];
     
-    let start = dayjs(`${formData.date} ${shift.startTime}`, 'YYYY-MM-DD hh:mm A');
-    let end = dayjs(`${formData.date} ${shift.endTime}`, 'YYYY-MM-DD hh:mm A');
+    let start = parseTime(shift.startTime, formData.date) || dayjs(`${formData.date} 09:00`, 'YYYY-MM-DD HH:mm');
+    let end = parseTime(shift.endTime, formData.date) || dayjs(`${formData.date} 21:00`, 'YYYY-MM-DD HH:mm');
     
     if (end.isBefore(start)) end = end.add(1, 'day');
 
@@ -384,8 +410,9 @@ const Appointments = () => {
     const shopOpenTimeStr = dayHours?.openTime || '09:00';
     const shopCloseTimeStr = dayHours?.closeTime || '21:00';
 
-    let shopStart = dayjs(`${formData.date} ${shopOpenTimeStr}`, 'YYYY-MM-DD HH:mm');
-    let shopEnd = dayjs(`${formData.date} ${shopCloseTimeStr}`, 'YYYY-MM-DD HH:mm');
+    let shopStart = parseTime(shopOpenTimeStr, formData.date) || dayjs(`${formData.date} 09:00`, 'YYYY-MM-DD HH:mm');
+    let shopEnd = parseTime(shopCloseTimeStr, formData.date) || dayjs(`${formData.date} 21:00`, 'YYYY-MM-DD HH:mm');
+    
     if (shopEnd.isBefore(shopStart)) shopEnd = shopEnd.add(1, 'day');
 
     // Intersect shift bounds with shop operational bounds
@@ -404,8 +431,8 @@ const Appointments = () => {
     const slots = [];
     let current = start;
     
-    const employeeApts = appointments.filter(a => a.employee === formData.employee && a.date === formData.date);
-    const roomApts = appointments.filter(a => a.room === formData.room && a.date === formData.date);
+    const employeeApts = dayAppointments.filter(a => a.employee === formData.employee);
+    const roomApts = dayAppointments.filter(a => a.room === formData.room);
 
     const now = dayjs();
     const isToday = dayjs(formData.date).isSame(now, 'day');
@@ -421,17 +448,25 @@ const Appointments = () => {
       // Check Therapist Availability
       const isTherapistBooked = employeeApts.some(apt => {
         if (editingApt && apt._id === editingApt._id) return false;
-        const aptStart = dayjs(`${apt.date} ${apt.time}`, 'YYYY-MM-DD HH:mm');
+        const aptStart = parseTime(apt.time, formData.date);
+        if (!aptStart) return false;
         const aptService = rawServices.find(s => s.name === apt.service);
         const aptDuration = aptService?.duration || 60;
-        const aptEnd = aptStart.add(aptDuration, 'minute');
+        
+        // Use the room's cleaning duration for the specialist too, as they are usually tied to the room prep
+        const aptRoom = rawRooms.find(r => r.name === apt.room);
+        const aptCleaning = aptRoom?.cleaningDuration || 0;
+        const aptTotalOccupancy = aptDuration + aptCleaning;
+        
+        const aptEnd = aptStart.add(aptTotalOccupancy, 'minute');
         return (current.isBefore(aptEnd) && slotEnd.isAfter(aptStart));
       });
 
       // Check Room Availability
       const isRoomBooked = roomApts.some(apt => {
         if (editingApt && apt._id === editingApt._id) return false;
-        const aptStart = dayjs(`${apt.date} ${apt.time}`, 'YYYY-MM-DD HH:mm');
+        const aptStart = parseTime(apt.time, formData.date);
+        if (!aptStart) return false;
         const aptService = rawServices.find(s => s.name === apt.service);
         const aptDuration = aptService?.duration || 60;
         
@@ -453,21 +488,21 @@ const Appointments = () => {
     }
     
     return slots;
-  }, [formData.date, formData.employee, formData.service, formData.room, rawStaff, rawShifts, appointments, rawServices, rawRooms, editingApt]);
+  }, [formData.date, formData.employee, formData.service, formData.room, rawStaff, rawShifts, dayAppointments, rawServices, rawRooms, editingApt]);
 
   const handleOpenModal = (apt: Appointment | null = null) => {
     if (apt) {
       setEditingApt(apt);
       setFormData({
-        client: apt.client,
-        service: apt.service,
-        employee: apt.employee,
-        room: apt.room || '',
+        client: (apt.client as any)?.name || apt.client || '',
+        service: (apt.service as any)?.name || apt.service || '',
+        employee: (apt.employee as any)?.name || apt.employee || 'None',
+        room: (apt.room as any)?.name || apt.room || '',
         time: apt.time,
         date: apt.date,
         membershipId: '',
         bookingType: 'Normal',
-        branch: apt.branch?._id || apt.branch || '',
+        branch: (apt.branch as any)?._id || apt.branch || '',
         status: apt.status || 'Confirmed'
       });
     } else {
@@ -581,9 +616,12 @@ const Appointments = () => {
       addButtonIcon={<Plus size={18} />}
       onAddClick={() => handleOpenModal()}
     >
-      <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="contents font-sans">
-        <div className="flex flex-col lg:flex-row gap-10">
-          <div className="flex-1 space-y-8">
+      <div 
+        style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} 
+        className="contents font-sans h-[calc(100vh-180px)] overflow-hidden"
+      >
+        <div className="flex flex-col lg:flex-row gap-10 h-full overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 space-y-8">
            {/* Calendar Controls - Now visible in both Grid and Table view */}
             <div className="bg-white/90 backdrop-blur-2xl px-5 sm:px-6 py-5 rounded-[2.25rem] border border-zen-stone/70 shadow-[0_16px_40px_rgba(0,0,0,0.04)] flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full xl:w-auto">
@@ -744,90 +782,103 @@ const Appointments = () => {
              </>
            ) : (
              /* Table View Area */
-            <div className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] border border-zen-stone/70 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden">
-               <div className="flex items-center justify-between gap-4 px-6 sm:px-8 pt-6 pb-5 border-b border-zen-brown/5">
-                 <div>
-                   <h3 className="text-xl font-bold text-gray-900 tracking-tight">Appointment Registry</h3>
-                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Scheduled rituals across the selected view</p>
-                 </div>
-                 <ZenBadge variant="leaf" className="px-3 sm:px-5">{filteredAppointments.length} Records</ZenBadge>
-               </div>
-               <div className="table-container overflow-x-auto">
-                 <table className="w-full text-center border-collapse min-w-[800px]">
-                 <thead>
-                   <tr>
-                     <th>S NO</th>
-                     <th>Identity</th>
-                     <th>Service</th>
-                      <th>Workspace</th>
-                      <th>Time Index</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                 <tbody className="">
-                    {(!filteredAppointments || filteredAppointments.length === 0) && (
-                       <tr>
-                          <td colSpan={7} className="px-6 py-16 text-center text-[13px] text-gray-400 bg-gray-50/30">No registry data available</td>
-                       </tr>
-                    )}
-                    {filteredAppointments.map((apt, idx) => (
-                       <tr key={apt._id} className="hover:bg-gray-50/50 transition-all group">
-                         <td className="px-6 py-6 text-gray-400 font-bold">{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</td>
-                         <td className="px-10 py-5">
-                           <div className="flex flex-col items-center">
-                             <span className="zen-table-primary">{apt.client}</span>
-                             <span className="zen-table-meta">{apt.employee}</span>
-                           </div>
-                         </td>
-                         <td className="px-6 py-6">
-                           <ZenBadge variant="leaf">{apt.service}</ZenBadge>
-                         </td>
-                         <td className="px-6 py-6 text-gray-400 font-medium text-[13px]">
-                           {apt.room || 'General Area'}
-                         </td>
-                         <td className="px-6 py-6">
-                           <div className="flex flex-col items-center">
-                             <span className="text-[13px] font-bold text-gray-900">{dayjs(apt.date).format('MMM DD, YYYY')}</span>
-                             <span className="text-[10px] text-gray-400 uppercase tracking-widest">{apt.time}</span>
-                           </div>
-                         </td>
-                          <td className="px-6 py-6">
-                            <ZenBadge 
-                              variant={
-                                apt.status === 'Confirmed' ? 'leaf' : 
-                                apt.status === 'Pending' ? 'sand' : 
-                                apt.status === 'Cancelled' ? 'danger' : 'secondary'
-                              }
-                            >
-                              {apt.status || 'Confirmed'}
-                            </ZenBadge>
-                          </td>
-                          <td className="px-6 py-6">
-                            <div className="flex items-center justify-center gap-2 transition-all">
-                              <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(apt)} />
-                              <ZenIconButton icon={Trash2} variant="danger" onClick={() => {
-                                setAptToDelete(apt._id);
-                                setIsConfirmOpen(true);
-                              }} />
-                            </div>
-                          </td>
-                       </tr>
-                     ))}
-                 </tbody>
-               </table>
-               {appointments.length === 0 && (
-                 <div className="p-20 text-center">
-                   <p className="text-sm font-serif italic text-zen-brown/20">Registry is currently void of records</p>
-                 </div>
-               )}
-              </div>
-            </div>
+             <div className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] border border-zen-stone/70 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col flex-1 min-h-0">
+                <div className="flex items-center justify-between gap-4 px-8 py-6 border-b border-zen-brown/5">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-bold text-gray-900 tracking-tight">Appointment Registry</h3>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Digital Sanctuary Logs</p>
+                  </div>
+                  <ZenBadge variant="leaf" className="px-5">{filteredAppointments.length} Records</ZenBadge>
+                </div>
+                
+                <div className="flex-1 overflow-auto custom-scrollbar">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="sticky top-0 z-20 bg-gray-50/80 backdrop-blur-md text-[10px] font-black uppercase tracking-[0.25em] text-zen-brown/40 border-b border-zen-brown/5">
+                        <tr>
+                           <th className="px-8 py-5">Ambassador</th>
+                           <th className="px-8 py-5">Service Ritual</th>
+                           <th className="px-8 py-5">Venue</th>
+                           <th className="px-8 py-5 text-center">Timing</th>
+                           <th className="px-8 py-5 text-center">Status</th>
+                           <th className="px-8 py-5 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zen-brown/5">
+                        {filteredAppointments.length > 0 ? filteredAppointments.map((apt: any) => (
+                          <tr key={apt._id} className="group hover:bg-zen-cream/10 transition-all duration-500">
+                             <td className="px-8 py-6">
+                               <div className="flex items-center gap-4">
+                                 <div className="w-10 h-10 rounded-xl bg-zen-sand/10 flex items-center justify-center text-zen-sand shadow-sm">
+                                   <UserIcon size={16} />
+                                 </div>
+                                 <div>
+                                   <p className="text-sm font-bold text-zen-brown">{apt.client || 'Guest'}</p>
+                                   <p className="text-[10px] text-zen-brown/30 uppercase tracking-widest">{apt.bookingType || 'Normal'}</p>
+                                 </div>
+                               </div>
+                             </td>
+                             <td className="px-8 py-6">
+                               <p className="text-sm font-bold text-zen-brown">{apt.service || 'Unnamed'}</p>
+                               <div className="flex items-center gap-1.5 mt-1 text-zen-brown/40">
+                                 <UserCheck size={10} />
+                                 <span className="text-[10px] font-bold uppercase tracking-widest">{apt.employee || 'Artisan'}</span>
+                               </div>
+                             </td>
+                             <td className="px-8 py-6">
+                               <div className="flex items-center gap-2">
+                                 <div className="w-2.5 h-2.5 rounded-full bg-zen-sand/20" />
+                                 <span className="text-xs font-bold text-zen-brown">{apt.room || 'Main Sanctuary'}</span>
+                               </div>
+                             </td>
+                             <td className="px-8 py-6 text-center">
+                                <div className="inline-flex flex-col items-center px-4 py-2 rounded-xl bg-gray-50 border border-zen-brown/5">
+                                   <span className="text-xs font-black text-zen-brown leading-none">{apt.time || '10:00'}</span>
+                                   <span className="text-[8px] font-bold text-zen-brown/30 uppercase tracking-tighter mt-1">{dayjs(apt.date).format('DD MMM')}</span>
+                                </div>
+                             </td>
+                             <td className="px-8 py-6">
+                               <div className="flex justify-center">
+                                 <ZenBadge 
+                                   variant={
+                                     apt.status === 'Confirmed' ? 'leaf' :
+                                     apt.status === 'Completed' ? 'sand' :
+                                     apt.status === 'Pending' ? 'sand' : 
+                                     apt.status === 'Cancelled' ? 'danger' : 'secondary'
+                                   }
+                                 >
+                                   {apt.status || 'Confirmed'}
+                                 </ZenBadge>
+                               </div>
+                             </td>
+                             <td className="px-8 py-6">
+                               <div className="flex items-center justify-center gap-3">
+                                 <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(apt)} />
+                                 <ZenIconButton icon={Trash2} variant="danger" onClick={() => {
+                                   setAptToDelete(apt._id);
+                                   setIsConfirmOpen(true);
+                                 }} />
+                               </div>
+                             </td>
+                          </tr>
+                        )) : (
+                          <tr>
+                             <td colSpan={6} className="py-32">
+                                <div className="flex flex-col items-center justify-center gap-4 opacity-20">
+                                  <History size={64} strokeWidth={0.5} />
+                                  <p className="text-lg font-serif italic">Registry is currently void of records</p>
+                                </div>
+                             </td>
+                          </tr>
+                        )}
+                    </tbody>
+                  </table>
+                </div>
+             </div>
            )}
         </div>
 
         {/* Sidebar */}
-        <div className="w-full lg:w-96 space-y-6 sm:space-y-10">
+        <div className="w-full lg:w-96 space-y-6 sm:space-y-10 overflow-y-auto h-full pr-2 custom-scrollbar">
            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:border-zen-sand/30 transition-all duration-300">
               <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 tracking-tight">Daily Insight</h3>
               <div className="space-y-6 sm:space-y-8">
@@ -961,6 +1012,7 @@ const Appointments = () => {
                     value={formData.client}
                     onChange={(val: any) => setFormData({ ...formData, client: val, membershipId: '', bookingType: 'Normal' })}
                     icon={Search}
+                    allowCustom={true}
                   />
                 )}
                 {formData.client && activeMemberships.length > 0 ? (
@@ -1055,7 +1107,7 @@ const Appointments = () => {
                   <UserIcon size={26} strokeWidth={1} />
                   <p className="text-[10px] font-bold uppercase tracking-widest text-center px-8">Select a specialist to view availability</p>
                 </div>
-              ) : !formData.room || formData.room === 'None' ? (
+              ) : (!formData.room || formData.room === 'None') && !editingApt ? (
                 <div className="py-10 rounded-2xl border border-dashed border-zen-brown/10 bg-zen-cream/20 flex flex-col items-center justify-center gap-3 text-zen-brown/20">
                   <MapPin size={22} strokeWidth={1} />
                   <p className="text-[10px] font-bold uppercase tracking-widest text-center px-8">Select a room to see time slots</p>

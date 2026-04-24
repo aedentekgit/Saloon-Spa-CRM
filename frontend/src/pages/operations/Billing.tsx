@@ -26,7 +26,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
-import { ZenInput, ZenDropdown } from '../../components/zen/ZenInputs';
+import { ZenInput, ZenDropdown, ZenAutocomplete } from '../../components/zen/ZenInputs';
 import { notify } from '../../components/shared/ZenNotification';
 import { useSettings } from '../../context/SettingsContext';
 import { useData } from '../../context/DataContext';
@@ -106,7 +106,7 @@ const Billing = () => {
   }, [invoiceItems]);
 
   useEffect(() => {
-    if (selectedClient) {
+    if (selectedClient?._id && selectedClient._id.length === 24) {
       fetchClientMembership(selectedClient._id);
     } else {
       setActiveMembership(null);
@@ -197,7 +197,7 @@ const Billing = () => {
     
     const newInvoice = {
       invoiceNumber: nextNumber,
-      clientId: selectedClient._id,
+      clientId: selectedClient._id || undefined,
       clientName: selectedClient.name,
       items: invoiceItems.map(i => ({ name: i.name, price: i.price, duration: i.duration })),
       subtotal,
@@ -279,13 +279,25 @@ const Billing = () => {
                   </div>
                   <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-black/40">Ambassador Selection</h3>
                 </div>
-                <ZenDropdown 
+                <ZenAutocomplete 
                   label=""
                   hideLabel
                   placeholder="Identify Recipient..."
-                  options={['None', ...clients.map(c => c.name)]}
-                  value={selectedClient?.name || 'None'}
-                  onChange={(val) => setSelectedClient(clients.find(c => c.name === val) || null)}
+                  options={clients.map(c => ({ id: c._id, name: c.name, subtext: c.phone }))}
+                  value={selectedClient?._id || selectedClient?.name || ''}
+                  onChange={(val) => {
+                    if (!val || val === 'None') {
+                      setSelectedClient(null);
+                      return;
+                    }
+                    const client = clients.find(c => c._id === val || c.name === val);
+                    if (client) {
+                      setSelectedClient(client);
+                    } else {
+                      setSelectedClient({ _id: '', name: val, phone: '' });
+                    }
+                  }}
+                  allowCustom
                   className="w-full"
                 />
               </div>

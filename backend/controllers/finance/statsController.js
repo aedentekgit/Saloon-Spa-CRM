@@ -71,7 +71,7 @@ exports.getDashboardStats = async (req, res) => {
           { employeeId: req.user._id },
           { employee: req.user.name }
         ]
-      }).sort({ date: -1 }).lean();
+      }).populate('clientId').sort({ date: -1 }).lean();
       const completed = myAppointments.filter(a => a.status === 'Completed').length;
       const todayApts = myAppointments.filter(a => a.date === todayStr).length;
       
@@ -86,7 +86,10 @@ exports.getDashboardStats = async (req, res) => {
           score: completed * 15,
           earnings: estimatedEarnings
         },
-        recentRituals: myAppointments.slice(0, 5)
+        recentRituals: myAppointments.slice(0, 5).map(apt => ({
+          ...apt,
+          client: apt.clientId?.name || apt.clientName || apt.client || 'Guest'
+        }))
       });
     }
 
@@ -180,6 +183,7 @@ exports.getDashboardStats = async (req, res) => {
     }
 
     const recentAppointments = await Appointment.find(matchQuery)
+      .populate('clientId')
       .sort({ createdAt: -1 })
       .limit(5)
       .lean();
@@ -217,7 +221,7 @@ exports.getDashboardStats = async (req, res) => {
         activeCount: activeAppointments,
         recent: recentAppointments.map(apt => ({
           _id: apt._id,
-          client: apt.clientName || apt.client,
+          client: apt.clientId?.name || apt.clientName || apt.client || 'Guest',
           service: apt.serviceName || apt.service,
           employee: apt.employeeName || apt.employee,
           status: apt.status,

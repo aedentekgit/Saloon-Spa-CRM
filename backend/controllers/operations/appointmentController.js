@@ -43,18 +43,23 @@ const getAppointments = async (req, res) => {
         query.branch = userBranchId;
       }
     } else if (req.user.role === 'Employee') {
-      // Employee sees their branch or only their own tasks? 
-      // Usually employees see all appointments for the branch to coordinate.
       if (userBranchId) {
         query.branch = userBranchId;
       }
     } else if (req.user.role === 'Client') {
-      // Clients only see their own appointments
       query.clientId = req.user._id;
     }
 
+    // Optional dynamic filters
+    if (req.query.roomId) query.roomId = req.query.roomId;
+    if (req.query.room) query.room = req.query.room;
+    if (req.query.clientId) query.clientId = req.query.clientId;
+    if (req.query.date) query.date = req.query.date;
+    if (req.query.status) query.status = req.query.status;
+
     const { data, pagination } = await paginateModelQuery(Appointment, query, req, {
-      sort: { createdAt: -1 }
+      sort: { date: -1, time: -1 },
+      populate: ['branch', 'clientId']
     });
     res.json(pagination ? { data, pagination } : data);
   } catch (error) {
@@ -75,39 +80,71 @@ const createAppointment = async (req, res) => {
       return res.status(400).json({ message: 'Branch assignment required' });
     }
 
-    // --- CONFLICT VALIDATION (Staff + Room) ---
-    const { date, time, employee, room } = appointmentData;
-    if (date && time && employee) {
-      const Service = require('../../models/operations/Service');
-      const selectedService = await Service.findOne({ name: appointmentData.service });
-      const serviceDuration = selectedService?.duration || 60;
+      // --- CONFLICT VALIDATION (Staff + Room) ---
+      const { date, time, employee, room } = appointmentData;
+      if (date && time && employee) {
+        const Service = require('../../models/operations/Service');
+        const Room = require('../../models/operations/Room');
+        
+        const selectedService = await Service.findOne({ name: appointmentData.service });
+        const serviceDuration = selectedService?.duration || 60;
+        
+        const selectedRoom = room ? await Room.findOne({ name: room }) : null;
+        const roomCleaning = selectedRoom?.cleaningDuration || 0;
+        const totalNewOccupancy = serviceDuration + roomCleaning;
 
-      // Get all active appointments for this date
-      const existingApts = await Appointment.find({
-        branch: appointmentData.branch,
-        date,
-        status: { $in: ['Confirmed', 'Pending'] }
-      });
+        // Get all active appointments for this date
+        const existingApts = await Appointment.find({
+          branch: appointmentData.branch,
+          date,
+          status: { $in: ['Confirmed', 'Pending'] }
+        });
 
-      const newStart = parseTime(date, time);
-      const newEnd = newStart + serviceDuration;
+        const newStart = parseTime(date, time);
+        const newEnd = newStart + totalNewOccupancy;
 
-      for (const apt of existingApts) {
-        const existingService = await Service.findOne({ name: apt.service });
-        const existingDuration = existingService?.duration || 60;
-        const existingStart = parseTime(apt.date, apt.time);
-        const existingEnd = existingStart + existingDuration;
+        let occupiedRoomCount = 0;
 
-        const overlaps = newStart < existingEnd && newEnd > existingStart;
+        for (const apt of existingApts) {
+          const existingService = await Service.findOne({ name: apt.service });
+          const existingDuration = existingService?.duration || 60;
+          
+          const aptRoom = apt.room ? await Room.findOne({ name: apt.room }) : null;
+          const aptCleaning = aptRoom?.cleaningDuration || 0;
+          const totalExistingOccupancy = existingDuration + aptCleaning;
 
-        if (overlaps && apt.employee === employee) {
-          return res.status(409).json({ message: `${employee} is already booked at this time. Please choose a different slot.` });
+          const existingStart = parseTime(apt.date, apt.time);
+          const existingEnd = existingStart + totalExistingOccupancy;
+
+          const overlaps = newStart < existingEnd && newEnd > existingStart;
+
+          if (overlaps) {
+            // Check Specialist Conflict
+            if (apt.employee === employee) {
+              return res.status(409).json({ message: `${employee} is already booked at this time (including cleaning buffer).` });
+            }
+            
+            // Check Room Conflict (Specific Room)
+            if (room && apt.room === room) {
+              return res.status(409).json({ message: `Room "${room}" is occupied/cleaning during this period.` });
+            }
+
+            // Track room occupancy for capacity check
+            if (apt.room) {
+              occupiedRoomCount++;
+            }
+          }
         }
-        if (overlaps && room && apt.room === room) {
-          return res.status(409).json({ message: `Room "${room}" is already booked at this time. Please choose a different slot or room.` });
+
+        // Branch-wide Room Capacity Check (for Guest/Unassigned Room bookings)
+        if (!room) {
+          const allRoomsInBranch = await Room.find({ branch: appointmentData.branch });
+          const roomCapacity = allRoomsInBranch.length || 999;
+          if (occupiedRoomCount >= roomCapacity) {
+            return res.status(409).json({ message: `All rooms in this branch are occupied or cleaning during this period.` });
+          }
         }
       }
-    }
     // ------------------------------------------
 
     // Auto-resolve clientId

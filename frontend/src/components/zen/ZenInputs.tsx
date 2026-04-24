@@ -156,7 +156,7 @@ export const ZenDropdown = ({
 
 export const ZenAutocomplete = ({ 
   label, options, value, onChange, placeholder, icon: Icon, className = "", 
-  subtextKey = 'subtext', disabled
+  subtextKey = 'subtext', disabled, allowCustom = false, hideLabel = false
 }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -168,11 +168,15 @@ export const ZenAutocomplete = ({
   useEffect(() => {
     if (value) {
       const selected = options.find((o: any) => o.id === value || o.name === value);
-      if (selected) setSearchTerm(selected.name);
+      if (selected) {
+        setSearchTerm(selected.name);
+      } else if (allowCustom) {
+        setSearchTerm(value);
+      }
     } else {
       setSearchTerm('');
     }
-  }, [value, options]);
+  }, [value, options, allowCustom]);
 
   const filteredOptions = useMemo(() => {
     if (!searchTerm || value === searchTerm) return options.slice(0, 10);
@@ -196,7 +200,7 @@ export const ZenAutocomplete = ({
 
   return (
     <div className={`space-y-1 relative group ${className} ${disabled ? 'opacity-40 pointer-events-none' : ''}`} ref={containerRef}>
-      <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>
+      {!hideLabel && <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>}
       <div className="w-full px-1 pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between group-hover:border-zen-brown/40 group-focus-within:border-zen-brown transition-all">
         <div className="flex items-center gap-3 flex-1">
           {Icon && <Icon size={16} className="text-zen-brown/20 group-focus-within:text-zen-brown" />}
@@ -206,9 +210,14 @@ export const ZenAutocomplete = ({
             placeholder={placeholder || `Search ${label}...`}
             value={searchTerm}
             onChange={(e) => {
-              setSearchTerm(e.target.value);
+              const newVal = e.target.value;
+              setSearchTerm(newVal);
               setIsOpen(true);
-              if (!e.target.value) onChange('');
+              if (allowCustom) {
+                onChange(newVal);
+              } else if (!newVal) {
+                onChange('');
+              }
             }}
             onFocus={() => setIsOpen(true)}
           />
