@@ -584,15 +584,14 @@ const Employees = () => {
   return (
     <ZenPageLayout
       title="Specialists"
-      hideSearch
-      hideBranchSelector
-      hideViewToggle
-      hideAddButton
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      addButtonLabel="Add Specialist"
       onAddClick={() => handleOpenModal()}
-    >
-      <div className="space-y-10 pb-20">
-        {/* Dynamic Summary Cards */}
-        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+      topContent={
+        <div className="zen-metrics-grid">
           {[
             { label: 'Total Specialists', value: totalEmployees, icon: UserCircle, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Roster size' },
             { label: 'Active Staff', value: employees.filter(e => e.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live nodes' },
@@ -602,72 +601,9 @@ const Employees = () => {
             <ZenStatCard key={i} {...stat} delay={i * 0.05} />
           ))}
         </div>
-
-        {/* Global Filter Bar */}
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm">
-          <div className="flex flex-col lg:flex-row gap-8 items-end">
-            <div className="flex-1 w-full flex flex-col gap-3">
-               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Specialist Search</label>
-               <div className="relative group">
-                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
-                  <input 
-                    type="text"
-                    placeholder="Search specialists by name or role..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-14 pr-6 py-3.5 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
-                  />
-               </div>
-            </div>
-
-            <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
-               <div className="flex items-center gap-4">
-                  <div className="w-full lg:w-[240px]">
-                     <ZenDropdown 
-                       label="Active Branch"
-                       options={['All Branches', ...(branches || []).map(b => b.name)]}
-                       value={selectedBranch === 'all' ? 'All Branches' : ((branches || []).find(b => b._id === selectedBranch)?.name || 'All Branches')}
-                       onChange={(val: any) => {
-                         if (val === 'All Branches') {
-                           setSelectedBranch('all');
-                         } else {
-                           const b = branches.find(br => br.name === val);
-                           if (b) setSelectedBranch(b._id);
-                         }
-                       }}
-                       className="w-full"
-                     />
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                     <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
-                     <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner">
-                        <button 
-                          onClick={() => setViewMode('grid')}
-                          className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                        >
-                          <Grid size={16} />
-                        </button>
-                        <button 
-                          onClick={() => setViewMode('table')}
-                          className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                        >
-                          <List size={16} />
-                        </button>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="flex flex-col gap-3 w-full lg:w-auto">
-                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Management</label>
-                  <ZenButton onClick={() => handleOpenModal()} variant="primary" className="w-full sm:w-auto px-8 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
-                     <UserPlus size={16} className="group-hover:rotate-12 transition-transform duration-500" />
-                     <span className="uppercase tracking-[0.2em] text-[10px] font-black">Add Specialist</span>
-                  </ZenButton>
-               </div>
-            </div>
-          </div>
-        </div>
+      }
+    >
+      <div className="space-y-6 pb-20">
 
         {loading ? (
           <div className="flex flex-col items-center justify-center min-h-[400px]">
@@ -721,7 +657,7 @@ const Employees = () => {
           </div>
         ) : (
           <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
-            <table className="w-full text-center border-collapse min-w-[1000px]">
+            <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
                <thead>
                   <tr>
                      <th>S No</th>
@@ -755,23 +691,26 @@ const Employees = () => {
                          </div>
                       </td>
                       <td>
-                         <div className="flex flex-col items-center px-6">
+                         <div className="flex flex-row items-center justify-center gap-2 px-6">
                             <span className="zen-table-primary">{emp.name}</span>
+                            <span className="text-zen-brown/20 px-1">|</span>
                             <span className="zen-table-meta">{emp.role} • {emp.branch?.name || 'H.Q'}</span>
                          </div>
                       </td>
                       <td>
-                         <div className="flex flex-col items-center">
+                         <div className="flex flex-row items-center justify-center gap-2">
                             <span className="text-[10px] text-zen-brown/50 font-black uppercase tracking-widest">{emp.payroll?.type || 'Monthly'}</span>
-                            <span className="text-[9px] font-bold text-zen-brown/20 italic mt-0.5">{emp.shift || 'Flexible'} Record</span>
+                            <span className="text-zen-brown/20 px-1">|</span>
+                            <span className="text-[9px] font-bold text-zen-brown/20 italic mt-0">{emp.shift || 'Flexible'} Record</span>
                          </div>
                       </td>
                       <td>
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-row items-center justify-center gap-2">
                            <span className="text-base font-serif font-black text-zen-brown leading-none">
                               {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
                            </span>
-                           <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Total Earnings</span>
+                           <span className="text-zen-brown/20 px-1">|</span>
+                           <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-0">Total Earnings</span>
                         </div>
                       </td>
                       <td>
@@ -801,16 +740,16 @@ const Employees = () => {
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        maxWidth="max-w-7xl"
+        maxWidth="max-w-6xl"
         title={editingEmp ? 'Edit Employee Profile' : 'New Employee Profile'}
         subtitle="Manage profile, schedule, payroll, documents, and attendance"
         headerIcon={UserCircle}
         footer={
-          <div className="flex gap-4 sm:gap-6">
-             <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1 py-4">Cancel</ZenButton>
-             <ZenButton type="submit" form="employee-form" className="flex-[2] py-4">
-                <span>Save Employee</span>
-                <Sparkles size={18} />
+          <div className="flex gap-4 sm:gap-6 w-full">
+             <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 text-[10px]">Cancel</ZenButton>
+             <ZenButton type="submit" form="employee-form" className="flex-[2] py-2.5 text-[10px]">
+                <span>Save Registry Entry</span>
+                <Sparkles size={14} />
              </ZenButton>
           </div>
         }
@@ -828,8 +767,8 @@ const Employees = () => {
 
             <div className="space-y-3 lg:pt-0.5">
               <ZenInput label="Full Name" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-lg sm:text-2xl border-none p-0 h-auto font-bold tracking-tighter" />
-              <div className="w-full sm:w-72">
-                <ZenDropdown label="Role" options={(roles || []).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} />
+              <div className="w-full sm:w-72 mt-2">
+                <ZenDropdown label="Role" options={(roles || []).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} variant="pill" />
               </div>
               <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.4em]">Core identity</p>
             </div>
@@ -841,10 +780,10 @@ const Employees = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-t-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 whitespace-nowrap border-b-2 ${
+                className={`flex items-center gap-2 px-6 py-3 rounded-t-xl text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-700 whitespace-nowrap border-b-2 font-serif italic ${
                   activeTab === tab.id 
-                    ? 'bg-zen-brown/5 text-zen-brown border-zen-brown' 
-                    : 'bg-transparent text-zen-brown/30 border-transparent hover:text-zen-brown/60 hover:bg-zen-cream/30'
+                    ? 'bg-zen-sand/5 text-zen-sand border-zen-sand' 
+                    : 'bg-transparent text-zen-brown/30 border-transparent hover:text-zen-brown/60 hover:bg-zen-cream/20'
                 }`}
               >
                 {tab.label}
@@ -859,8 +798,8 @@ const Employees = () => {
                      <ZenInput label="Phone Number" icon={Phone} prefix={settings?.general?.dialingCode} value={formData.phone} onChange={(e: any) => setFormData({...formData, phone: e.target.value})} />
                      <ZenInput label={`Password ${editingEmp ? '(Optional)' : ''}`} icon={Lock} type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} />
                      <ZenInput label="Confirm Password" icon={Lock} type="password" value={formData.confirmPassword} onChange={(e: any) => setFormData({...formData, confirmPassword: e.target.value})} />
-                     <ZenDropdown label="Branch" options={['None', ...(branches || []).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: (branches || []).find(b => b.name === val)?._id || ''})} />
-                     <ZenDropdown label="Employment Status" options={['Active', 'Inactive']} value={formData.status} onChange={(val) => setFormData({...formData, status: val as 'Active' | 'Inactive'})} />
+                     <ZenDropdown label="Branch" options={['None', ...(branches || []).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: (branches || []).find(b => b.name === val)?._id || ''})} variant="pill" />
+                     <ZenDropdown label="Employment Status" options={['Active', 'Inactive']} value={formData.status} onChange={(val) => setFormData({...formData, status: val as 'Active' | 'Inactive'})} variant="pill" />
                      <div className="md:col-span-2 xl:col-span-3">
                         <ZenDatePicker label="Start Date" value={formData.joiningDate} onChange={val => setFormData({...formData, joiningDate: val})} />
                       </div>
@@ -971,7 +910,7 @@ const Employees = () => {
                           <span className="text-zen-brown/20 italic font-serif normal-case tracking-normal">Breakdown per service</span>
                        </h5>
                        <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
-                          <table className="w-full text-center border-collapse min-w-[800px]">
+                          <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
                              <thead>
                                 <tr>
                                    <th>Date</th>
@@ -1142,7 +1081,7 @@ const Employees = () => {
                        )
                      ) : (
                        <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
-                          <table className="w-full text-center border-collapse min-w-[800px]">
+                          <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
                              <thead>
                                 <tr>
                                    <th>Date</th>
@@ -1228,28 +1167,29 @@ const Employees = () => {
 
                     {/* Upload Area — only when editing an existing employee */}
                     {editingEmp ? (
-                      <div className="zen-pointed-surface p-5 flex flex-col items-center gap-3 hover:border-zen-brown/35 transition-all group/upload border-2 border-dashed">
-                        <div className="w-14 h-14 rounded-2xl bg-zen-cream flex items-center justify-center text-zen-brown/20 group-hover/upload:text-zen-brown/40 transition-colors">
-                          <Upload size={28} />
+                      <div className="bg-zen-cream/20 rounded-[2rem] border border-zen-sand/20 p-8 flex flex-col items-center gap-6 group/upload relative overflow-hidden transition-all duration-700 hover:border-zen-sand/40 shadow-inner">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-zen-sand/30 to-transparent" />
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-white border border-zen-sand/10 flex items-center justify-center text-zen-sand shadow-lg group-hover/upload:scale-110 transition-transform duration-700">
+                          <Cloud size={32} strokeWidth={1.5} />
                         </div>
-                        <div className="text-center">
-                          <p className="font-serif font-bold text-zen-brown/60">Upload Document</p>
-                          <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mt-1">Contracts, IDs, certifications, and more.</p>
+                        <div className="text-center space-y-1">
+                          <h4 className="font-serif font-black text-zen-brown text-xl tracking-tight">Archive Repository</h4>
+                          <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em]">Vaulting Contracts, IDs & Certifications</p>
                         </div>
-                        <div className="flex items-center gap-4 w-full max-w-sm">
+                        <div className="flex items-center gap-4 w-full max-w-sm relative">
                           <input
                             type="text"
-                            placeholder="Document name..."
+                            placeholder="Identify this document..."
                             value={docName}
                             onChange={e => setDocName(e.target.value)}
-                            className="flex-1 pb-2 bg-transparent border-b border-zen-brown/25 outline-none text-sm font-medium text-zen-brown placeholder:text-zen-brown/20"
+                            className="w-full bg-white/60 px-6 py-3 rounded-xl border border-zen-brown/10 outline-none text-sm font-medium text-zen-brown placeholder:text-zen-brown/20 focus:bg-white focus:border-zen-sand/30 transition-all shadow-sm"
                           />
                         </div>
-                        <label className={`flex items-center gap-3 px-8 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all ${uploadingDoc ? 'bg-zen-brown/20 text-zen-brown/40' : 'bg-zen-brown text-white hover:bg-black shadow-xl'}`}>
+                        <label className={`flex w-full sm:w-auto justify-center items-center gap-3 px-6 sm:px-10 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer transition-all duration-700 ${uploadingDoc ? 'bg-zen-sand/20 text-zen-sand/40' : 'bg-zen-brown text-white hover:bg-black shadow-2xl hover:-translate-y-1'}`}>
                           {uploadingDoc ? (
-                            <><Loader2 size={14} className="animate-spin" /> Uploading...</>
+                            <><Loader2 size={14} className="animate-spin" /> Digitizing...</>
                           ) : (
-                            <><Cloud size={14} /> Select & Upload</>
+                            <><Sparkles size={14} /> Commit to Registry</>
                           )}
                           <input
                             type="file"
@@ -1270,19 +1210,19 @@ const Employees = () => {
                                   body: data
                                 });
                                 if (res.ok) {
-                                  notify('success', 'Document Archived', 'File has been secured in the registry');
+                                  notify('success', 'Registry Updated', 'Document archived successfully');
                                   setDocName('');
                                   fetchEmployees();
-                                  // Refresh editing emp documents
                                   const updatedEmp = await fetch(`${API_URL}/employees`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
                                   const allEmps = await updatedEmp.json();
                                   const fresh = allEmps.find((emp: any) => emp._id === editingEmp._id);
                                   if (fresh) setEditingEmp(fresh);
                                 } else {
-                                  notify('error', 'Upload Failed', 'Could not archive the document');
+                                  const err = await res.json().catch(() => ({ message: 'Could not archive the document' }));
+                                  notify('error', 'Upload Failed', err.message || 'Validation Error');
                                 }
                               } catch {
-                                notify('error', 'Error', 'Connection failed');
+                                notify('error', 'Transmission Error', 'Check your connection to the central server');
                               } finally {
                                 setUploadingDoc(false);
                                 e.target.value = '';
@@ -1304,13 +1244,13 @@ const Employees = () => {
                           Documents · {editingEmp.documents.length} File{editingEmp.documents.length !== 1 ? 's' : ''}
                         </p>
                         {editingEmp.documents.map((doc: any) => (
-                          <div key={doc._id} className="group flex items-center justify-between p-5 bg-white rounded-[1.5rem] border border-zen-brown/15 shadow-sm hover:shadow-md transition-all duration-300">
-                            <div className="flex items-center gap-4">
+                          <div key={doc._id} className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-white rounded-[1.5rem] border border-zen-brown/15 shadow-sm hover:shadow-md transition-all duration-300 gap-4">
+                            <div className="flex items-center gap-4 min-w-0">
                               <div className="w-12 h-12 rounded-xl bg-zen-cream flex items-center justify-center text-zen-brown/30 shrink-0">
                                 <File size={22} />
                               </div>
-                              <div>
-                                <p className="font-serif font-bold text-zen-brown text-sm">{doc.name}</p>
+                              <div className="min-w-0">
+                                <p className="font-serif font-bold text-zen-brown text-sm truncate">{doc.name}</p>
                                 <div className="flex items-center gap-3 mt-1">
                                   <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest bg-zen-cream px-2 py-0.5 rounded-md">
                                     {doc.fileType || 'file'}
@@ -1321,9 +1261,9 @@ const Employees = () => {
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                            <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300">
                               <a
-                                href={doc.url?.startsWith('http') ? doc.url : `${API_URL.replace('/api', '')}/${doc.url?.replace(/^\.?\//, '')}`}
+                                href={doc.url?.startsWith('http') ? doc.url : `${API_URL.replace('/api', '')}/${doc.url?.split('uploads/').pop()?.replace(/^\.?\//, '')}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="w-9 h-9 rounded-xl bg-zen-cream flex items-center justify-center text-zen-brown/40 hover:text-zen-brown transition-colors"
@@ -1389,7 +1329,7 @@ const Employees = () => {
         }
       >
           <form id="attendance-form" onSubmit={(e) => { e.preventDefault(); updateAttendance(); }} className="space-y-8">
-             <div className="grid grid-cols-2 gap-8">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
                 <ZenInput 
                   label="Check-in Time" 
                   icon={Clock}

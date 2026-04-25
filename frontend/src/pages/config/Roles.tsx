@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Shield, 
-  Trash2, 
-  Plus, 
-  Edit, 
-  Lock,
-  Key,
-  CheckCircle2,
-  Circle
+  Shield, Trash2, Plus, Edit, Lock, Key, 
+  CheckCircle2, Circle, Search, Grid, List, Zap, Sparkles, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
@@ -18,6 +12,7 @@ import { notify } from '../../components/shared/ZenNotification';
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useData } from '../../context/DataContext';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
 
 interface Role {
   _id: string;
@@ -191,15 +186,28 @@ const Roles = () => {
 
   return (
     <ZenPageLayout
-      title="Role Management"
+      title="Roles"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       addButtonLabel="Create Role"
       onAddClick={() => handleOpenModal()}
-      addButtonIcon={<Plus size={18} />}
+      hideBranchSelector
+      topContent={
+        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+          {[
+            { label: 'Total Roles', value: roles.length, icon: Shield, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Global profiles' },
+            { label: 'Active Profiles', value: roles.filter(r => (r.status || 'Active') === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live access' },
+            { label: 'System Inactive', value: roles.filter(r => (r.status || 'Active') !== 'Active').length, icon: X, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Paused roles' },
+            { label: 'Secured Modules', value: ALL_PAGES.length, icon: Lock, color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', trend: 'System scope' }
+          ].map((stat, i) => (
+            <ZenStatCard key={i} {...stat} delay={i * 0.05} />
+          ))}
+        </div>
+      }
     >
+      <div className="space-y-6 pb-20">
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {paginatedRoles.map(role => (
@@ -338,11 +346,12 @@ const Roles = () => {
       
 
       <ZenPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} />
+      </div>
 
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        maxWidth="max-w-6xl"
+        maxWidth="max-w-4xl"
         title={editingRole ? 'Edit Role' : 'New Role'}
         subtitle="Configure access and account status"
         headerIcon={Shield}

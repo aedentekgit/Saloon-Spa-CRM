@@ -391,23 +391,40 @@ title="Membership Management"
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      topContent={
+        <>
+          {/* Tabs Header */}
+          <div className="mb-8 bg-white/80 backdrop-blur-xl p-2.5 rounded-2xl border border-zen-brown/15 shadow-sm flex items-center gap-2 overflow-x-auto scrollbar-none whitespace-nowrap px-2">
+            {[
+              { id: 'registry', label: user?.role === 'Client' ? 'My Memberships' : 'Memberships', icon: Users },
+              ...(user?.role !== 'Client' ? [{ id: 'plans', label: 'Tier Management', icon: Crown }] : [])
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`py-2.5 px-5 rounded-2xl flex items-center gap-3 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.22em] relative transition-all duration-500 ${activeTab === tab.id ? 'bg-zen-brown text-white shadow-sm' : 'text-zen-brown/35 hover:text-zen-brown hover:bg-white'}`}
+              >
+                <tab.icon size={14} className="sm:w-4 sm:h-4" strokeWidth={activeTab === tab.id ? 2.5 : 2} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'registry' && (
+            <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+              {[
+                { label: 'Total Clients', value: memberships.length.toString(), icon: Users, trend: `${stats?.totalActive || 0} active currently`, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', delay: 0 },
+                { label: 'Plan Engagement', value: stats?.activeTiers?.toString() || '0', icon: BarChart3, trend: 'In membership', color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', delay: 0.2 },
+                { label: 'Available Sessions', value: stats?.totalSessionsRemaining?.toString() || '0', icon: Sparkles, trend: 'Unused credits', color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', delay: 0.4 },
+                { label: 'Completed Memberships', value: stats?.totalExpired?.toString() || '0', icon: AlertCircle, trend: 'History', color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', delay: 0.6 }
+              ].map((stat, i) => (
+                <ZenStatCard key={i} {...stat} />
+              ))}
+            </div>
+          )}
+        </>
+      }
     >
-      {/* Tabs Header */}
-       <div className="mb-8 bg-white/80 backdrop-blur-xl p-2.5 rounded-2xl border border-zen-brown/15 shadow-sm flex items-center gap-2 overflow-x-auto scrollbar-none whitespace-nowrap px-2">
-         {[
-           { id: 'registry', label: user?.role === 'Client' ? 'My Memberships' : 'Memberships', icon: Users },
-           ...(user?.role !== 'Client' ? [{ id: 'plans', label: 'Tier Management', icon: Crown }] : [])
-         ].map((tab) => (
-           <button
-             key={tab.id}
-             onClick={() => setActiveTab(tab.id as any)}
-             className={`py-3.5 px-5 rounded-2xl flex items-center gap-3 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.22em] relative transition-all duration-500 ${activeTab === tab.id ? 'bg-zen-brown text-white shadow-sm' : 'text-zen-brown/35 hover:text-zen-brown hover:bg-white'}`}
-           >
-            <tab.icon size={14} className="sm:w-4 sm:h-4" strokeWidth={activeTab === tab.id ? 2.5 : 2} />
-            {tab.label}
-          </button>
-         ))}
-      </div>
 
       <AnimatePresence mode="wait">
          <motion.div
@@ -517,7 +534,7 @@ title="Membership Management"
                   ) : (
                     <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in slide-in-from-bottom-4 duration-700">
                        <div className="table-container">
-                          <table className="w-full min-w-[900px]">
+                          <table className="w-full min-w-[760px] lg:min-w-[900px]">
                           <thead>
                              <tr>
                                 <th>S NO</th>
@@ -542,29 +559,33 @@ title="Membership Management"
                                        </div>
                                    </td>
                                    <td>
-                                       <div className="flex flex-col items-center px-6">
+                                       <div className="flex flex-row items-center justify-center gap-2 px-6">
                                           <span className="zen-table-primary">{plan.name}</span>
+                                          <span className="text-zen-brown/20 px-1">|</span>
                                           <span className="zen-table-meta">Membership Plan</span>
                                        </div>
                                    </td>
                                    <td>
-                                      <div className="flex flex-col items-center">
+                                      <div className="flex flex-row items-center justify-center gap-2">
                                          <span className="zen-table-primary">QR {plan.price}</span>
+                                         <span className="text-zen-brown/20 px-1">|</span>
                                          <span className="zen-table-meta">Renewal Rate</span>
                                       </div>
                                    </td>
                                    <td>
-                                      <div className="flex flex-col items-center">
+                                      <div className="flex flex-row items-center justify-center gap-2">
                                          <span className="text-sm font-serif font-black text-zen-brown leading-none">
                                             {plan.durationDays >= 36500 ? 'Infinite' : plan.durationDays}
                                          </span>
-                                         <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Days</span>
+                                         <span className="text-zen-brown/20 px-1">|</span>
+                                         <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-0">Days</span>
                                       </div>
                                    </td>
                                    <td>
-                                      <div className="flex flex-col items-center">
+                                      <div className="flex flex-row items-center justify-center gap-2">
                                          <span className="text-sm font-serif font-black text-zen-brown leading-none">{plan.maxSessions}</span>
-                                         <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Credits</span>
+                                         <span className="text-zen-brown/20 px-1">|</span>
+                                         <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-0">Credits</span>
                                       </div>
                                    </td>
                                    <td>
@@ -597,25 +618,13 @@ title="Membership Management"
             )}
 
             {activeTab === 'registry' && (
-              <div className="space-y-10">
-                  <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
-                     {[
-                      { label: 'Total Clients', value: memberships.length.toString(), icon: Users, trend: `${stats?.totalActive || 0} active currently`, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', delay: 0 },
-                      { label: 'Plan Engagement', value: stats?.activeTiers?.toString() || '0', icon: BarChart3, trend: 'In membership', color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', delay: 0.2 },
-                      { label: 'Available Sessions', value: stats?.totalSessionsRemaining?.toString() || '0', icon: Sparkles, trend: 'Unused credits', color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', delay: 0.4 },
-                      { label: 'Completed Memberships', value: stats?.totalExpired?.toString() || '0', icon: AlertCircle, trend: 'History', color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', delay: 0.6 }
-                    ].map((stat, i) => (
-                      <ZenStatCard key={i} {...stat} />
-                    ))}
-                 </div>
-
-                 <div className="space-y-6">
+               <div className="space-y-6">
 
 
                     {viewMode === 'table' ? (
                        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container">
                           <div className="table-container">
-                          <table className="w-full min-w-[1000px]">
+                          <table className="w-full min-w-[760px] lg:min-w-[1000px]">
                              <thead>
                                  <tr>
                                    <th>S NO</th>
@@ -632,8 +641,9 @@ title="Membership Management"
                                   <tr key={m._id} className="transition-all group border-b border-black/[0.02]">
                                      <td className="text-center italic opacity-40 text-[11px]">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</td>
                                      <td>
-                                        <div className="flex flex-col items-center px-6">
+                                        <div className="flex flex-row items-center justify-center gap-2 px-6">
                                            <span className="zen-table-primary">{m.client?.name}</span>
+                                           <span className="text-zen-brown/20 px-1">|</span>
                                            <span className="zen-table-meta">{m.client?.phone}</span>
                                         </div>
                                      </td>
@@ -643,17 +653,18 @@ title="Membership Management"
                                         </div>
                                      </td>
                                      <td>
-                                        <div className="flex flex-col items-center">
+                                        <div className="flex flex-row items-center justify-center gap-2">
                                            <div className="flex items-center gap-2 text-[11px] font-black text-zen-brown uppercase tracking-widest">
                                               {dayjs(m.startDate).format('DD/MM')} — {dayjs(m.endDate).format('DD/MM')}
                                            </div>
-                                           <span className="zen-table-meta mt-1">Validity Cycle</span>
+                                           <span className="text-zen-brown/20 px-1">|</span>
+                                           <span className="zen-table-meta mt-0">Validity Cycle</span>
                                         </div>
                                      </td>
                                      <td>
-                                        <div className="flex flex-col items-center">
-                                           <p className="zen-table-primary">{(m.totalSessions || 0) - (m.remainingSessions || 0)} / {m.totalSessions || 0}</p>
-                                        </div>
+                                         <div className="flex items-center justify-center">
+                                            <p className="zen-table-primary">{(m.totalSessions || 0) - (m.remainingSessions || 0)} / {m.totalSessions || 0}</p>
+                                         </div>
                                      </td>
                                      <td>
                                         <div className="flex justify-center">
@@ -770,7 +781,6 @@ title="Membership Management"
                     )}
                     <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
                  </div>
-              </div>
             )}
          </motion.div>
       </AnimatePresence>

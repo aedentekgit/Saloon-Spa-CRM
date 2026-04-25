@@ -13,6 +13,7 @@ import { ZenDropdown, ZenInput, ZenDatePicker } from '../../components/zen/ZenIn
 import { ZenButton } from '../../components/zen/ZenButtons';
 import { notify } from '../../components/shared/ZenNotification';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
+import { withBase } from '../../utils/assetPath';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const ANY_SPECIALIST = 'Any available specialist';
@@ -358,7 +359,7 @@ const BookAppointment = () => {
 
                       <div className="flex justify-between items-center mb-6 relative z-20">
                          <button 
-                           onClick={() => window.location.href = '/'} 
+                           onClick={() => window.location.href = withBase('/')} 
                            className="flex items-center gap-4 text-[9px] font-black tracking-[0.4em] uppercase text-zen-brown/30 hover:text-zen-brown transition-all group w-fit"
                          >
                             <div className="w-7 h-7 rounded-full border border-zen-brown/5 flex items-center justify-center group-hover:bg-zen-brown group-hover:text-white transition-all shadow-sm">
@@ -874,7 +875,7 @@ const BookAppointment = () => {
 
                  <div className="pt-4">
                     <button
-                      onClick={() => window.location.href = '/'}
+                      onClick={() => window.location.href = withBase('/')}
                       className="group flex flex-col items-center gap-4 mx-auto"
                     >
                       <div className="w-10 h-10 rounded-full border border-zen-brown/5 flex items-center justify-center transition-all group-hover:bg-zen-brown group-hover:text-white shadow-sm">

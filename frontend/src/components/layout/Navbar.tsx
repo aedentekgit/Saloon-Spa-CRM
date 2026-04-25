@@ -108,25 +108,19 @@ const Navbar = ({
   };
 
   return (
-    <header className="h-[72px] bg-white/80 backdrop-blur-xl border-b border-zen-stone/40 flex items-center justify-between px-6 sm:px-10 sticky top-0 z-40 shadow-[0_2px_15px_-10px_rgba(0,0,0,0.05)]">
+    <header className="h-16 sm:h-[72px] bg-white/80 backdrop-blur-xl border-b border-zen-stone/40 flex items-center justify-between px-3 sm:px-6 lg:px-10 sticky top-0 z-40 shadow-[0_2px_15px_-10px_rgba(0,0,0,0.05)]">
       
       {/* Left section: Breadcrumb & Title */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
         <button 
-          onClick={() => {
-            if (window.innerWidth < 1024) {
-              onMenuClick();
-            } else {
-              setIsCollapsed(!isCollapsed);
-            }
-          }}
-          className="hidden lg:block text-zen-brown/40 hover:text-zen-brown transition-colors p-1 rounded-md hover:bg-zen-stone/30"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="hidden lg:flex text-zen-brown/40 hover:text-zen-brown transition-colors p-1 rounded-md hover:bg-zen-stone/30"
           aria-label="Toggle Menu"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
 
-        <div className="h-5 w-px bg-zen-stone hidden lg:block"></div>
+        <div className="h-5 w-px bg-zen-stone hidden sm:block"></div>
 
         <AnimatePresence mode="wait">
           <motion.div 
@@ -135,7 +129,7 @@ const Navbar = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="hidden sm:flex items-center gap-3"
+            className="hidden sm:flex items-center gap-3 min-w-0"
           >
             <div className="w-1.5 h-5 bg-zen-sand rounded-sm opacity-90 shadow-[0_0_10px_rgba(139,92,246,0.3)]"></div>
             <span className="text-[15px] font-black tracking-[0.15em] text-zen-brown uppercase font-sans">
@@ -146,7 +140,7 @@ const Navbar = ({
       </div>
 
       {/* Right section: Icons & Profile */}
-      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center gap-1.5 sm:gap-4">
         
         {/* Helper Icons */}
         <div className="relative" ref={notifRef}>
@@ -166,7 +160,7 @@ const Navbar = ({
                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
                  animate={{ opacity: 1, y: 0, scale: 1 }}
                  exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                 className="absolute right-0 mt-3 w-80 bg-white rounded-3xl border border-zen-stone/30 shadow-2xl overflow-hidden z-[60]"
+                 className="absolute right-0 mt-3 w-[calc(100vw-1.5rem)] max-w-80 bg-white rounded-3xl border border-zen-stone/30 shadow-2xl overflow-hidden z-[60]"
                >
                  <div className="p-5 border-b border-zen-stone/20 flex items-center justify-between bg-gradient-to-r from-stone-50/50 to-white">
                      <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zen-brown/40">Communications</h4>

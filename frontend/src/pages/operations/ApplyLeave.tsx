@@ -168,7 +168,7 @@ const ApplyLeave = () => {
             </div>
           </aside>
 
-          <main className="bg-white/90 backdrop-blur-xl rounded-2xl border border-zen-brown/15 shadow-sm p-8 lg:p-10 relative overflow-hidden min-h-[720px]">
+          <main className="bg-white/90 backdrop-blur-xl rounded-2xl border border-zen-brown/15 shadow-sm p-5 sm:p-8 lg:p-10 relative overflow-hidden min-h-[520px] sm:min-h-[720px]">
             <AnimatePresence mode="wait">
               {activeStage === 1 && (
                 <motion.div

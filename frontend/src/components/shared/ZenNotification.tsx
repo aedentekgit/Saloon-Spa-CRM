@@ -33,12 +33,12 @@ const ZenNotification: React.FC<NotificationProps> = ({ id, type, title, message
       animate={{ x: 0, opacity: 1, scale: 1, rotate: 0 }}
       exit={{ x: 100, opacity: 0, scale: 0.8 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className={`relative w-80 sm:w-96 flex items-start gap-5 p-6 rounded-[1rem] shadow-2xl bg-white/80 backdrop-blur-xl border border-zen-brown/15 overflow-hidden group`}
+      className={`relative w-full max-w-[26rem] sm:w-96 flex items-start gap-4 sm:gap-5 p-4 sm:p-6 rounded-[1rem] shadow-2xl bg-white/80 backdrop-blur-xl border border-zen-brown/15 overflow-hidden group`}
     >
       <div className={`absolute left-0 top-0 bottom-0 w-2 ${bg.replace('/10', '')}`} />
       
-      <div className={`shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center ${bg} ${color} shadow-inner group-hover:scale-110 transition-transform duration-500`}>
-        <Icon size={24} strokeWidth={1.5} />
+      <div className={`shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center ${bg} ${color} shadow-inner group-hover:scale-110 transition-transform duration-500`}>
+        <Icon size={20} strokeWidth={1.5} />
       </div>
 
       <div className="flex-1 min-w-0 pr-6">
@@ -51,7 +51,7 @@ const ZenNotification: React.FC<NotificationProps> = ({ id, type, title, message
 
       <button
         onClick={() => onClose(id)}
-        className="absolute top-6 right-6 p-2 text-zen-brown/10 hover:text-zen-brown transition-colors group-hover:scale-110 active:scale-95"
+        className="absolute top-3 right-3 sm:top-6 sm:right-6 p-2 text-zen-brown/10 hover:text-zen-brown transition-colors group-hover:scale-110 active:scale-95"
       >
         <X size={14} />
       </button>
@@ -76,7 +76,7 @@ export const NotificationContainer: React.FC = () => {
   const remove = (id: number) => setNotifications(prev => prev.filter(n => n.id !== id));
 
   return (
-    <div className="fixed bottom-12 right-12 z-[99999] flex flex-col gap-3">
+    <div className="fixed left-3 right-3 sm:left-auto sm:right-8 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-8 z-[99999] flex flex-col items-end gap-3">
       <AnimatePresence>
         {notifications.map(n => (
           <ZenNotification key={n.id} {...n} onClose={remove} />

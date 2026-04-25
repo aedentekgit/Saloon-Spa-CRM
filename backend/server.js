@@ -37,12 +37,21 @@ connectDB();
 
 const app = express();
 const isDev = process.env.NODE_ENV !== 'production';
+const enforceHttps = process.env.ENFORCE_HTTPS === 'true';
+const uploadDirConfig = (process.env.UPLOAD_DIR || 'uploads').trim();
+const uploadDir = path.isAbsolute(uploadDirConfig)
+  ? uploadDirConfig
+  : path.join(__dirname, uploadDirConfig);
+
+// Required behind Nginx so client IP/rate-limit behaves correctly.
+app.set('trust proxy', 1);
 
 // Standard Middleware
 app.use(compression());
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:5173'
   ],
@@ -51,22 +60,33 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+const cspDirectives = {
+  defaultSrc: ["'self'"],
+  baseUri: ["'self'"],
+  objectSrc: ["'none'"],
+  frameAncestors: ["'self'"],
+  imgSrc: ["'self'", 'data:', 'https:'],
+  fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com', 'https:'],
+  styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https:'],
+  scriptSrc: ["'self'"],
+  connectSrc: ["'self'", 'https:', 'http:']
+};
+
+if (enforceHttps) {
+  cspDirectives.upgradeInsecureRequests = [];
+} else {
+  // Explicitly disable Helmet's default upgrade directive on plain HTTP deployments.
+  cspDirectives.upgradeInsecureRequests = null;
+}
+
 // Security Middleware
 app.use(helmet({
+  crossOriginOpenerPolicy: enforceHttps ? { policy: 'same-origin' } : false,
+  originAgentCluster: enforceHttps,
   crossOriginResourcePolicy: false,
+  hsts: enforceHttps ? undefined : false,
   contentSecurityPolicy: isDev ? false : {
-    directives: {
-      defaultSrc: ["'self'"],
-      baseUri: ["'self'"],
-      objectSrc: ["'none'"],
-      frameAncestors: ["'self'"],
-      imgSrc: ["'self'", 'data:', 'https:'],
-      fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com', 'https:'],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https:'],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'", 'https:', 'http:'],
-      upgradeInsecureRequests: []
-    }
+    directives: cspDirectives
   }
 }));
 
@@ -101,7 +121,7 @@ app.use('/api', (req, res, next) => {
 app.use(paginationMiddleware);
 
 // Static folder for uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(uploadDir));
 
 // Serve Frontend in Production
 const frontendPath = path.join(__dirname, '../frontend/dist');

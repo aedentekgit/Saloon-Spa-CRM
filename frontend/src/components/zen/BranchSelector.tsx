@@ -35,7 +35,7 @@ export const BranchSelector = ({
   };
 
   return (
-    <div className={`min-w-[180px] sm:min-w-[220px] ${className}`}>
+    <div className={`w-full min-w-0 sm:min-w-[220px] sm:w-auto ${className}`}>
       <ZenDropdown
         label="Select Branch"
         hideLabel={hideLabel}

@@ -263,7 +263,7 @@ exports.uploadDocument = async (req, res) => {
 
     const newDocument = {
       name: name || req.file.originalname,
-      url: documentUrl,
+      url: req.file.filename ? `uploads/${req.file.filename}` : (req.file.path || req.file.url),
       fileType: fileType || path.extname(req.file.originalname).substring(1),
       uploadedAt: new Date()
     };

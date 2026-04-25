@@ -223,15 +223,15 @@ const Admins = () => {
 
   return (
     <ZenPageLayout
-      title="Admin Team"
-      hideSearch
-      hideBranchSelector
-      hideViewToggle
-      hideAddButton
+      title="Admins"
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      addButtonLabel="Recruit Admin"
       onAddClick={() => handleOpenModal()}
-    >
-      <div className="space-y-10 pb-20">
-        {/* Summary Metrics */}
+      hideBranchSelector
+      topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
             { label: 'Total Administrators', value: admins.length, icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', trend: 'Admin users' },
@@ -242,57 +242,9 @@ const Admins = () => {
             <ZenStatCard key={i} {...stat} delay={i * 0.2} />
           ))}
         </div>
-
-        {/* Global Filter Bar */}
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm">
-          <div className="flex flex-col lg:flex-row gap-8 items-end">
-            <div className="flex-1 w-full flex flex-col gap-3">
-               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Admin Search</label>
-               <div className="relative group">
-                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors">
-                    <Search size={16} />
-                  </span>
-                  <input 
-                    type="text"
-                    placeholder="Search administrators by name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-14 pr-6 py-3.5 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
-                  />
-               </div>
-            </div>
-
-            <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
-               <div className="flex items-center gap-4">
-                  <div className="flex flex-col gap-3">
-                     <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
-                     <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner">
-                        <button 
-                          onClick={() => setViewMode('grid')}
-                          className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                        >
-                          <Grid size={16} />
-                        </button>
-                        <button 
-                          onClick={() => setViewMode('table')}
-                          className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                        >
-                          <List size={16} />
-                        </button>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="flex flex-col gap-3 w-full lg:w-auto">
-                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Management</label>
-                  <ZenButton onClick={() => handleOpenModal()} variant="primary" className="w-full sm:w-auto px-8 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
-                     <UserPlus size={16} className="group-hover:rotate-12 transition-transform duration-500" />
-                     <span className="uppercase tracking-[0.2em] text-[10px] font-black">Establish Admin</span>
-                  </ZenButton>
-               </div>
-            </div>
-          </div>
-        </div>
+      }
+    >
+      <div className="space-y-6 pb-20">
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[400px]">
           <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
@@ -424,7 +376,7 @@ const Admins = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        maxWidth="max-w-4xl"
+        maxWidth="max-w-3xl"
         header={
           <div className="flex items-start justify-between gap-6 px-6 sm:px-10 py-6 sm:py-8">
             <div className="flex items-start gap-4 sm:gap-5 min-w-0">

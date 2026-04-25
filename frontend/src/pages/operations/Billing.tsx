@@ -414,13 +414,14 @@ const Billing = () => {
                           exit={{ opacity: 0, scale: 0.95 }}
                           className="group hover:bg-gray-50/80 transition-all"
                         >
-                          <td className="px-8 py-5">
+                          <td className="px-6 py-5">
                             <div className="flex items-center gap-4">
                               <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border transition-all ${item.isRedeem ? 'bg-zen-sand/10 border-zen-sand/20 text-zen-sand' : 'bg-white border-black/5 text-black/20 group-hover:text-black/40'}`}>
                                 {item.isRedeem ? <Sparkles size={18} /> : <div className="w-2 h-2 rounded-full bg-current" />}
                               </div>
-                              <div>
+                              <div className="flex items-center justify-center gap-2">
                                 <p className={`zen-table-primary transition-all ${item.isRedeem ? 'text-zen-sand' : 'text-black'}`}>{item.name}</p>
+                                <span className="text-zen-brown/20 text-[10px]">|</span>
                                 <span className="zen-table-meta">{item.duration}m duration</span>
                               </div>
                             </div>
@@ -499,13 +500,15 @@ const Billing = () => {
                       <span className="text-[10px] font-bold text-black/30 uppercase tracking-widest leading-none">Tax Protocol</span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <select 
-                        className="bg-transparent text-[10px] font-bold text-zen-sand uppercase tracking-widest outline-none border-b border-zen-sand/20 focus:border-zen-sand pb-0.5"
-                        value={selectedGSTRate?._id}
-                        onChange={(e) => setSelectedGSTRate(gstRates.find(r => r._id === e.target.value))}
-                      >
-                        {gstRates.map(r => <option key={r._id} value={r._id}>{r.percentage}%</option>)}
-                      </select>
+                      <div className="w-24">
+                        <ZenDropdown 
+                          label=""
+                          hideLabel
+                          options={gstRates.map(r => ({ label: `${r.percentage}%`, value: r._id }))}
+                          value={selectedGSTRate?._id || ''}
+                          onChange={(val) => setSelectedGSTRate(gstRates.find(r => r._id === val))}
+                        />
+                      </div>
                       <span className="font-serif text-base font-bold">+{gst.toFixed(2)}</span>
                     </div>
                   </div>
@@ -514,14 +517,18 @@ const Billing = () => {
                 <div className="flex justify-between items-center px-2">
                   <div className="flex items-center gap-4">
                     <span className="text-[10px] font-bold text-black/30 uppercase tracking-widest">Adjustments</span>
-                    <select 
-                      className="bg-transparent text-[9px] font-bold text-black/40 uppercase tracking-widest outline-none border border-black/5 rounded-lg px-2 py-1"
-                      value={discountType}
-                      onChange={(e) => setDiscountType(e.target.value)}
-                    >
-                      <option value="Fixed">Static</option>
-                      <option value="Percentage">Relational</option>
-                    </select>
+                    <div className="w-24">
+                      <ZenDropdown 
+                        label=""
+                        hideLabel
+                        options={[
+                          { label: 'Static', value: 'Fixed' },
+                          { label: 'Relational', value: 'Percentage' }
+                        ]}
+                        value={discountType}
+                        onChange={(val) => setDiscountType(val)}
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center gap-4">
                     {discountType === 'Percentage' && <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest shrink-0">-{discountAmount.toFixed(2)}</span>}

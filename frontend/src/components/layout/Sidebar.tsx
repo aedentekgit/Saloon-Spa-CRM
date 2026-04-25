@@ -155,17 +155,17 @@ const Sidebar = ({
   );
 
   return (
-    <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] ${isCollapsed ? 'lg:w-[70px] w-60' : 'w-[210px]'}`}>
+    <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] ${isCollapsed ? 'lg:w-[72px] w-[min(84vw,16rem)]' : 'lg:w-[230px] w-[min(88vw,18rem)]'}`}>
       
       {/* Top Logo Section — Professional Classic Branding */}
       <div 
-        className={`flex items-center justify-center border-b border-zen-stone/40 bg-gradient-to-b from-white to-stone-50/20 relative overflow-hidden transition-all duration-500 ${isCollapsed ? 'h-20' : 'h-32'}`}
+        className={`flex items-center justify-center border-b border-zen-stone/40 bg-gradient-to-b from-white to-stone-50/20 relative overflow-hidden transition-all duration-500 ${isCollapsed ? 'h-14 sm:h-16' : 'h-20 sm:h-28'}`}
       >
         <div className={`relative transition-all duration-700 ${isCollapsed ? 'scale-90' : 'scale-100'}`}>
           {logoUrl ? (
             <div className={`
               relative p-1 bg-white classic-shine-effect
-              ${isCollapsed ? 'w-14 h-14 rounded-[1.5rem] border-[4px]' : 'w-24 h-24 rounded-[2.5rem] border-[8px]'}
+              ${isCollapsed ? 'w-10 h-10 sm:w-12 sm:h-12 rounded-[1rem] sm:rounded-[1.2rem] border-[2px] sm:border-[3px]' : 'w-14 h-14 sm:w-20 sm:h-20 rounded-[1.2rem] sm:rounded-[2rem] border-[4px] sm:border-[6px]'}
               border-white transition-all duration-500
               shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_0_20px_rgba(197,163,88,0.05)]
               hover:shadow-[0_25px_50px_-12px_rgba(197,163,88,0.2)] hover:scale-105 transition-all duration-700 cursor-pointer
@@ -180,11 +180,11 @@ const Sidebar = ({
             </div>
           ) : (
             <div className={`
-              ${isCollapsed ? 'w-12 h-12 rounded-xl' : 'w-20 h-20 rounded-2xl'} 
+              ${isCollapsed ? 'w-10 h-10 rounded-lg' : 'w-16 h-16 rounded-xl'} 
               professional-frame classic-shine-effect bg-zen-cream border border-zen-stone/40 flex items-center justify-center 
               shadow-[0_8px_25px_-10px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,1)]
             `}>
-              <Sparkles className="text-zen-sand" size={isCollapsed ? 20 : 28} />
+              <Sparkles className="text-zen-sand" size={isCollapsed ? 18 : 24} />
             </div>
           )}
         </div>

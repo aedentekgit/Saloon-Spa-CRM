@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Plus, Edit2, Trash2, Sparkles, 
-  X, Search, LayoutGrid, List, Tag
+  X, Search, Grid, List, Tag, Zap
 } from 'lucide-react';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
@@ -10,6 +10,7 @@ import { Modal } from '../../components/shared/Modal';
 import { notify } from '../../components/shared/ZenNotification';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useCategories } from '../../context/CategoryContext';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
 
 const ServiceCategories = () => {
   const { 
@@ -103,15 +104,28 @@ const ServiceCategories = () => {
 
   return (
     <ZenPageLayout
-      title="Service Category Registry"
+      title="Service Categories"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       addButtonLabel="Add Service Category"
       onAddClick={() => handleOpenModal()}
-      addButtonIcon={<Plus size={18} />}
+      hideBranchSelector
+      topContent={
+        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+          {[
+            { label: 'Total Categories', value: filteredCategories.length, icon: Sparkles, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Global types' },
+            { label: 'Active Types', value: filteredCategories.filter(c => c.isActive).length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Operational' },
+            { label: 'System Inactive', value: filteredCategories.filter(c => !c.isActive).length, icon: X, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Paused registry' },
+            { label: 'Registry Integrity', value: filteredCategories.length > 0 ? 'Verified' : 'None', icon: Sparkles, color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', trend: 'System health' }
+          ].map((stat, i) => (
+            <ZenStatCard key={i} {...stat} delay={i * 0.05} />
+          ))}
+        </div>
+      }
     >
+      <div className="space-y-6 pb-20">
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[400px]">
           <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
@@ -189,8 +203,9 @@ const ServiceCategories = () => {
                     {(index + 1).toString().padStart(2, '0')}
                   </td>
                   <td>
-                     <div className="flex flex-col items-center px-6">
+                     <div className="flex items-center justify-center gap-2 px-6">
                         <span className="zen-table-primary">{cat.name}</span>
+                        <span className="text-zen-brown/20 text-[10px]">|</span>
                         <span className="zen-table-meta">Service Category</span>
                      </div>
                   </td>
@@ -223,7 +238,7 @@ const ServiceCategories = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        maxWidth="max-w-3xl"
+        maxWidth="max-w-2xl"
         header={
           <div className="flex items-start justify-between gap-6 px-6 sm:px-10 py-6 sm:py-8">
             <div className="flex items-start gap-4 sm:gap-5 min-w-0">
@@ -323,6 +338,7 @@ const ServiceCategories = () => {
         title="Delete category?"
         message="Are you sure you want to delete this category? Services using it may need to be updated."
       />
+      </div>
     </ZenPageLayout>
   );
 };

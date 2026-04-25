@@ -95,7 +95,7 @@ const Layout = () => {
       <div className={`
         fixed inset-y-0 left-0 z-[100] transform lg:relative lg:translate-x-0 transition-all duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        ${isCollapsed ? 'lg:w-[70px] w-60 md:w-60' : 'w-[210px]'}
+        ${isCollapsed ? 'lg:w-[72px] w-[min(84vw,16rem)]' : 'lg:w-[230px] w-[min(88vw,18rem)]'}
       `}>
         <Sidebar 
           isCollapsed={isCollapsed} 
@@ -112,7 +112,7 @@ const Layout = () => {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 relative bg-zen-cream">
-        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scrollbar-hide rounded-none scroll-smooth relative pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
+        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scrollbar-hide rounded-none scroll-smooth relative pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
           <Navbar 
             onMenuClick={() => setIsMobileMenuOpen(true)} 
             isCollapsed={isCollapsed}
@@ -199,13 +199,15 @@ const AppRoutes = () => {
 
 
 export default function App() {
+  const routerBase = ((import.meta as any).env?.BASE_URL || '/').replace(/\/$/, '') || '/';
+
   return (
     <AuthProvider>
       <SettingsProvider>
         <BranchProvider>
           <CategoryProvider>
             <DataProvider>
-              <Router>
+              <Router basename={routerBase}>
                 <ScrollToTop />
                 <ErrorBoundary>
                   <AppRoutes />

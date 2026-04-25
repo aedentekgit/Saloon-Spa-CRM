@@ -49,7 +49,7 @@ export const Modal: React.FC<ModalProps> = ({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-6 lg:p-10">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-1.5 sm:p-6 lg:p-10">
           {/* Immersive Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -65,7 +65,7 @@ export const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 30, stiffness: 400 }}
-            className={`relative w-[calc(100vw-1rem)] sm:w-full ${maxWidth} bg-white/95 backdrop-blur-3xl rounded-[1rem] sm:rounded-[1.5rem] shadow-[0_30px_100px_-20px_rgba(74,55,40,0.3)] overflow-hidden border border-white flex flex-col max-h-[calc(100vh-1rem)] sm:max-h-[90vh] ${className}`}
+            className={`relative w-full ${maxWidth} bg-white/95 backdrop-blur-3xl rounded-[1.2rem] sm:rounded-[2rem] shadow-[0_30px_100px_-20px_rgba(74,55,40,0.3)] overflow-hidden border border-white flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] ${className}`}
           >
             {/* Glossy Top Edge */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent z-[60]" />
@@ -75,13 +75,13 @@ export const Modal: React.FC<ModalProps> = ({
                 {header}
               </div>
             ) : !hideHeader && (
-              <div className="flex items-center justify-between px-5 sm:px-8 lg:px-14 py-4 sm:py-6 lg:py-7 border-b border-zen-brown/10 shrink-0 bg-white/40 backdrop-blur-3xl relative z-50">
-                <div className="flex items-center gap-4 sm:gap-6 min-w-0">
-                   <div className="w-14 h-14 sm:w-16 sm:h-16 bg-zen-sand/10 rounded-[1rem] text-zen-sand flex items-center justify-center shadow-inner border border-zen-sand/5">
-                      <HeaderIcon size={26} strokeWidth={1} />
+              <div className="flex items-center justify-between px-4 sm:px-8 lg:px-14 py-3 sm:py-6 lg:py-7 border-b border-zen-brown/10 shrink-0 bg-white/40 backdrop-blur-3xl relative z-50">
+                <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+                   <div className="w-11 h-11 sm:w-16 sm:h-16 bg-zen-sand/10 rounded-[0.9rem] sm:rounded-[1rem] text-zen-sand flex items-center justify-center shadow-inner border border-zen-sand/5">
+                      <HeaderIcon size={22} strokeWidth={1} />
                    </div>
                    <div className="min-w-0">
-                      <h3 className="text-lg sm:text-2xl font-serif font-bold text-zen-brown tracking-tighter truncate leading-tight">{title}</h3>
+                      <h3 className="text-base sm:text-2xl font-serif font-bold text-zen-brown tracking-tighter truncate leading-tight">{title}</h3>
                       {subtitle && (
                         <p className="mt-1.5 text-[10px] sm:text-[11px] font-bold text-zen-brown/20 uppercase tracking-[0.4em] truncate font-sans">
                           {subtitle}
@@ -91,19 +91,19 @@ export const Modal: React.FC<ModalProps> = ({
                 </div>
                 <button 
                    onClick={onClose}
-                   className="w-12 h-12 flex items-center justify-center bg-white/80 hover:bg-white rounded-full transition-all duration-700 text-zen-brown/35 hover:text-zen-brown group border border-zen-brown/10 shadow-sm"
+                   className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/80 hover:bg-white rounded-full transition-all duration-700 text-zen-brown/35 hover:text-zen-brown group border border-zen-brown/10 shadow-sm"
                 >
-                   <X size={20} strokeWidth={1.8} className="group-hover:rotate-90 transition-transform duration-700" />
+                   <X size={18} strokeWidth={1.8} className="group-hover:rotate-90 transition-transform duration-700" />
                 </button>
               </div>
             )}
 
-            <div className={`flex-1 overflow-y-auto custom-scrollbar relative z-10 ${header || !hideHeader ? 'py-5 sm:py-8 lg:py-12' : 'pt-5 sm:pt-8 lg:pt-12 pb-7 sm:pb-10 lg:pb-16'} px-5 sm:px-8 lg:px-14`}>
+            <div className={`flex-1 overflow-y-auto custom-scrollbar relative z-10 ${header || !hideHeader ? 'py-4 sm:py-8 lg:py-12' : 'pt-4 sm:pt-8 lg:pt-12 pb-6 sm:pb-10 lg:pb-16'} px-4 sm:px-8 lg:px-14`}>
               {children}
             </div>
 
             {footer && (
-              <div className="px-5 sm:px-8 lg:px-14 py-4 sm:py-6 lg:py-8 border-t border-zen-brown/10 bg-white/40 backdrop-blur-3xl shrink-0 relative z-50">
+              <div className="px-4 sm:px-8 lg:px-14 py-3 sm:py-4 lg:py-5 border-t border-zen-brown/10 bg-white/40 backdrop-blur-3xl shrink-0 relative z-50">
                 {footer}
               </div>
             )}

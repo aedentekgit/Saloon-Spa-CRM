@@ -3,6 +3,7 @@ import { Sparkles, MapPin, Loader2, DoorOpen, Wind, Coffee, Music, Zap } from 'l
 import { motion, AnimatePresence } from 'motion/react';
 import { resolveRoomImageMeta } from '../../utils/roomImage';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { withBase } from '../../utils/assetPath';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const BASE_URL = API_URL.replace('/api', '');
@@ -129,7 +130,7 @@ const LandingRooms = () => {
               {/* Primary Image Frame */}
               <div className="relative aspect-[16/10] w-full rounded-[3rem] overflow-hidden shadow-2xl z-10 border-[8px] border-white/50 backdrop-blur-sm">
                 <img 
-                  src="/images/hero_chambers.png" 
+                  src={withBase('/images/hero_chambers.png')} 
                   alt="Sacred Chamber" 
                   className="w-full h-full object-cover"
                   onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1540555700478-4be289a5090a?auto=format&fit=crop&q=80'; }}

@@ -656,12 +656,12 @@ const Appointments = () => {
     >
       <div 
         style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} 
-        className="contents font-sans h-[calc(100vh-180px)] overflow-hidden"
+        className="contents font-sans h-[calc(100dvh-180px)] overflow-hidden"
       >
         <div className="flex flex-col lg:flex-row gap-10 h-full overflow-hidden">
           <div className="flex-1 flex flex-col min-h-0 space-y-8">
            {/* Calendar Controls - Now visible in both Grid and Table view */}
-            <div className="bg-white/90 backdrop-blur-2xl px-5 sm:px-6 py-5 rounded-[2.25rem] border border-zen-stone/70 shadow-[0_16px_40px_rgba(0,0,0,0.04)] flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
+            <div className="bg-white px-5 sm:px-6 py-5 rounded-[2.25rem] border border-zen-stone shadow-[0_16px_40px_rgba(0,0,0,0.04)] flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full xl:w-auto">
                   <div className="flex items-center gap-2 sm:gap-3 bg-gray-50/50 p-1.5 sm:p-2 rounded-[1.25rem] w-full xl:w-auto justify-between sm:justify-start">
                      <ZenIconButton icon={ChevronLeft} onClick={handlePrev} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
@@ -688,14 +688,14 @@ const Appointments = () => {
              <>
 
                {/* Calendar View Area */}
-               <div className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] border border-zen-stone/70 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden min-h-[500px]">
+               <div className="bg-white rounded-[2.5rem] border border-zen-stone shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden min-h-[420px] sm:min-h-[500px]">
                   {loading ? (
-                     <div className="flex flex-col items-center justify-center h-[500px]">
+                     <div className="flex flex-col items-center justify-center h-[420px] sm:h-[500px]">
                         <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
                      </div>
                   ) : viewType === 'Month' ? (
                      <div className="p-4 sm:p-8 table-container">
-                        <div className="min-w-[600px] lg:min-w-full">
+                        <div className="min-w-[520px] sm:min-w-[600px] lg:min-w-full">
                            <div className="grid grid-cols-7 mb-6">
                               {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day, i) => (
                                  <div key={i} className="text-center text-[9px] font-bold text-zen-brown/20 uppercase tracking-[0.4em]">{day}</div>
@@ -762,10 +762,11 @@ const Appointments = () => {
                                            <p className="text-[7px] sm:text-[8px] font-bold uppercase tracking-widest opacity-40 mb-0.5">Time</p>
                                            <p className="text-[10px] sm:text-xs font-black leading-[1.1] sm:leading-tight">{apt.time || '--:--'}</p>
                                         </div>
-                                        <div className="min-w-0">
-                                           <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tighter leading-none group-hover:translate-x-1 transition-transform duration-500 truncate">{apt.client}</h3>
-                                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 truncate">{apt.employee}</p>
-                                        </div>
+                                         <div className="flex flex-row items-center gap-3 min-w-0">
+                                            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tighter leading-none group-hover:translate-x-1 transition-transform duration-500 truncate">{apt.client}</h3>
+                                            <span className="text-gray-200">|</span>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">{apt.employee}</p>
+                                         </div>
                                      </div>
                                         <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(apt)} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
                                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => {
@@ -820,7 +821,7 @@ const Appointments = () => {
              </>
            ) : (
              /* Table View Area */
-             <div className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] border border-zen-stone/70 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col flex-1 min-h-0">
+             <div className="bg-white rounded-[2.5rem] border border-zen-stone shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col flex-1 min-h-0">
                 <div className="flex items-center justify-between gap-4 px-8 py-6 border-b border-zen-brown/5">
                   <div className="space-y-1">
                     <h3 className="text-xl font-bold text-gray-900 tracking-tight">Appointment Registry</h3>
@@ -849,18 +850,22 @@ const Appointments = () => {
                                  <div className="w-10 h-10 rounded-xl bg-zen-sand/10 flex items-center justify-center text-zen-sand shadow-sm">
                                    <UserIcon size={16} />
                                  </div>
-                                 <div>
-                                   <p className="text-sm font-bold text-zen-brown">{apt.client || 'Guest'}</p>
-                                   <p className="text-[10px] text-zen-brown/30 uppercase tracking-widest">{apt.bookingType || 'Normal'}</p>
-                                 </div>
+                                 <div className="flex flex-row items-center gap-2">
+                                    <p className="text-sm font-bold text-zen-brown">{apt.client || 'Guest'}</p>
+                                    <span className="text-zen-brown/10">|</span>
+                                    <p className="text-[10px] text-zen-brown/30 uppercase tracking-widest">{apt.bookingType || 'Normal'}</p>
+                                  </div>
                                </div>
                              </td>
                              <td className="px-8 py-6">
-                               <p className="text-sm font-bold text-zen-brown">{apt.service || 'Unnamed'}</p>
-                               <div className="flex items-center gap-1.5 mt-1 text-zen-brown/40">
-                                 <UserCheck size={10} />
-                                 <span className="text-[10px] font-bold uppercase tracking-widest">{apt.employee || 'Artisan'}</span>
-                               </div>
+                                <div className="flex flex-row items-center gap-2">
+                                  <p className="text-sm font-bold text-zen-brown">{apt.service || 'Unnamed'}</p>
+                                  <span className="text-zen-brown/20">|</span>
+                                  <div className="flex items-center gap-1.5 text-zen-brown/40">
+                                    <UserCheck size={10} />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest">{apt.employee || 'Artisan'}</span>
+                                  </div>
+                                </div>
                              </td>
                              <td className="px-8 py-6">
                                <div className="flex items-center gap-2">
@@ -869,10 +874,11 @@ const Appointments = () => {
                                </div>
                              </td>
                              <td className="px-8 py-6 text-center">
-                                <div className="inline-flex flex-col items-center px-4 py-2 rounded-xl bg-gray-50 border border-zen-brown/5">
-                                   <span className="text-xs font-black text-zen-brown leading-none">{apt.time || '10:00'}</span>
-                                   <span className="text-[8px] font-bold text-zen-brown/30 uppercase tracking-tighter mt-1">{dayjs(apt.date).format('DD MMM')}</span>
-                                </div>
+                                 <div className="inline-flex flex-row items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 border border-zen-brown/5">
+                                    <span className="text-xs font-black text-zen-brown leading-none">{apt.time || '10:00'}</span>
+                                    <span className="text-zen-brown/10">|</span>
+                                    <span className="text-[8px] font-bold text-zen-brown/30 uppercase tracking-tighter">{dayjs(apt.date).format('DD MMM')}</span>
+                                 </div>
                              </td>
                              <td className="px-8 py-6">
                                <div className="flex justify-center">

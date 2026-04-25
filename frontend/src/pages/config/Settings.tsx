@@ -499,20 +499,20 @@ const Settings = () => {
       hideBranchSelector
       hideViewToggle
     >
-      <div className="min-h-[750px] bg-white/80 backdrop-blur-xl rounded-[2rem] border border-zen-brown/10 shadow-sm overflow-hidden flex flex-col lg:flex-row">
-        <aside className="lg:w-72 shrink-0 bg-white/40 border-b lg:border-b-0 lg:border-r border-zen-brown/10">
-           <div className="p-4 sm:p-5 pb-6">
-              <div className="px-3 pt-2 pb-3">
+      <div className="min-h-[auto] lg:min-h-[750px] bg-white/80 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[2rem] border border-zen-brown/10 shadow-sm overflow-hidden flex flex-col lg:flex-row">
+        <aside className="w-full lg:w-72 shrink-0 bg-white/40 border-b lg:border-b-0 lg:border-r border-zen-brown/10">
+           <div className="p-4 sm:p-5">
+              <div className="px-3 pt-2 pb-3 hidden lg:block">
                   <h4 className="text-[10px] uppercase font-black text-zen-brown/40 tracking-[0.28em]">
                      Settings Menu
                   </h4>
               </div>
-               <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible gap-2 scrollbar-hide pb-4 lg:pb-0 whitespace-nowrap">
+               <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible gap-2 scrollbar-hide pb-2 lg:pb-0 whitespace-nowrap">
                  {sidebarItems.map((item) => (
                     <button
                        key={item.id}
                        onClick={() => setActiveSection(item.id as SettingsSection)}
-                       className={`flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all font-sans font-bold text-[12px] group relative whitespace-nowrap border ${
+                       className={`flex items-center gap-2.5 sm:gap-3 px-4 sm:px-5 py-2.5 rounded-xl transition-all font-sans font-bold text-[11px] sm:text-[12px] group relative whitespace-nowrap border shrink-0 ${
                          activeSection === item.id 
                            ? 'bg-zen-brown text-white border-zen-brown shadow-sm' 
                            : 'text-zen-brown/60 hover:bg-zen-cream/60 hover:text-zen-brown border-transparent'
@@ -631,8 +631,8 @@ const Settings = () => {
                                  />
                               </div>
 
-                              <div className="lg:col-span-4">
-                                 <div className="bg-zen-cream/30 p-8 rounded-[1.5rem] border border-zen-brown/10 shadow-sm relative overflow-hidden group min-h-[400px] flex flex-col items-center justify-center text-center">
+                               <div className="lg:col-span-4">
+                                  <div className="bg-zen-cream/30 p-8 rounded-[1.5rem] border border-zen-brown/10 shadow-sm relative overflow-hidden group min-h-[auto] sm:min-h-[400px] flex flex-col items-center justify-center text-center">
                                     <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-150 transition-transform duration-1000">
                                        <Camera size={150} />
                                     </div>
@@ -681,8 +681,8 @@ const Settings = () => {
                   )}
 
                   {activeSection === 'visuals' && (
-                     <div className="max-w-5xl flex flex-col gap-6 font-sans">
-                        <section className="bg-white p-6 sm:p-14 rounded-[2rem] border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative">
+                      <div className="max-w-5xl flex flex-col gap-6 font-sans">
+                        <section className="bg-white p-6 sm:p-10 lg:p-14 rounded-[1.5rem] sm:rounded-[2rem] border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative">
                            
                            <header className="flex flex-col sm:flex-row sm:items-center gap-5 mb-14">
                               <div className="w-14 h-14 rounded-full flex items-center justify-center text-zen-sand bg-zen-sand/10 shrink-0">
@@ -742,67 +742,67 @@ const Settings = () => {
 
                               {/* Typography Settings */}
                               <div className="pt-12 border-t border-slate-100">
-                                 <div className="flex items-center gap-3 mb-8">
-                                    <Sparkles size={18} className="text-zen-sand" />
-                                    <h3 className="text-[16px] font-bold text-slate-900">Typography Workshop</h3>
-                                 </div>
-                                 
-                                 <div className="space-y-6">
-                                    <div className="bg-slate-50/50 rounded-[2.5rem] p-6 sm:p-12 border border-slate-100 shadow-sm overflow-hidden relative group/workshop">
+                                  <div className="flex items-center gap-3 mb-8">
+                                     <Sparkles size={18} className="text-zen-sand" />
+                                     <h3 className="text-[16px] font-bold text-slate-900">Typography Workshop</h3>
+                                  </div>
+                                  
+                                  <div className="space-y-6">
+                                     <div className="bg-slate-50/50 rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-10 lg:p-12 border border-slate-100 shadow-sm overflow-hidden relative group/workshop">
                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-                                          {/* Unified Controls Section */}
-                                          <div className="lg:col-span-5 space-y-10 lg:pr-12 lg:border-r lg:border-slate-200/50">
-                                             <div className="space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Architecture Mode</label>
-                                                   <span className="text-[10px] font-black text-zen-sand bg-zen-sand/10 px-2.5 py-1 rounded-lg uppercase tracking-wider">Dynamic Control</span>
-                                                </div>
-                                                <div className="flex bg-white/50 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
-                                                   {(['heading', 'body'] as const).map((mode) => (
-                                                      <button
-                                                         key={mode}
-                                                         onClick={() => setFontConfigMode(mode)}
-                                                         className={`flex-1 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 ${fontConfigMode === mode ? 'bg-zen-brown text-white shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}
-                                                      >
-                                                         {mode === 'heading' ? 'Headings' : 'Body Text'}
-                                                      </button>
-                                                   ))}
-                                                </div>
-                                             </div>
+                                           {/* Unified Controls Section */}
+                                           <div className="lg:col-span-5 space-y-8 sm:space-y-10 lg:pr-12 lg:border-r lg:border-slate-200/50">
+                                              <div className="space-y-4">
+                                                 <div className="flex items-center justify-between">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Architecture Mode</label>
+                                                    <span className="text-[10px] font-black text-zen-sand bg-zen-sand/10 px-2.5 py-1 rounded-lg uppercase tracking-wider">Dynamic Control</span>
+                                                 </div>
+                                                 <div className="flex bg-white/50 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
+                                                    {(['heading', 'body'] as const).map((mode) => (
+                                                       <button
+                                                          key={mode}
+                                                          onClick={() => setFontConfigMode(mode)}
+                                                          className={`flex-1 py-3 sm:py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 ${fontConfigMode === mode ? 'bg-zen-brown text-white shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}
+                                                       >
+                                                          {mode === 'heading' ? 'Headings' : 'Body Text'}
+                                                       </button>
+                                                    ))}
+                                                 </div>
+                                              </div>
 
-                                             <div className="space-y-8">
-                                                <div className="space-y-4">
-                                                   <div className="flex items-center justify-between">
-                                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Protocol</label>
-                                                      <label className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-zen-sand hover:border-zen-sand/20 hover:shadow-lg transition-all cursor-pointer">
-                                                         <Upload size={16} />
-                                                         <input type="file" className="hidden" accept=".zip,.ttf,.otf,.woff,.woff2" onChange={(e) => handleFontUpload(e, fontConfigMode)} />
-                                                      </label>
-                                                   </div>
-                                                   <ZenDropdown 
-                                                      label="Select Font"
-                                                      hideLabel
-                                                      options={fontConfigMode === 'heading' ? ['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Poppins'] : ['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Montserrat']}
-                                                      value={settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont'].match(/uploads/i) ? 'Custom Font (Uploaded)' : settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont']}
-                                                      onChange={(val) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, [fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont']: val}} : null)}
-                                                      fontFamily={settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont'].match(/uploads/i) ? (fontConfigMode === 'heading' ? 'CustomHeadingFont' : 'CustomBodyFont') : settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont']}
-                                                   />
-                                                </div>
+                                              <div className="space-y-6 sm:space-y-8">
+                                                 <div className="space-y-4">
+                                                    <div className="flex items-center justify-between">
+                                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Protocol</label>
+                                                       <label className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-zen-sand hover:border-zen-sand/20 hover:shadow-lg transition-all cursor-pointer">
+                                                          <Upload size={16} />
+                                                          <input type="file" className="hidden" accept=".zip,.ttf,.otf,.woff,.woff2" onChange={(e) => handleFontUpload(e, fontConfigMode)} />
+                                                       </label>
+                                                    </div>
+                                                    <ZenDropdown 
+                                                       label="Select Font"
+                                                       hideLabel
+                                                       options={fontConfigMode === 'heading' ? ['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Poppins'] : ['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Montserrat']}
+                                                       value={settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont'].match(/uploads/i) ? 'Custom Font (Uploaded)' : settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont']}
+                                                       onChange={(val) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, [fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont']: val}} : null)}
+                                                       fontFamily={settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont'].match(/uploads/i) ? (fontConfigMode === 'heading' ? 'CustomHeadingFont' : 'CustomBodyFont') : settings.theme[fontConfigMode === 'heading' ? 'headingFont' : 'bodyFont']}
+                                                    />
+                                                 </div>
 
-                                                <div className="p-6 bg-white/40 rounded-3xl border border-slate-200/60 backdrop-blur-sm space-y-4">
-                                                   <div className="flex items-center justify-between opacity-40">
-                                                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Asset Validation</span>
-                                                      <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                                                   </div>
-                                                   <p className="text-[11px] font-medium leading-relaxed text-slate-500">
-                                                      Configure the <span className="font-black text-slate-700 uppercase tracking-tighter">{fontConfigMode}</span> layer of your visual identity. Uploaded assets are automatically optimized for cross-browser delivery.
-                                                   </p>
-                                                </div>
-                                             </div>
-                                          </div>
+                                                 <div className="p-5 sm:p-6 bg-white/40 rounded-3xl border border-slate-200/60 backdrop-blur-sm space-y-4">
+                                                    <div className="flex items-center justify-between opacity-40">
+                                                       <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Asset Validation</span>
+                                                       <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                                    </div>
+                                                    <p className="text-[11px] font-medium leading-relaxed text-slate-500">
+                                                       Configure the <span className="font-black text-slate-700 uppercase tracking-tighter">{fontConfigMode}</span> layer of your visual identity. Uploaded assets are automatically optimized for cross-browser delivery.
+                                                    </p>
+                                                 </div>
+                                              </div>
+                                           </div>
 
-                                          {/* Specimen Preview Section */}
-                                          <div className="lg:col-span-7 flex flex-col justify-center space-y-12 min-h-[300px]">
+                                           {/* Specimen Preview Section */}
+                                           <div className="lg:col-span-7 flex flex-col justify-center space-y-8 sm:space-y-12 min-h-[auto] sm:min-h-[300px] mt-8 lg:mt-0">
                                              <div className="space-y-4">
                                                 <h1 
                                                    className={`transition-all duration-700 text-4xl md:text-5xl lg:text-6xl tracking-tight leading-none break-words ${fontConfigMode === 'heading' ? 'text-slate-900 border-l-4 border-zen-sand pl-4 sm:pl-8' : 'text-slate-400 pl-4 sm:pl-8 opacity-40'}`} 
@@ -1500,33 +1500,33 @@ const Settings = () => {
                      <div className="bg-white/80 backdrop-blur-xl rounded-[2.75rem_1.35rem_2.75rem_1.35rem] border border-zen-brown/15 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
                         <div className="grid grid-cols-1 lg:grid-cols-12">
                            <div className="lg:col-span-12">
-                              <header className="p-8 sm:p-12 pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-8 mb-12">
-                                 <div>
-                                    <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Taxation Registry</h3>
-                                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Standardized Fiscal Control & Audit Compliance.</p>
-                                 </div>
+                               <header className="p-6 sm:p-12 pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 lg:mb-12">
+                                  <div className="text-center sm:text-left">
+                                     <h3 className="text-2xl sm:text-3xl font-serif font-bold text-zen-brown tracking-tight">Taxation Registry</h3>
+                                     <p className="text-[9px] sm:text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Standardized Fiscal Control & Audit Compliance.</p>
+                                  </div>
 
-                                 <div className="flex items-center gap-6">
-                                    <div className="flex items-center gap-3 px-6 py-3 bg-zen-cream/30 rounded-2xl border border-zen-brown/10">
-                                       <span className="text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Master Switch</span>
-                                       <button 
-                                          onClick={handleToggleGST}
-                                          className={`w-11 h-5.5 rounded-full transition-all duration-500 relative border ${settings?.billing?.gstEnabled ? 'bg-emerald-500 border-emerald-600 shadow-sm shadow-emerald-500/20' : 'bg-gray-100 border-gray-200'}`}
-                                       >
-                                          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-500 ${settings?.billing?.gstEnabled ? 'left-6' : 'left-0.5'}`} />
-                                       </button>
-                                    </div>
+                                  <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                                     <div className="flex items-center justify-between sm:justify-start gap-4 px-5 py-2.5 bg-zen-cream/30 rounded-2xl border border-zen-brown/10 w-full sm:w-auto">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-zen-brown/40">Master Switch</span>
+                                        <button 
+                                           onClick={handleToggleGST}
+                                           className={`w-10 h-5 rounded-full transition-all duration-500 relative border ${settings?.billing?.gstEnabled ? "bg-emerald-500 border-emerald-600 shadow-sm shadow-emerald-500/20" : "bg-gray-100 border-gray-200"}`}
+                                        >
+                                           <div className={`absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow-sm transition-all duration-500 ${settings?.billing?.gstEnabled ? "left-5.5" : "left-0.5"}`} />
+                                        </button>
+                                     </div>
 
-                                    <ZenButton onClick={() => openTaxModal()} className="px-8 py-3.5 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-zen-sand transition-all duration-500">
-                                       <Plus size={18} />
-                                       <span className="font-black">Create Rate</span>
-                                    </ZenButton>
-                                 </div>
-                              </header>
+                                     <ZenButton onClick={() => openTaxModal()} className="px-6 py-3.5 rounded-xl shadow-sm text-[11px] flex items-center justify-center gap-2.5 w-full sm:w-auto hover:bg-zen-sand transition-all duration-500 font-black uppercase tracking-widest">
+                                        <Plus size={16} />
+                                        <span>Create Rate</span>
+                                     </ZenButton>
+                                  </div>
+                               </header>
     
-                              <div className="px-8 pb-12">
+                              <div className="px-4 sm:px-8 pb-12">
                                  <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
-                                    <div className="table-container min-h-[400px]">
+                                    <div className="overflow-x-auto min-h-[300px] sm:min-h-[400px]">
                                        {taxLoading ? (
                                           <div className="p-20 text-center italic opacity-20">Syncing registry...</div>
                                        ) : (

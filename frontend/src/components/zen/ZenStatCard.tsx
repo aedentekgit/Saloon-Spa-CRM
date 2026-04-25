@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { LucideIcon, Clock } from 'lucide-react';
+import { LucideIcon, Clock, Sparkles } from 'lucide-react';
 
 export interface ZenStatCardProps {
   label: string;
@@ -24,46 +24,63 @@ export const ZenStatCard: React.FC<ZenStatCardProps> = ({
   delay = 0 
 }) => {
   return (
-    <div className="flex-shrink-0 w-[280px] lg:w-auto bg-white/90 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-sm border border-zen-stone/60 relative group transition-all duration-700 zen-card-hover overflow-hidden">
-      {/* Background Bloom */}
-      <div className={`absolute -top-16 -right-16 w-48 h-48 ${glow} rounded-full blur-[60px] -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000 opacity-40`}></div>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
+      className="w-full sm:w-[280px] lg:w-full shrink-0 bg-white p-5 sm:p-7 rounded-[1.5rem] border border-zen-stone shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative group transition-all duration-700 hover:shadow-[0_20px_50px_-15px_rgba(43,36,64,0.1)] hover:border-zen-sand/30 overflow-hidden"
+    >
+      {/* Premium Grainy Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-zen-cream/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
       
-      <div className="relative z-10 h-full flex flex-col justify-between">
-        <div className="flex justify-between items-start">
-          <div className="space-y-4 pr-12">
-            <div className="space-y-1.5">
-               <h5 className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.4em] leading-none mb-1">{label}</h5>
-               <p className="text-4xl font-serif font-black text-zen-brown tracking-tighter leading-tight">{value}</p>
-            </div>
-            
-            {(trend !== undefined && trend !== null) && (
-              <div className="flex items-center gap-2.5">
-                <div className="w-5 h-5 rounded-md bg-zen-leaf/10 flex items-center justify-center text-zen-leaf">
-                   <Clock size={10} strokeWidth={3} />
-                </div>
-                <span className="text-[9px] text-zen-brown/40 font-black uppercase tracking-widest">{trend}</span>
-              </div>
-            )}
+      {/* Decorative 'Spark' background element */}
+      <div className="absolute -top-12 -right-12 w-32 h-32 bg-zen-gold/5 rounded-full blur-3xl group-hover:bg-zen-gold/10 transition-colors duration-1000" />
+      
+      <div className="relative z-10 flex flex-col gap-4 sm:gap-5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-baseline gap-3 min-w-0 flex-1">
+            <h5 className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.3em] leading-none truncate shrink-0">{label}</h5>
+            <p className="text-lg sm:text-xl font-serif font-black text-zen-brown tracking-tight leading-none truncate group-hover:scale-[1.05] transition-transform duration-500 origin-left">
+              {value}
+            </p>
           </div>
 
-          <motion.div
-            initial={{ y: 0 }}
-            animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay }}
-            className="w-14 h-14 shrink-0 relative"
-          >
-            {/* Shadow for 3D effect */}
-            <div className={`absolute inset-0 rounded-2xl ${glow} blur-xl translate-y-4 group-hover:translate-y-6 transition-all duration-700 opacity-40 group-hover:opacity-80`}></div>
-            {/* Icon Container */}
-            <div className={`absolute inset-0 rounded-2xl ${bg} backdrop-blur-md border border-white flex items-center justify-center group-hover:-translate-y-2 group-hover:rotate-6 group-hover:scale-110 shadow-lg group-hover:shadow-xl transition-all duration-500`}>
-                <Icon className={`${color} drop-shadow-sm transition-transform duration-500 group-hover:scale-110`} size={24} strokeWidth={1.5} />
+          <div className="relative scale-75 origin-right shrink-0">
+            {/* 3D Glass Icon Case */}
+            <div className={`absolute inset-0 rounded-[1.25rem] ${glow} blur-lg opacity-40 group-hover:opacity-60 transition-all duration-700`} />
+            <div className={`w-12 h-12 rounded-[1.25rem] ${bg} border border-white/50 backdrop-blur-md flex items-center justify-center relative z-10 group-hover:-translate-y-1 group-hover:rotate-6 transition-all duration-500 shadow-sm`}>
+              <Icon className={`${color} transition-transform duration-500 group-hover:scale-110`} size={22} strokeWidth={1.5} />
             </div>
-          </motion.div>
+          </div>
         </div>
 
-        {/* Bottom subtle bar */}
-        <div className="mt-8 h-1 w-12 bg-zen-gold/20 rounded-full group-hover:w-24 group-hover:bg-zen-gold/40 transition-all duration-700"></div>
+        <div className="flex items-center justify-between mt-1">
+          {trend ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zen-cream/40 border border-zen-brown/5 shadow-inner">
+               <Clock size={10} className="text-zen-brown/30" />
+               <span className="text-[9px] text-zen-brown/50 font-bold uppercase tracking-widest">{trend}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zen-gold/5 border border-zen-gold/10">
+               <Sparkles size={10} className="text-zen-gold/40" />
+               <span className="text-[9px] text-zen-gold/60 font-black uppercase tracking-widest">Premium Data</span>
+            </div>
+          )}
+          
+          {/* Accent progress bar */}
+          <div className="flex-1 ml-4 h-1 bg-zen-brown/5 rounded-full overflow-hidden">
+             <motion.div 
+               initial={{ width: 0 }}
+               animate={{ width: '40%' }}
+               transition={{ duration: 1.5, delay: delay + 0.5 }}
+               className={`h-full ${color.replace('text-', 'bg-')} opacity-20`}
+             />
+          </div>
+        </div>
       </div>
-    </div>
+      
+      {/* Sleek bottom border highlight */}
+      <div className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-1000 ${color.replace('text-', 'bg-')} opacity-30`} />
+    </motion.div>
   );
 };

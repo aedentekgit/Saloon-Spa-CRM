@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Eye, EyeOff, Mail, Lock, Sparkles, ArrowRight } from 'lucide-react';
+import { withBase } from '../../utils/assetPath';
 
 const Login = () => {
   const { user, loading, login } = useAuth();
@@ -39,13 +40,13 @@ const Login = () => {
 
   return (
     <div className="min-h-screen w-full bg-zen-cream flex items-center justify-center p-4 sm:p-8 font-sans">
-       <div className="w-full max-w-[1000px] bg-white rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col lg:flex-row min-h-[600px] border-[4px] border-zen-stone/30">
+       <div className="w-full max-w-[1000px] bg-white rounded-[1.75rem] sm:rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col lg:flex-row min-h-[460px] sm:min-h-[600px] border-2 sm:border-[4px] border-zen-stone/30">
           
           {/* Left side Image */}
           <div className="hidden lg:block w-1/2 p-3 relative">
              <div className="w-full h-full rounded-[2.5rem] overflow-hidden relative shadow-inner">
                 <img 
-                  src="/login-bg.png" 
+                  src={withBase('/login-bg.png')} 
                   alt="Sanctuary" 
                   className="w-full h-full object-cover"
                 />
@@ -53,7 +54,7 @@ const Login = () => {
           </div>
 
           {/* Right side Form */}
-          <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative">
+          <div className="w-full lg:w-1/2 flex items-center justify-center p-5 sm:p-8 lg:p-16 relative">
              <div className="w-full max-w-sm space-y-8">
                 <div className="space-y-3">
                    <h1 className="text-[2.75rem] font-black text-zen-brown tracking-tight leading-none">Let's sign you in.</h1>

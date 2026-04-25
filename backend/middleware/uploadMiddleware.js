@@ -1,6 +1,8 @@
 const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinaryModule = require('cloudinary');
+const cloudinary = cloudinaryModule.v2;
+const cloudinaryStorageModule = require('multer-storage-cloudinary');
+const CloudinaryStorage = cloudinaryStorageModule?.CloudinaryStorage || cloudinaryStorageModule;
 const path = require('path');
 const fs = require('fs');
 const Settings = require('../models/core/Settings');
@@ -23,9 +25,23 @@ const ALLOWED_MIME_TYPES = new Set([
   'font/woff2',
   'application/font-woff',
   'application/font-woff2',
-  // JSON (for firebase service account upload use-case)
-  'application/json'
+  // JSON & Archives
+  'application/json',
+  'application/zip',
+  'application/x-zip-compressed',
+  'text/plain',
+  // Spreadsheets
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  'text/csv'
 ]);
+
+const DEFAULT_UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
+const resolveUploadDir = () => {
+  const configured = (process.env.UPLOAD_DIR || '').trim();
+  if (!configured) return DEFAULT_UPLOAD_DIR;
+  return path.isAbsolute(configured) ? configured : path.join(__dirname, '..', configured);
+};
 
 // Helper to get active settings
 const getActiveSettings = async () => {
@@ -39,7 +55,7 @@ const getActiveSettings = async () => {
 // Local storage config
 const localStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = './uploads';
+    const dir = resolveUploadDir();
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
@@ -56,12 +72,19 @@ const dynamicStorage = {
   _handleFile: function (req, file, cb) {
     getActiveSettings()
       .then(settings => {
-        const provider = settings.upload.provider;
+        // If UPLOAD_DIR is explicitly configured, prefer deterministic local disk storage.
+        const hasExplicitUploadDir = Boolean((process.env.UPLOAD_DIR || '').trim());
+        const provider = hasExplicitUploadDir ? 'local' : (settings?.upload?.provider || 'local');
 
         if (provider === 'cloudinary') {
-          const cloudName = settings.upload.cloudinaryCloudName || process.env.CLOUDINARY_CLOUD_NAME;
-          const apiKey = settings.upload.cloudinaryApiKey || process.env.CLOUDINARY_API_KEY;
-          const apiSecret = decrypt(settings.upload.cloudinaryApiSecret) || process.env.CLOUDINARY_API_SECRET;
+          const cloudName = settings?.upload?.cloudinaryCloudName || process.env.CLOUDINARY_CLOUD_NAME;
+          const apiKey = settings?.upload?.cloudinaryApiKey || process.env.CLOUDINARY_API_KEY;
+          const apiSecret = decrypt(settings?.upload?.cloudinaryApiSecret) || process.env.CLOUDINARY_API_SECRET;
+
+          const canUseCloudinary = typeof CloudinaryStorage === 'function' && cloudName && apiKey && apiSecret;
+          if (!canUseCloudinary) {
+            return localStorage._handleFile(req, file, cb);
+          }
 
           cloudinary.config({
             cloud_name: cloudName,
@@ -70,11 +93,11 @@ const dynamicStorage = {
           });
 
           const storage = new CloudinaryStorage({
-            cloudinary: cloudinary,
+            cloudinary: cloudinaryModule,
             params: {
               folder: 'spa_documents',
               resource_type: 'auto',
-              allowed_formats: ['jpg', 'png', 'jpeg', 'pdf', 'doc', 'docx', 'json', 'ttf', 'otf', 'woff', 'woff2', 'zip']
+              allowed_formats: ['jpg', 'png', 'jpeg', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'json', 'txt', 'zip', 'ttf', 'otf', 'woff', 'woff2']
             }
           });
           
@@ -123,9 +146,9 @@ const deleteFile = async (url) => {
     
     // Check if it's a Cloudinary URL
     if (url.includes('cloudinary.com')) {
-      const cloudName = settings.upload.cloudinaryCloudName || process.env.CLOUDINARY_CLOUD_NAME;
-      const apiKey = settings.upload.cloudinaryApiKey || process.env.CLOUDINARY_API_KEY;
-      const apiSecret = decrypt(settings.upload.cloudinaryApiSecret) || process.env.CLOUDINARY_API_SECRET;
+      const cloudName = settings?.upload?.cloudinaryCloudName || process.env.CLOUDINARY_CLOUD_NAME;
+      const apiKey = settings?.upload?.cloudinaryApiKey || process.env.CLOUDINARY_API_KEY;
+      const apiSecret = decrypt(settings?.upload?.cloudinaryApiSecret) || process.env.CLOUDINARY_API_SECRET;
 
       cloudinary.config({
         cloud_name: cloudName,
@@ -147,7 +170,7 @@ const deleteFile = async (url) => {
       // Normalize path (standardize / vs \)
       const relativePath = url.replace(/\\/g, '/');
       const filename = relativePath.split('/').pop();
-      const filePath = path.join(__dirname, '..', 'uploads', filename);
+      const filePath = path.join(resolveUploadDir(), filename);
 
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);

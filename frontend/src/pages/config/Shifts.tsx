@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Plus, Trash2, Edit2, Shield, Calendar, MapPin, X } from 'lucide-react';
+import { Clock, Plus, Trash2, Edit2, Shield, Calendar, MapPin, X, Search, Grid, List, Sparkles, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -13,6 +13,7 @@ import { ZenDropdown, ZenInput } from '../../components/zen/ZenInputs';
 import { Modal } from '../../components/shared/Modal';
 import { useBranches } from '../../context/BranchContext';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
 
 interface Shift {
   _id: string;
@@ -26,7 +27,7 @@ interface Shift {
 
 const Shifts = () => {
   const { user } = useAuth();
-  const { selectedBranch } = useBranches();
+  const { branches, selectedBranch, setSelectedBranch } = useBranches();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -218,14 +219,28 @@ const Shifts = () => {
 
   return (
     <ZenPageLayout
-      title="Shift Schedule"
-      onAddClick={() => handleOpenModal()}
+      title="Shifts"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
-      addButtonLabel="Configure Shift"
+      addButtonLabel="New Shift"
+      onAddClick={() => handleOpenModal()}
+      topContent={
+        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+          {[
+            { label: 'Total Shifts', value: shifts.length, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Pattern count' },
+            { label: 'Active Patterns', value: shifts.filter(s => s.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live schedules' },
+            { label: 'System Inactive', value: shifts.filter(s => s.status !== 'Active').length, icon: X, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Offline patterns' },
+            { label: 'Avg. Duration', value: `${shifts.length > 0 ? (shifts.reduce((acc, s) => acc + s.durationHours, 0) / shifts.length).toFixed(1) : 0}h`, icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', trend: 'Cycle average' }
+          ].map((stat, i) => (
+            <ZenStatCard key={i} {...stat} delay={i * 0.05} />
+          ))}
+        </div>
+      }
     >
+      <div className="space-y-6 pb-20">
+
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <AnimatePresence>
@@ -347,11 +362,12 @@ const Shifts = () => {
       )}
 
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+      </div>
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        maxWidth="max-w-4xl"
+        maxWidth="max-w-2xl"
         header={
           <div className="flex items-start justify-between gap-6 px-6 sm:px-10 py-6 sm:py-8">
             <div className="flex items-start gap-4 sm:gap-5 min-w-0">

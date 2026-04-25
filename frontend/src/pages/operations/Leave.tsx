@@ -207,27 +207,29 @@ const Leave = () => {
                                    <span className="text-sm font-serif font-black text-zen-brown">{req.employeeName}</span>
                                  </div>
                               </td>
-                              <td>
-                                 <div className="flex flex-col items-center">
-                                    <span className="text-xs text-zen-brown font-bold flex items-center gap-1.5">
-                                      <Tag size={10} className="text-zen-sand" />
-                                      {req.type}
-                                    </span>
-                                    <span className="text-[9px] text-zen-brown/30 italic truncate max-w-[150px]">{req.reason}</span>
-                                 </div>
-                              </td>
-                              <td>
-                                 <div className="flex flex-col items-center py-4">
-                                    <div className="flex items-center gap-2 text-xs font-black text-zen-brown/60">
-                                      <span>{dayjs(req.startDate).format('MMM DD')}</span>
-                                      <ArrowRight size={10} className="text-zen-brown/20" />
-                                      <span>{dayjs(req.endDate).format('MMM DD')}</span>
-                                    </div>
-                                    <span className="text-[9px] font-bold text-zen-sand uppercase tracking-widest mt-1">
-                                      {req.daysCount} {req.daysCount === 1 ? 'Day' : 'Days'} Pause
-                                    </span>
-                                 </div>
-                              </td>
+                               <td>
+                                  <div className="flex items-center justify-center gap-2">
+                                     <span className="text-xs text-zen-brown font-bold flex items-center gap-1.5">
+                                       <Tag size={10} className="text-zen-sand" />
+                                       {req.type}
+                                     </span>
+                                     <span className="text-zen-brown/20 text-[10px]">|</span>
+                                     <span className="text-[9px] text-zen-brown/30 italic truncate max-w-[150px]">{req.reason}</span>
+                                  </div>
+                               </td>
+                               <td>
+                                  <div className="flex items-center justify-center gap-2 py-4">
+                                     <div className="flex items-center gap-2 text-xs font-black text-zen-brown/60">
+                                       <span>{dayjs(req.startDate).format('MMM DD')}</span>
+                                       <ArrowRight size={10} className="text-zen-brown/20" />
+                                       <span>{dayjs(req.endDate).format('MMM DD')}</span>
+                                     </div>
+                                     <span className="text-zen-brown/20 text-[10px]">|</span>
+                                     <span className="text-[9px] font-bold text-zen-sand uppercase tracking-widest">
+                                       {req.daysCount} {req.daysCount === 1 ? 'Day' : 'Days'} Pause
+                                     </span>
+                                  </div>
+                               </td>
                               <td>
                                  <div className="flex justify-center">
                                     <ZenBadge variant={

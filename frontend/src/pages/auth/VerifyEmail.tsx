@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { MailCheck, ArrowRight, Sparkles } from 'lucide-react';
 import { notify } from '../../components/shared/ZenNotification';
+import { withBase } from '../../utils/assetPath';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -42,18 +43,18 @@ const VerifyEmail = () => {
 
   return (
     <div className="min-h-screen w-full bg-zen-cream flex items-center justify-center p-4 sm:p-8 font-sans">
-      <div className="w-full max-w-[1000px] bg-white rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col lg:flex-row min-h-[600px] border-[4px] border-zen-stone/30">
+      <div className="w-full max-w-[1000px] bg-white rounded-[1.75rem] sm:rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col lg:flex-row min-h-[460px] sm:min-h-[600px] border-2 sm:border-[4px] border-zen-stone/30">
         <div className="hidden lg:block w-1/2 p-3 relative">
           <div className="w-full h-full rounded-[2.5rem] overflow-hidden relative shadow-inner">
             <img
-              src="/login-bg.png"
+              src={withBase('/login-bg.png')}
               alt="Sanctuary"
               className="w-full h-full object-cover"
             />
           </div>
         </div>
 
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-5 sm:p-8 lg:p-16 relative">
           <div className="w-full max-w-sm space-y-8 text-center">
             <div className="space-y-3">
               <h1 className="text-[2.75rem] font-black text-zen-brown tracking-tight leading-none">Verify account.</h1>

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 interface ZenLayoutProps {
   children: React.ReactNode;
+  topContent?: React.ReactNode;
   title?: string;
   subtitle?: string;
   searchTerm?: string;
@@ -25,6 +26,7 @@ interface ZenLayoutProps {
 
 export const ZenPageLayout = ({
   children,
+  topContent,
   title,
   subtitle,
   searchTerm = '',
@@ -43,7 +45,7 @@ export const ZenPageLayout = ({
   const { loading } = useData();
 
   return (
-    <div className="page-container min-h-screen p-6 sm:p-10 lg:p-12 pt-8 sm:pt-14 lg:pt-16 animate-zen-entrance relative">
+    <div className="page-container min-h-screen p-3 sm:p-6 lg:p-10 pt-2 sm:pt-6 lg:pt-10 relative">
       
       {/* Top Loading Progress Bar */}
       <AnimatePresence>
@@ -58,68 +60,80 @@ export const ZenPageLayout = ({
         )}
       </AnimatePresence>
       
-      {/* Search and Action Bar removed Page Title Section */}
+      {/* Spacer for removed title */}
+      <div className="h-0" />
       
-      {/* Search and Action Bar */}
+      {topContent && (
+        <div className="mb-6">
+          {topContent}
+        </div>
+      )}
+      
       {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel) || headerActions) && (
-        <div className="mb-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          {!hideSearch && (
-            <div className="flex-1 max-w-xl w-full">
-              <div className="relative group">
-                <input 
-                  type="text" 
-                  placeholder={`Search ${title}...`}
-                  value={searchTerm}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  className="w-full bg-white pl-6 pr-12 h-[48px] sm:h-[52px] rounded-[1rem] border border-zen-stone shadow-sm shadow-zen-brown/5 focus:border-zen-brown/30 focus:ring-4 focus:ring-zen-brown/5 outline-none transition-all duration-700 font-sans text-sm text-zen-brown placeholder:text-zen-brown/30"
-                />
-                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-700 group-focus-within:scale-110">
-                  <Search className="text-zen-brown/20 group-focus-within:text-zen-brown/50" size={18} />
+        <div className="zen-pointed-surface border border-zen-stone bg-white shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-4 mb-4">
+          <div className="flex flex-col lg:flex-row lg:items-end gap-5 lg:gap-8">
+            {!hideSearch && (
+              <div className="flex-1 w-full flex flex-col gap-2.5">
+                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">{title || 'Records'} Search</label>
+                <div className="relative group">
+                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
+                  <input 
+                    type="text" 
+                    placeholder={`Search ${title?.toLowerCase() || 'records'}...`}
+                    value={searchTerm}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    className="w-full h-[52px] pl-[52px] pr-6 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
+                  />
                 </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-            {!hideBranchSelector && (
-              <div className="shrink-0">
-                <BranchSelector />
               </div>
             )}
 
-            <div className="flex items-center gap-2">
-              {headerActions}
+            <div className="flex flex-col sm:flex-row w-full lg:w-auto flex-wrap items-stretch sm:items-end justify-end gap-5 lg:gap-8 lg:ml-auto">
+              {!hideBranchSelector && (
+                <div className="flex flex-col gap-2.5 min-w-0 w-full sm:w-auto shrink-0">
+                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Location</label>
+                  <BranchSelector />
+                </div>
+              )}
+
+              {headerActions && headerActions}
 
               {!hideViewToggle && onViewModeChange && (
-                <div className="flex items-center h-[48px] sm:h-[52px] bg-white p-1 rounded-[1.2rem] sm:rounded-[1rem] border border-zen-stone shadow-sm">
+                <div className="flex flex-col gap-2.5">
+                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Perspective</label>
+                  <div className="flex items-center h-[52px] bg-zen-cream/50 p-1 rounded-[1.15rem] border border-zen-stone shadow-inner shrink-0">
+                    <button 
+                      onClick={() => onViewModeChange('grid')}
+                      className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all duration-500 ${viewMode === 'grid' ? 'bg-white text-zen-sand shadow-sm' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
+                    >
+                      <Grid size={16} />
+                    </button>
+                    <button 
+                      onClick={() => onViewModeChange('table')}
+                      className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all duration-500 ${viewMode === 'table' ? 'bg-white text-zen-sand shadow-sm' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
+                    >
+                      <List size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!hideAddButton && addButtonLabel && onAddClick && (
+                <div className="flex flex-col gap-2.5 w-full sm:w-auto">
+                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Management</label>
                   <button 
-                    onClick={() => onViewModeChange('grid')}
-                    className={`h-full aspect-square flex items-center justify-center rounded-[0.8rem] transition-colors duration-300 ${viewMode === 'grid' ? 'bg-zen-brown text-white' : 'text-zen-brown/40 hover:text-zen-brown hover:bg-zen-brown/5'}`}
+                    onClick={onAddClick}
+                    className="w-full sm:w-auto shrink-0 h-[52px] rounded-[1.15rem] px-8 shadow-sm flex items-center justify-center gap-2 active:scale-95 group transition-all duration-700 bg-zen-brown text-white font-black text-[10px] uppercase tracking-[0.2em] relative overflow-hidden"
                   >
-                    <Grid size={16} />
-                  </button>
-                  <button 
-                    onClick={() => onViewModeChange('table')}
-                    className={`h-full aspect-square flex items-center justify-center rounded-[0.8rem] transition-colors duration-300 ${viewMode === 'table' ? 'bg-zen-primary text-white' : 'text-zen-brown/40 hover:text-zen-brown hover:bg-zen-brown/5'}`}
-                  >
-                    <List size={16} />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-zen-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                    <span className="relative z-10">{addButtonLabel}</span>
+                    <div className="group-hover:rotate-180 transition-transform duration-700 relative z-10 shrink-0">
+                      {addButtonIcon}
+                    </div>
                   </button>
                 </div>
               )}
             </div>
-
-            {!hideAddButton && addButtonLabel && onAddClick && (
-              <button 
-                onClick={onAddClick}
-                className="shrink-0 h-[48px] sm:h-[52px] rounded-[1.2rem] sm:rounded-[1rem] px-6 sm:px-8 shadow-sm flex items-center justify-center gap-3 active:scale-95 group transition-all duration-700 bg-zen-brown text-white font-bold text-xs sm:text-sm uppercase tracking-[0.2em] relative overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                <span className="hidden sm:inline relative z-10">{addButtonLabel}</span>
-                <div className="group-hover:rotate-90 transition-transform duration-700 relative z-10 shrink-0">
-                  {addButtonIcon}
-                </div>
-              </button>
-            )}
           </div>
         </div>
       )}

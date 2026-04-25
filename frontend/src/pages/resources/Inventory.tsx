@@ -278,15 +278,14 @@ const Inventory = () => {
   return (
     <ZenPageLayout
       title="Inventory"
-      hideSearch
-      hideBranchSelector
-      hideViewToggle
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
-    >
-      <div className="space-y-10 pb-20">
-        {/* Dynamic Summary Cards */}
-        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+      addButtonLabel="Add Item"
+      onAddClick={() => handleOpenModal()}
+      topContent={
+        <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
             { label: 'Inventory Volume', value: metrics.totalItems, trend: 'Items in workspace', icon: Boxes, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20' },
             { label: 'Critical Levels', value: metrics.lowStockCount, trend: 'Replenish required', icon: AlertTriangle, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20' },
@@ -296,74 +295,9 @@ const Inventory = () => {
             <ZenStatCard key={i} {...stat} delay={i * 0.05} />
           ))}
         </div>
-
-        {/* Global Filter Bar */}
-        <div className="bg-white/80 backdrop-blur-xl px-4 sm:px-6 py-4 sm:py-5 rounded-2xl border border-zen-brown/15 shadow-sm">
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
-            {/* Search */}
-            <div className="relative group flex-1 w-full">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={15} />
-              <input 
-                type="text"
-                placeholder="Search inventory..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
-              />
-            </div>
-
-            {/* Right Controls */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full lg:w-auto mt-4 lg:mt-0">
-
-            {/* Branch Filter */}
-            <div className="w-[170px] shrink-0">
-              <ZenDropdown
-                label=""
-                options={['All Branches', ...(branches || []).map(b => b.name)]}
-                value={(branches || []).find(b => b._id === selectedBranch)?.name || 'All Branches'}
-                onChange={(val) => {
-                  if (val === 'All Branches') {
-                    setSelectedBranch('all');
-                  } else {
-                    const branch = branches.find(b => b.name === val);
-                    if (branch) setSelectedBranch(branch._id);
-                  }
-                }}
-                icon={MapPin}
-                className="w-full"
-              />
-            </div>
-
-            <div className="flex flex-col gap-3">
-               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
-               {/* View Mode Toggle */}
-               <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner shrink-0">
-                 <button 
-                   onClick={() => setViewMode('grid')}
-                   className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                 >
-                   <Grid size={15} />
-                 </button>
-                 <button 
-                   onClick={() => setViewMode('table')}
-                   className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                 >
-                   <List size={15} />
-                 </button>
-               </div>
-            </div>
-
-            <div className="flex flex-col gap-3 w-full lg:w-auto">
-               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Management</label>
-               {/* Enroll Button */}
-               <ZenButton onClick={() => handleOpenModal()} variant="primary" className="w-full sm:w-auto px-6 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
-                 <Plus size={15} className="group-hover:rotate-90 transition-transform duration-500" />
-                 <span className="uppercase tracking-[0.2em] text-[10px] font-black whitespace-nowrap">Enroll Material</span>
-               </ZenButton>
-            </div>
-            </div>
-          </div>
-        </div>
+      }
+    >
+      <div className="space-y-6 pb-20">
 
         {viewMode === 'grid' ? (
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -437,8 +371,8 @@ const Inventory = () => {
               )}
            </div>
         ) : (
-           <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
-              <table className="w-full text-center border-collapse min-w-[1000px]">
+           <div className="w-full bg-white rounded-xl border border-zen-stone shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden table-container">
+              <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
                  <thead>
                     <tr>
                        <th>S No</th>
@@ -474,10 +408,11 @@ const Inventory = () => {
                                 </div>
                              </td>
                              <td>
-                                <div className="flex flex-col items-center px-6">
-                                   <span className="zen-table-primary">{item.name}</span>
-                                   <span className="zen-table-meta">{item.vendor || 'Inventory'}</span>
-                                </div>
+                                 <div className="flex flex-row items-center justify-center gap-2 px-6">
+                                    <span className="zen-table-primary">{item.name}</span>
+                                    <span className="text-zen-brown/20 px-1">|</span>
+                                    <span className="zen-table-meta">{item.vendor || 'Inventory'}</span>
+                                 </div>
                              </td>
                              <td>
                                 <div className="flex justify-center">
@@ -491,12 +426,13 @@ const Inventory = () => {
                              </td>
                              <td>
                                 <div className="flex items-center justify-center gap-4">
-                                   <div className="flex flex-col items-center">
-                                      <span className={`text-base font-serif font-black leading-none ${item.stock <= item.lowStock ? 'text-red-500' : 'text-zen-brown'}`}>
-                                         {item.stock} <span className="text-[10px] font-sans opacity-40 uppercase font-bold">{item.unit || 'Nos'}</span>
-                                      </span>
-                                      <span className="text-[8px] font-black opacity-30 uppercase tracking-widest mt-1">In Reserve</span>
-                                   </div>
+                                    <div className="flex flex-row items-center gap-2">
+                                       <span className={`text-base font-serif font-black leading-none ${item.stock <= item.lowStock ? 'text-red-500' : 'text-zen-brown'}`}>
+                                          {item.stock} <span className="text-[10px] font-sans opacity-40 uppercase font-bold">{item.unit || 'Nos'}</span>
+                                       </span>
+                                       <span className="text-zen-brown/20 px-1">|</span>
+                                       <span className="text-[8px] font-black opacity-30 uppercase tracking-widest mt-0">In Reserve</span>
+                                    </div>
                                    {item.stock <= item.lowStock && (
                                       <div className="p-1.5 bg-red-50 text-red-500 rounded-lg animate-pulse border border-red-100 shadow-sm">
                                          <AlertTriangle size={12} />

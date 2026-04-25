@@ -124,65 +124,53 @@ const Payroll = () => {
   return (
     <ZenPageLayout
       title="Payroll"
-      hideSearch
-      hideBranchSelector
+      searchTerm={searchTerm}
+      onSearchChange={(val) => {
+        setSearchTerm(val);
+        debouncedSearch(val);
+      }}
       hideViewToggle
       hideAddButton
-    >
-      <div className="space-y-10 pb-20">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8 px-4 lg:px-2 w-full">
+      headerActions={
+        <>
+            <div className="flex flex-col gap-2.5 w-full sm:w-[240px]">
+                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Time Window</label>
+                <div className="h-[52px] px-4 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] flex items-center shadow-sm">
+                    <ZenMonthPicker
+                        value={selectedMonth}
+                        onChange={setSelectedMonth}
+                        className="w-full !border-none !shadow-none !bg-transparent"
+                        hideLabel
+                    />
+                </div>
+            </div>
+
+            <div className="flex flex-col gap-2.5 w-full sm:w-auto">
+                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Management</label>
+                <ZenButton onClick={handleExport} variant="primary" className="w-full sm:w-auto shrink-0 h-[52px] rounded-[1.15rem] px-8 shadow-sm flex items-center justify-center gap-2 active:scale-95 group transition-all duration-700 bg-zen-brown text-white font-black text-[10px] uppercase tracking-[0.2em] relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-zen-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                    <span className="relative z-10">Export Report</span>
+                    <div className="group-hover:rotate-180 transition-transform duration-700 relative z-10 shrink-0">
+                      <Download size={16} />
+                    </div>
+                </ZenButton>
+            </div>
+        </>
+      }
+      topContent={
+        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2 w-full">
           {[
-            { label: 'Payroll Disbursement', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.total.toLocaleString()}`, unit: '', icon: Wallet2, color: 'text-zen-brown', bg: 'bg-zen-brown/[0.03]', watermark: Wallet2 },
-            { label: 'Total Deductions', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.deductions.toLocaleString()}`, unit: '', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/[0.03]', watermark: Clock },
-            { label: 'Overtime', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.ot.toLocaleString()}`, unit: '', icon: Zap, color: 'text-red-500', bg: 'bg-red-500/[0.03]', watermark: Zap },
-            { label: 'Total Hours', value: `${stats.hours.toLocaleString()}`, unit: 'Hrs', icon: Clock, color: 'text-slate-500', bg: 'bg-slate-500/[0.03]', watermark: Clock }
+            { label: 'Payroll Disbursement', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.total.toLocaleString()}`, icon: Wallet2, color: 'text-zen-brown', bg: 'bg-zen-brown/[0.03]', watermark: Wallet2 },
+            { label: 'Total Deductions', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.deductions.toLocaleString()}`, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/[0.03]', watermark: Clock },
+            { label: 'Overtime', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.ot.toLocaleString()}`, icon: Zap, color: 'text-red-500', bg: 'bg-red-500/[0.03]', watermark: Zap },
+            { label: 'Total Hours', value: `${stats.hours.toLocaleString()}`, icon: Clock, color: 'text-slate-500', bg: 'bg-slate-500/[0.03]', watermark: Clock }
           ].map((stat, i) => (
             <ZenStatCard key={stat.label} {...stat} delay={i * 0.05} />
           ))}
         </div>
-
-        {/* Global Filter Bar */}
-        <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-zen-brown/15 shadow-sm mx-4 lg:mx-2">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-end">
-            {/* Search Section */}
-            <div className="lg:col-span-6 flex flex-col gap-3">
-              <label className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[.4em] ml-2">Employee Search</label>
-              <div className="relative group">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors duration-500" size={16} />
-                <input
-                  type="text"
-                  placeholder="Search by specialist..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  className="w-full h-[54px] pl-[52px] pr-6 bg-zen-cream/30 border border-zen-brown/10 rounded-2xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
-                />
-              </div>
-            </div>
-
-            {/* Time Window Section */}
-            <div className="lg:col-span-3 flex flex-col gap-3">
-              <label className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[.4em] ml-2">Time Window</label>
-              <div className="h-[54px] px-4 bg-zen-cream/30 rounded-2xl border border-zen-brown/10 shadow-sm flex items-center">
-                <ZenMonthPicker
-                  value={selectedMonth}
-                  onChange={setSelectedMonth}
-                  className="w-full !border-none !shadow-none !bg-transparent"
-                  hideLabel
-                />
-              </div>
-            </div>
-
-            {/* Management Section */}
-            <div className="lg:col-span-3 flex flex-col gap-3">
-              <label className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[.4em] ml-2">Management</label>
-              <ZenButton onClick={handleExport} variant="primary" className="w-full px-8 h-[54px] shadow-sm flex items-center justify-center gap-3 group rounded-2xl">
-                <Download size={16} className="group-hover:rotate-12 transition-transform duration-500" />
-                <span className="uppercase tracking-[0.25em] text-[10px] font-black">Export Report</span>
-              </ZenButton>
-            </div>
-          </div>
-        </div>
-
+      }
+    >
+      <div className="space-y-10 pb-20">
         <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700 mx-4 lg:mx-2">
           <div className="flex items-center justify-between gap-4 px-6 sm:px-8 pt-6 pb-5 border-b border-zen-brown/5">
             <div>
@@ -194,7 +182,7 @@ const Payroll = () => {
             </ZenBadge>
           </div>
           <div className="table-container scrollbar-hide overflow-x-auto">
-            <table className="w-full text-center border-collapse min-w-[1000px]">
+            <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
               <thead>
                 <tr>
                   <th>S No</th>
@@ -229,8 +217,9 @@ const Payroll = () => {
                         {sNo.toString().padStart(2, '0')}
                       </td>
                       <td>
-                        <div className="flex flex-col items-center">
+                        <div className="flex items-center justify-center gap-2">
                           <span className="zen-table-primary">{row.name}</span>
+                          <span className="text-zen-brown/20 text-[10px]">|</span>
                           <span className="zen-table-meta">{row.role}</span>
                         </div>
                       </td>
@@ -240,16 +229,18 @@ const Payroll = () => {
                         </div>
                       </td>
                       <td>
-                        <div className="flex flex-col items-center">
+                        <div className="flex items-center justify-center gap-2">
                           <span className="font-bold text-zen-brown text-sm">{row.daysWorked} Days</span>
+                          <span className="text-zen-brown/20 text-[10px]">|</span>
                           <span className="text-[8px] text-zen-brown/30 font-bold uppercase tracking-widest">{row.totalHours} Hours</span>
                         </div>
                       </td>
                       <td>
-                        <div className="flex flex-col items-center">
+                        <div className="flex items-center justify-center gap-2">
                           <span className={`font-bold text-sm ${row.leavesCount > 0 ? 'text-amber-600' : 'text-zen-brown/20'}`}>
                             {row.leavesCount} {row.payType === 'Monthly' ? 'Day' : 'Hr'}{row.leavesCount !== 1 ? 's' : ''}
                           </span>
+                          <span className="text-zen-brown/20 text-[10px]">|</span>
                           <span className="text-[7px] font-bold uppercase tracking-widest opacity-40 whitespace-nowrap">Leave Balance</span>
                         </div>
                       </td>

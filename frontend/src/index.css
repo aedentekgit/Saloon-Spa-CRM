@@ -30,13 +30,13 @@
   --color-lavender-800: #5B21B6;
   --color-lavender-900: #4C1D95;
 
-  /* Global container shadow profile (soft depth like billing reference) */
-  --shadow-sm: 0 12px 24px -18px rgba(17, 24, 39, 0.28), 0 2px 8px -6px rgba(17, 24, 39, 0.16);
-  --shadow: 0 16px 32px -20px rgba(17, 24, 39, 0.30), 0 6px 14px -10px rgba(17, 24, 39, 0.18);
-  --shadow-md: 0 20px 40px -22px rgba(17, 24, 39, 0.34), 0 8px 18px -12px rgba(17, 24, 39, 0.20);
-  --shadow-lg: 0 24px 48px -24px rgba(17, 24, 39, 0.36), 0 10px 24px -14px rgba(17, 24, 39, 0.22);
-  --shadow-xl: 0 30px 60px -28px rgba(17, 24, 39, 0.40), 0 14px 28px -16px rgba(17, 24, 39, 0.24);
-  --shadow-2xl: 0 38px 72px -32px rgba(17, 24, 39, 0.44), 0 18px 36px -20px rgba(17, 24, 39, 0.26);
+  /* Global container shadow profile (Professional Depth) */
+  --shadow-sm: 0 10px 20px -15px rgba(43, 36, 64, 0.15), 0 2px 5px -2px rgba(43, 36, 64, 0.05);
+  --shadow: 0 20px 40px -20px rgba(43, 36, 64, 0.20), 0 5px 15px -5px rgba(43, 36, 64, 0.10);
+  --shadow-md: 0 30px 60px -25px rgba(43, 36, 64, 0.25), 0 10px 20px -10px rgba(43, 36, 64, 0.12);
+  --shadow-lg: 0 40px 80px -30px rgba(43, 36, 64, 0.30), 0 15px 30px -15px rgba(43, 36, 64, 0.15);
+  --shadow-xl: 0 50px 100px -35px rgba(43, 36, 64, 0.35), 0 20px 40px -20px rgba(43, 36, 64, 0.18);
+  --shadow-2xl: 0 60px 120px -40px rgba(43, 36, 64, 0.40), 0 25px 50px -25px rgba(43, 36, 64, 0.20);
 }
 
 @layer base {
@@ -48,11 +48,11 @@
 
   body {
     background:
-      radial-gradient(circle at top left, rgba(197, 163, 88, 0.05), transparent 32%),
-      radial-gradient(circle at top right, rgba(139, 92, 246, 0.04), transparent 26%),
-      url("https://www.transparenttextures.com/patterns/natural-paper.png"),
-      linear-gradient(180deg, #F9F9F7 0%, #F5F6F8 100%);
-    @apply text-slate-900 font-sans antialiased overflow-x-hidden;
+      radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.05), transparent 40%),
+      radial-gradient(circle at 100% 0%, rgba(197, 163, 88, 0.08), transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(247, 248, 252, 1), #FFFFFF 100%);
+    background-attachment: fixed;
+    @apply text-zen-brown font-sans antialiased overflow-x-hidden selection:bg-zen-sand selection:text-white;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -136,12 +136,13 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Standard utility class for Tailwind 4 */
   .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+    &::-webkit-scrollbar {
+      display: none !important;
+    }
   }
 
   /* Responsive page container */
@@ -170,7 +171,7 @@
   /* Global hover effect for cards - reflects theme color in border */
   /* Professional Classic Framing - Stylish Organic Style */
   .professional-frame, .zen-pointed-surface {
-    @apply relative overflow-hidden bg-white border border-zen-stone/60;
+    @apply relative overflow-hidden bg-white border border-zen-stone;
     border-radius: 3rem 1rem 3rem 1rem;
     box-shadow: 
       0 20px 40px -20px rgba(0, 0, 0, 0.08),
@@ -179,24 +180,82 @@
   }
 
   .classic-surface {
-    @apply relative bg-gradient-to-b from-white to-stone-50/30 border border-zen-stone/40;
+    @apply relative bg-white border border-zen-stone/70;
     border-radius: 1rem;
   }
 
-  .zen-card-hover {
-    @apply relative border border-zen-stone/70 bg-white/90 backdrop-blur-xl transition-all duration-500 hover:border-zen-sand/40 hover:-translate-y-0.5 cursor-pointer rounded-2xl;
-    box-shadow: var(--shadow-md);
+  .classic-stylish-card {
+    @apply relative bg-white border border-zen-stone;
+    box-shadow: 
+      0 10px 30px -15px rgba(0, 0, 0, 0.05),
+      0 4px 6px -2px rgba(0, 0, 0, 0.02),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.5);
   }
 
-  /* Normalize older arbitrary shadow values to the new global container depth */
-  [class*="shadow-[0_8px_30px_rgb(0,0,0,0.04)]"],
-  [class*="shadow-[0_20px_50px_rgba(0,0,0,0.03)]"],
-  [class*="shadow-[0_8px_40px_rgb(0,0,0,0.03)]"],
-  [class*="shadow-[0_2px_10px_rgba(0,0,0,0.02)]"],
-  [class*="shadow-[0_40px_80px_-20px_rgba(83,67,55,0.12)]"],
-  [class*="shadow-[0_60px_100px_-30px_rgba(83,67,55,0.15)]"],
-  [class*="shadow-[0_100px_200px_-50px_rgba(45,45,45,0.12)]"] {
-    box-shadow: var(--shadow-md) !important;
+  .classic-stylish-card::before {
+    content: '';
+    @apply absolute inset-1 rounded-[1.2rem] border border-zen-gold/20 pointer-events-none;
+  }
+
+  .zen-card-hover {
+    @apply relative border border-zen-stone/80 bg-white transition-all duration-500 hover:border-zen-gold/40 hover:-translate-y-1 cursor-pointer rounded-[2rem];
+    box-shadow: 
+      0 20px 25px -5px rgba(0, 0, 0, 0.05),
+      0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  }
+
+  .zen-card-hover:hover {
+    box-shadow: 
+      0 30px 50px -12px rgba(0, 0, 0, 0.08),
+      0 10px 20px -5px rgba(197, 163, 88, 0.1);
+  }
+
+  /* Metrics Grid - Proper Responsive Handling */
+  .zen-metrics-grid {
+    @apply flex overflow-x-auto overflow-y-visible pt-2 sm:pt-4 pb-4 gap-4 sm:gap-6 px-4 lg:px-2;
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+  .zen-metrics-grid::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  @media (min-width: 1024px) {
+    .zen-metrics-grid {
+      @apply grid grid-cols-4 gap-8 lg:overflow-visible overflow-x-visible;
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .zen-metrics-grid {
+      @apply gap-10;
+    }
+  }
+}
+
+@media (max-width: 1024px) {
+  .page-container {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+
+  .page-container {
+    padding: 0.5rem;
+  }
+
+  .professional-frame,
+  .zen-pointed-surface,
+  .zen-card-hover {
+    border-radius: 1.25rem;
+  }
+
+  .table-container table {
+    min-width: 42rem !important;
   }
 }
 
@@ -324,14 +383,14 @@
   }
 
   table thead th {
-    background-color: var(--zen-primary, var(--color-zen-brown)) !important;
+    background: linear-gradient(to bottom, var(--zen-primary, #6D28D9), var(--zen-brown, #2B2440)) !important;
     color: var(--zen-contrast-text, #FFFFFF) !important;
-    font-size: 11px !important;
-    font-weight: 800 !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.25em !important;
+    letter-spacing: 0.3em !important;
     line-height: 1.2 !important;
-    padding: 1.5rem 1.75rem !important;
+    padding: 1.25rem 2rem !important;
     font-family: var(--font-sans) !important;
     text-align: center !important;
     border: none !important;
@@ -340,6 +399,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.05);
   }
 
   table thead tr th:first-child,
@@ -352,11 +412,11 @@
   }
 
   table tbody td {
-    @apply py-5 px-8 text-[14px] text-black/70 font-medium align-middle text-center;
+    @apply py-4 px-8 text-[14px] text-black/70 font-medium align-middle text-center;
   }
 
   .zen-table-primary {
-    @apply block font-serif text-[16px] font-black text-zen-brown tracking-tight leading-tight;
+    @apply block font-serif text-[16px] font-black text-zen-brown tracking-tight leading-tight whitespace-nowrap;
   }
 
   .zen-table-meta {
@@ -368,7 +428,7 @@
   }
 
   table tbody td:first-child {
-    @apply whitespace-nowrap font-sans text-[11px] font-semibold text-black/40;
+    @apply whitespace-nowrap font-serif text-[14px] italic font-bold text-zen-brown/60 tracking-wider;
   }
 
   table tbody td .zen-badge {

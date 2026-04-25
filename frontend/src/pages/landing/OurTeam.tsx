@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
 import { motion, AnimatePresence } from 'motion/react';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { withBase } from '../../utils/assetPath';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const BASE_URL = API_URL.replace('/api', '');
@@ -195,7 +196,7 @@ const OurTeam = () => {
                 </div>
                 <div className="space-y-6">
                    <div className="aspect-[4/5] rounded-[3rem] overflow-hidden border-8 border-white shadow-2xl">
-                      <img src="/images/hero_team.png" alt="Main Team" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80'; }} />
+                      <img src={withBase('/images/hero_team.png')} alt="Main Team" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80'; }} />
                    </div>
                    <div className="aspect-[3/2] rounded-full overflow-hidden border-4 border-white shadow-2xl">
                       <img src="https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&q=80" alt="Action" className="w-full h-full object-cover" />

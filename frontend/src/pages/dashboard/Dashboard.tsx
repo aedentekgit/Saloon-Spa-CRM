@@ -143,7 +143,7 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[600px]">
+      <div className="flex flex-col items-center justify-center min-h-[460px] sm:min-h-[600px]">
         <div className="w-12 h-12 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
@@ -175,18 +175,18 @@ const AdminDashboard = () => {
         '--zen-primary': settings?.theme?.primaryColor || '#2D2D2D',
         height: 'calc(100vh - 100px)' 
       } as React.CSSProperties} 
-      className="space-y-8 font-sans overflow-hidden flex flex-col"
+      className="space-y-4 sm:space-y-8 font-sans overflow-x-hidden flex flex-col"
     >
-      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-8 pr-4">
+      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 sm:space-y-8 pr-4">
 
 
-      {/* Quick Actions Bar */}
-      <div className="flex flex-wrap items-center gap-4">
+      {/* Quick Actions Bar - Classic Stylish Look */}
+      <div className="flex overflow-x-auto pb-2 sm:pb-4 items-center gap-4 scrollbar-hide px-2 -mx-2">
           {[
-            { label: 'Book Ritual', icon: Sparkles, color: 'bg-zen-sand text-white', path: '/appointments' },
-            { label: 'Digital Punch', icon: Clock, color: 'bg-white text-zen-brown border-zen-brown/10', path: '/attendance' },
-            { label: 'New Artisan', icon: Users, color: 'bg-white text-zen-brown border-zen-brown/10', path: '/employees' },
-            { label: 'Inventory Restock', icon: Target, color: 'bg-white text-zen-brown border-zen-brown/10', path: '/inventory' },
+            { label: 'Book Ritual', icon: Sparkles, color: 'bg-zen-brown text-white', path: '/appointments' },
+            { label: 'Digital Punch', icon: Clock, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/attendance' },
+            { label: 'New Artisan', icon: Users, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/employees' },
+            { label: 'Inventory Restock', icon: Target, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/inventory' },
           ].map((action, i) => (
            <motion.button
              key={action.label}
@@ -194,23 +194,25 @@ const AdminDashboard = () => {
              animate={{ opacity: 1, x: 0 }}
              transition={{ delay: i * 0.1 }}
              onClick={() => navigate(action.path)}
-             className={`flex items-center gap-3 px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 border ${action.color}`}
+             className={`flex shrink-0 items-center justify-center gap-3 px-7 py-3.5 rounded-[1.2rem] text-[10px] font-bold uppercase tracking-[0.2em] shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all active:scale-95 border ${action.color} relative overflow-hidden group`}
            >
-             <action.icon size={14} />
-             {action.label}
+             <div className="absolute inset-0 bg-gradient-to-tr from-zen-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+             <action.icon size={14} className="relative z-10" />
+             <span className="relative z-10">{action.label}</span>
            </motion.button>
          ))}
       </div>
 
-      <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+      <div className="zen-metrics-grid">
         {cards.map((card, i) => (
            <ZenStatCard key={i} {...card} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Analytics Overview */}
-        <div className="lg:col-span-8 bg-white p-8 rounded-3xl border border-zen-stone/80 shadow-[0_8px_40px_rgb(0,0,0,0.03)] flex flex-col transition-all duration-300 zen-card-hover">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8 pb-10">
+        {/* Analytics Overview - Classic Framing */}
+        <div className="lg:col-span-8 bg-white p-6 sm:p-8 lg:p-10 rounded-[2rem] border border-zen-stone shadow-sm flex flex-col transition-all duration-300 zen-card-hover relative group">
+          <div className="absolute inset-2 rounded-[1.6rem] border border-zen-gold/5 pointer-events-none group-hover:border-zen-gold/10 transition-colors duration-700" />
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 z-10 relative">
              <div className="space-y-1">
@@ -273,8 +275,9 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Daily Overview */}
-        <div className="lg:col-span-4 bg-white p-8 rounded-3xl border border-zen-stone/80 shadow-[0_8px_40px_rgb(0,0,0,0.03)] hover:-translate-y-1 hover:shadow-[0_15px_40px_rgb(0,0,0,0.06)] hover:border-zen-sand/30 transition-all duration-300">
+        {/* Daily Overview - Classic Framing */}
+        <div className="lg:col-span-4 bg-white p-6 sm:p-8 lg:p-10 rounded-[2rem] border border-zen-stone shadow-sm flex flex-col transition-all duration-300 zen-card-hover relative group">
+          <div className="absolute inset-2 rounded-[1.6rem] border border-zen-gold/5 pointer-events-none group-hover:border-zen-gold/10 transition-colors duration-700" />
 
            <div className="space-y-1 mb-8">
               <h3 className="text-2xl font-serif font-black text-gray-900 tracking-tight">Daily Overview</h3>
@@ -356,9 +359,10 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-         {/* Recent Ceremonies */}
-         <div className="lg:col-span-12 bg-white/80 backdrop-blur-3xl p-10 rounded-[2rem] border border-zen-stone/80 shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8">
+         {/* Recent Ceremonies - Classic Framing */}
+         <div className="lg:col-span-12 bg-white p-6 sm:p-8 lg:p-10 rounded-[2rem] border border-zen-stone shadow-sm zen-card-hover relative group overflow-hidden">
+            <div className="absolute inset-2 rounded-[1.6rem] border border-zen-gold/5 pointer-events-none group-hover:border-zen-gold/10 transition-colors duration-700" />
 
             <div className="flex items-center justify-between mb-10">
                <div>
@@ -369,7 +373,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className="-mx-10 overflow-x-auto animate-in fade-in duration-700">
-               <table className="w-full text-center border-collapse min-w-[1000px]">
+               <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
                   <thead>
                     <tr>
                       <th>S No</th>
@@ -403,20 +407,23 @@ const AdminDashboard = () => {
                             {(i + 1).toString().padStart(2, '0')}
                           </td>
                           <td>
-                             <div className="flex flex-col items-center px-6">
+                             <div className="flex flex-row items-center justify-center gap-2 px-6">
                                 <span className="zen-table-primary">{apt.client}</span>
+                                <span className="text-zen-brown/20 px-1">|</span>
                                 <span className="zen-table-meta">Verified Client</span>
                              </div>
                           </td>
                           <td>
-                             <div className="flex flex-col items-center">
+                             <div className="flex flex-row items-center justify-center gap-2">
                                 <span className="zen-table-primary font-accent italic !text-[18px]">{apt.employee}</span>
+                                <span className="text-zen-brown/20 px-1">|</span>
                                 <span className="zen-table-meta">Lead Artisan</span>
                              </div>
                           </td>
                           <td>
-                             <div className="flex flex-col items-center">
+                             <div className="flex flex-row items-center justify-center gap-2">
                                 <span className="zen-table-primary">{apt.service}</span>
+                                <span className="text-zen-brown/20 px-1">|</span>
                                 <span className="zen-table-meta">{apt.time || '60m Ritual'}</span>
                              </div>
                           </td>
@@ -497,13 +504,14 @@ const EmployeeDashboard = () => {
 
   return (
     <div className="space-y-12 pb-20">
-      <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+      <div className="zen-metrics-grid">
         {cards.map((card, i) => (
            <ZenStatCard key={i} {...card} />
         ))}
       </div>
 
-      <div className="bg-white p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+      <div className="bg-white p-12 rounded-[2rem] border border-zen-stone shadow-sm zen-card-hover relative group overflow-hidden">
+        <div className="absolute inset-2 rounded-[1.6rem] border border-zen-gold/5 pointer-events-none group-hover:border-zen-gold/10 transition-colors duration-700" />
         <div className="flex items-center justify-between mb-12">
           <div>
             <h3 className="text-3xl font-serif font-bold text-black tracking-tight">Schedule Matrix</h3>
@@ -609,15 +617,16 @@ const ClientDashboard = () => {
 
   return (
     <div className="space-y-12 pb-20">
-      <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-12 gap-6 lg:grid lg:grid-cols-4 lg:gap-10 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+      <div className="zen-metrics-grid">
         {cards.map((card, i) => (
            <ZenStatCard key={i} {...card} />
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div className="lg:col-span-8 bg-white/60 backdrop-blur-xl rounded-[1.5rem] p-12 border border-white shadow-sm">
-          <header className="mb-12">
+        <div className="lg:col-span-8 bg-white rounded-[2rem] p-12 border border-zen-stone shadow-sm zen-card-hover relative group overflow-hidden">
+          <div className="absolute inset-2 rounded-[1.6rem] border border-zen-gold/5 pointer-events-none group-hover:border-zen-gold/10 transition-colors duration-700" />
+          <header className="mb-12 relative z-10">
             <h3 className="text-3xl font-serif font-bold text-black tracking-tight">Your Relaxation Journey</h3>
             <p className="text-xs font-bold text-black/20 uppercase tracking-[0.4em] mt-2">Recent Sanctuary History</p>
           </header>
@@ -652,8 +661,8 @@ const ClientDashboard = () => {
         </div>
 
         <div className="lg:col-span-4 space-y-8">
-          <div className="bg-zen-sand/90 backdrop-blur-xl p-12 rounded-[1.5rem] text-white shadow-sm shadow-zen-sand/20 relative overflow-hidden group h-full flex flex-col justify-between">
-            <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
+          <div className="bg-zen-brown p-12 rounded-[2rem] text-white shadow-lg relative overflow-hidden group h-full flex flex-col justify-between border border-zen-gold/20">
+            <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-zen-gold/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
             
             <div className="relative z-10">
                <Sparkles size={40} className="mb-8 opacity-40 hover:rotate-12 transition-transform" />

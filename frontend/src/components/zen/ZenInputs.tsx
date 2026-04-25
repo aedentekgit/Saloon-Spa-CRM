@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 
 interface DropdownProps {
   label: string;
-  options: string[];
+  options: string[] | { label: string; value: string }[];
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
@@ -45,7 +45,8 @@ export const useFloatingAnchor = (
         setStyle({
           width: maxWidth || rect.width,
           left,
-          top: rect.bottom + offset
+          top: rect.bottom + offset,
+          transformOrigin: 'top center'
         });
       });
     };
@@ -71,9 +72,18 @@ export const ZenDropdown = ({
 }: DropdownProps) => {
   const safeOptions = Array.isArray(options) ? options : [];
   const [isOpen, setIsOpen] = useState(false);
+  const [isCompactViewport, setIsCompactViewport] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < 640
+  );
   const dropdownRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const floatingStyle = useFloatingAnchor(dropdownRef, isOpen, 8);
+
+  useEffect(() => {
+    const onResize = () => setIsCompactViewport(window.innerWidth < 640);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -94,30 +104,35 @@ export const ZenDropdown = ({
       <div 
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={variant === 'pill' 
-          ? "h-[46px] sm:h-[50px] bg-white px-5 rounded-[1.35rem] border-[1.5px] border-zen-brown/30 flex items-center justify-between gap-4 group-hover:border-zen-brown/60 transition-all cursor-pointer shadow-md"
-          : "w-full px-1 pb-4 bg-transparent border-b-[2px] border-zen-brown/30 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/60 group-focus-within:border-zen-brown transition-all"
+          ? "h-[46px] sm:h-[50px] bg-white px-5 rounded-[1.35rem] border border-zen-brown/10 flex items-center justify-between gap-4 group-hover:border-zen-gold/40 transition-all cursor-pointer shadow-sm relative"
+          : "w-full px-1 pb-4 bg-transparent border-b-[2px] border-zen-brown/15 flex items-center justify-between cursor-pointer group-hover:border-zen-gold/40 group-focus-within:border-zen-brown transition-all relative"
         }
       >
         <div className="flex items-center gap-4 overflow-hidden">
-          {Icon && <Icon size={16} className={variant === 'pill' ? "text-zen-brown/50 group-hover:text-zen-brown flex-shrink-0" : "text-zen-brown/40 flex-shrink-0"} />}
+          {Icon && <Icon size={16} className={variant === 'pill' ? "text-zen-brown/30 group-hover:text-zen-gold flex-shrink-0 transition-colors" : "text-zen-brown/30 flex-shrink-0"} />}
           <span 
             className={variant === 'pill' 
-              ? `font-serif text-sm sm:text-base truncate ${value ? 'text-zen-brown font-black' : 'text-zen-brown/40'}`
-              : `font-serif text-sm sm:text-base truncate ${value ? 'text-zen-brown font-semibold' : 'text-zen-brown/30'}`
+              ? `font-serif text-sm sm:text-base truncate tracking-tight ${value ? 'text-zen-brown font-black' : 'text-zen-brown/30'}`
+              : `font-serif text-sm sm:text-base truncate tracking-tight ${value ? 'text-zen-brown font-semibold' : 'text-zen-brown/20'}`
             }
             style={fontFamily ? { fontFamily } : {}}
           >
             {value || placeholder}
           </span>
         </div>
-        <ChevronDown size={variant === 'pill' ? 13 : 18} className={`text-zen-brown/20 flex-shrink-0 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={variant === 'pill' ? 14 : 18} className={`text-zen-brown/20 flex-shrink-0 transition-all duration-700 ${isOpen ? 'rotate-180 text-zen-gold' : ''}`} />
+        
+        {/* Subtle highlight line for pill variant */}
+        {variant === 'pill' && (
+          <div className="absolute inset-1 rounded-[1.15rem] border border-zen-gold/5 pointer-events-none" />
+        )}
       </div>
       
       {isOpen && createPortal(
         <div 
           ref={listRef}
-          className={`fixed bg-white border border-zen-brown/15 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 z-[99999] overflow-y-auto rounded-[1rem] max-h-60`}
-          style={window.innerWidth < 640 ? {
+          className={`fixed bg-white border border-zen-brown/10 shadow-[0_30px_70px_-15px_rgba(43,36,64,0.15)] animate-in fade-in slide-in-from-top-2 duration-500 z-[99999] overflow-y-auto rounded-[1.25rem] max-h-64`}
+          style={isCompactViewport ? {
             left: 16,
             top: '50%',
             width: 'calc(100vw - 32px)',
@@ -125,27 +140,32 @@ export const ZenDropdown = ({
             maxHeight: '70vh'
           } : floatingStyle}
         >
-          <div className="py-2">
-            {window.innerWidth < 640 && (
-              <div className="px-8 pt-6 pb-2 border-b border-zen-brown/15 mb-2">
-                <p className="text-[10px] font-black text-zen-brown/20 uppercase tracking-[0.3em]">{label || 'Select'}</p>
-                <h3 className="text-base font-serif font-bold text-zen-brown mt-1">Registry Selection</h3>
+          <div className="py-2.5">
+            {isCompactViewport && (
+              <div className="px-8 pt-8 pb-4 border-b border-zen-brown/5 mb-3">
+                <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-[0.4em]">{label || 'Select'}</p>
+                <h3 className="text-base font-serif font-black text-zen-brown mt-1">Registry Selection</h3>
               </div>
             )}
-            {safeOptions.map((opt) => (
-              <div 
-                key={opt}
-                onMouseDown={(e) => {
-                  e.preventDefault(); // prevent outside-click from firing first
-                  onChange(opt);
-                  setIsOpen(false);
-                }}
-                className={`px-5 py-3 text-sm font-medium transition-all cursor-pointer hover:bg-zen-cream underline-offset-4 ${value === opt ? 'bg-zen-cream/50 text-zen-brown font-bold' : 'text-zen-brown/60'}`}
-                style={['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Poppins', 'Montserrat'].includes(opt) ? { fontFamily: opt } : {}}
-              >
-                {opt}
-              </div>
-            ))}
+            {safeOptions.map((opt) => {
+              const label = typeof opt === 'string' ? opt : opt.label;
+              const optValue = typeof opt === 'string' ? opt : opt.value;
+              return (
+                <div 
+                  key={optValue}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onChange(optValue);
+                    setIsOpen(false);
+                  }}
+                  className={`px-6 py-4 text-sm font-medium transition-all duration-300 cursor-pointer flex items-center justify-between group/opt ${value === optValue ? 'bg-zen-cream/60 text-zen-brown font-bold' : 'text-zen-brown/50 hover:bg-zen-cream/30 hover:text-zen-brown hover:translate-x-1'}`}
+                  style={['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Poppins', 'Montserrat'].includes(label) ? { fontFamily: label } : {}}
+                >
+                  <span>{label}</span>
+                  {value === optValue && <div className="w-1.5 h-1.5 rounded-full bg-zen-gold shadow-[0_0_8px_rgba(197,163,88,0.5)]" />}
+                </div>
+              );
+            })}
           </div>
         </div>,
         document.body
@@ -159,6 +179,9 @@ export const ZenAutocomplete = ({
   subtextKey = 'subtext', disabled, allowCustom = false, hideLabel = false
 }: any) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCompactViewport, setIsCompactViewport] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < 640
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -198,6 +221,12 @@ export const ZenAutocomplete = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const onResize = () => setIsCompactViewport(window.innerWidth < 640);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   return (
     <div className={`space-y-1 relative group ${className} ${disabled ? 'opacity-40 pointer-events-none' : ''}`} ref={containerRef}>
       {!hideLabel && <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>}
@@ -228,7 +257,7 @@ export const ZenAutocomplete = ({
         <div 
           ref={listRef}
           className={`fixed bg-white border border-zen-brown/15 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-500 z-[99999] overflow-y-auto rounded-[1rem] max-h-[320px] border border-zen-brown/15`}
-          style={window.innerWidth < 640 ? {
+          style={isCompactViewport ? {
             left: 16,
             top: '50%',
             width: 'calc(100vw - 32px)',
@@ -262,12 +291,12 @@ export const ZenAutocomplete = ({
   );
 };
 
-export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', type, required, ...props }: any) => {
+export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', type, required, containerClassName, ...props }: any) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
   
   return (
-    <div className={`space-y-3 group ${props.containerClassName || ''}`}>
+    <div className={`space-y-3 group ${containerClassName || ''}`}>
       <label className={`text-[10px] font-black uppercase tracking-[0.4em] ml-1.5 flex items-center gap-1 ${variant === 'dark' ? 'text-white/60' : 'text-zen-brown/40'}`}>
         {label}
         {required && <span className="text-red-400 text-xs mt-0.5">*</span>}

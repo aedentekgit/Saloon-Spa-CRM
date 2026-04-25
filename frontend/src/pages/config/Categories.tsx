@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Plus, Edit2, Trash2, Tag, 
-  DoorOpen, Sparkles, Package, X
+  DoorOpen, Sparkles, Package, X, Search
 } from 'lucide-react';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
@@ -96,15 +96,22 @@ const Categories = () => {
 
   return (
     <ZenPageLayout
-      title="Category Registry"
+      title="Categories"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       addButtonLabel="New Category"
       onAddClick={() => handleOpenModal()}
-      addButtonIcon={<Plus size={18} />}
+      hideBranchSelector
+      hideViewToggle
     >
-      <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-zen-brown/15 overflow-hidden shadow-sm">
-        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
+      <div className="space-y-6 pb-20">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center min-h-[400px]">
+            <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
               <tr>
@@ -116,14 +123,10 @@ const Categories = () => {
               </tr>
             </thead>
             <tbody className="">
-              {(!filteredCategories || filteredCategories.length === 0) && (
-
+              {(!filteredCategories || filteredCategories.length === 0) && !loading && (
                  <tr>
-
-                    <td colSpan={12} className="px-6 py-16 text-center text-[13px] font-sans text-gray-400 bg-gray-50/30">No records available.</td>
-
+                    <td colSpan={5} className="px-6 py-16 text-center text-[13px] font-sans text-gray-400 bg-gray-50/30">No records available.</td>
                  </tr>
-
               )}
 
               {filteredCategories.map((cat, index) => (
@@ -155,22 +158,17 @@ const Categories = () => {
                   </td>
                 </tr>
               ))}
-              {filteredCategories.length === 0 && !loading && (
-                <tr>
-                   <td colSpan={5} className="py-24 text-center text-zen-brown/20 italic font-serif text-xl border-none">
-                      No categories found in the current registry.
-                   </td>
-                </tr>
-              )}
+
             </tbody>
           </table>
-        </div>
+          </div>
+        )}
       </div>
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        maxWidth="max-w-3xl"
+        maxWidth="max-w-2xl"
         header={
           <div className="flex items-start justify-between gap-6 px-6 sm:px-10 py-6 sm:py-8">
             <div className="flex items-start gap-4 sm:gap-5 min-w-0">

@@ -3,6 +3,7 @@ import { ArrowRight, Leaf, Waves, Wind, Sun, Star, Award, ShieldCheck, Sparkles 
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
+import { withBase } from '../../utils/assetPath';
 
 const Home = () => {
   const { settings } = usePublicSettings();
@@ -12,17 +13,17 @@ const Home = () => {
     {
       title: 'Swedish Massage',
       desc: 'Flowing, full-body strokes designed to soften tension and calm the nervous system.',
-      img: '/images/swedish_massage.png',
+      img: withBase('/images/swedish_massage.png'),
     },
     {
       title: 'Deep Tissue Massage',
       desc: 'Focused pressure work for stubborn knots, postural strain, and deeper release.',
-      img: '/images/deep_tissue_massage.png',
+      img: withBase('/images/deep_tissue_massage.png'),
     },
     {
       title: 'Aromatherapy Massage',
       desc: 'Botanical oils and slow rhythm to calm the senses and leave the room in balance.',
-      img: '/images/aromatherapy_massage.png',
+      img: withBase('/images/aromatherapy_massage.png'),
     },
   ];
 
@@ -30,12 +31,12 @@ const Home = () => {
     {
       title: 'Thai Massage',
       desc: 'Assisted stretching and rhythmic compression to restore mobility and ease.',
-      img: '/images/thai_massage.png',
+      img: withBase('/images/thai_massage.png'),
     },
     {
       title: 'Foot Reflexology',
       desc: 'Grounding pressure mapped across the feet to rebalance the whole body.',
-      img: '/images/foot_reflexology.png',
+      img: withBase('/images/foot_reflexology.png'),
     },
   ];
 
@@ -114,7 +115,7 @@ const Home = () => {
               className="aspect-square w-full rounded-[3rem] md:rounded-[5rem] overflow-hidden shadow-2xl relative z-0 group"
             >
                <img 
-                 src="/images/hero_sanctuary.png" 
+                 src={withBase('/images/hero_sanctuary.png')} 
                  alt="Warm sanctuary interior with water and lantern light" 
                  className="w-full h-full object-cover transition-all duration-1000 scale-110 group-hover:scale-100"
                />

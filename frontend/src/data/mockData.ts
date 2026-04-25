@@ -1,3 +1,5 @@
+import { withBase } from '../utils/assetPath';
+
 export const clients = [
   { id: 1, name: 'Fatima Al-Sayed', phone: '+974 4412 3456', dob: '1992-05-15', anniversary: '2018-11-20', notes: 'Prefers light pressure', preferences: 'Aromatherapy', totalSpending: 1500, visits: 12 },
   { id: 2, name: 'Mohammed Rashid', phone: '+974 5587 6543', dob: '1985-08-22', anniversary: '2012-02-14', notes: 'Back pain issues', preferences: 'Deep Tissue', totalSpending: 850, visits: 5 },
@@ -13,11 +15,11 @@ export const employees = [
 ];
 
 export const services = [
-  { id: 1, name: 'Swedish Massage', duration: 60, price: 180, staff: ['Ahmed', 'Elena'], image: '/images/swedish_massage.png' },
-  { id: 2, name: 'Deep Tissue Massage', duration: 90, price: 250, staff: ['Elena'], image: '/images/deep_tissue_massage.png' },
-  { id: 3, name: 'Aromatherapy Massage', duration: 60, price: 220, staff: ['Lia'], image: '/images/aromatherapy_massage.png' },
-  { id: 4, name: 'Thai Massage', duration: 120, price: 300, staff: ['Ahmed'], image: '/images/thai_massage.png' },
-  { id: 5, name: 'Foot Reflexology', duration: 45, price: 120, staff: ['Elena', 'Lia'], image: '/images/foot_reflexology.png' },
+  { id: 1, name: 'Swedish Massage', duration: 60, price: 180, staff: ['Ahmed', 'Elena'], image: withBase('/images/swedish_massage.png') },
+  { id: 2, name: 'Deep Tissue Massage', duration: 90, price: 250, staff: ['Elena'], image: withBase('/images/deep_tissue_massage.png') },
+  { id: 3, name: 'Aromatherapy Massage', duration: 60, price: 220, staff: ['Lia'], image: withBase('/images/aromatherapy_massage.png') },
+  { id: 4, name: 'Thai Massage', duration: 120, price: 300, staff: ['Ahmed'], image: withBase('/images/thai_massage.png') },
+  { id: 5, name: 'Foot Reflexology', duration: 45, price: 120, staff: ['Elena', 'Lia'], image: withBase('/images/foot_reflexology.png') },
 ];
 
 export const appointments = [

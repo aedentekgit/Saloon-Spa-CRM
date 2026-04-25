@@ -233,8 +233,8 @@ const Expenses = () => {
       hideAddButton
       hideBranchSelector
     >
-      <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="space-y-10 pb-20 mt-4">
-        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+      <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="space-y-6 pb-20 mt-4">
+        <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
             {
               label: 'Total Outflow',
@@ -269,7 +269,7 @@ const Expenses = () => {
         </div>
 
         {/* Global Filter Bar (match /clients, /finance visual language) */}
-        <div className="zen-pointed-surface border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-5">
+        <div className="zen-pointed-surface border border-zen-stone bg-white shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-4">
           <div className="flex flex-col xl:flex-row xl:items-end gap-5 xl:gap-8">
             <div className="flex-1 w-full flex flex-col gap-2.5">
               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Registry Search</label>
@@ -282,7 +282,7 @@ const Expenses = () => {
                   placeholder="Search expenses by title..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full h-[58px] pl-[52px] pr-6 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
+                  className="w-full h-[52px] pl-[52px] pr-6 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
                 />
               </div>
             </div>
@@ -294,7 +294,7 @@ const Expenses = () => {
                 value={category}
                 onChange={(v: any) => setCategory(v)}
                 options={[...CATEGORIES]}
-                className="min-w-[220px]"
+                className="w-full sm:min-w-[220px]"
                 hideLabel
               />
             </div>
@@ -306,14 +306,14 @@ const Expenses = () => {
                 value={dateRange}
                 onChange={(v: any) => setDateRange(v)}
                 options={['All', 'Today', 'Week', 'Month']}
-                className="min-w-[200px]"
+                className="w-full sm:min-w-[200px]"
                 hideLabel
               />
             </div>
 
             <div className="flex flex-col gap-2.5 w-full xl:w-auto">
               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Branch</label>
-              <BranchSelector className="min-w-[220px]" />
+              <BranchSelector className="w-full sm:min-w-[220px]" />
             </div>
 
             <div className="flex flex-col gap-2.5 w-full xl:w-auto">
@@ -321,7 +321,7 @@ const Expenses = () => {
               <ZenButton
                 onClick={openCreateModal}
                 variant="primary"
-                className="w-full xl:w-auto px-8 h-[58px] shadow-sm flex items-center justify-center gap-2 group rounded-[1.15rem]"
+                className="w-full xl:w-auto px-8 h-[52px] shadow-sm flex items-center justify-center gap-2 group rounded-[1.15rem]"
               >
                 <Plus size={16} className="group-hover:rotate-12 transition-transform duration-500" />
                 <span className="uppercase tracking-[0.2em] text-[10px] font-black">Add Expense</span>
@@ -330,8 +330,8 @@ const Expenses = () => {
           </div>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-xl border border-zen-stone/70 zen-pointed-surface shadow-[0_18px_45px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="px-6 sm:px-8 py-6 border-b border-zen-brown/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-white border border-zen-stone zen-pointed-surface shadow-[0_18px_45px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="px-6 sm:px-8 py-4 border-b border-zen-brown/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-lg font-bold text-zen-brown tracking-tight">Expense Registry</h3>
               <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Operational outflow records</p>
@@ -339,7 +339,7 @@ const Expenses = () => {
           </div>
 
           <div className="table-container overflow-x-auto">
-            <table className="w-full text-center border-collapse min-w-[860px]">
+            <table className="w-full text-center border-collapse min-w-[700px] sm:min-w-[860px]">
               <thead>
                 <tr>
                   <th className="!text-left pl-10">Entry</th>
@@ -369,8 +369,9 @@ const Expenses = () => {
                   expenses.map((exp, idx) => (
                     <tr key={exp._id} className="group hover:bg-white/80 transition-all duration-300">
                       <td className="!text-left !pl-10">
-                        <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
                           <span className="zen-table-primary">{exp.title}</span>
+                          <span className="text-zen-brown/20 text-[10px]">|</span>
                           <span className="zen-table-meta">{String(idx + 1).padStart(2, '0')}</span>
                         </div>
                       </td>

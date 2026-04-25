@@ -322,14 +322,13 @@ const Services = () => {
   return (
     <ZenPageLayout
       title="Services"
-      hideSearch
-      hideBranchSelector
-      hideViewToggle
-      hideAddButton={user?.role === 'Client'}
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      addButtonLabel={user?.role !== 'Client' ? "Add Service" : undefined}
       onAddClick={() => handleOpenModal()}
-    >
-      <div className="space-y-10 pb-20">
-        {/* Dynamic Summary Cards */}
+      topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
             { label: 'Total Services', value: services.length, icon: Sparkles, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Catalog size' },
@@ -340,74 +339,9 @@ const Services = () => {
             <ZenStatCard key={i} {...stat} delay={i * 0.05} />
           ))}
         </div>
-
-        {/* Global Filter Bar */}
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm">
-          <div className="flex flex-col lg:flex-row gap-8 items-end">
-            <div className="flex-1 w-full flex flex-col gap-3">
-               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Service Search</label>
-               <div className="relative group">
-                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
-                  <input 
-                    type="text"
-                    placeholder="Search services by name..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-14 pr-6 py-3.5 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
-                  />
-               </div>
-            </div>
-
-            <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
-               <div className="flex items-center gap-4">
-                  <div className="w-full lg:w-[240px]">
-                     <ZenDropdown 
-                       label="Active Branch"
-                       options={['All Branches', ...branches.map(b => b.name)]}
-                       value={branches.find(b => b._id === selectedBranch)?.name || 'All Branches'}
-                       onChange={(val: any) => {
-                         if (val === 'All Branches') {
-                           setSelectedBranch('all');
-                         } else {
-                           const branch = branches.find(b => b.name === val);
-                           if (branch) setSelectedBranch(branch._id);
-                         }
-                       }}
-                       className="w-full"
-                     />
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                     <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
-                     <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner">
-                        <button 
-                          onClick={() => setViewMode('grid')}
-                          className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                        >
-                          <Grid size={16} />
-                        </button>
-                        <button 
-                          onClick={() => setViewMode('table')}
-                          className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                        >
-                          <List size={16} />
-                        </button>
-                     </div>
-                  </div>
-               </div>
-
-               {user?.role !== 'Client' && (
-                  <div className="flex flex-col gap-3 w-full lg:w-auto">
-                     <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Action</label>
-                     <ZenButton onClick={() => handleOpenModal()} variant="primary" className="w-full sm:w-auto px-8 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
-                        <Plus size={16} className="group-hover:rotate-90 transition-transform duration-500" />
-                        <span className="uppercase tracking-[0.2em] text-[10px] font-black">Enroll Service</span>
-                     </ZenButton>
-                  </div>
-               )}
-            </div>
-          </div>
-        </div>
+      }
+    >
+      <div className="space-y-6 pb-20">
 
         {loading ? (
           <div className="flex flex-col items-center justify-center min-h-[400px]">
@@ -422,7 +356,7 @@ const Services = () => {
               return (
                 <div 
                   key={service._id} 
-                  className="group relative bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-zen-brown/15 overflow-hidden flex flex-col transition-all duration-700 hover:shadow-xl hover:translate-y-[-4px]"
+                  className="group relative bg-white rounded-2xl shadow-sm border border-zen-stone overflow-hidden flex flex-col transition-all duration-700 zen-card-hover professional-frame"
                   style={{ animationDelay: `${i * 50}ms` }}
                 >
                   {/* Visual Frame */}
@@ -485,8 +419,8 @@ const Services = () => {
             })}
           </div>
         ) : (
-          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
-            <table className="w-full text-center border-collapse min-w-[1000px]">
+          <div className="w-full bg-white rounded-xl border border-zen-stone shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
+            <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
               <thead>
                 <tr className="bg-zen-brown text-white/50 border-y border-zen-brown/10">
                   <th>S No</th>
@@ -513,7 +447,7 @@ const Services = () => {
                       </td>
                       <td>
                         <div className="flex justify-center">
-                          <div className="w-12 h-10 zen-pointed-surface overflow-hidden bg-zen-cream border border-zen-brown/10 shadow-sm shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center text-xs">
+                          <div className="w-12 h-10 zen-pointed-surface overflow-hidden bg-zen-cream border border-zen-stone shadow-sm shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center text-xs">
                             {service.image ? (
                               <img src={getImageUrl(service.image)} className="w-full h-full object-cover" />
                             ) : (
@@ -523,17 +457,19 @@ const Services = () => {
                         </div>
                       </td>
                       <td>
-                        <div className="flex flex-col items-center px-6">
+                        <div className="flex flex-row items-center justify-center gap-2 px-6">
                           <span className="zen-table-primary">{service.name}</span>
+                          <span className="text-zen-brown/20 px-1">|</span>
                           <span className="zen-table-meta">{branchName} • {service.category || 'General'}</span>
                         </div>
                       </td>
                       <td>
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-row items-center justify-center gap-2">
                           <span className="text-base font-serif font-black text-zen-brown leading-none">
                             {settings?.general?.currencySymbol || 'QR'} {service.price}
                           </span>
-                          <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">{service.duration} MIN</span>
+                          <span className="text-zen-brown/20 px-1">|</span>
+                          <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0">{service.duration} MIN</span>
                         </div>
                       </td>
                       <td>

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { 
   Plus, Edit2, Trash2, Camera, X, 
   Sparkles, Building2, Zap, DoorOpen, Clock, Grid, List, Search,
-  Calendar, History, User, UserCheck, ShieldCheck, CheckCircle2, AlertCircle
+  Calendar, History, User, UserCheck, ShieldCheck, CheckCircle2, AlertCircle, MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import dayjs from 'dayjs';
@@ -319,89 +319,21 @@ const Rooms = () => {
       onViewModeChange={setViewMode}
       addButtonLabel="Add Room"
       onAddClick={() => handleOpenModal()}
-    >
-      <div className="h-[calc(100vh-180px)] overflow-hidden flex flex-col space-y-10">
-        <div className="flex-none">
-          <h1 className="text-3xl sm:text-5xl font-serif font-bold text-zen-brown tracking-tighter">Space Management</h1>
-          <p className="mt-2 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.5em]">Capacity & Sanctuary Registry</p>
+      topContent={
+        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+          {[
+            { label: 'Total Rooms', value: rooms.length, icon: Building2, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Global capacity' },
+            { label: 'Active Spaces', value: rooms.filter(r => r.isActive).length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Operational now' },
+            { label: 'System Inactive', value: rooms.filter(r => !r.isActive).length, icon: X, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Decommissioned' },
+            { label: 'Space Categories', value: roomCategories.length, icon: DoorOpen, color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', trend: 'Variety types' }
+          ].map((stat, i) => (
+            <ZenStatCard key={i} {...stat} delay={i * 0.05} />
+          ))}
         </div>
+      }
+    >
+      <div className="space-y-10 pb-20">
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-10 pr-4">
-          <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
-            {[
-              { label: 'Total Rooms', value: rooms.length, icon: Building2, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', trend: 'Global capacity' },
-              { label: 'Live Channels', value: rooms.filter(r => r.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Operational now' },
-              { label: 'Space Categories', value: roomCategories.length, icon: DoorOpen, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', trend: 'Variety types' },
-              { label: 'Branch Coverage', value: branches.length, icon: Sparkles, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Full coverage' }
-            ].map((stat, i) => (
-              <ZenStatCard key={i} {...stat} delay={i * 0.2} />
-            ))}
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zen-brown/15 shadow-sm">
-            <div className="flex flex-col lg:flex-row gap-8 items-end">
-              <div className="flex-1 w-full flex flex-col gap-3">
-                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Space Search</label>
-                <div className="relative group">
-                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
-                  <input 
-                    type="text"
-                    placeholder="Search rooms by name or type..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-14 pr-6 py-3.5 bg-zen-cream/30 border border-zen-brown/10 rounded-xl focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-wrap lg:flex-nowrap gap-4 w-full lg:w-auto items-end">
-                <div className="flex items-center gap-4">
-                  <div className="w-full lg:w-[240px]">
-                    <ZenDropdown 
-                      label="Active Branch"
-                      options={['All Branches', ...(branches || []).map(b => b.name)]}
-                      value={(branches || []).find(b => b._id === selectedBranch)?.name || 'All Branches'}
-                      onChange={(val: any) => {
-                        if (val === 'All Branches') {
-                          setSelectedBranch('all');
-                        } else {
-                          const branch = (branches || []).find(b => b.name === val);
-                          if (branch) setSelectedBranch(branch._id);
-                        }
-                      }}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Perspective</label>
-                    <div className="flex items-center h-[48px] bg-zen-cream/50 p-1 rounded-xl border border-zen-brown/10 shadow-inner">
-                      <button 
-                        onClick={() => setViewMode('grid')}
-                        className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                      >
-                        <Grid size={16} />
-                      </button>
-                      <button 
-                        onClick={() => setViewMode('table')}
-                        className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all duration-500 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white'}`}
-                      >
-                        <List size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3 w-full lg:w-auto">
-                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-2">Management</label>
-                  <ZenButton onClick={() => handleOpenModal()} variant="primary" className="w-full sm:w-auto px-8 h-[48px] shadow-sm flex items-center justify-center gap-2 group">
-                    <Plus size={16} className="group-hover:rotate-90 transition-transform duration-500" />
-                    <span className="uppercase tracking-[0.2em] text-[10px] font-black">Add Room</span>
-                  </ZenButton>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {loading ? (
             <div className="flex flex-col items-center justify-center min-h-[400px]">
@@ -469,7 +401,7 @@ const Rooms = () => {
             </div>
           ) : (
             <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-sm overflow-hidden animate-in fade-in duration-700">
-              <table className="w-full text-center border-collapse min-w-[800px]">
+              <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
                 <thead>
                   <tr className="border-b border-gray-50 bg-gray-50/50">
                     <th className="py-4 text-[10px] font-black uppercase tracking-widest text-zen-brown/40">S No</th>
@@ -504,8 +436,9 @@ const Rooms = () => {
                           </td>
                           <td className="py-4 text-[11px] font-bold text-zen-brown/60">{room.branch?.name || 'Main Branch'}</td>
                           <td className="py-4">
-                            <div className="flex flex-col items-center">
+                            <div className="flex flex-row items-center justify-center gap-2">
                               <span className="text-sm font-bold text-zen-brown">{room.name}</span>
+                              <span className="text-zen-brown/20 px-1">|</span>
                               <span className="text-[9px] font-medium text-zen-brown/30 uppercase tracking-widest">Active Space</span>
                             </div>
                           </td>
@@ -541,12 +474,11 @@ const Rooms = () => {
             <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
           </div>
         </div>
-      </div>
 
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        maxWidth="max-w-5xl"
+        maxWidth="max-w-4xl"
         header={
           <div className="flex items-start justify-between gap-6 px-10 py-8">
             <div className="flex items-start gap-5 min-w-0">
@@ -565,16 +497,16 @@ const Rooms = () => {
           </div>
         }
         footer={
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-6 w-full px-10 py-8 border-t border-gray-50 bg-gray-50/30">
-            <p className="text-xs text-zen-brown/40 italic">
-               {editingRoom ? 'System syncs room records in real-time.' : 'New rooms appear in the terminal immediately after creation.'}
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
+            <p className="text-[10px] text-zen-brown/30 italic uppercase tracking-widest font-black">
+               {editingRoom ? 'Live synchronization active' : 'Ready for commission'}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-               <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="px-8">Cancel</ZenButton>
+            <div className="flex flex-col sm:flex-row gap-3">
+               <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 text-[10px]">Cancel</ZenButton>
                {activeTab === 'profile' && (
-                 <ZenButton onClick={() => (document.getElementById('roomForm') as HTMLFormElement)?.requestSubmit()} className="px-10">
+                 <ZenButton onClick={() => (document.getElementById('roomForm') as HTMLFormElement)?.requestSubmit()} className="px-8 py-2.5 text-[10px]">
                     <span>{editingRoom ? 'Update Protocol' : 'Commission Room'}</span>
-                    <Sparkles size={18} className="ml-2" />
+                    <Sparkles size={14} className="ml-2" />
                  </ZenButton>
                )}
             </div>
@@ -637,7 +569,7 @@ const Rooms = () => {
                       <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.3em]">Synchronizing Registry...</p>
                     </div>
                   ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3">
                       {Array.from({ length: 24 }).map((_, i) => {
                         const hour = Math.floor(i / 2) + 9;
                         const min = (i % 2) * 30;
@@ -659,46 +591,51 @@ const Rooms = () => {
                           const cleaning = editingRoom?.cleaningDuration || 0;
                           const aptEnd = aptStart.add(duration + cleaning, 'minute');
 
-                          // Return true if the current 30-min slot overlaps with the appointment range
                           return slotStart && slotStart.isBefore(aptEnd) && slotEnd?.isAfter(aptStart);
                         });
 
                         const isPrimarySlot = apt && parseTime(apt.time, registryDate)?.format('HH:mm') === slotTime;
 
                         return (
-                          <div key={slotTime} className={`flex items-center gap-6 p-5 rounded-3xl border transition-all duration-500 ${apt ? 'bg-zen-sand/[0.03] border-zen-sand/20' : 'bg-white border-zen-brown/5'}`}>
-                            <div className={`w-24 shrink-0 text-center py-2.5 rounded-2xl border ${apt ? 'bg-zen-sand text-white border-zen-sand' : 'bg-gray-50 border-black/5 text-zen-brown/40'}`}>
-                              <p className="text-[11px] font-black tracking-tight">{displayTime}</p>
+                          <div key={slotTime} className={`flex items-center gap-5 p-3 rounded-2xl border transition-all duration-700 ${apt ? 'bg-zen-sand/[0.02] border-zen-sand/15 shadow-sm' : 'bg-white border-zen-brown/5 hover:border-zen-gold/20'}`}>
+                            <div className={`w-20 shrink-0 text-center py-2 rounded-xl border transition-all ${apt ? 'bg-zen-sand text-white border-zen-sand shadow-lg shadow-zen-sand/20' : 'bg-zen-cream/40 border-zen-brown/5 text-zen-brown/30'}`}>
+                              <p className="text-[10px] font-black tracking-tight font-serif">{displayTime}</p>
                             </div>
-                            <div className="flex-1 flex items-center justify-between">
+                            <div className="flex-1 flex items-center justify-between min-w-0">
                               {apt ? (
                                 isPrimarySlot ? (
                                   <div 
-                                    className="flex items-center gap-5 cursor-pointer hover:opacity-80 transition-opacity group/booking"
+                                    className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity group/booking min-w-0"
                                     onClick={() => navigate('/appointments')}
                                   >
-                                    <div className="w-12 h-12 rounded-2xl bg-white border border-zen-sand/10 flex items-center justify-center text-zen-sand shadow-sm group-hover/booking:scale-110 transition-transform"><UserCheck size={20} /></div>
-                                    <div>
-                                      <h4 className="text-lg font-serif font-bold text-zen-brown leading-tight group-hover/booking:underline decoration-zen-sand/30 underline-offset-4">{apt.client || apt.clientName || 'Guest'}</h4>
-                                      <p className="text-[10px] font-bold text-zen-sand uppercase tracking-widest mt-1">{apt.service || 'Service'}</p>
+                                    <div className="w-10 h-10 rounded-xl bg-white border border-zen-sand/20 flex items-center justify-center text-zen-sand shadow-sm group-hover/booking:scale-110 transition-transform flex-shrink-0"><UserCheck size={16} /></div>
+                                    <div className="flex flex-row items-center gap-2 min-w-0">
+                                      <h4 className="text-base font-serif font-bold text-zen-brown leading-tight truncate group-hover/booking:text-zen-sand transition-colors">{apt.client || apt.clientName || 'Guest'}</h4>
+                                      <span className="text-zen-brown/20">|</span>
+                                      <p className="text-[9px] font-bold text-zen-sand/60 uppercase tracking-[0.2em] truncate">{apt.service || 'Service'}</p>
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-5 opacity-50">
-                                    <div className="w-12 h-12 rounded-2xl bg-zen-sand/10 flex items-center justify-center text-zen-sand border border-zen-sand/20"><Sparkles size={20} /></div>
-                                    <div>
-                                      <p className="text-sm font-serif font-medium text-zen-brown italic">Cleaning & Buffer</p>
-                                      <p className="text-[9px] font-bold text-zen-sand/60 uppercase tracking-widest mt-0.5">Following {apt.client || 'Ritual'}</p>
+                                  <div className="flex items-center gap-4 opacity-40 min-w-0">
+                                    <div className="w-10 h-10 rounded-xl bg-zen-sand/10 flex items-center justify-center text-zen-sand border border-zen-sand/20 flex-shrink-0"><Sparkles size={16} /></div>
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-serif font-medium text-zen-brown italic truncate tracking-tight">Cleaning Cycle</p>
+                                      <p className="text-[8px] font-bold text-zen-sand/40 uppercase tracking-widest mt-0.5 truncate">Post-Ritual Buffer</p>
                                     </div>
                                   </div>
                                 )
                               ) : (
-                                <div className="flex items-center gap-5 opacity-30">
-                                  <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-zen-brown/20 border border-black/5"><DoorOpen size={20} /></div>
-                                  <div><p className="text-base font-serif font-medium text-zen-brown italic">Available</p></div>
+                                <div className="flex items-center gap-4 opacity-20 min-w-0">
+                                  <div className="w-10 h-10 rounded-xl bg-zen-cream/30 flex items-center justify-center text-zen-brown/40 border border-zen-brown/5 flex-shrink-0"><DoorOpen size={16} strokeWidth={1.5} /></div>
+                                  <div><p className="text-sm font-serif font-medium text-zen-brown italic tracking-tight">Available</p></div>
                                 </div>
                               )}
-                              {apt && isPrimarySlot && <ZenBadge variant="sand" className="hidden lg:block">{apt.status}</ZenBadge>}
+                              {apt && isPrimarySlot && (
+                                <div className="hidden lg:flex items-center gap-2 pl-4">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-zen-sand animate-pulse" />
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-zen-sand/60">{apt.status}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );

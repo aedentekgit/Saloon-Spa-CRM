@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Plus, Edit2, Trash2, MapPin, Mail, Phone, X, 
-  Search, Building2, Globe, Activity, Camera
+  Search, Building2, Globe, Activity, Camera, Grid, List, Sparkles, Zap
 } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 import { countries } from '../../utils/countries';
@@ -15,6 +15,7 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
 
 
 interface Branch {
@@ -258,14 +259,28 @@ const Branches = () => {
 
   return (
     <ZenPageLayout
-      title="Branch Network"
+      title="Branches"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
-      addButtonLabel="Add Location"
+      addButtonLabel="New Branch"
       onAddClick={() => handleOpenModal()}
+      hideBranchSelector
+      topContent={
+        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+          {[
+            { label: 'Total Branches', value: branches.length, icon: Building2, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Global network' },
+            { label: 'Active Hubs', value: branches.filter(b => b.isActive).length, icon: Activity, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live locations' },
+            { label: 'System Inactive', value: branches.filter(b => !b.isActive).length, icon: X, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Paused nodes' },
+            { label: 'Network Presence', value: branches.length > 0 ? 'Full' : 'None', icon: Globe, color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', trend: 'Regional coverage' }
+          ].map((stat, i) => (
+            <ZenStatCard key={i} {...stat} delay={i * 0.05} />
+          ))}
+        </div>
+      }
     >
+      <div className="space-y-6 pb-20">
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[400px]">
           <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
@@ -369,15 +384,17 @@ const Branches = () => {
                         </div>
                       </td>
                       <td>
-                         <div className="flex flex-col items-center px-6">
+                         <div className="flex items-center justify-center gap-2 px-6">
                             <span className="zen-table-primary">{branch.name}</span>
+                            <span className="text-zen-brown/20 text-[10px]">|</span>
                             <span className="zen-table-meta">Active Space Registry</span>
                          </div>
                       </td>
                       <td>
-                         <div className="flex flex-col items-center">
+                         <div className="flex items-center justify-center gap-2">
                             <span className="text-base font-serif font-black text-zen-brown leading-none">{branch.contactNumber}</span>
-                            <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1 lowercase">{branch.email}</span>
+                            <span className="text-zen-brown/20 text-[10px]">|</span>
+                            <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest lowercase">{branch.email}</span>
                          </div>
                       </td>
                       <td>
@@ -407,11 +424,12 @@ const Branches = () => {
       )}
 
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+      </div>
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        maxWidth="max-w-5xl"
+        maxWidth="max-w-3xl"
         header={
           <div className="flex items-start justify-between gap-6 px-6 sm:px-10 py-6 sm:py-8">
             <div className="flex items-start gap-4 sm:gap-5 min-w-0">

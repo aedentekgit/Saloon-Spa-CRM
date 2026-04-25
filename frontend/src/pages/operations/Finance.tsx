@@ -210,13 +210,11 @@ const Finance = () => {
     <ZenPageLayout
       title="Finance Ledger"
       hideSearch
-      hideBranchSelector
-      hideViewToggle
-      hideAddButton
+      viewMode="grid"
+      addButtonLabel="Log Expenditure"
       onAddClick={() => setIsModalOpen(true)}
-    >
-      <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="space-y-10 pb-20 mt-4">
-        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+      topContent={
+        <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
             { label: 'Internal Inflow', value: `${settings?.general?.currencySymbol || 'QR'} ${totalIncome.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Total Revenue Generated' },
             { label: 'External Outflow', value: `${settings?.general?.currencySymbol || 'QR'} ${totalExpenses.toLocaleString()}`, icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-500/10', glow: 'bg-red-500/20', trend: 'Operational Expenditure' },
@@ -225,40 +223,15 @@ const Finance = () => {
             <ZenStatCard key={stat.label} {...stat} delay={i * 0.2} />
           ))}
         </div>
-
-        {/* Global Filter Bar */}
-        <div className="zen-pointed-surface border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-10 py-10">
-           <div className="flex flex-col xl:flex-row xl:items-end gap-5 xl:gap-8">
-              <div className="flex-1 w-full flex flex-col gap-2.5">
-                 <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Registry Search</label>
-                 <div className="relative group">
-                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors">
-                      <Filter size={16} />
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Search entries, amounts, or dates..."
-                      disabled
-                      className="w-full h-[58px] pl-[52px] pr-6 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm opacity-50"
-                    />
-                 </div>
-              </div>
-
-              <div className="flex flex-col gap-2.5 w-full xl:w-auto">
-                 <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Management</label>
-                 <ZenButton onClick={() => setIsModalOpen(true)} variant="primary" className="w-full xl:w-auto px-8 h-[58px] shadow-sm flex items-center justify-center gap-2 group rounded-[1.15rem]">
-                    <Plus size={16} className="group-hover:rotate-12 transition-transform duration-500" />
-                    <span className="uppercase tracking-[0.2em] text-[10px] font-black">Log Expenditure</span>
-                 </ZenButton>
-              </div>
-           </div>
-        </div>
+      }
+    >
+      <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="space-y-6 pb-20 mt-0">
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 font-sans">
         {/* Left Side: Chart */}
         <div className="lg:col-span-7 w-full flex flex-col">
-           <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-10 lg:p-12 min-h-[420px] relative overflow-hidden">
-             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-zen-brown/5">
+           <div className="bg-white border border-zen-stone zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-6 sm:p-8 lg:p-10 min-h-[360px] sm:min-h-[420px] relative overflow-hidden">
+             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-zen-brown/5">
                 <div>
                    <h3 className="text-xl font-bold text-gray-900 tracking-tight">Financial Status</h3>
                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Income vs expenditure dynamics</p>
@@ -326,8 +299,8 @@ const Finance = () => {
 
         {/* Right Side: Ledger */}
         <div className="lg:col-span-5 w-full flex flex-col">
-           <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden">
-              <div className="flex justify-between items-center gap-4 px-6 sm:px-8 pt-6 pb-5 border-b border-zen-brown/5">
+           <div className="bg-white border border-zen-stone zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden">
+              <div className="flex justify-between items-center gap-4 px-6 sm:px-8 py-4 border-b border-zen-brown/5">
                  <div>
                     <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Activity</h3>
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Combined transaction registry</p>
@@ -336,7 +309,7 @@ const Finance = () => {
               </div>
 
                <div className="table-container overflow-x-auto">
-                 <div className="min-w-[800px]">
+                 <div className="min-w-[680px] sm:min-w-[800px]">
                    <table className="w-full text-center border-collapse">
                      <colgroup>
                        <col className="w-[10%]" />
@@ -389,16 +362,16 @@ const Finance = () => {
                                    </div>
                                  </td>
                                  <td>
-                                   <div className="flex flex-col items-center justify-center px-4">
+                                   <div className="flex items-center justify-center gap-2 px-4">
                                      <span className="zen-table-primary">{row.title}</span>
-                                     <div className="flex items-center justify-center gap-2 mt-1">
-                                        <span className="zen-table-meta">{row.subtitle}</span>
-                                     </div>
+                                     <span className="text-zen-brown/20 text-[10px]">|</span>
+                                     <span className="zen-table-meta">{row.subtitle}</span>
                                    </div>
                                  </td>
                                  <td>
-                                   <div className="flex flex-col items-center">
+                                   <div className="flex items-center justify-center gap-2">
                                      <span className="zen-table-primary !text-[14px]">{dayjs(row.date).format('MMM DD, YYYY')}</span>
+                                     <span className="text-zen-brown/20 text-[10px]">|</span>
                                      <span className="zen-table-meta">{row.meta}</span>
                                    </div>
                                  </td>

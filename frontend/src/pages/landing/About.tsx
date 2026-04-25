@@ -2,6 +2,7 @@ import React from 'react';
 import { History, Heart, Sparkles, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
+import { withBase } from '../../utils/assetPath';
 
 const About = () => {
   const { settings } = usePublicSettings();
@@ -49,7 +50,7 @@ const About = () => {
           <div className="relative group">
             <div className="aspect-[4/5] lg:aspect-square rounded-[3rem] lg:rounded-[5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(74,55,40,0.15)] relative z-10 border-[12px] border-white">
               <img 
-                src="/about_hero_zen_1776541173591.png" 
+                src={withBase('/about_hero_zen_1776541173591.png')} 
                 alt="Zen Sanctuary" 
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]"
               />
@@ -121,7 +122,7 @@ const About = () => {
           <div className="mt-40 grid lg:grid-cols-2 gap-24 items-center">
             <div className="relative group overflow-hidden rounded-[4rem] aspect-[4/5] shadow-2xl">
               <img 
-                src="/about_founder_portrait_1776541198229.png" 
+                src={withBase('/about_founder_portrait_1776541198229.png')} 
                 alt="Elena Vora" 
                 className="w-full h-full object-cover group-hover:scale-105 transition-all duration-1000" 
               />

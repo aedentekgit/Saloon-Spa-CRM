@@ -268,14 +268,11 @@ const Transactions = () => {
   return (
     <ZenPageLayout
       title="Transaction Registry"
-      hideSearch
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
       hideAddButton
-      hideBranchSelector
-      hideViewToggle
-    >
-      <div className="space-y-10 pb-20">
-        {/* Dynamic Summary Cards */}
-        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+      topContent={
+        <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
             { label: 'Total Inflow', value: stats.inflow, icon: ArrowUpRight, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Revenue stream' },
             { label: 'Total Outflow', value: stats.outflow, icon: ArrowDownRight, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Expenses' },
@@ -285,60 +282,15 @@ const Transactions = () => {
             <ZenStatCard key={i} {...stat} value={`${settings?.general.currencySymbol || 'QR'} ${stat.value.toLocaleString()}`} delay={i * 0.2} />
           ))}
         </div>
+      }
+    >
+      <div className="space-y-6 pb-20">
 
-        {/* Global Filter Bar */}
-        <div className="zen-pointed-surface border border-zen-stone/70 bg-white/75 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-5">
-          <div className="flex flex-col xl:flex-row xl:items-end gap-5 xl:gap-8">
-            <div className="flex-1 w-full flex flex-col gap-2.5">
-               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Registry Search</label>
-               <div className="relative group">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
-                  <input 
-                    type="text"
-                    placeholder="Search by details or reference..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full h-[58px] pl-[52px] pr-6 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
-                  />
-               </div>
-            </div>
 
-            <div className="flex flex-wrap xl:flex-nowrap gap-4 w-full xl:w-auto items-end">
-              <ZenDropdown 
-                label="Branch"
-                value={branchFilter}
-                onChange={(val: any) => setBranchFilter(val)}
-                options={['All', ...branches.map(b => b.name)]}
-                className="w-full sm:w-[200px]"
-              />
-              <ZenDropdown 
-                label="Status"
-                value={statusFilter}
-                onChange={(val: any) => setStatusFilter(val)}
-                options={['All', 'Completed', 'Pending']}
-                className="w-full sm:w-[150px]"
-              />
-               <ZenDropdown 
-                label="Timeline"
-                value={dateRange}
-                onChange={(val: any) => setDateRange(val)}
-                options={['All', 'Today', 'Week', 'Month']}
-                className="w-full sm:w-[150px]"
-              />
-              <div className="flex flex-col gap-2.5 w-full xl:w-auto">
-                 <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Management</label>
-                 <ZenButton variant="primary" className="w-full xl:w-auto px-8 h-[58px] shadow-sm flex items-center justify-center gap-2 group rounded-[1.15rem]">
-                    <Download size={16} className="group-hover:-translate-y-1 transition-transform duration-500" />
-                    <span className="uppercase tracking-[0.2em] text-[10px] font-black">Report</span>
-                 </ZenButton>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Immersive Transaction Table */}
-        <div className="bg-white/90 backdrop-blur-2xl border border-zen-stone/70 zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden animate-in fade-in duration-700">
-          <div className="flex items-center justify-between gap-4 px-6 sm:px-8 pt-6 pb-5 border-b border-zen-brown/5">
+        <div className="bg-white border border-zen-stone zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden animate-in fade-in duration-700">
+          <div className="flex items-center justify-between gap-4 px-6 sm:px-8 py-4 border-b border-zen-brown/5">
             <div>
               <h3 className="text-xl font-bold text-gray-900 tracking-tight">Transaction Registry</h3>
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Chronological inflow and outflow ledger</p>
@@ -346,7 +298,7 @@ const Transactions = () => {
             <ZenBadge variant="leaf" className="px-3 sm:px-5">{filteredTransactions.length} Records</ZenBadge>
           </div>
           <div className="table-container overflow-x-auto">
-            <div className="min-w-[1000px]">
+            <div className="min-w-[760px] lg:min-w-[1000px]">
               <table className="w-full text-center border-collapse">
                 <thead>
                   <tr>
@@ -390,9 +342,10 @@ const Transactions = () => {
                             </div>
                           </td>
                           <td>
-                            <div className="flex flex-col items-center justify-center px-6">
+                            <div className="flex items-center justify-center gap-3 px-6">
                               <span className="zen-table-primary">{t.title}</span>
-                              <div className="flex items-center justify-center gap-2 mt-1">
+                              <span className="text-zen-brown/20 text-[10px]">|</span>
+                              <div className="flex items-center gap-2">
                                  <span className="zen-table-meta">{t.id}</span>
                                  <span className="w-0.5 h-0.5 rounded-full bg-zen-brown/10" />
                                  <span className="zen-table-meta">{dayjs(t.date).format('MMM DD, YYYY')}</span>

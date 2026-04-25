@@ -1,3 +1,5 @@
+import { withBase } from './assetPath';
+
 type RoomBranch = {
   name?: string;
 } | string | undefined;
@@ -10,8 +12,8 @@ export interface RoomImageSource {
 }
 
 const ROOM_PHOTO_POOL = [
-  '/images/hero_workspace.png',
-  '/images/about_hero.png'
+  withBase('/images/hero_workspace.png'),
+  withBase('/images/about_hero.png')
 ];
 
 const ROOM_PHOTO_FILES = new Set([
@@ -90,7 +92,7 @@ const normalizeCustomRoomImage = (value: string, baseUrl: string) => {
   }
 
   if (isRoomPhotoPath(clean)) {
-    return `/images/${clean}`;
+    return withBase(`/images/${clean}`);
   }
 
   return `${baseUrl}/uploads/${clean}`;
