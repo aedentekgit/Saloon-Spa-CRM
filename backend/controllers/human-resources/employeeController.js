@@ -1,4 +1,5 @@
 const Employee = require('../../models/human-resources/Employee');
+const Branch = require('../../models/operations/Branch');
 const path = require('path');
 const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
@@ -12,6 +13,84 @@ const toObjectIdIfValid = (value) => {
   if (id instanceof mongoose.Types.ObjectId) return id;
   if (mongoose.Types.ObjectId.isValid(id)) return new mongoose.Types.ObjectId(id);
   return id;
+};
+
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const applyEmployeeSearch = async (query, search, { includePayrollFields = false } = {}) => {
+  const searchTerm = String(search || '').trim();
+  if (!searchTerm) return query;
+
+  const searchRegex = new RegExp(escapeRegex(searchTerm), 'i');
+  const matchingBranches = await Branch.find({ name: searchRegex }).select('_id').lean();
+  const branchIds = matchingBranches.map(branch => branch._id);
+
+  query.$or = [
+    { name: searchRegex },
+    { role: searchRegex },
+    { email: searchRegex },
+    { phone: searchRegex },
+    { address: searchRegex },
+    { status: searchRegex },
+    { shift: searchRegex },
+    { shiftType: searchRegex },
+    { services: searchRegex },
+    { 'documents.name': searchRegex },
+    { 'documents.fileType': searchRegex },
+    { 'documents.url': searchRegex }
+  ];
+
+  if (includePayrollFields) {
+    query.$or.push({ 'payroll.type': searchRegex });
+  }
+
+  const normalizedSearch = searchTerm.toLowerCase();
+  if (['verified', 'email verified', 'true', 'yes'].includes(normalizedSearch)) {
+    query.$or.push({ isEmailVerified: true });
+  } else if (['unverified', 'not verified', 'false', 'no'].includes(normalizedSearch)) {
+    query.$or.push({ isEmailVerified: false });
+  } else if (['locked', 'blocked'].includes(normalizedSearch)) {
+    query.$or.push({ lockUntil: { $gt: new Date() } });
+  }
+
+  if (branchIds.length > 0) {
+    query.$or.push({ branch: { $in: branchIds } });
+  }
+
+  const numericSearch = Number(searchTerm);
+  if (Number.isFinite(numericSearch)) {
+    query.$or.push(
+      { earnings: numericSearch },
+      { attendance: numericSearch }
+    );
+
+    if (includePayrollFields) {
+      query.$or.push(
+        { salary: numericSearch },
+        { 'payroll.baseAmount': numericSearch },
+        { 'payroll.otRate': numericSearch },
+        { 'payroll.shiftHours': numericSearch }
+      );
+    }
+  }
+
+  const dateSearch = new Date(searchTerm);
+  if (!Number.isNaN(dateSearch.getTime())) {
+    const startOfDay = new Date(dateSearch);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(dateSearch);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    query.$or.push(
+      { dob: { $gte: startOfDay, $lte: endOfDay } },
+      { joiningDate: { $gte: startOfDay, $lte: endOfDay } },
+      { createdAt: { $gte: startOfDay, $lte: endOfDay } },
+      { lockUntil: { $gte: startOfDay, $lte: endOfDay } },
+      { 'documents.uploadedAt': { $gte: startOfDay, $lte: endOfDay } }
+    );
+  }
+
+  return query;
 };
 
 // @desc    Get public employee list (for guest booking — no auth required)
@@ -45,14 +124,9 @@ exports.getEmployees = async (req, res) => {
       query.branch = toObjectIdIfValid(req.query.branch);
     }
     
-    if (req.query.search) {
-      const searchRegex = new RegExp(req.query.search, 'i');
-      query.$or = [
-        { name: searchRegex },
-        { role: searchRegex },
-        { email: searchRegex }
-      ];
-    }
+    await applyEmployeeSearch(query, req.query.search, {
+      includePayrollFields: req.user?.role === 'Admin' || req.user?.role === 'Manager'
+    });
     
     // IDOR Prevention (Overrides query filter if not Admin)
     if (req.user) {
@@ -103,10 +177,23 @@ exports.createEmployee = async (req, res) => {
       return res.status(403).json({ message: 'Access Denied: You can only create employees for your own branch.' });
     }
 
-    let profilePic = '';
 
+    let profilePic = '';
     if (req.files && req.files.profilePic) {
       profilePic = req.files.profilePic[0].path || req.files.profilePic[0].url;
+    }
+
+    // Generate Employee ID (EMP0001 format)
+    const lastEmployee = await Employee.findOne({ employeeId: { $exists: true } })
+      .sort({ employeeId: -1 });
+    
+    let nextEmployeeId = 'EMP0001';
+    if (lastEmployee && lastEmployee.employeeId) {
+      const lastIdMatch = lastEmployee.employeeId.match(/\d+/);
+      if (lastIdMatch) {
+        const nextNumber = parseInt(lastIdMatch[0], 10) + 1;
+        nextEmployeeId = `EMP${nextNumber.toString().padStart(4, '0')}`;
+      }
     }
 
     const employee = await Employee.create({
@@ -121,6 +208,7 @@ exports.createEmployee = async (req, res) => {
       profilePic,
       password,
       branch: selectedBranch,
+      employeeId: nextEmployeeId,
       payroll: req.body.payroll ? (typeof req.body.payroll === 'string' ? JSON.parse(req.body.payroll) : req.body.payroll) : {
         type: 'Monthly',
         baseAmount: 0,

@@ -34,17 +34,26 @@ const getAppointments = async (req, res) => {
   try {
     let query = {};
     const userBranchId = getBranchId(req.user.branch);
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
     
     // IDOR Prevention: Filter logically based on role and branch
     if (req.user.role === 'Admin') {
-      // Global admin sees all
+      if (requestedBranch) {
+        query.branch = requestedBranch;
+      }
     } else if (req.user.role === 'Manager') {
       // Manager sees their branch
       if (userBranchId) {
+        if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+          return res.status(403).json({ message: 'Access Denied: Cannot view appointments for another branch.' });
+        }
         query.branch = userBranchId;
       }
     } else if (req.user.role === 'Employee') {
       if (userBranchId) {
+        if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+          return res.status(403).json({ message: 'Access Denied: Cannot view appointments for another branch.' });
+        }
         query.branch = userBranchId;
       }
     } else if (req.user.role === 'Client') {
@@ -56,6 +65,11 @@ const getAppointments = async (req, res) => {
     if (req.query.room) query.room = req.query.room;
     if (req.query.clientId && req.user.role !== 'Client') query.clientId = req.query.clientId;
     if (req.query.date) query.date = req.query.date;
+    if (!req.query.date && (req.query.dateFrom || req.query.dateTo)) {
+      query.date = {};
+      if (req.query.dateFrom) query.date.$gte = req.query.dateFrom;
+      if (req.query.dateTo) query.date.$lte = req.query.dateTo;
+    }
     if (req.query.status) query.status = req.query.status;
 
     const { data, pagination } = await paginateModelQuery(Appointment, query, req, {

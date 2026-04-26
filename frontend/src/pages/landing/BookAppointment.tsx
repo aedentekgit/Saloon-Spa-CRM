@@ -14,6 +14,7 @@ import { ZenButton } from '../../components/zen/ZenButtons';
 import { notify } from '../../components/shared/ZenNotification';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
 import { withBase } from '../../utils/assetPath';
+import { useAuth } from '../../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const ANY_SPECIALIST = 'Any available specialist';
@@ -29,6 +30,7 @@ const parseTime = (t: string, d: string) => {
 };
 
 const BookAppointment = () => {
+  const { user } = useAuth();
   const { settings } = usePublicSettings();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -57,9 +59,9 @@ const BookAppointment = () => {
     date: dayjs().format('YYYY-MM-DD'),
     time: '',
     room: '',
-    name: '',
-    email: '',
-    phone: '',
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: (user as any)?.phone || '',
     notes: ''
   });
 
@@ -269,11 +271,24 @@ const BookAppointment = () => {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_URL}/appointments/guest`, {
+      const endpoint = user ? `${API_URL}/appointments` : `${API_URL}/appointments/guest`;
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (user?.token) {
+        headers['Authorization'] = `Bearer ${user.token}`;
+      }
+
+      const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        headers,
+        body: JSON.stringify({
+          ...formData,
+          client: formData.name,
+          clientEmail: formData.email,
+          clientPhone: formData.phone,
+          clientId: user?._id
+        })
       });
+
       if (res.ok) {
         setStep(4);
       } else {
@@ -873,9 +888,9 @@ const BookAppointment = () => {
                     </div>
                  </div>
 
-                 <div className="pt-4">
+                  <div className="pt-4">
                     <button
-                      onClick={() => window.location.href = withBase('/')}
+                      onClick={() => window.location.href = user ? withBase('/dashboard') : withBase('/')}
                       className="group flex flex-col items-center gap-4 mx-auto"
                     >
                       <div className="w-10 h-10 rounded-full border border-zen-brown/5 flex items-center justify-center transition-all group-hover:bg-zen-brown group-hover:text-white shadow-sm">

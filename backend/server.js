@@ -137,7 +137,24 @@ app.use('/uploads', express.static(uploadDir));
 
 // Serve Frontend in Production
 const frontendPath = path.join(__dirname, '../frontend/dist');
+const frontendIndexPath = path.join(frontendPath, 'index.html');
 app.use(express.static(frontendPath));
+
+const staticAssetPattern = /\.(?:js|css|map|json|png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|eot|txt|xml|pdf)$/i;
+const isSpaNavigationRequest = (req) => {
+  if (!['GET', 'HEAD'].includes(req.method)) return false;
+  if (req.path.startsWith('/api')) return false;
+  if (staticAssetPattern.test(req.path)) return false;
+  return String(req.get('accept') || '').includes('text/html');
+};
+
+const serveSpaIndex = (req, res, next) => {
+  if (!isSpaNavigationRequest(req)) return next();
+  if (fs.existsSync(frontendIndexPath)) {
+    return res.sendFile(frontendIndexPath);
+  }
+  return next();
+};
 
 // API Routes (Preferred with /api prefix)
 app.use('/api/users', userRoutes);
@@ -163,6 +180,10 @@ app.use('/api/gst', require('./routes/finance/gstRoutes'));
 app.use('/api/stats', require('./routes/finance/statsRoutes'));
 app.use('/api/payroll', require('./routes/finance/payrollRoutes'));
 app.use('/api/notifications', notificationRoutes);
+
+// Browser refreshes on client-side routes such as /roles should load the SPA,
+// even when a proxy strips a staging prefix before forwarding to Express.
+app.use(serveSpaIndex);
 
 // Fallback legacy routes (Handles cases where /api prefix is missing in Frontend URL)
 app.use('/users', userRoutes);
@@ -218,9 +239,8 @@ app.use((req, res) => {
   }
 
   // SPA fallback when frontend build exists.
-  const indexFilePath = path.join(frontendPath, 'index.html');
-  if (fs.existsSync(indexFilePath)) {
-    return res.sendFile(indexFilePath);
+  if (fs.existsSync(frontendIndexPath)) {
+    return res.sendFile(frontendIndexPath);
   }
 
   // Otherwise, show the clean API Sanctuary Status Page

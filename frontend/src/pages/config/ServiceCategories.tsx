@@ -3,6 +3,7 @@ import {
   Plus, Edit2, Trash2, Sparkles, 
   X, Search, Grid, List, Tag, Zap
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
 import { ZenInput, ZenTextarea } from '../../components/zen/ZenInputs';
@@ -11,8 +12,41 @@ import { notify } from '../../components/shared/ZenNotification';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useCategories } from '../../context/CategoryContext';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
+
+interface ServiceCategory {
+  _id: string;
+  name: string;
+  type: 'room' | 'inventory' | 'service';
+  description?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+const formatExportDateTime = (value?: string) => {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString().slice(0, 16).replace('T', ' ');
+};
+
+const categoryMatchesSearch = (category: ServiceCategory, searchTerm: string) => {
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  if (!normalizedSearch) return true;
+
+  return [
+    category._id,
+    category.name,
+    category.type,
+    category.description,
+    category.isActive ? 'Active' : 'Inactive',
+    category.createdAt,
+    category.updatedAt
+  ].some((value) => String(value ?? '').toLowerCase().includes(normalizedSearch));
+};
 
 const ServiceCategories = () => {
+  const { user } = useAuth();
   const { 
     categories, 
     loading, 
@@ -35,6 +69,8 @@ const ServiceCategories = () => {
     type: 'service' as const,
     isActive: true
   });
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
     localStorage.setItem('zen_service_cat_view', viewMode);
@@ -95,12 +131,62 @@ const ServiceCategories = () => {
     }
   };
 
-  const filteredCategories = useMemo(() => {
-    return categories.filter(c => 
-      c.type === 'service' && 
-      (c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredCategories = useMemo<ServiceCategory[]>(() => {
+    return (categories as ServiceCategory[]).filter(c => 
+      c.type === 'service' && categoryMatchesSearch(c, searchTerm)
     );
   }, [categories, searchTerm]);
+
+  const fetchAllServiceCategoriesForExport = async (): Promise<ServiceCategory[]> => {
+    if (!user?.token) return [];
+
+    const allCategories: ServiceCategory[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const response = await fetch(`${API_URL}/categories?type=service&page=${exportPage}&limit=${exportLimit}`, {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch service categories for export');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allCategories.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const unique = new Map<string, ServiceCategory>();
+    allCategories.forEach((category) => {
+      if (category?._id) unique.set(category._id, category);
+    });
+
+    return Array.from(unique.values()).filter((category) => categoryMatchesSearch(category, searchTerm));
+  };
+
+  const serviceCategoryExportColumns = useMemo<ExportColumn<ServiceCategory>[]>(
+    () => [
+      { header: 'Category ID', accessor: (category) => category._id },
+      { header: 'Name', accessor: (category) => category.name },
+      { header: 'Type', accessor: (category) => category.type },
+      { header: 'Description', accessor: (category) => category.description || '-' },
+      { header: 'Status', accessor: (category) => (category.isActive ? 'Active' : 'Inactive') },
+      { header: 'Is Active', accessor: (category) => category.isActive },
+      { header: 'Created At', accessor: (category) => formatExportDateTime(category.createdAt) },
+      { header: 'Updated At', accessor: (category) => formatExportDateTime(category.updatedAt) }
+    ],
+    []
+  );
 
   return (
     <ZenPageLayout
@@ -112,6 +198,17 @@ const ServiceCategories = () => {
       addButtonLabel="Add Service Category"
       onAddClick={() => handleOpenModal()}
       hideBranchSelector
+      searchActions={
+        <ExportPopup<ServiceCategory>
+          data={filteredCategories}
+          columns={serviceCategoryExportColumns}
+          fileName="service_categories"
+          title="Service Categories"
+          triggerLabel="Download"
+          description="Choose format and export the complete service category sheet with identity, description, status, and audit values."
+          resolveData={fetchAllServiceCategoriesForExport}
+        />
+      }
       topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
@@ -182,8 +279,8 @@ const ServiceCategories = () => {
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
               <tr>
-                <th>S NO</th>
-                <th>Identity</th>
+                <th>S No</th>
+                <th>Category Identity</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -203,9 +300,8 @@ const ServiceCategories = () => {
                     {(index + 1).toString().padStart(2, '0')}
                   </td>
                   <td>
-                     <div className="flex items-center justify-center gap-2 px-6">
+                     <div className="flex flex-col items-center justify-center leading-none px-6">
                         <span className="zen-table-primary">{cat.name}</span>
-                        <span className="text-zen-brown/20 text-[10px]">|</span>
                         <span className="zen-table-meta">Service Category</span>
                      </div>
                   </td>

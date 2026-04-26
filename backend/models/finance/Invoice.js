@@ -67,6 +67,7 @@ const invoiceSchema = mongoose.Schema({
 
 // Indexes for fast branch-specific financial reports and dashboard trends
 invoiceSchema.index({ branch: 1, date: -1 });
+invoiceSchema.index({ clientId: 1 });
 invoiceSchema.index({ createdAt: -1 });
 
 

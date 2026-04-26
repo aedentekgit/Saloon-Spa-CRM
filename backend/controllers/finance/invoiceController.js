@@ -2,8 +2,11 @@ const Invoice = require('../../models/finance/Invoice');
 const User = require('../../models/core/User');
 const Employee = require('../../models/human-resources/Employee');
 const Service = require('../../models/operations/Service');
+const Branch = require('../../models/operations/Branch');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
+
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // @desc    Get all invoices
 // @route   GET /api/invoices
@@ -12,10 +15,13 @@ const getInvoices = async (req, res) => {
   try {
     let query = {};
     const userBranchId = getBranchId(req.user.branch);
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
     
     // IDOR Prevention
     if (req.user.role === 'Admin') {
-      // Sees all
+      if (requestedBranch) {
+        query.branch = requestedBranch;
+      }
     } else if (req.user.role === 'Manager' || req.user.role === 'Employee') {
       if (userBranchId) {
         query.branch = userBranchId;
@@ -28,7 +34,59 @@ const getInvoices = async (req, res) => {
       ];
     }
 
+    const { search, paymentMode, startDate, endDate } = req.query;
+
+    if (paymentMode) {
+      query.paymentMode = paymentMode;
+    }
+
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = String(startDate);
+      if (endDate) query.date.$lte = String(endDate);
+    }
+
+    if (search) {
+      const rx = new RegExp(escapeRegex(String(search)), 'i');
+      const matchingBranches = await Branch.find({ name: rx }).select('_id').lean();
+      const branchIds = matchingBranches.map(branch => branch._id);
+
+      const searchOr = [
+        { invoiceNumber: rx },
+        { clientName: rx },
+        { paymentMode: rx },
+        { 'items.name': rx },
+        { 'payments.mode': rx },
+        { date: rx }
+      ];
+
+      if (branchIds.length > 0) {
+        searchOr.push({ branch: { $in: branchIds } });
+      }
+
+      const numericSearch = Number(search);
+      if (Number.isFinite(numericSearch)) {
+        searchOr.push(
+          { subtotal: numericSearch },
+          { gst: numericSearch },
+          { discount: numericSearch },
+          { total: numericSearch },
+          { 'items.price': numericSearch },
+          { 'payments.amount': numericSearch }
+        );
+      }
+
+      if (query.$or) {
+        const existingOr = query.$or;
+        delete query.$or;
+        query.$and = [{ $or: existingOr }, { $or: searchOr }];
+      } else {
+        query.$or = searchOr;
+      }
+    }
+
     const { data, pagination } = await paginateModelQuery(Invoice, query, req, {
+      populate: 'branch',
       sort: { createdAt: -1 }
     });
     res.json(pagination ? { data, pagination } : data);
@@ -85,10 +143,31 @@ const createInvoice = async (req, res) => {
       }
     }
 
+    // Generate Invoice Number (Prefix + 0001 format)
+    const branchDoc = await Branch.findById(requestedBranch);
+    if (!branchDoc) return res.status(400).json({ message: 'Invalid branch' });
+    
+    const prefix = branchDoc.name.substring(0, 2).toUpperCase();
+    const lastInvoice = await Invoice.findOne({ branch: requestedBranch, invoiceNumber: new RegExp(`^${prefix}`) })
+      .sort({ createdAt: -1 });
+    
+    let nextInvoiceNumber;
+    if (lastInvoice && lastInvoice.invoiceNumber) {
+      const lastIdMatch = lastInvoice.invoiceNumber.match(/\d+/);
+      if (lastIdMatch) {
+        const nextNumber = parseInt(lastIdMatch[0], 10) + 1;
+        nextInvoiceNumber = `${prefix}${nextNumber.toString().padStart(4, '0')}`;
+      } else {
+        nextInvoiceNumber = `${prefix}0001`;
+      }
+    } else {
+      nextInvoiceNumber = `${prefix}0001`;
+    }
+
     const invoice = await Invoice.create({
       user: targetClientId || req.user._id,
       clientId: targetClientId,
-      invoiceNumber,
+      invoiceNumber: nextInvoiceNumber,
       clientName,
       items,
       subtotal,

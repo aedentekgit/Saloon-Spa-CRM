@@ -28,39 +28,228 @@ import { notify } from '../../components/shared/ZenNotification';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useSettings } from '../../context/SettingsContext';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
+import { useBranches } from '../../context/BranchContext';
+
+interface BranchRef {
+  _id?: string;
+  name?: string;
+}
 
 interface Expense {
   _id: string;
+  user?: string;
   title: string;
   category: string;
   amount: number;
   date: string;
+  branch?: BranchRef | string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface InvoiceItem {
+  name?: string;
+  price?: number;
+  duration?: number;
+}
+
+interface InvoicePayment {
+  mode?: string;
+  amount?: number;
 }
 
 interface Invoice {
   _id: string;
+  clientId?: string;
+  invoiceNumber?: string;
   clientName: string;
+  items?: InvoiceItem[];
+  subtotal?: number;
+  gst?: number;
+  discount?: number;
   total: number;
   date: string;
   paymentMode: string;
+  payments?: InvoicePayment[];
+  branch?: BranchRef | string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface LedgerRow {
   id: string;
+  sourceModel: 'Invoice' | 'Expense';
   kind: 'Income' | 'Expense';
   title: string;
   subtitle: string;
   date: string;
   amount: number;
+  signedAmount: number;
   meta: string;
   sourceId: string;
+  branchId: string;
+  branchName: string;
+  invoiceNumber: string;
+  clientId: string;
+  clientName: string;
+  paymentMode: string;
+  paymentsSummary: string;
+  itemsCount: number;
+  itemsSummary: string;
+  subtotal: number;
+  gst: number;
+  discount: number;
+  total: number;
+  expenseTitle: string;
+  expenseCategory: string;
+  expenseUserId: string;
+  createdAt: string;
+  updatedAt: string;
 }
+
+const getBranchId = (branch?: BranchRef | string) => {
+  if (!branch) return '';
+  return typeof branch === 'string' ? branch : branch._id || '';
+};
+
+const getBranchName = (branch?: BranchRef | string) => {
+  if (!branch) return 'Main Registry';
+  return typeof branch === 'string' ? branch : branch.name || 'Main Registry';
+};
+
+const summarizeInvoiceItems = (items?: InvoiceItem[]) => {
+  if (!items || items.length === 0) return '-';
+  return items
+    .map((item) => {
+      const bits = [item.name || 'Item'];
+      if (typeof item.price === 'number') bits.push(`${item.price}`);
+      if (typeof item.duration === 'number') bits.push(`${item.duration}m`);
+      return bits.join(' / ');
+    })
+    .join(' | ');
+};
+
+const summarizePayments = (payments?: InvoicePayment[]) => {
+  if (!payments || payments.length === 0) return '-';
+  return payments
+    .map((payment) => `${payment.mode || 'Mode'}: ${payment.amount ?? 0}`)
+    .join(' | ');
+};
+
+const formatExportDate = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD') : value;
+};
+
+const formatExportDateTime = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : value;
+};
+
+const buildLedgerRows = (expenses: Expense[], invoices: Invoice[]): LedgerRow[] => {
+  const expenseRows = expenses.map((exp) => ({
+    id: `expense-${exp._id}`,
+    sourceModel: 'Expense' as const,
+    kind: 'Expense' as const,
+    title: exp.title,
+    subtitle: exp.category,
+    date: exp.date,
+    amount: exp.amount || 0,
+    signedAmount: -(exp.amount || 0),
+    meta: 'Operational outflow',
+    sourceId: exp._id,
+    branchId: getBranchId(exp.branch),
+    branchName: getBranchName(exp.branch),
+    invoiceNumber: '-',
+    clientId: '-',
+    clientName: '-',
+    paymentMode: '-',
+    paymentsSummary: '-',
+    itemsCount: 0,
+    itemsSummary: '-',
+    subtotal: 0,
+    gst: 0,
+    discount: 0,
+    total: 0,
+    expenseTitle: exp.title,
+    expenseCategory: exp.category,
+    expenseUserId: exp.user || '',
+    createdAt: exp.createdAt || '',
+    updatedAt: exp.updatedAt || ''
+  }));
+
+  const invoiceRows = invoices.map((inv) => ({
+    id: `invoice-${inv._id}`,
+    sourceModel: 'Invoice' as const,
+    kind: 'Income' as const,
+    title: `Service ${inv.clientName}`,
+    subtitle: inv.paymentMode,
+    date: inv.date,
+    amount: inv.total || 0,
+    signedAmount: inv.total || 0,
+    meta: 'Completed invoice',
+    sourceId: inv._id,
+    branchId: getBranchId(inv.branch),
+    branchName: getBranchName(inv.branch),
+    invoiceNumber: inv.invoiceNumber || '-',
+    clientId: inv.clientId || '-',
+    clientName: inv.clientName || '-',
+    paymentMode: inv.paymentMode || '-',
+    paymentsSummary: summarizePayments(inv.payments),
+    itemsCount: inv.items?.length || 0,
+    itemsSummary: summarizeInvoiceItems(inv.items),
+    subtotal: inv.subtotal || 0,
+    gst: inv.gst || 0,
+    discount: inv.discount || 0,
+    total: inv.total || 0,
+    expenseTitle: '-',
+    expenseCategory: '-',
+    expenseUserId: '-',
+    createdAt: inv.createdAt || '',
+    updatedAt: inv.updatedAt || ''
+  }));
+
+  return [...expenseRows, ...invoiceRows].sort(
+    (a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()
+  );
+};
+
+const buildTrendFromRecords = (expenses: Expense[], invoices: Invoice[]) => {
+  const trendPoints = [];
+
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const current = dayjs().subtract(offset, 'day');
+    const dateKey = current.format('YYYY-MM-DD');
+
+    const revenue = invoices
+      .filter((invoice) => invoice.date === dateKey)
+      .reduce((sum, invoice) => sum + (invoice.total || 0), 0);
+
+    const outflow = expenses
+      .filter((expense) => expense.date === dateKey)
+      .reduce((sum, expense) => sum + (expense.amount || 0), 0);
+
+    trendPoints.push({
+      name: current.format('ddd'),
+      revenue,
+      expenses: outflow
+    });
+  }
+
+  return trendPoints;
+};
 
 const Finance = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
+  const { selectedBranch } = useBranches();
   const [invoices, setInvoices] = useState<Invoice[]>(() => getCachedJson('zen_page_finance_invoices', []));
   const [expenses, setExpenses] = useState<Expense[]>(() => getCachedJson('zen_page_finance_expenses', []));
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
@@ -82,17 +271,36 @@ const Finance = () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedBranch, debouncedSearch, user?.token]);
 
   const fetchData = async () => {
     try {
       const hasVisibleData = invoices.length > 0 || expenses.length > 0;
       if (!hasVisibleData) setLoading(true);
+      const invoiceParams = new URLSearchParams({
+        search: debouncedSearch,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
+      });
+      const expenseParams = new URLSearchParams({
+        search: debouncedSearch,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
+      });
+      const statsParams = new URLSearchParams({
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
+      });
+
       const [invRes, expRes, statsRes] = await Promise.all([
-        fetch(`${API_URL}/invoices`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
-        fetch(`${API_URL}/expenses`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
-        fetch(`${API_URL}/stats/dashboard`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
+        fetch(`${API_URL}/invoices?${invoiceParams.toString()}`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
+        fetch(`${API_URL}/expenses?${expenseParams.toString()}`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
+        fetch(`${API_URL}/stats/dashboard?${statsParams.toString()}`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
       ]);
       const invData = await invRes.json();
       const expData = await expRes.json();
@@ -123,45 +331,108 @@ const Finance = () => {
   const totalExpenses = useMemo(() => expenses.reduce((acc, exp) => acc + (exp.amount || 0), 0), [expenses]);
   const netProfit = totalIncome - totalExpenses;
 
-  const ledgerRows = useMemo<LedgerRow[]>(() => {
-    const expenseRows = expenses.map(exp => ({
-      id: `expense-${exp._id}`,
-      kind: 'Expense' as const,
-      title: exp.title,
-      subtitle: exp.category,
-      date: exp.date,
-      amount: exp.amount || 0,
-      meta: 'Operational outflow',
-      sourceId: exp._id
-    }));
-
-    const invoiceRows = invoices.map(inv => ({
-      id: `invoice-${inv._id}`,
-      kind: 'Income' as const,
-      title: `Service ${inv.clientName}`,
-      subtitle: inv.paymentMode,
-      date: inv.date,
-      amount: inv.total || 0,
-      meta: 'Completed invoice',
-      sourceId: inv._id
-    }));
-
-    return [...expenseRows, ...invoiceRows].sort(
-      (a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()
-    );
-  }, [expenses, invoices]);
+  const ledgerRows = useMemo<LedgerRow[]>(() => buildLedgerRows(expenses, invoices), [expenses, invoices]);
 
   const chartData = useMemo(() => {
+    if (debouncedSearch) {
+      return buildTrendFromRecords(expenses, invoices);
+    }
     if (trendData.length > 0) return trendData;
+    if (invoices.length > 0 || expenses.length > 0) {
+      return buildTrendFromRecords(expenses, invoices);
+    }
     // Fallback if no trend data
     return [
       { name: '...', revenue: 0, expenses: 0 },
     ];
-  }, [trendData]);
+  }, [debouncedSearch, expenses, invoices, trendData]);
 
   const hasChartPoints = useMemo(
     () => chartData.some(point => Number(point.revenue || 0) > 0 || Number(point.expenses || 0) > 0),
     [chartData]
+  );
+
+  const fetchAllFinanceRowsForExport = async (): Promise<LedgerRow[]> => {
+    const invoiceParams = new URLSearchParams({
+      search: debouncedSearch,
+      branch: selectedBranch !== 'all' ? selectedBranch : ''
+    });
+    const expenseParams = new URLSearchParams({
+      search: debouncedSearch,
+      branch: selectedBranch !== 'all' ? selectedBranch : ''
+    });
+
+    const [invoiceResponse, expenseResponse] = await Promise.all([
+      fetch(`${API_URL}/invoices?${invoiceParams.toString()}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      }),
+      fetch(`${API_URL}/expenses?${expenseParams.toString()}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      })
+    ]);
+
+    if (!invoiceResponse.ok || !expenseResponse.ok) {
+      throw new Error('Unable to fetch finance export rows');
+    }
+
+    const [invoicePayload, expensePayload] = await Promise.all([
+      invoiceResponse.json(),
+      expenseResponse.json()
+    ]);
+
+    const fullInvoices = Array.isArray(invoicePayload?.data)
+      ? invoicePayload.data
+      : Array.isArray(invoicePayload)
+        ? invoicePayload
+        : [];
+
+    const fullExpenses = Array.isArray(expensePayload?.data)
+      ? expensePayload.data
+      : Array.isArray(expensePayload)
+        ? expensePayload
+        : [];
+
+    return buildLedgerRows(fullExpenses, fullInvoices);
+  };
+
+  const financeExportColumns = useMemo<ExportColumn<LedgerRow>[]>(
+    () => {
+      const currency = settings?.general?.currencySymbol || 'QR';
+      const money = (value?: number) =>
+        typeof value === 'number' ? `${currency} ${value}` : '-';
+
+      return [
+        { header: 'Ledger ID', accessor: (row) => row.id },
+        { header: 'Source Model', accessor: (row) => row.sourceModel },
+        { header: 'Entry Type', accessor: (row) => row.kind },
+        { header: 'Source ID', accessor: (row) => row.sourceId },
+        { header: 'Title', accessor: (row) => row.title },
+        { header: 'Subtitle', accessor: (row) => row.subtitle },
+        { header: 'Meta', accessor: (row) => row.meta },
+        { header: 'Branch ID', accessor: (row) => row.branchId || '-' },
+        { header: 'Branch', accessor: (row) => row.branchName || 'Main Registry' },
+        { header: 'Date', accessor: (row) => formatExportDate(row.date) },
+        { header: 'Signed Amount', accessor: (row) => money(row.signedAmount) },
+        { header: 'Display Amount', accessor: (row) => money(row.amount) },
+        { header: 'Invoice Number', accessor: (row) => row.invoiceNumber || '-' },
+        { header: 'Client ID', accessor: (row) => row.clientId || '-' },
+        { header: 'Client Name', accessor: (row) => row.clientName || '-' },
+        { header: 'Payment Mode', accessor: (row) => row.paymentMode || '-' },
+        { header: 'Payments', accessor: (row) => row.paymentsSummary || '-' },
+        { header: 'Items Count', accessor: (row) => row.itemsCount || 0 },
+        { header: 'Items', accessor: (row) => row.itemsSummary || '-' },
+        { header: 'Subtotal', accessor: (row) => money(row.subtotal) },
+        { header: 'GST', accessor: (row) => money(row.gst) },
+        { header: 'Discount', accessor: (row) => money(row.discount) },
+        { header: 'Invoice Total', accessor: (row) => money(row.total) },
+        { header: 'Expense Title', accessor: (row) => row.expenseTitle || '-' },
+        { header: 'Expense Category', accessor: (row) => row.expenseCategory || '-' },
+        { header: 'Expense User ID', accessor: (row) => row.expenseUserId || '-' },
+        { header: 'Created At', accessor: (row) => formatExportDateTime(row.createdAt) },
+        { header: 'Updated At', accessor: (row) => formatExportDateTime(row.updatedAt) }
+      ];
+    },
+    [settings?.general?.currencySymbol]
   );
 
 
@@ -209,10 +480,22 @@ const Finance = () => {
   return (
     <ZenPageLayout
       title="Finance Ledger"
-      hideSearch
-      viewMode="grid"
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      hideViewToggle
       addButtonLabel="Log Expenditure"
       onAddClick={() => setIsModalOpen(true)}
+      searchActions={
+        <ExportPopup<LedgerRow>
+          data={ledgerRows}
+          columns={financeExportColumns}
+          fileName="finance_ledger"
+          title="Finance Ledger"
+          triggerLabel="Download"
+          description="Choose format and export the complete combined ledger with invoice, expense, branch, payment, tax, and timing values."
+          resolveData={fetchAllFinanceRowsForExport}
+        />
+      }
       topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
@@ -334,10 +617,17 @@ const Finance = () => {
                          {ledgerRows.length === 0 ? (
                            <tr>
                              <td colSpan={6} className="px-6 py-24 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
-                                <div className="flex flex-col items-center gap-4 opacity-20">
-                                   <Coins size={60} strokeWidth={0.5} />
-                                   <p className="italic font-serif text-xl">Ledger is currently quiet.</p>
-                                </div>
+                                {loading ? (
+                                  <div className="flex items-center justify-center gap-3 text-xs font-black uppercase tracking-widest text-zen-brown/30">
+                                    <div className="w-4 h-4 border-2 border-zen-sand border-t-transparent rounded-full animate-spin" />
+                                    Synchronizing ledger...
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-center gap-4 opacity-20">
+                                     <Coins size={60} strokeWidth={0.5} />
+                                     <p className="italic font-serif text-xl">Ledger is currently quiet.</p>
+                                  </div>
+                                )}
                              </td>
                            </tr>
                          ) : (
@@ -362,17 +652,15 @@ const Finance = () => {
                                    </div>
                                  </td>
                                  <td>
-                                   <div className="flex items-center justify-center gap-2 px-4">
-                                     <span className="zen-table-primary">{row.title}</span>
-                                     <span className="text-zen-brown/20 text-[10px]">|</span>
-                                     <span className="zen-table-meta">{row.subtitle}</span>
+                                   <div className="flex flex-col items-center justify-center gap-0.5 px-4">
+                                     <span className="zen-table-primary leading-none">{row.title}</span>
+                                     <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.2em]">{row.subtitle}</span>
                                    </div>
                                  </td>
                                  <td>
-                                   <div className="flex items-center justify-center gap-2">
-                                     <span className="zen-table-primary !text-[14px]">{dayjs(row.date).format('MMM DD, YYYY')}</span>
-                                     <span className="text-zen-brown/20 text-[10px]">|</span>
-                                     <span className="zen-table-meta">{row.meta}</span>
+                                   <div className="flex flex-col items-center justify-center gap-0.5">
+                                     <span className="zen-table-primary !text-[14px] leading-none">{dayjs(row.date).format('MMM DD, YYYY')}</span>
+                                     <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest">{row.meta}</span>
                                    </div>
                                  </td>
                                  <td>

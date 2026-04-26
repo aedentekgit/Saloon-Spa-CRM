@@ -88,7 +88,16 @@ exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const { user, type } = await findUserByEmail(email);
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ message: 'Invalid login payload' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    const { user, type } = await findUserByEmail(normalizedEmail);
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
@@ -256,10 +265,99 @@ exports.getUserProfile = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role || type
+        role: user.role || type,
+        phone: user.phone,
+        dob: user.dob,
+        address: user.address,
+        profilePic: user.profilePic
       });
     } else {
       res.status(404).json({ message: 'User found but details missing' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/users/profile
+// @access  Private
+exports.updateUserProfile = async (req, res) => {
+  try {
+    const { user } = await findUserByEmail(req.user.email);
+
+    if (user) {
+      user.name = req.body.name || user.name;
+      user.phone = req.body.phone || user.phone;
+      user.dob = req.body.dob || user.dob;
+      user.address = req.body.address || user.address;
+
+      const updatedUser = await user.save();
+
+      res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        phone: updatedUser.phone,
+        dob: updatedUser.dob,
+        address: updatedUser.address,
+        profilePic: updatedUser.profilePic
+      });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Change password
+// @route   PUT /api/users/change-password
+// @access  Private
+exports.changePassword = async (req, res) => {
+  try {
+    const { user } = await findUserByEmail(req.user.email);
+
+    if (user) {
+      const isMatch = await user.matchPassword(req.body.currentPassword);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+
+      user.password = req.body.newPassword;
+      await user.save();
+
+      res.json({ message: 'Password changed successfully' });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Upload profile picture
+// @route   POST /api/users/upload-profile-pic
+// @access  Private
+exports.uploadProfilePic = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Please upload an image' });
+    }
+
+    const { user } = await findUserByEmail(req.user.email);
+
+    if (user) {
+      user.profilePic = req.file.path;
+      await user.save();
+
+      res.json({
+        message: 'Profile picture uploaded successfully',
+        profilePic: user.profilePic
+      });
+    } else {
+      res.status(404).json({ message: 'User not found' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -13,6 +13,8 @@ import { notify } from '../../components/shared/ZenNotification';
 import { ZenMonthPicker } from '../../components/zen/ZenInputs';
 import dayjs from 'dayjs';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
+import { useBranches } from '../../context/BranchContext';
 
 // Local high-performance debounce utility to avoid external dependency issues
 const debounce = (fn: Function, ms: number) => {
@@ -27,15 +29,42 @@ interface PayrollRecord {
   employeeId: string;
   name: string;
   role: string;
+  email?: string;
+  phone?: string;
+  status?: string;
+  branchId?: string;
+  branch?: string;
+  month?: string;
+  monthLabel?: string;
+  salary?: number;
+  configuredBaseAmount?: number;
+  overtimeRate?: number;
+  shiftHours?: number;
+  shift?: string;
+  commissionBasis?: string;
   basePay: number;
+  basePayBeforeDeduction?: number;
+  regularPay?: number;
+  paidLeavePay?: number;
   otPay: number;
   totalPay: number;
   totalHours: number;
+  regularHours?: number;
   otHours: number;
   daysWorked: number;
+  presentCount?: number;
+  halfDayCount?: number;
+  absentCount?: number;
+  onLeaveCount?: number;
+  completedCheckouts?: number;
   leavesCount: number;
+  paidLeaveAllowance?: number;
+  paidLeaveApplied?: number;
+  unpaidLeaveUnits?: number;
+  leaveUnit?: string;
   deduction: number;
   payType: string;
+  joiningDate?: string;
 }
 
 interface PaginationMeta {
@@ -48,6 +77,7 @@ interface PaginationMeta {
 const Payroll = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
+  const { selectedBranch } = useBranches();
   const [loading, setLoading] = useState(() => getCachedJson<PayrollRecord[]>('zen_page_payroll_records', []).length === 0);
   const [payrollData, setPayrollData] = useState<PayrollRecord[]>(() => getCachedJson('zen_page_payroll_records', []));
   const [searchTerm, setSearchTerm] = useState('');
@@ -58,6 +88,7 @@ const Payroll = () => {
   const [stats, setStats] = useState(() => getCachedJson('zen_page_payroll_stats', { total: 0, ot: 0, deductions: 0, hours: 0 }));
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+  const PAGE_LIMIT = 10;
 
   const fetchPayroll = async (page = 1, search = '') => {
     if (payrollData.length === 0) setLoading(true);
@@ -65,8 +96,9 @@ const Payroll = () => {
       const queryParams = new URLSearchParams({
         month: selectedMonth,
         page: page.toString(),
-        limit: '10',
-        search: search
+        limit: PAGE_LIMIT.toString(),
+        search,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
       });
 
       const response = await fetch(`${API_URL}/payroll?${queryParams.toString()}`, {
@@ -96,14 +128,14 @@ const Payroll = () => {
   useEffect(() => {
     fetchPayroll(1, searchTerm);
     setCurrentPage(1);
-  }, [selectedMonth, user?.token]);
+  }, [selectedMonth, selectedBranch, user?.token]);
 
   const debouncedSearch = useMemo(
     () => debounce((nextValue: string) => {
       fetchPayroll(1, nextValue);
       setCurrentPage(1);
     }, 500),
-    [selectedMonth, user?.token]
+    [selectedMonth, selectedBranch, user?.token]
   );
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,9 +149,105 @@ const Payroll = () => {
     fetchPayroll(page, searchTerm);
   };
 
-  const handleExport = () => {
-    notify('info', 'Export Initiated', 'Generating financial transcript...');
+  const fetchAllPayrollForExport = async (): Promise<PayrollRecord[]> => {
+    const allRows: PayrollRecord[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const queryParams = new URLSearchParams({
+        month: selectedMonth,
+        page: exportPage.toString(),
+        limit: exportLimit.toString(),
+        search: searchTerm,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
+      });
+
+      const response = await fetch(`${API_URL}/payroll?${queryParams.toString()}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch payroll export rows');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allRows.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const unique = new Map<string, PayrollRecord>();
+    allRows.forEach((row) => {
+      const key = `${row.employeeId}-${row.month || selectedMonth}`;
+      unique.set(key, row);
+    });
+
+    return Array.from(unique.values());
   };
+
+  const payrollExportColumns = useMemo<ExportColumn<PayrollRecord>[]>(
+    () => {
+      const currency = settings?.general?.currencySymbol || 'QR';
+      const money = (value?: number) =>
+        typeof value === 'number' ? `${currency} ${value}` : '-';
+      const dateValue = (value?: string) => {
+        if (!value) return '-';
+        const parsed = dayjs(value);
+        return parsed.isValid() ? parsed.format('YYYY-MM-DD') : value;
+      };
+
+      return [
+        { header: 'Month', accessor: (row) => row.month || selectedMonth },
+        { header: 'Month Label', accessor: (row) => row.monthLabel || dayjs(selectedMonth).format('MMMM YYYY') },
+        { header: 'Employee ID', accessor: (row) => row.employeeId },
+        { header: 'Employee Name', accessor: (row) => row.name },
+        { header: 'Role', accessor: (row) => row.role },
+        { header: 'Email', accessor: (row) => row.email || '-' },
+        { header: 'Phone', accessor: (row) => row.phone || '-' },
+        { header: 'Employee Status', accessor: (row) => row.status || '-' },
+        { header: 'Branch ID', accessor: (row) => row.branchId || '-' },
+        { header: 'Branch', accessor: (row) => row.branch || 'Main Registry' },
+        { header: 'Joining Date', accessor: (row) => dateValue(row.joiningDate) },
+        { header: 'Payroll Type', accessor: (row) => row.payType },
+        { header: 'Salary', accessor: (row) => money(row.salary) },
+        { header: 'Configured Base Amount', accessor: (row) => money(row.configuredBaseAmount) },
+        { header: 'Overtime Rate', accessor: (row) => money(row.overtimeRate) },
+        { header: 'Shift Hours', accessor: (row) => row.shiftHours ?? '-' },
+        { header: 'Shift', accessor: (row) => row.shift || 'Flexible' },
+        { header: 'Commission Basis', accessor: (row) => row.commissionBasis || '-' },
+        { header: 'Attendance Records', accessor: (row) => row.daysWorked },
+        { header: 'Present Count', accessor: (row) => row.presentCount ?? 0 },
+        { header: 'Half Day Count', accessor: (row) => row.halfDayCount ?? 0 },
+        { header: 'Absent Count', accessor: (row) => row.absentCount ?? 0 },
+        { header: 'On Leave Count', accessor: (row) => row.onLeaveCount ?? 0 },
+        { header: 'Completed Checkouts', accessor: (row) => row.completedCheckouts ?? 0 },
+        { header: 'Total Hours', accessor: (row) => row.totalHours },
+        { header: 'Regular Hours', accessor: (row) => row.regularHours ?? 0 },
+        { header: 'Overtime Hours', accessor: (row) => row.otHours },
+        { header: 'Leave Unit', accessor: (row) => row.leaveUnit || (row.payType === 'Monthly' ? 'Days' : 'Hours') },
+        { header: 'Leave Count', accessor: (row) => row.leavesCount },
+        { header: 'Paid Leave Allowance', accessor: (row) => row.paidLeaveAllowance ?? 0 },
+        { header: 'Paid Leave Applied', accessor: (row) => row.paidLeaveApplied ?? 0 },
+        { header: 'Unpaid Leave Units', accessor: (row) => row.unpaidLeaveUnits ?? 0 },
+        { header: 'Base Pay Before Deduction', accessor: (row) => money(row.basePayBeforeDeduction) },
+        { header: 'Regular Pay', accessor: (row) => money(row.regularPay) },
+        { header: 'Paid Leave Pay', accessor: (row) => money(row.paidLeavePay) },
+        { header: 'Base Reward', accessor: (row) => money(row.basePay) },
+        { header: 'Overtime Pay', accessor: (row) => money(row.otPay) },
+        { header: 'Deduction', accessor: (row) => money(row.deduction) },
+        { header: 'Final Payout', accessor: (row) => money(row.totalPay) }
+      ];
+    },
+    [selectedMonth, settings?.general?.currencySymbol]
+  );
 
   return (
     <ZenPageLayout
@@ -145,16 +273,15 @@ const Payroll = () => {
                 </div>
             </div>
 
-            <div className="flex flex-col gap-2.5 w-full sm:w-auto">
-                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Management</label>
-                <ZenButton onClick={handleExport} variant="primary" className="w-full sm:w-auto shrink-0 h-[52px] rounded-[1.15rem] px-8 shadow-sm flex items-center justify-center gap-2 active:scale-95 group transition-all duration-700 bg-zen-brown text-white font-black text-[10px] uppercase tracking-[0.2em] relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-tr from-zen-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    <span className="relative z-10">Export Report</span>
-                    <div className="group-hover:rotate-180 transition-transform duration-700 relative z-10 shrink-0">
-                      <Download size={16} />
-                    </div>
-                </ZenButton>
-            </div>
+            <ExportPopup<PayrollRecord>
+              data={payrollData}
+              columns={payrollExportColumns}
+              fileName={`payroll_${selectedMonth}`}
+              title="Payroll"
+              triggerLabel="Export Report"
+              description="Choose format and export the complete payroll ledger with attendance, leave, deduction, overtime, and payout values."
+              resolveData={fetchAllPayrollForExport}
+            />
         </>
       }
       topContent={
@@ -171,17 +298,7 @@ const Payroll = () => {
       }
     >
       <div className="space-y-10 pb-20">
-        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700 mx-4 lg:mx-2">
-          <div className="flex items-center justify-between gap-4 px-6 sm:px-8 pt-6 pb-5 border-b border-zen-brown/5">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 tracking-tight">Payroll Registry</h3>
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Specialist compensation and attendance summary</p>
-            </div>
-            <ZenBadge variant="leaf" className="px-3 sm:px-5">
-              {pagination ? `${pagination.total} Records` : `${payrollData.length} Records`}
-            </ZenBadge>
-          </div>
-          <div className="table-container scrollbar-hide overflow-x-auto">
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700 mx-4 lg:mx-2">
             <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
               <thead>
                 <tr>
@@ -217,9 +334,8 @@ const Payroll = () => {
                         {sNo.toString().padStart(2, '0')}
                       </td>
                       <td>
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex flex-col items-center justify-center leading-none">
                           <span className="zen-table-primary">{row.name}</span>
-                          <span className="text-zen-brown/20 text-[10px]">|</span>
                           <span className="zen-table-meta">{row.role}</span>
                         </div>
                       </td>
@@ -229,19 +345,17 @@ const Payroll = () => {
                         </div>
                       </td>
                       <td>
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex flex-col items-center justify-center leading-none">
                           <span className="font-bold text-zen-brown text-sm">{row.daysWorked} Days</span>
-                          <span className="text-zen-brown/20 text-[10px]">|</span>
-                          <span className="text-[8px] text-zen-brown/30 font-bold uppercase tracking-widest">{row.totalHours} Hours</span>
+                          <span className="text-[8px] text-zen-brown/30 font-bold uppercase tracking-widest mt-1">{row.totalHours} Hours</span>
                         </div>
                       </td>
                       <td>
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex flex-col items-center justify-center leading-none">
                           <span className={`font-bold text-sm ${row.leavesCount > 0 ? 'text-amber-600' : 'text-zen-brown/20'}`}>
                             {row.leavesCount} {row.payType === 'Monthly' ? 'Day' : 'Hr'}{row.leavesCount !== 1 ? 's' : ''}
                           </span>
-                          <span className="text-zen-brown/20 text-[10px]">|</span>
-                          <span className="text-[7px] font-bold uppercase tracking-widest opacity-40 whitespace-nowrap">Leave Balance</span>
+                          <span className="text-[7px] font-bold uppercase tracking-widest opacity-40 whitespace-nowrap mt-1">Leave Balance</span>
                         </div>
                       </td>
                       <td>
@@ -272,7 +386,6 @@ const Payroll = () => {
               </tbody>
             </table>
           </div>
-        </div>
 
         {pagination && pagination.pages > 1 && (
           <div className="px-4 lg:px-2">

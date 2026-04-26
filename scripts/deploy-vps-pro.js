@@ -7,6 +7,7 @@ const TARGETS = {
     remoteRoot: '/staginger/apps/staging_saloon_spa_crm',
     pm2Name: 'saloon-spa-crm-staging-api',
     healthUrl: 'http://127.0.0.1:5006/api/health',
+    publicHealthUrl: 'https://saloonandspacrm.aedentek.com/staging_saloon_spa_crm/api/health',
     reloadNginx: false,
     frontendBuildCmd: 'npm run build -- --base=/staging_saloon_spa_crm/',
   },
@@ -14,6 +15,7 @@ const TARGETS = {
     remoteRoot: '/staginger/apps/live_saloon_spa_crm',
     pm2Name: 'saloon-spa-crm-live-api',
     healthUrl: 'http://127.0.0.1:5005/api/health',
+    publicHealthUrl: 'https://saloonandspacrm.aedentek.com/api/health',
     reloadNginx: true,
     frontendBuildCmd: 'npm run build',
   },
@@ -143,11 +145,14 @@ run(
 
 const remoteSteps = [
   'set -e',
+  `test -f ${target.remoteRoot}/backend/.env`,
   `cd ${target.remoteRoot}/backend && npm install --omit=dev`,
+  `cd ${target.remoteRoot}/backend && CHECK_ENV_STRICT=true node scripts/check-env-security.js`,
   `cd ${target.remoteRoot}/frontend && npm install && ${target.frontendBuildCmd}`,
   `pm2 restart ${target.pm2Name}`,
   'pm2 save',
-  `curl -sS ${target.healthUrl}`,
+  `curl -fsS ${target.healthUrl}`,
+  `curl -fsS ${target.publicHealthUrl}`,
 ];
 
 if (target.reloadNginx) {

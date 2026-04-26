@@ -43,6 +43,9 @@ const membershipPlanSchema = new mongoose.Schema({
   isPopular: {
     type: Boolean,
     default: false
+  },
+  document: {
+    type: String
   }
 }, {
   timestamps: true

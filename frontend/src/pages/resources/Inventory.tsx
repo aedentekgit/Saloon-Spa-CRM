@@ -408,10 +408,9 @@ const Inventory = () => {
                                 </div>
                              </td>
                              <td>
-                                 <div className="flex flex-row items-center justify-center gap-2 px-6">
-                                    <span className="zen-table-primary">{item.name}</span>
-                                    <span className="text-zen-brown/20 px-1">|</span>
-                                    <span className="zen-table-meta">{item.vendor || 'Inventory'}</span>
+                                 <div className="flex flex-col items-center justify-center gap-0.5 px-6">
+                                    <span className="zen-table-primary leading-none">{item.name}</span>
+                                    <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">{item.vendor || 'Inventory'}</span>
                                  </div>
                              </td>
                              <td>
@@ -426,12 +425,11 @@ const Inventory = () => {
                              </td>
                              <td>
                                 <div className="flex items-center justify-center gap-4">
-                                    <div className="flex flex-row items-center gap-2">
+                                    <div className="flex flex-col items-center gap-0.5">
                                        <span className={`text-base font-serif font-black leading-none ${item.stock <= item.lowStock ? 'text-red-500' : 'text-zen-brown'}`}>
                                           {item.stock} <span className="text-[10px] font-sans opacity-40 uppercase font-bold">{item.unit || 'Nos'}</span>
                                        </span>
-                                       <span className="text-zen-brown/20 px-1">|</span>
-                                       <span className="text-[8px] font-black opacity-30 uppercase tracking-widest mt-0">In Reserve</span>
+                                       <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest leading-none">In Reserve</span>
                                     </div>
                                    {item.stock <= item.lowStock && (
                                       <div className="p-1.5 bg-red-50 text-red-500 rounded-lg animate-pulse border border-red-100 shadow-sm">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Clock, Plus, Trash2, Edit2, Shield, Calendar, MapPin, X, Search, Grid, List, Sparkles, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import dayjs from 'dayjs';
@@ -14,6 +14,7 @@ import { Modal } from '../../components/shared/Modal';
 import { useBranches } from '../../context/BranchContext';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 
 interface Shift {
   _id: string;
@@ -21,15 +22,33 @@ interface Shift {
   startTime: string;
   endTime: string;
   durationHours: number;
-  branch?: any;
+  branch?: { _id?: string; name?: string } | string;
   status: string;
+  createdAt?: string;
 }
+
+const getShiftBranchId = (shift: Shift) => {
+  if (!shift.branch) return '';
+  return typeof shift.branch === 'string' ? shift.branch : shift.branch._id || '';
+};
+
+const getShiftBranchName = (shift: Shift) => {
+  if (!shift.branch) return 'Universal';
+  return typeof shift.branch === 'string' ? shift.branch : shift.branch.name || 'Universal';
+};
+
+const formatExportDateTime = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : value;
+};
 
 const Shifts = () => {
   const { user } = useAuth();
   const { branches, selectedBranch, setSelectedBranch } = useBranches();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
@@ -61,26 +80,39 @@ const Shifts = () => {
   });
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+  const PAGE_LIMIT = 12;
 
   useEffect(() => {
     localStorage.setItem('zen_shift_view', viewMode);
+    setPage(1);
   }, [viewMode]);
 
   useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedBranch, debouncedSearch]);
+
+  useEffect(() => {
     fetchShifts();
-  }, [selectedBranch, page]);
+  }, [selectedBranch, page, debouncedSearch, user?.token]);
 
   useEffect(() => {
     const calculateDuration = () => {
       try {
         const start = dayjs(formData.startTime, 'hh:mm A');
         const end = dayjs(formData.endTime, 'hh:mm A');
-        
+
         if (start.isValid() && end.isValid()) {
           let diff = end.diff(start, 'hour', true);
           // Handle overnight shifts (e.g., 09:00 PM to 06:00 AM)
           if (diff <= 0) diff += 24;
-          
+
           setFormData(prev => ({ ...prev, durationHours: Math.round(diff * 100) / 100 }));
         }
       } catch (e) {
@@ -92,13 +124,15 @@ const Shifts = () => {
 
   const fetchShifts = async () => {
     try {
-      const url = new URL(`${API_URL}/shifts`);
-      url.searchParams.append('page', page.toString());
-      url.searchParams.append('limit', '12');
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: PAGE_LIMIT.toString(),
+        search: debouncedSearch
+      });
       if (selectedBranch && selectedBranch !== 'all') {
-        url.searchParams.append('branch', selectedBranch);
+        queryParams.append('branch', selectedBranch);
       }
-      const response = await fetch(url.toString(), {
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/shifts?${queryParams.toString()}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
@@ -115,6 +149,68 @@ const Shifts = () => {
     }
   };
 
+  const fetchAllShiftsForExport = async (): Promise<Shift[]> => {
+    const allShifts: Shift[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const queryParams = new URLSearchParams({
+        page: exportPage.toString(),
+        limit: exportLimit.toString(),
+        search: debouncedSearch
+      });
+      if (selectedBranch && selectedBranch !== 'all') {
+        queryParams.append('branch', selectedBranch);
+      }
+
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/shifts?${queryParams.toString()}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch shifts for export');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allShifts.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const unique = new Map<string, Shift>();
+    allShifts.forEach((shift) => {
+      if (shift?._id) {
+        unique.set(shift._id, shift);
+      }
+    });
+
+    return Array.from(unique.values());
+  };
+
+  const shiftExportColumns = useMemo<ExportColumn<Shift>[]>(
+    () => [
+      { header: 'Shift ID', accessor: (shift) => shift._id },
+      { header: 'Shift Name', accessor: (shift) => shift.name },
+      { header: 'Branch ID', accessor: (shift) => getShiftBranchId(shift) || '-' },
+      { header: 'Branch', accessor: (shift) => getShiftBranchName(shift) },
+      { header: 'Start Time', accessor: (shift) => shift.startTime },
+      { header: 'End Time', accessor: (shift) => shift.endTime },
+      { header: 'Interval', accessor: (shift) => `${shift.startTime} - ${shift.endTime}` },
+      { header: 'Duration (Hours)', accessor: (shift) => shift.durationHours },
+      { header: 'Status', accessor: (shift) => shift.status || 'Active' },
+      { header: 'Created At', accessor: (shift) => formatExportDateTime(shift.createdAt) }
+    ],
+    []
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -123,9 +219,9 @@ const Shifts = () => {
       const method = editingShift ? 'PUT' : 'POST';
       const response = await fetch(url, {
         method,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}` 
+          'Authorization': `Bearer ${user?.token}`
         },
         body: JSON.stringify({
           ...formData,
@@ -173,7 +269,7 @@ const Shifts = () => {
     try {
       const response = await fetch(`${API_URL}/shifts/${shift._id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${user?.token}`,
           'Content-Type': 'application/json'
         },
@@ -196,7 +292,7 @@ const Shifts = () => {
         startTime: shift.startTime,
         endTime: shift.endTime,
         durationHours: shift.durationHours,
-        branch: shift.branch?._id || shift.branch || '',
+        branch: getShiftBranchId(shift),
         status: shift.status || 'Active'
       });
     } else {
@@ -213,9 +309,7 @@ const Shifts = () => {
     setIsModalOpen(true);
   };
 
-  const filteredShifts = shifts.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredShifts = shifts;
 
   return (
     <ZenPageLayout
@@ -224,6 +318,17 @@ const Shifts = () => {
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      searchActions={
+        <ExportPopup<Shift>
+          data={filteredShifts}
+          columns={shiftExportColumns}
+          fileName="shifts"
+          title="Shifts"
+          triggerLabel="Download"
+          description="Choose format and export the complete shift list with branch, timing, duration, and status details."
+          resolveData={fetchAllShiftsForExport}
+        />
+      }
       addButtonLabel="New Shift"
       onAddClick={() => handleOpenModal()}
       topContent={
@@ -283,7 +388,7 @@ const Shifts = () => {
                        {shift.branch ? (
                           <div className="flex items-center gap-2 text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest pl-2">
                              <MapPin size={12} />
-                             {shift.branch.name || 'Universal'}
+                             {getShiftBranchName(shift)}
                           </div>
                        ) : <div />}
                        <button onClick={() => toggleStatus(shift)}>
@@ -327,12 +432,12 @@ const Shifts = () => {
                  {filteredShifts.map((shift, idx) => (
                     <tr key={shift._id} className={`transition-all group ${shift.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}>
                        <td className="text-center italic opacity-40">
-                         {((page - 1) * 12 + idx + 1).toString().padStart(2, '0')}
+                         {((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}
                        </td>
                        <td>
                           <div className="flex flex-col items-center">
                              <span className="zen-table-primary">{shift.name}</span>
-                             {shift.branch && <span className="zen-table-meta">{shift.branch.name}</span>}
+                             {shift.branch && <span className="zen-table-meta">{getShiftBranchName(shift)}</span>}
                           </div>
                        </td>
                        <td>
@@ -367,7 +472,7 @@ const Shifts = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        maxWidth="max-w-2xl"
+        maxWidth="max-w-lg"
         header={
           <div className="flex items-start justify-between gap-6 px-6 sm:px-10 py-6 sm:py-8">
             <div className="flex items-start gap-4 sm:gap-5 min-w-0">
@@ -416,7 +521,7 @@ const Shifts = () => {
         }
       >
          <form id="shift-modal-form" onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 grid-cols-1">
               <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
                 <div className="flex items-start justify-between gap-4 mb-6">
                   <div>
@@ -457,7 +562,7 @@ const Shifts = () => {
                   </p>
                 </div>
 
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid gap-5 grid-cols-1">
                   <ZenInput
                     label="Start time"
                     placeholder="09:00 AM"
@@ -478,7 +583,7 @@ const Shifts = () => {
                   <ZenInput
                     label="Duration (hours)"
                     type="number"
-                    icon={Calendar}
+                    icon={Zap}
                     value={formData.durationHours}
                     onChange={(e: any) => setFormData({ ...formData, durationHours: parseFloat(e.target.value) })}
                   />
@@ -488,12 +593,12 @@ const Shifts = () => {
          </form>
       </Modal>
 
-      <ConfirmDialog 
-         isOpen={confirmState.isOpen} 
-         onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))} 
-         onConfirm={confirmState.onConfirm} 
-         title={confirmState.title} 
-         message={confirmState.message} 
+      <ConfirmDialog
+         isOpen={confirmState.isOpen}
+         onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+         onConfirm={confirmState.onConfirm}
+         title={confirmState.title}
+         message={confirmState.message}
          type={confirmState.type}
       />
     </ZenPageLayout>

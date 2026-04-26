@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
 import { useAuth } from '../../context/AuthContext';
-import { 
+import {
   UserPlus, Mail, Phone, Edit2, Trash2, User, Search,
   UserCircle, Lock, Eye, EyeOff, Sparkles, Calendar, Info,
   FileText, Upload, Download, File, Loader2, Cloud, Clock, Zap, Shield,
@@ -11,6 +11,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { validatePhoneNumber, getPhoneValidationProtocol } from '../../utils/validation';
 import { Modal } from '../../components/shared/Modal';
 import { notify } from '../../components/shared/ZenNotification';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 dayjs.extend(customParseFormat);
@@ -51,29 +52,58 @@ interface Payroll {
   baseAmount: number;
   otRate: number;
   shiftHours: number;
+  commissionBasis?: boolean;
 }
 
 interface Employee {
   _id: string;
+  employeeId?: string;
   name: string;
   role: string;
   phone: string;
   email: string;
   address: string;
+  dob?: string;
   salary: number;
   profilePic?: string;
   services: string[];
   attendance: number;
   earnings: number;
   status: string;
-  branch?: Branch;
+  branch?: Branch | string;
   joiningDate: string;
   shift?: string;
   shiftType: 'Day' | 'Week' | 'Month';
   documents: ZenDocument[];
   payroll: Payroll;
-  createdAt: string;
+  isEmailVerified?: boolean;
+  loginAttempts?: number;
+  lockUntil?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+const getEmployeeBranchId = (employee: Employee) => {
+  if (!employee.branch) return '';
+  return typeof employee.branch === 'string' ? employee.branch : employee.branch._id || '';
+};
+
+const getEmployeeBranchName = (employee: Employee) => {
+  if (!employee.branch) return 'Main Registry';
+  return typeof employee.branch === 'string' ? employee.branch : employee.branch.name || 'Main Registry';
+};
+
+const formatExportDate = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD') : value;
+};
+
+const formatExportDateTime = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : value;
+};
 
 const Employees = () => {
   const { user } = useAuth();
@@ -87,7 +117,7 @@ const Employees = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEmployees, setTotalEmployees] = useState(0);
-  
+
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_specialist_view') as 'grid' | 'table') || 'grid';
   });
@@ -96,7 +126,7 @@ const Employees = () => {
   const [editingEmp, setEditingEmp] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     role: '',
@@ -121,7 +151,7 @@ const Employees = () => {
   });
 
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
-  const [activeTab, setActiveTab] = useState<'profile' | 'payroll' | 'documents' | 'activity'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'config' | 'payroll' | 'documents' | 'activity'>('profile');
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [docName, setDocName] = useState('');
   const [employeeAttendance, setEmployeeAttendance] = useState<any[]>([]);
@@ -153,7 +183,7 @@ const Employees = () => {
     const otRecords = employeeAttendance.filter(log => log.date?.startsWith(historyMonth) && log.overtimeMinutes > 0);
     const totalOtMinutes = otRecords.reduce((acc, log) => acc + log.overtimeMinutes, 0);
     const otEarnings = (totalOtMinutes / 60) * (formData.payroll.otRate || 0);
-    
+
     const baseAmount = formData.payroll.type === 'Monthly' ? (formData.payroll.baseAmount || formData.salary || 0) : 0;
     const totalEarnings = baseAmount + commissionTotal + otEarnings;
 
@@ -197,7 +227,7 @@ const Employees = () => {
 
   useEffect(() => {
     fetchEmployees();
-    
+
     const interval = setInterval(() => {
       if (!shouldPollNow()) return;
       fetchEmployees(true);
@@ -217,11 +247,12 @@ const Employees = () => {
 
   const fetchShifts = async () => {
     try {
-      const url = new URL(`${API_URL}/shifts`);
+      const queryParams = new URLSearchParams();
       if (selectedBranch && selectedBranch !== 'all') {
-        url.searchParams.append('branch', selectedBranch);
+        queryParams.append('branch', selectedBranch);
       }
-      const response = await fetch(url.toString(), {
+      const queryString = queryParams.toString();
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/shifts${queryString ? `?${queryString}` : ''}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
@@ -241,7 +272,7 @@ const Employees = () => {
 
   const simulateAttendance = async () => {
     if (!editingEmp) return;
-    
+
     // Find the shift details for this employee to get accurate timings
     const empShift = shifts.find(s => s.name === editingEmp.shift);
     const shiftStart = empShift?.startTime || "09:00 AM";
@@ -251,7 +282,7 @@ const Employees = () => {
     try {
       const anchorDate = dayjs(formData.joiningDate);
       const startOfMonth = dayjs(historyMonth).startOf('month');
-      
+
       // Start simulation either from joining date or from month start, whichever is later in the current month
       let startDate = startOfMonth;
       if (anchorDate.format('YYYY-MM') === historyMonth && anchorDate.isAfter(startOfMonth)) {
@@ -259,8 +290,8 @@ const Employees = () => {
       }
 
       const promises = [];
-      const cycleDays = formData.shiftType === 'Week' ? 7 : 
-                        formData.shiftType === 'Month' ? 30 : 
+      const cycleDays = formData.shiftType === 'Week' ? 7 :
+                        formData.shiftType === 'Month' ? 30 :
                         formData.shiftType === 'Day' ? 5 :
                         startDate.daysInMonth();
 
@@ -268,26 +299,26 @@ const Employees = () => {
         const date = startDate.add(d, 'day');
         // Prevent simulating across month boundaries if we only want this month
         if (date.format('YYYY-MM') !== historyMonth) break;
-        // We still don't want to simulate future if they are logging real attendance, 
+        // We still don't want to simulate future if they are logging real attendance,
         // but for sample generation we may want the whole month.
         // Let's allow full month for simulation.
 
         const dateStr = date.format('YYYY-MM-DD');
-        
+
         // Use shift timings with small random variations for realism
         const checkIn = dayjs(shiftStart, 'hh:mm A')
           .add(Math.floor(Math.random() * 21) - 10, 'minute') // +/- 10 mins variation
           .format('hh:mm A');
-          
+
         const checkOut = dayjs(shiftEnd, 'hh:mm A')
           .add(Math.floor(Math.random() * 41) - 5, 'minute') // -5 to +35 mins variation (often stays late)
           .format('hh:mm A');
-        
+
         promises.push(fetch(`${API_URL}/attendance`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user?.token}` 
+            'Authorization': `Bearer ${user?.token}`
           },
           body: JSON.stringify({
             date: dateStr,
@@ -301,7 +332,7 @@ const Employees = () => {
       }
       await Promise.all(promises);
       notify('success', 'Roster Created', `Generated ${cycleDays} schedule entries based on ${editingEmp.shiftType} shift.`);
-      
+
       // Force refresh activity data
       const res = await fetch(`${API_URL}/attendance`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
       const data = await res.json();
@@ -364,9 +395,9 @@ const Employees = () => {
        setLoading(true);
        await fetch(`${API_URL}/attendance/${editingAttendance._id}`, {
          method: 'PUT',
-         headers: { 
+         headers: {
            'Content-Type': 'application/json',
-           'Authorization': `Bearer ${user?.token}` 
+           'Authorization': `Bearer ${user?.token}`
          },
          body: JSON.stringify(attendanceFormData)
        });
@@ -416,6 +447,121 @@ const Employees = () => {
 
   const filteredEmployees = employees;
 
+  const fetchAllEmployeesForExport = async (): Promise<Employee[]> => {
+    const allEmployees: Employee[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const queryParams = new URLSearchParams({
+        page: exportPage.toString(),
+        limit: exportLimit.toString(),
+        search: debouncedSearch,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
+      });
+
+      const response = await fetch(`${API_URL}/employees?${queryParams}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch employees for export');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allEmployees.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const unique = new Map<string, Employee>();
+    allEmployees.forEach((employee) => {
+      if (employee?._id) {
+        unique.set(employee._id, employee);
+      }
+    });
+
+    return Array.from(unique.values());
+  };
+
+  const employeeExportColumns = useMemo<ExportColumn<Employee>[]>(
+    () => {
+      const currency = settings?.general?.currencySymbol || 'QR';
+      const assetBaseUrl = API_URL.replace('/api', '');
+      const money = (value?: number) =>
+        typeof value === 'number' ? `${currency} ${value}` : '-';
+      const assetUrl = (path?: string) => {
+        if (!path) return '-';
+        if (path.startsWith('http')) return path;
+        const cleanPath = path.replace(/^\.?\//, '');
+        return `${assetBaseUrl}/${cleanPath}`;
+      };
+      const documentSummary = (employee: Employee) =>
+        employee.documents
+          ?.map(doc => `${doc.name || 'Document'} (${doc.fileType || 'file'})`)
+          .join(' | ') || '-';
+      const documentUrls = (employee: Employee) =>
+        employee.documents
+          ?.map(doc => assetUrl(doc.url))
+          .filter(url => url !== '-')
+          .join(' | ') || '-';
+      const documentUploadDates = (employee: Employee) =>
+        employee.documents
+          ?.map(doc => `${doc.name || 'Document'}: ${formatExportDateTime(doc.uploadedAt)}`)
+          .join(' | ') || '-';
+      const isLocked = (employee: Employee) =>
+        Boolean(employee.lockUntil && dayjs(employee.lockUntil).isAfter(dayjs()));
+
+      return [
+        { header: 'EMP ID', accessor: (employee) => employee.employeeId || '-' },
+        { header: 'System ID', accessor: (employee) => employee._id },
+        { header: 'Operational ID', accessor: (employee) => employee.employeeId ? `#${employee.employeeId}` : `#${employee._id.slice(-6).toUpperCase()}` },
+        { header: 'Full Name', accessor: (employee) => employee.name },
+        { header: 'Role', accessor: (employee) => employee.role || '-' },
+        { header: 'Branch ID', accessor: (employee) => getEmployeeBranchId(employee) || '-' },
+        { header: 'Branch', accessor: (employee) => getEmployeeBranchName(employee) },
+        { header: 'Phone', accessor: (employee) => employee.phone || '-' },
+        { header: 'Email', accessor: (employee) => employee.email || '-' },
+        { header: 'Address', accessor: (employee) => employee.address || '-' },
+        { header: 'Date of Birth', accessor: (employee) => formatExportDate(employee.dob) },
+        { header: 'Status', accessor: (employee) => employee.status || '-' },
+        { header: 'Email Verified', accessor: (employee) => employee.isEmailVerified === false ? 'No' : 'Yes' },
+        { header: 'Login Attempts', accessor: (employee) => employee.loginAttempts ?? 0 },
+        { header: 'Account Locked', accessor: (employee) => isLocked(employee) ? 'Yes' : 'No' },
+        { header: 'Lock Until', accessor: (employee) => formatExportDateTime(employee.lockUntil) },
+        { header: 'Joining Date', accessor: (employee) => formatExportDate(employee.joiningDate) },
+        { header: 'Shift', accessor: (employee) => employee.shift || 'Flexible' },
+        { header: 'Schedule Cycle', accessor: (employee) => employee.shiftType || 'Day' },
+        { header: 'Services Count', accessor: (employee) => employee.services?.length || 0 },
+        { header: 'Services', accessor: (employee) => employee.services?.join(' | ') || '-' },
+        { header: 'Attendance (%)', accessor: (employee) => employee.attendance ?? '-' },
+        { header: 'Earnings', accessor: (employee) => money(employee.earnings) },
+        { header: 'Salary', accessor: (employee) => money(employee.salary) },
+        { header: 'Payroll Type', accessor: (employee) => employee.payroll?.type || '-' },
+        { header: 'Payroll Base Amount', accessor: (employee) => money(employee.payroll?.baseAmount) },
+        { header: 'Overtime Rate', accessor: (employee) => money(employee.payroll?.otRate) },
+        { header: 'Shift Hours', accessor: (employee) => employee.payroll?.shiftHours ?? '-' },
+        { header: 'Commission Eligible', accessor: (employee) => employee.payroll?.commissionBasis === false ? 'No' : 'Yes' },
+        { header: 'Documents Count', accessor: (employee) => employee.documents?.length || 0 },
+        { header: 'Documents', accessor: (employee) => documentSummary(employee) },
+        { header: 'Document URLs', accessor: (employee) => documentUrls(employee) },
+        { header: 'Document Upload Dates', accessor: (employee) => documentUploadDates(employee) },
+        { header: 'Profile Picture', accessor: (employee) => employee.profilePic || '-' },
+        { header: 'Profile Picture URL', accessor: (employee) => assetUrl(employee.profilePic) },
+        { header: 'Created At', accessor: (employee) => formatExportDateTime(employee.createdAt) },
+        { header: 'Updated At', accessor: (employee) => formatExportDateTime(employee.updatedAt) }
+      ];
+    },
+    [API_URL, settings?.general?.currencySymbol]
+  );
+
   const fetchRoles = async () => {
     try {
       const response = await fetch(`${API_URL}/roles`, {
@@ -434,7 +580,7 @@ const Employees = () => {
     try {
       const response = await fetch(`${API_URL}/employees/${emp._id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${user?.token}`,
           'Content-Type': 'application/json'
         },
@@ -465,7 +611,7 @@ const Employees = () => {
         password: '',
         confirmPassword: '',
         joiningDate: emp.joiningDate ? new Date(emp.joiningDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        branch: emp.branch?._id || '',
+        branch: getEmployeeBranchId(emp),
         status: emp.status || 'Active',
         shift: emp.shift || '',
         shiftType: emp.shiftType || 'Day',
@@ -588,6 +734,17 @@ const Employees = () => {
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      searchActions={
+        <ExportPopup<Employee>
+          data={filteredEmployees}
+          columns={employeeExportColumns}
+          fileName="employees"
+          title="Employees"
+          triggerLabel="Download"
+          description="Choose format and export the complete employee list with profile, branch, payroll, services, and document details."
+          resolveData={fetchAllEmployeesForExport}
+        />
+      }
       addButtonLabel="Add Specialist"
       onAddClick={() => handleOpenModal()}
       topContent={
@@ -624,7 +781,10 @@ const Employees = () => {
                        )}
                     </div>
                     <div className="min-w-0">
-                       <h3 className="text-xl font-serif font-black text-zen-brown truncate leading-tight mb-1">{emp.name}</h3>
+                       <h3 className="text-xl font-serif font-black text-zen-brown truncate leading-tight mb-1 flex items-center gap-2">
+                          {emp.name}
+                          {emp.employeeId && <span className="text-[10px] font-sans font-bold text-zen-sand tracking-widest opacity-70">#{emp.employeeId}</span>}
+                       </h3>
                        <p className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest">{emp.role}</p>
                     </div>
                  </div>
@@ -632,11 +792,11 @@ const Employees = () => {
                  <div className="space-y-4 mb-6">
                     <div className="flex items-center justify-between text-[10px]">
                        <span className="text-zen-brown/40 font-bold uppercase tracking-wider">Operational ID</span>
-                       <span className="font-serif italic font-medium text-zen-brown/60">#{emp._id.slice(-6).toUpperCase()}</span>
+                       <span className="font-serif italic font-medium text-zen-brown/60">#{emp.employeeId || emp._id.slice(-6).toUpperCase()}</span>
                     </div>
                     <div className="flex items-center justify-between">
                        <span className="text-[10px] text-zen-brown/40 font-bold uppercase tracking-wider">Branch</span>
-                       <ZenBadge variant="sand" className="text-[8px] uppercase font-bold">{emp.branch?.name || 'Main Registry'}</ZenBadge>
+                       <ZenBadge variant="sand" className="text-[8px] uppercase font-bold">{getEmployeeBranchName(emp)}</ZenBadge>
                     </div>
                  </div>
 
@@ -662,10 +822,10 @@ const Employees = () => {
                   <tr>
                      <th>S No</th>
                      <th>Portrait</th>
-                     <th>Identity & Role</th>
-                     <th>Mechanism</th>
+                     <th>Employee Identity</th>
+                     <th>Protocol</th>
                      <th>Payroll</th>
-                     <th>Presence</th>
+                     <th>Status</th>
                      <th>Actions</th>
                   </tr>
                </thead>
@@ -691,25 +851,23 @@ const Employees = () => {
                          </div>
                       </td>
                       <td>
-                         <div className="flex flex-row items-center justify-center gap-2 px-6">
+                         <div className="flex flex-col items-center justify-center gap-0.5 px-6">
                             <span className="zen-table-primary">{emp.name}</span>
-                            <span className="text-zen-brown/20 px-1">|</span>
-                            <span className="zen-table-meta">{emp.role} • {emp.branch?.name || 'H.Q'}</span>
+                            {emp.employeeId && <span className="text-[9px] font-bold text-zen-sand tracking-widest opacity-80">#{emp.employeeId}</span>}
+                            <span className="text-[10px] text-zen-brown/40 font-medium uppercase tracking-tight mt-1">{emp.role} • {getEmployeeBranchName(emp)}</span>
                          </div>
                       </td>
                       <td>
-                         <div className="flex flex-row items-center justify-center gap-2">
+                         <div className="flex flex-col items-center justify-center gap-0.5">
                             <span className="text-[10px] text-zen-brown/50 font-black uppercase tracking-widest">{emp.payroll?.type || 'Monthly'}</span>
-                            <span className="text-zen-brown/20 px-1">|</span>
                             <span className="text-[9px] font-bold text-zen-brown/20 italic mt-0">{emp.shift || 'Flexible'} Record</span>
                          </div>
                       </td>
                       <td>
-                        <div className="flex flex-row items-center justify-center gap-2">
+                        <div className="flex flex-col items-center justify-center gap-0.5">
                            <span className="text-base font-serif font-black text-zen-brown leading-none">
                               {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
                            </span>
-                           <span className="text-zen-brown/20 px-1">|</span>
                            <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-0">Total Earnings</span>
                         </div>
                       </td>
@@ -737,9 +895,9 @@ const Employees = () => {
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         maxWidth="max-w-6xl"
         title={editingEmp ? 'Edit Employee Profile' : 'New Employee Profile'}
         subtitle="Manage profile, schedule, payroll, documents, and attendance"
@@ -781,8 +939,8 @@ const Employees = () => {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-3 rounded-t-xl text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-700 whitespace-nowrap border-b-2 font-serif italic ${
-                  activeTab === tab.id 
-                    ? 'bg-zen-sand/5 text-zen-sand border-zen-sand' 
+                  activeTab === tab.id
+                    ? 'bg-zen-sand/5 text-zen-sand border-zen-sand'
                     : 'bg-transparent text-zen-brown/30 border-transparent hover:text-zen-brown/60 hover:bg-zen-cream/20'
                 }`}
               >
@@ -808,51 +966,51 @@ const Employees = () => {
               ) : activeTab === 'config' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 animate-in fade-in duration-500 h-full py-3">
                     <div className="col-span-1">
-                      <ZenDropdown 
-                        label="Payroll Type" 
-                        options={['Monthly', 'Hourly']} 
-                        value={formData.payroll.type} 
-                        onChange={(val: any) => setFormData({...formData, payroll: {...formData.payroll, type: val}})} 
+                      <ZenDropdown
+                        label="Payroll Type"
+                        options={['Monthly', 'Hourly']}
+                        value={formData.payroll.type}
+                        onChange={(val: any) => setFormData({...formData, payroll: {...formData.payroll, type: val}})}
                         icon={Zap}
                       />
                     </div>
 
                     <div className="col-span-1">
-                       <ZenDropdown 
-                         label="Assigned Shift" 
-                         options={['None', ...(shifts || []).map(s => s.name)]} 
-                         value={formData.shift || 'None'} 
+                       <ZenDropdown
+                         label="Assigned Shift"
+                         options={['None', ...(shifts || []).map(s => s.name)]}
+                         value={formData.shift || 'None'}
                          onChange={(val) => {
                             const selectedShift = (shifts || []).find(s => s.name === val);
                             setFormData({
-                               ...formData, 
+                               ...formData,
                                shift: val === 'None' ? '' : val,
                                payroll: {
                                   ...formData.payroll,
                                   shiftHours: selectedShift ? selectedShift.durationHours : formData.payroll.shiftHours
                                }
                             });
-                         }} 
+                         }}
                          icon={Clock}
                        />
                     </div>
-                    
+
                     <div className="col-span-1">
-                       <ZenDropdown 
-                          label="Schedule Cycle" 
-                          options={['Day', 'Week', 'Month']} 
-                          value={formData.shiftType} 
-                          onChange={(val: any) => setFormData({...formData, shiftType: val})} 
+                       <ZenDropdown
+                          label="Schedule Cycle"
+                          options={['Day', 'Week', 'Month']}
+                          value={formData.shiftType}
+                          onChange={(val: any) => setFormData({...formData, shiftType: val})}
                           icon={Zap}
                        />
                     </div>
-                    
+
                     <div className="flex items-center justify-between p-6 bg-zen-sand/5 rounded-2xl border border-zen-sand/10">
                       <div className="flex flex-col">
                         <span className="text-[10px] font-bold text-zen-brown uppercase tracking-widest">Commission Eligibility</span>
                         <span className="text-xs text-zen-brown/40 mt-0.5">Allow automated commissions</span>
                       </div>
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setFormData({...formData, payroll: {...formData.payroll, commissionBasis: !formData.payroll.commissionBasis}})}
                         className={`w-12 h-6 rounded-full transition-all duration-500 relative ${formData.payroll.commissionBasis ? 'bg-amber-400' : 'bg-zen-brown/10'}`}
@@ -861,16 +1019,16 @@ const Employees = () => {
                       </button>
                     </div>
 
-                    <ZenInput 
-                      label={formData.payroll.type === 'Monthly' ? "Base Salary" : "Hourly Rate"} 
-                      prefix={settings?.general?.currencySymbol || 'QR'} 
-                      type="number" 
-                      value={formData.payroll.baseAmount || formData.salary} 
-                      onChange={(e: any) => setFormData({...formData, payroll: {...formData.payroll, baseAmount: parseInt(e.target.value)}})} 
+                    <ZenInput
+                      label={formData.payroll.type === 'Monthly' ? "Base Salary" : "Hourly Rate"}
+                      prefix={settings?.general?.currencySymbol || 'QR'}
+                      type="number"
+                      value={formData.payroll.baseAmount || formData.salary}
+                      onChange={(e: any) => setFormData({...formData, payroll: {...formData.payroll, baseAmount: parseInt(e.target.value)}})}
                     />
                     <ZenInput label="Overtime Rate (per hour)" icon={Zap} type="number" value={formData.payroll.otRate} onChange={(e: any) => setFormData({...formData, payroll: {...formData.payroll, otRate: parseInt(e.target.value)}})} />
                     <ZenInput label="Shift Duration (Hours)" icon={Clock} type="number" value={formData.payroll.shiftHours} onChange={(e: any) => setFormData({...formData, payroll: {...formData.payroll, shiftHours: parseInt(e.target.value)}})} disabled />
-                    
+
                     <div className="p-8 bg-zen-leaf/5 rounded-[2rem] border border-zen-leaf/10 flex flex-col justify-center">
                        <h5 className="text-[10px] font-bold text-zen-leaf uppercase tracking-widest">Payroll Summary</h5>
                        <p className="font-serif italic text-zen-brown/60 text-sm mt-3 leading-relaxed">
@@ -927,8 +1085,8 @@ const Employees = () => {
                                       const service = services.find(s => s.name === apt.service);
                                       let earnings = 0;
                                       if (service) {
-                                         earnings = service.commissionType === 'Fixed' 
-                                            ? service.commissionValue 
+                                         earnings = service.commissionType === 'Fixed'
+                                            ? service.commissionValue
                                             : (service.price * service.commissionValue) / 100;
                                       }
                                       return (
@@ -957,10 +1115,10 @@ const Employees = () => {
                          <div className="w-full">
                              <div className="flex items-center justify-between bg-white/40 p-6 rounded-[2rem] border border-zen-brown/15 mb-6">
                                 <div className="flex items-center gap-6">
-                                   <ZenDropdown 
-                                     label="Analysis Period" 
-                                     options={Array.from({ length: 12 }, (_, i) => dayjs().subtract(i, 'month').format('MMMM YYYY'))} 
-                                     value={dayjs(historyMonth, 'YYYY-MM').format('MMMM YYYY')} 
+                                   <ZenDropdown
+                                     label="Analysis Period"
+                                     options={Array.from({ length: 12 }, (_, i) => dayjs().subtract(i, 'month').format('MMMM YYYY'))}
+                                     value={dayjs(historyMonth, 'YYYY-MM').format('MMMM YYYY')}
                                      onChange={(val) => setHistoryMonth(dayjs(val, 'MMMM YYYY').format('YYYY-MM'))}
                                      icon={Calendar}
                                    />
@@ -974,7 +1132,7 @@ const Employees = () => {
 
                             <div className="flex items-center justify-between gap-6 mb-4 shrink-0">
                                <div className="flex bg-zen-cream/30 p-1.5 rounded-[1.5rem] border border-zen-brown/15 shadow-inner">
-                                  <button 
+                                  <button
                                     type="button"
                                     onClick={() => setHistoryView('calendar')}
                                     className={`px-8 py-3 rounded-xl text-[10px] font-extrabold uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-2 ${historyView === 'calendar' ? 'bg-white text-zen-brown shadow-xl' : 'text-zen-brown/30 hover:text-zen-brown/50'}`}
@@ -982,7 +1140,7 @@ const Employees = () => {
                                      <Calendar size={12} />
                                      Calendar View
                                   </button>
-                                  <button 
+                                  <button
                                     type="button"
                                     onClick={() => setHistoryView('list')}
                                     className={`px-8 py-3 rounded-xl text-[10px] font-extrabold uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-2 ${historyView === 'list' ? 'bg-white text-zen-brown shadow-xl' : 'text-zen-brown/30 hover:text-zen-brown/50'}`}
@@ -991,7 +1149,7 @@ const Employees = () => {
                                      Log View
                                   </button>
                                </div>
-                               
+
                             </div>
                          </div>
 
@@ -1011,7 +1169,7 @@ const Employees = () => {
                                    </div>
                                 </div>
                              </div>
-                             
+
                              <div className="grid grid-cols-7 gap-2 lg:gap-3">
                                 {['S','M','T','W','T','F','S'].map((d, i) => (
                                    <div key={i} className="text-center text-[9px] font-black text-zen-brown/10 uppercase mb-2">{d}</div>
@@ -1025,15 +1183,15 @@ const Employees = () => {
                                     const dateStr = date.format('YYYY-MM-DD');
                                     const record = employeeAttendance.find(a => a.date === dateStr);
                                     const isToday = dayjs().format('YYYY-MM-DD') === dateStr;
-                                    
+
                                     // High-precision cycle logic:
                                     const anchorDate = dayjs(formData.joiningDate);
                                     const isJoinMonth = anchorDate.format('YYYY-MM') === historyMonth;
                                     const isFutureMonth = dayjs(historyMonth).isAfter(anchorDate, 'month');
-                                    
+
                                     let isInCycle = false;
                                     let startDay = -1;
-                                    
+
                                     if (isJoinMonth) {
                                        startDay = anchorDate.date();
                                     } else if (isFutureMonth) {
@@ -1043,7 +1201,7 @@ const Employees = () => {
                                     if (startDay !== -1) {
                                        const cycleDuration = formData.shiftType === 'Day' ? 5 : (formData.shiftType === 'Week' ? 7 : 40);
                                        const cycleDiff = day - startDay;
-                                       
+
                                        if (formData.shiftType === 'Month') {
                                           isInCycle = day >= startDay;
                                        } else {
@@ -1053,14 +1211,14 @@ const Employees = () => {
 
                                     return (
                                        <div key={day} className={`aspect-square rounded-xl border flex flex-col p-2 relative transition-all duration-500 group cursor-default shadow-sm ${
-                                          record 
+                                          record
                                              ? record.overtimeMinutes > 0 ? 'bg-red-50/30 border-red-100 text-red-500 hover:shadow-red-200/50' : 'bg-zen-leaf/5 border-zen-leaf/10 text-zen-leaf hover:shadow-zen-leaf/20'
                                              : isToday ? 'bg-zen-cream border-zen-brown/35 text-zen-brown' : 'bg-white/10 border-zen-brown/15 text-zen-brown/20'
                                        } ${isInCycle && !record ? 'ring-2 ring-indigo-200/30 border-indigo-200 bg-indigo-50/10' : ''} hover:scale-105 hover:shadow-xl hover:z-10`}>
                                           <span className={`text-[10px] font-bold tracking-widest relative z-10 ${record ? 'opacity-90' : isToday ? 'text-zen-brown' : 'text-zen-brown/60'}`}>{day}</span>
                                           {record?.overtimeMinutes > 0 && <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse shadow-sm" />}
                                           {isInCycle && !record && <div className="absolute bottom-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-sm" />}
-                                          
+
                                           <div className={`absolute inset-0 transition-all duration-500 bg-white/5 rounded-xl flex items-center justify-center p-1.5 pointer-events-none backdrop-blur-sm border border-zen-brown/15 shadow-sm z-0 ${isInCycle || record ? 'opacity-100' : 'opacity-0'}`}>
                                              <p className="text-[8px] font-black uppercase tracking-widest text-zen-brown leading-relaxed text-center whitespace-pre-line">
                                                  {record ? `${record.checkIn}\n—\n${record.checkOut}` : isInCycle ? (formData.shift || 'Full Shift') + '\nScheduled' : ''}
@@ -1126,9 +1284,9 @@ const Employees = () => {
                                          </td>
                                          <td className="px-8 py-5 text-right">
                                             <div className="flex items-center justify-end gap-2 transition-opacity">
-                                               <ZenIconButton 
-                                                  icon={Edit2} 
-                                                  size="sm" 
+                                               <ZenIconButton
+                                                  icon={Edit2}
+                                                  size="sm"
                                                   onClick={(e) => {
                                                      e.stopPropagation();
                                                      setEditingAttendance(log);
@@ -1136,9 +1294,9 @@ const Employees = () => {
                                                      setIsAttendanceModalOpen(true);
                                                   }}
                                                />
-                                               <ZenIconButton 
-                                                  icon={Trash2} 
-                                                  size="sm" 
+                                               <ZenIconButton
+                                                  icon={Trash2}
+                                                  size="sm"
                                                   variant="danger"
                                                   onClick={(e) => {
                                                      e.stopPropagation();
@@ -1310,9 +1468,9 @@ const Employees = () => {
 
       <ConfirmDialog isOpen={confirmState.isOpen} onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))} onConfirm={confirmState.onConfirm} title={confirmState.title} message={confirmState.message} />
 
-       <Modal 
-        isOpen={isAttendanceModalOpen} 
-        onClose={() => setIsAttendanceModalOpen(false)} 
+       <Modal
+        isOpen={isAttendanceModalOpen}
+        onClose={() => setIsAttendanceModalOpen(false)}
         title="Edit Attendance Record"
         subtitle="Update check-in and check-out times"
         headerIcon={Clock}
@@ -1330,15 +1488,15 @@ const Employees = () => {
       >
           <form id="attendance-form" onSubmit={(e) => { e.preventDefault(); updateAttendance(); }} className="space-y-8">
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
-                <ZenInput 
-                  label="Check-in Time" 
+                <ZenInput
+                  label="Check-in Time"
                   icon={Clock}
                   placeholder="09:00 AM"
                   value={attendanceFormData.checkIn}
                   onChange={(e: any) => setAttendanceFormData(prev => ({ ...prev, checkIn: e.target.value }))}
                 />
-                <ZenInput 
-                  label="Check-out Time" 
+                <ZenInput
+                  label="Check-out Time"
                   icon={Clock}
                   placeholder="06:00 PM"
                   value={attendanceFormData.checkOut}

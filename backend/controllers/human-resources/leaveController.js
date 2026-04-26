@@ -1,7 +1,51 @@
 const Leave = require('../../models/human-resources/Leave');
 const Employee = require('../../models/human-resources/Employee');
+const Branch = require('../../models/operations/Branch');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
+
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const applyLeaveSearch = async (query, search) => {
+  const searchTerm = String(search || '').trim();
+  if (!searchTerm) return query;
+
+  const searchRegex = new RegExp(escapeRegex(searchTerm), 'i');
+  const matchingBranches = await Branch.find({ name: searchRegex }).select('_id').lean();
+  const branchIds = matchingBranches.map(branch => branch._id);
+
+  query.$or = [
+    { employeeName: searchRegex },
+    { type: searchRegex },
+    { reason: searchRegex },
+    { status: searchRegex },
+    { startDate: searchRegex },
+    { endDate: searchRegex }
+  ];
+
+  if (branchIds.length > 0) {
+    query.$or.push({ branch: { $in: branchIds } });
+  }
+
+  const numericSearch = Number(searchTerm);
+  if (Number.isFinite(numericSearch)) {
+    query.$or.push({ daysCount: numericSearch });
+  }
+
+  const dateSearch = new Date(searchTerm);
+  if (searchTerm.includes('-') && !Number.isNaN(dateSearch.getTime())) {
+    const startOfDay = new Date(dateSearch);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(dateSearch);
+    endOfDay.setHours(23, 59, 59, 999);
+    query.$or.push(
+      { createdAt: { $gte: startOfDay, $lte: endOfDay } },
+      { updatedAt: { $gte: startOfDay, $lte: endOfDay } }
+    );
+  }
+
+  return query;
+};
 
 // @desc    Get leave requests
 // @route   GET /api/leaves
@@ -10,15 +54,24 @@ const getLeaves = async (req, res) => {
   try {
     let query = {};
     const userBranchId = getBranchId(req.user.branch);
-    if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
+
+    if (req.user.role === 'Admin') {
+      if (requestedBranch) {
+        query.branch = requestedBranch;
+      }
+    } else if (req.user.role !== 'Manager') {
       // Employee: own requests only
       query.user = req.user._id;
     } else if (req.user.role === 'Manager' && userBranchId) {
       // Manager: only leaves from their branch
       query.branch = userBranchId;
     }
-    // Admin: no filter
+
+    await applyLeaveSearch(query, req.query.search);
+
     const { data, pagination } = await paginateModelQuery(Leave, query, req, {
+      populate: 'branch',
       sort: { createdAt: -1 }
     });
     res.json(pagination ? { data, pagination } : data);

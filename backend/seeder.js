@@ -22,7 +22,7 @@ const roles = [
   {
     name: 'Client',
     description: 'End customer with booking access only',
-    permissions: ['dashboard', 'appointments']
+    permissions: ['dashboard', 'book', 'profile', 'history']
   }
 ];
 

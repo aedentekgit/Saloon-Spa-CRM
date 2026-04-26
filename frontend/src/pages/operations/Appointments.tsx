@@ -16,6 +16,7 @@ import { useBranches } from '../../context/BranchContext';
 import { useSettings, SettingsData } from '../../context/SettingsContext';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import { motion, AnimatePresence } from 'motion/react';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -33,15 +34,31 @@ const parseTime = (t: string, d: string) => {
 interface Appointment {
   _id: string;
   client: string;
+  clientId?: any;
+  clientPhone?: string;
+  clientEmail?: string;
   service: string;
+  serviceId?: any;
   employee: string;
+  employeeId?: any;
   date: string;
   time: string;
   room?: string;
+  roomId?: any;
   branch?: any;
+  bookingType?: string;
   status?: string;
   cancellationReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+const getEntityId = (value: any) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value._id) return String(value._id);
+  return String(value);
+};
 
 // ── Rich Staff Dropdown ─────────────────────────────────────────────────────
 const StaffDropdown = ({ staffOptions, rawStaff, rawShifts, value, onChange }: any) => {
@@ -226,19 +243,78 @@ const Appointments = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
+  const appointmentRange = useMemo(() => {
+    const unit = viewType.toLowerCase() as 'day' | 'week' | 'month';
+    return {
+      start: selectedDate.startOf(unit),
+      end: selectedDate.endOf(unit)
+    };
+  }, [selectedDate, viewType]);
+
+  const appointmentRangeLabel = useMemo(() => {
+    if (viewType === 'Day') return selectedDate.format('DD MMM YYYY');
+    if (viewType === 'Week') {
+      return `${appointmentRange.start.format('DD MMM YYYY')} - ${appointmentRange.end.format('DD MMM YYYY')}`;
+    }
+    return selectedDate.format('MMMM YYYY');
+  }, [appointmentRange, selectedDate, viewType]);
+
+  const appointmentQueryString = (targetPage: number, targetLimit: number) => {
+    const params = new URLSearchParams({
+      page: targetPage.toString(),
+      limit: targetLimit.toString(),
+      dateFrom: appointmentRange.start.format('YYYY-MM-DD'),
+      dateTo: appointmentRange.end.format('YYYY-MM-DD')
+    });
+
+    if (selectedBranch !== 'all') {
+      params.set('branch', selectedBranch);
+    }
+
+    return params.toString();
+  };
+
+  const appointmentMatchesRangeAndBranch = (apt: Appointment) => {
+    const date = dayjs(apt.date);
+    if (!date.isValid() || !date.isSame(selectedDate, viewType.toLowerCase() as any)) return false;
+    if (selectedBranch !== 'all' && getEntityId(apt.branch) !== selectedBranch) return false;
+    return true;
+  };
+
+  const fetchAppointmentsForCurrentRange = async (authHeader: { Authorization: string }) => {
+    const allRows: Appointment[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const res = await fetch(`${API_URL}/appointments?${appointmentQueryString(exportPage, exportLimit)}`, { headers: authHeader });
+      const data = await res.json();
+      const rows = Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+          ? data
+          : [];
+
+      allRows.push(...rows);
+      exportTotalPages = Number(data?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const uniqueRows = new Map<string, Appointment>();
+    allRows.forEach((apt) => {
+      if (apt?._id) uniqueRows.set(apt._id, apt);
+    });
+
+    return Array.from(uniqueRows.values()).filter(appointmentMatchesRangeAndBranch);
+  };
+
   const fetchAppointments = async (silent: boolean = false) => {
     try {
       if (!silent) setLoading(true);
       const authHeader = { 'Authorization': `Bearer ${user?.token}` };
-      const res = await fetch(`${API_URL}/appointments?page=${page}&limit=${PAGE_LIMIT}`, { headers: authHeader });
-      const data = await res.json();
-      if (data.data) {
-        setAppointments(data.data);
-        setTotalPages(data.pagination?.pages || 1);
-      } else if (Array.isArray(data)) {
-        setAppointments(data);
-        setTotalPages(1);
-      }
+      const rows = await fetchAppointmentsForCurrentRange(authHeader);
+      setAppointments(rows);
     } catch (error) {
       console.error('Fetch error:', error);
     } finally {
@@ -249,7 +325,9 @@ const Appointments = () => {
   const fetchDayAppointments = async (date: string) => {
     try {
       const authHeader = { 'Authorization': `Bearer ${user?.token}` };
-      const res = await fetch(`${API_URL}/appointments?date=${date}&limit=1000`, { headers: authHeader });
+      const params = new URLSearchParams({ date, limit: '1000' });
+      if (formData.branch) params.set('branch', formData.branch);
+      const res = await fetch(`${API_URL}/appointments?${params.toString()}`, { headers: authHeader });
       const data = await res.json();
       setDayAppointments(data.data || data || []);
     } catch (error) {
@@ -274,9 +352,10 @@ const Appointments = () => {
     if (!silent && !hasVisibleData) setLoading(true);
     try {
       const authHeader = { 'Authorization': `Bearer ${user?.token}` };
+      const appointmentRowsPromise = fetchAppointmentsForCurrentRange(authHeader);
       
-      const [aptRes, clientRes, serviceRes, staffRes, shiftRes, roomRes, presenceRes] = await Promise.all([
-        fetch(`${API_URL}/appointments?page=${page}&limit=${PAGE_LIMIT}`, { headers: authHeader }),
+      const [appointmentRows, clientRes, serviceRes, staffRes, shiftRes, roomRes, presenceRes] = await Promise.all([
+        appointmentRowsPromise,
         fetch(`${API_URL}/clients`, { headers: authHeader }),
         fetch(`${API_URL}/services`, { headers: authHeader }),
         fetch(`${API_URL}/employees`, { headers: authHeader }),
@@ -285,17 +364,11 @@ const Appointments = () => {
         fetch(`${API_URL}/attendance`, { headers: authHeader })
       ]);
 
-      const [aptsData, clients, services, staff, shifts, rooms, presence] = await Promise.all([
-        aptRes.json(), clientRes.json(), serviceRes.json(), staffRes.json(), shiftRes.json(), roomRes.json(), presenceRes.json()
+      const [clients, services, staff, shifts, rooms, presence] = await Promise.all([
+        clientRes.json(), serviceRes.json(), staffRes.json(), shiftRes.json(), roomRes.json(), presenceRes.json()
       ]);
 
-      if (aptsData.data) {
-        setAppointments(aptsData.data);
-        setTotalPages(aptsData.pagination?.pages || 1);
-      } else if (Array.isArray(aptsData)) {
-        setAppointments(aptsData);
-        setTotalPages(1);
-      }
+      setAppointments(appointmentRows);
       const clientsList = Array.isArray(clients) ? clients : (clients?.data || []);
       const servicesList = Array.isArray(services) ? services : (services?.data || []);
       const staffList = Array.isArray(staff) ? staff : (staff?.data || []);
@@ -326,7 +399,7 @@ const Appointments = () => {
     }, getPollIntervalMs(30000));
     
     return () => clearInterval(interval);
-  }, [user, page]);
+  }, [user?.token, selectedBranch, selectedDate, viewType]);
 
   useEffect(() => setCachedJson('zen_page_appointments', appointments), [appointments]);
   useEffect(() => setCachedJson('zen_page_day_appointments', dayAppointments), [dayAppointments]);
@@ -341,22 +414,61 @@ const Appointments = () => {
     await fetchAllData();
   };
 
+  const appointmentMatchesViewer = (apt: Appointment) => {
+    if (user?.role === 'Admin' || user?.role === 'Manager') return true;
+    if (user?.role === 'Employee') return apt.employee === user.name || apt.employeeId?.name === user.name;
+    if (user?.role === 'Client') {
+      return apt.client === user.name || apt.clientId?.name === user.name || getEntityId(apt.clientId) === user._id;
+    }
+    return false;
+  };
+
+  const appointmentMatchesSearch = (apt: Appointment) => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return true;
+
+    return [
+      apt.clientId?.name,
+      apt.client,
+      apt.clientPhone,
+      apt.clientEmail,
+      apt.serviceId?.name,
+      apt.service,
+      apt.employeeId?.name,
+      apt.employee,
+      apt.roomId?.name,
+      apt.room,
+      apt.branch?.name,
+      apt.status,
+      apt.bookingType
+    ].some((value) => String(value || '').toLowerCase().includes(query));
+  };
+
+  const filterAppointmentsForCurrentView = (rows: Appointment[]) =>
+    rows.filter((apt) =>
+      apt &&
+      appointmentMatchesRangeAndBranch(apt) &&
+      appointmentMatchesSearch(apt) &&
+      appointmentMatchesViewer(apt)
+    );
+
   const filteredAppointments = useMemo(() => {
-    return appointments.filter(apt => {
-      if (!apt) return false;
-      
-      const matchesDate = apt.date ? dayjs(apt.date).isSame(selectedDate, viewType.toLowerCase() as any) : false;
-      const clientName = (apt.clientId?.name || apt.client || '').toLowerCase();
-      const matchesSearch = clientName.includes(searchTerm.toLowerCase()) || 
-                            (apt.service || '').toLowerCase().includes(searchTerm.toLowerCase());
-      
-      if (!matchesDate || !matchesSearch) return false;
-      if (user?.role === 'Admin' || user?.role === 'Manager') return true;
-      if (user?.role === 'Employee') return apt.employee === user.name;
-      if (user?.role === 'Client') return apt.client === user.name;
-      return false;
-    });
-  }, [appointments, selectedDate, viewType, searchTerm, user]);
+    return filterAppointmentsForCurrentView(appointments);
+  }, [appointments, selectedDate, viewType, selectedBranch, searchTerm, user]);
+
+  const visibleAppointments = useMemo(() => {
+    if (viewType === 'Month') return filteredAppointments;
+    const startIndex = (page - 1) * PAGE_LIMIT;
+    return filteredAppointments.slice(startIndex, startIndex + PAGE_LIMIT);
+  }, [filteredAppointments, page, viewType]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedDate, selectedBranch, viewType, searchTerm]);
+
+  useEffect(() => {
+    setTotalPages(viewType === 'Month' ? 1 : Math.max(1, Math.ceil(filteredAppointments.length / PAGE_LIMIT)));
+  }, [filteredAppointments.length, viewType]);
 
   const clientSearchOptions = useMemo(() => {
      return (rawClients || [])
@@ -643,6 +755,63 @@ const Appointments = () => {
     return selectedDate.format('MMMM YYYY');
   };
 
+  const getAppointmentClientName = (apt: Appointment) => apt.clientId?.name || apt.client || 'Guest';
+  const getAppointmentClientPhone = (apt: Appointment) => apt.clientId?.phone || apt.clientPhone || '-';
+  const getAppointmentClientEmail = (apt: Appointment) => apt.clientId?.email || apt.clientEmail || '-';
+  const getAppointmentServiceName = (apt: Appointment) => apt.serviceId?.name || apt.service || '-';
+  const getAppointmentStaffName = (apt: Appointment) => apt.employeeId?.name || apt.employee || '-';
+  const getAppointmentRoomName = (apt: Appointment) => apt.roomId?.name || apt.room || '-';
+  const getAppointmentBranchName = (apt: Appointment) => {
+    if (apt.branch?.name) return apt.branch.name;
+    const branchId = getEntityId(apt.branch);
+    return branches.find((branch: any) => branch._id === branchId)?.name || 'Main Branch';
+  };
+  const getAppointmentService = (apt: Appointment) => {
+    const serviceId = getEntityId(apt.serviceId);
+    return rawServices.find((service: any) =>
+      (serviceId && service._id === serviceId) ||
+      service.name === getAppointmentServiceName(apt)
+    );
+  };
+  const getAppointmentDuration = (apt: Appointment) => getAppointmentService(apt)?.duration || 60;
+  const getAppointmentEndTime = (apt: Appointment) => {
+    const start = parseTime(apt.time, apt.date);
+    return start ? start.add(getAppointmentDuration(apt), 'minute').format('HH:mm') : '-';
+  };
+  const formatExportDateTime = (value?: string) => value ? dayjs(value).format('DD MMM YYYY, hh:mm A') : '-';
+
+  const fetchAllAppointmentsForExport = async () => {
+    const authHeader = { 'Authorization': `Bearer ${user?.token}` };
+    const rows = await fetchAppointmentsForCurrentRange(authHeader);
+    return filterAppointmentsForCurrentView(rows);
+  };
+
+  const appointmentExportColumns = useMemo<ExportColumn<Appointment>[]>(
+    () => [
+      { header: 'Appointment ID', accessor: (apt) => apt._id },
+      { header: 'Period', accessor: () => `${viewType}: ${appointmentRangeLabel}` },
+      { header: 'Date', accessor: (apt) => dayjs(apt.date).format('DD MMM YYYY') },
+      { header: 'Day', accessor: (apt) => dayjs(apt.date).format('dddd') },
+      { header: 'Start Time', accessor: (apt) => apt.time || '-' },
+      { header: 'End Time', accessor: (apt) => getAppointmentEndTime(apt) },
+      { header: 'Client Name', accessor: (apt) => getAppointmentClientName(apt) },
+      { header: 'Client Phone', accessor: (apt) => getAppointmentClientPhone(apt) },
+      { header: 'Client Email', accessor: (apt) => getAppointmentClientEmail(apt) },
+      { header: 'Service', accessor: (apt) => getAppointmentServiceName(apt) },
+      { header: 'Service Duration (Min)', accessor: (apt) => getAppointmentDuration(apt) },
+      { header: 'Service Price (QR)', accessor: (apt) => Number(getAppointmentService(apt)?.price || 0).toLocaleString() },
+      { header: 'Staff', accessor: (apt) => getAppointmentStaffName(apt) },
+      { header: 'Room', accessor: (apt) => getAppointmentRoomName(apt) },
+      { header: 'Branch', accessor: (apt) => getAppointmentBranchName(apt) },
+      { header: 'Booking Type', accessor: (apt) => apt.bookingType || 'Normal' },
+      { header: 'Status', accessor: (apt) => apt.status || 'Confirmed' },
+      { header: 'Cancellation Reason', accessor: (apt) => apt.cancellationReason || '-' },
+      { header: 'Created On', accessor: (apt) => formatExportDateTime(apt.createdAt) },
+      { header: 'Updated On', accessor: (apt) => formatExportDateTime(apt.updatedAt) }
+    ],
+    [appointmentRangeLabel, branches, rawServices, viewType]
+  );
+
   return (
     <ZenPageLayout
       title="Appointments"
@@ -653,6 +822,17 @@ const Appointments = () => {
       addButtonLabel={user?.role === 'Client' ? "Book Ritual" : "New Appointment"}
       addButtonIcon={<Plus size={18} />}
       onAddClick={() => handleOpenModal()}
+      searchActions={
+        <ExportPopup<Appointment>
+          data={filteredAppointments}
+          columns={appointmentExportColumns}
+          fileName={`appointments_${viewType.toLowerCase()}`}
+          title={`${viewType} Appointments`}
+          triggerLabel="Download"
+          description={`Export every matching appointment for ${appointmentRangeLabel}, including client, staff, service, room, branch, status, and timing details.`}
+          resolveData={fetchAllAppointmentsForExport}
+        />
+      }
     >
       <div 
         style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} 
@@ -713,7 +893,7 @@ const Appointments = () => {
 
                                  for (let d = 1; d <= totalDays; d++) {
                                     const dateStr = startOfMonth.date(d).format('YYYY-MM-DD');
-                                    const dayAppointments = appointments.filter(a => a.date === dateStr);
+                                    const dayAppointments = filteredAppointments.filter(a => a.date === dateStr);
                                     const isToday = dayjs().isSame(startOfMonth.date(d), 'day');
 
                                     days.push(
@@ -751,7 +931,7 @@ const Appointments = () => {
                      </div>
                   ) : (
                      <div className="p-4 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 animate-in fade-in zoom-in duration-1000 pb-20 sm:pb-8">
-                         {filteredAppointments.map((apt) => (
+                         {visibleAppointments.map((apt) => (
                             <div key={apt._id} className="group relative bg-white border border-gray-100 p-6 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] transition-all duration-500 hover:border-zen-sand/30 hover:shadow-lg hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
                                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
                                
@@ -843,29 +1023,27 @@ const Appointments = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zen-brown/5">
-                        {filteredAppointments.length > 0 ? filteredAppointments.map((apt: any) => (
+                        {filteredAppointments.length > 0 ? visibleAppointments.map((apt: any) => (
                           <tr key={apt._id} className="group hover:bg-zen-cream/10 transition-all duration-500">
                              <td className="px-8 py-6">
                                <div className="flex items-center gap-4">
                                  <div className="w-10 h-10 rounded-xl bg-zen-sand/10 flex items-center justify-center text-zen-sand shadow-sm">
                                    <UserIcon size={16} />
                                  </div>
-                                 <div className="flex flex-row items-center gap-2">
-                                    <p className="text-sm font-bold text-zen-brown">{apt.client || 'Guest'}</p>
-                                    <span className="text-zen-brown/10">|</span>
-                                    <p className="text-[10px] text-zen-brown/30 uppercase tracking-widest">{apt.bookingType || 'Normal'}</p>
+                                 <div className="flex flex-col gap-0.5">
+                                    <p className="text-sm font-bold text-zen-brown leading-none">{apt.client || 'Guest'}</p>
+                                    <p className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.2em]">{apt.bookingType || 'Normal'}</p>
                                   </div>
                                </div>
                              </td>
                              <td className="px-8 py-6">
-                                <div className="flex flex-row items-center gap-2">
-                                  <p className="text-sm font-bold text-zen-brown">{apt.service || 'Unnamed'}</p>
-                                  <span className="text-zen-brown/20">|</span>
-                                  <div className="flex items-center gap-1.5 text-zen-brown/40">
-                                    <UserCheck size={10} />
-                                    <span className="text-[10px] font-bold uppercase tracking-widest">{apt.employee || 'Artisan'}</span>
-                                  </div>
-                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                   <p className="text-sm font-bold text-zen-brown leading-none">{apt.service || 'Unnamed'}</p>
+                                   <div className="flex items-center gap-1.5 text-zen-brown/30">
+                                     <UserCheck size={9} />
+                                     <span className="text-[9px] font-black uppercase tracking-[0.1em]">{apt.employee || 'Artisan'}</span>
+                                   </div>
+                                 </div>
                              </td>
                              <td className="px-8 py-6">
                                <div className="flex items-center gap-2">
@@ -874,10 +1052,9 @@ const Appointments = () => {
                                </div>
                              </td>
                              <td className="px-8 py-6 text-center">
-                                 <div className="inline-flex flex-row items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 border border-zen-brown/5">
-                                    <span className="text-xs font-black text-zen-brown leading-none">{apt.time || '10:00'}</span>
-                                    <span className="text-zen-brown/10">|</span>
-                                    <span className="text-[8px] font-bold text-zen-brown/30 uppercase tracking-tighter">{dayjs(apt.date).format('DD MMM')}</span>
+                                 <div className="inline-flex flex-col items-center gap-0.5 px-5 py-2 rounded-xl bg-gray-50/80 border border-zen-brown/5">
+                                    <span className="text-sm font-black text-zen-brown leading-none">{apt.time || '10:00'}</span>
+                                    <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest">{dayjs(apt.date).format('DD MMM')}</span>
                                  </div>
                              </td>
                              <td className="px-8 py-6">
@@ -928,7 +1105,7 @@ const Appointments = () => {
               <div className="space-y-6 sm:space-y-8">
                   <div className="bg-gray-50/50 p-6 sm:p-8 rounded-2xl border border-gray-100 group transition-all duration-500">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 sm:mb-3">Booked Energy</p>
-                    <p className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tighter">{filteredAppointments.filter(a => a.date && dayjs(a.date).isSame(dayjs(), 'day')).length}</p>
+                    <p className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tighter">{filteredAppointments.length}</p>
                     <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 sm:mt-2">Active Records</p>
                  </div>
               </div>

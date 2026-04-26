@@ -21,6 +21,7 @@ interface ZenLayoutProps {
   hideSearch?: boolean;
   hideBranchSelector?: boolean;
   hideViewToggle?: boolean;
+  searchActions?: React.ReactNode;
   headerActions?: React.ReactNode;
 }
 
@@ -40,6 +41,7 @@ export const ZenPageLayout = ({
   hideSearch = false,
   hideBranchSelector = false,
   hideViewToggle = false,
+  searchActions,
   headerActions
 }: ZenLayoutProps) => {
   const { loading } = useData();
@@ -69,13 +71,12 @@ export const ZenPageLayout = ({
         </div>
       )}
       
-      {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel) || headerActions) && (
+      {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel) || searchActions || headerActions) && (
         <div className="zen-pointed-surface border border-zen-stone bg-white shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-4 mb-4">
-          <div className="flex flex-col lg:flex-row lg:items-end gap-5 lg:gap-8">
+          <div className="flex items-center gap-5 lg:gap-8 overflow-hidden">
             {!hideSearch && (
-              <div className="flex-1 w-full flex flex-col gap-2.5">
-                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">{title || 'Records'} Search</label>
-                <div className="relative group">
+              <div className="flex-1 w-full flex items-center gap-4">
+                <div className="relative group flex-1">
                   <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
                   <input 
                     type="text" 
@@ -88,10 +89,11 @@ export const ZenPageLayout = ({
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row w-full lg:w-auto flex-wrap items-stretch sm:items-end justify-end gap-5 lg:gap-8 lg:ml-auto">
+            <div className="flex items-center w-full lg:w-auto justify-end gap-5 lg:gap-8 lg:ml-auto shrink-0">
+              {searchActions && searchActions}
+
               {!hideBranchSelector && (
-                <div className="flex flex-col gap-2.5 min-w-0 w-full sm:w-auto shrink-0">
-                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Location</label>
+                <div className="flex items-center shrink-0">
                   <BranchSelector />
                 </div>
               )}
@@ -99,28 +101,24 @@ export const ZenPageLayout = ({
               {headerActions && headerActions}
 
               {!hideViewToggle && onViewModeChange && (
-                <div className="flex flex-col gap-2.5">
-                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Perspective</label>
-                  <div className="flex items-center h-[52px] bg-zen-cream/50 p-1 rounded-[1.15rem] border border-zen-stone shadow-inner shrink-0">
+                <div className="flex items-center h-[52px] bg-zen-cream/50 p-1 rounded-[1.15rem] border border-zen-stone shadow-inner shrink-0 relative">
                     <button 
                       onClick={() => onViewModeChange('grid')}
-                      className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all duration-500 ${viewMode === 'grid' ? 'bg-white text-zen-sand shadow-sm' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
+                      className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all duration-500 relative z-10 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-md' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
                     >
-                      <Grid size={16} />
+                      <Grid size={18} />
                     </button>
                     <button 
                       onClick={() => onViewModeChange('table')}
-                      className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all duration-500 ${viewMode === 'table' ? 'bg-white text-zen-sand shadow-sm' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
+                      className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all duration-500 relative z-10 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-md' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
                     >
-                      <List size={16} />
+                      <List size={18} />
                     </button>
                   </div>
-                </div>
               )}
 
               {!hideAddButton && addButtonLabel && onAddClick && (
-                <div className="flex flex-col gap-2.5 w-full sm:w-auto">
-                  <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Management</label>
+                <div className="flex items-center">
                   <button 
                     onClick={onAddClick}
                     className="w-full sm:w-auto shrink-0 h-[52px] rounded-[1.15rem] px-8 shadow-sm flex items-center justify-center gap-2 active:scale-95 group transition-all duration-700 bg-zen-brown text-white font-black text-[10px] uppercase tracking-[0.2em] relative overflow-hidden"

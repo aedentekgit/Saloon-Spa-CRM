@@ -419,10 +419,9 @@ const Billing = () => {
                               <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border transition-all ${item.isRedeem ? 'bg-zen-sand/10 border-zen-sand/20 text-zen-sand' : 'bg-white border-black/5 text-black/20 group-hover:text-black/40'}`}>
                                 {item.isRedeem ? <Sparkles size={18} /> : <div className="w-2 h-2 rounded-full bg-current" />}
                               </div>
-                              <div className="flex items-center justify-center gap-2">
-                                <p className={`zen-table-primary transition-all ${item.isRedeem ? 'text-zen-sand' : 'text-black'}`}>{item.name}</p>
-                                <span className="text-zen-brown/20 text-[10px]">|</span>
-                                <span className="zen-table-meta">{item.duration}m duration</span>
+                              <div className="flex flex-col gap-0.5">
+                                <p className={`zen-table-primary transition-all leading-none ${item.isRedeem ? 'text-zen-sand' : 'text-black'}`}>{item.name}</p>
+                                <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">{item.duration}m duration</span>
                               </div>
                             </div>
                           </td>

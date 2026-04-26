@@ -244,6 +244,14 @@ const Navbar = ({
                 className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-zen-stone/30 shadow-xl overflow-hidden py-2 z-50"
               >
                 <Link 
+                  to="/profile" 
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-5 py-2.5 text-sm font-semibold text-zen-brown hover:bg-zen-cream transition-colors"
+                >
+                  <UserRound size={16} className="text-zen-brown/30" />
+                  My Profile
+                </Link>
+                <Link 
                   to="/settings" 
                   onClick={() => setIsOpen(false)}
                   className="flex items-center gap-3 px-5 py-2.5 text-sm font-semibold text-zen-brown hover:bg-zen-cream transition-colors"

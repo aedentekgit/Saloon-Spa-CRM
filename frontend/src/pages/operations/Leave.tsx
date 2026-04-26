@@ -8,10 +8,19 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
+import { ZenPagination } from '../../components/zen/ZenPagination';
 import { notify } from '../../components/shared/ZenNotification';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useData } from '../../context/DataContext';
+import { ZenInput, ZenMasterCalendar } from '../../components/zen/ZenInputs';
 import { useBranches } from '../../context/BranchContext';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
+
+interface Branch {
+  _id?: string;
+  name?: string;
+}
 
 interface LeaveRequest {
   _id: string;
@@ -23,46 +32,217 @@ interface LeaveRequest {
   daysCount: number;
   status: string;
   user: string;
+  branch?: Branch | string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-interface Employee {
-  _id: string;
-  name: string;
-  branch: any;
+interface PaginationMeta {
+  total: number;
+  page: number;
+  pages: number;
+  limit: number;
 }
+
+const getLeaveBranchId = (request: LeaveRequest) => {
+  if (!request.branch) return '';
+  return typeof request.branch === 'string' ? request.branch : request.branch._id || '';
+};
+
+const getLeaveBranchName = (request: LeaveRequest) => {
+  if (!request.branch) return 'Main Registry';
+  return typeof request.branch === 'string' ? request.branch : request.branch.name || 'Main Registry';
+};
+
+const formatExportDate = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD') : value;
+};
+
+const formatExportDateTime = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : value;
+};
 
 const Leave = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { selectedBranch } = useBranches();
-  const { leaves: requests, employees, refreshData, loading } = useData();
+  const { refreshData } = useData();
+  const [requests, setRequests] = useState<LeaveRequest[]>(() => getCachedJson('zen_page_leave_requests', []));
+  const [loading, setLoading] = useState(() => getCachedJson<LeaveRequest[]>('zen_page_leave_requests', []).length === 0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(() => getCachedJson<PaginationMeta | null>('zen_page_leave_pagination', null));
+  const [dateRange, setDateRange] = useState<any>('All');
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+  const PAGE_LIMIT = 12;
 
-  const fetchData = async () => {
-    refreshData();
-  };
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
-  const filteredRequests = useMemo(() => {
-    let filtered = requests;
-
-    // Filter by branch
-    if (selectedBranch !== 'all' && user?.role === 'Admin') {
-      filtered = filtered.filter(req => {
-        const emp = employees.find(e => e.name === req.employeeName);
-        return emp && (emp.branch === selectedBranch || emp.branch?._id === selectedBranch);
-      });
+  const dateWindow = useMemo(() => {
+    if (!dateRange || dateRange === 'All') return { startDate: '', endDate: '' };
+    
+    const now = dayjs();
+    if (typeof dateRange === 'string') {
+      if (dateRange === 'Today') return { startDate: now.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      if (dateRange === 'Week') return { startDate: now.subtract(7, 'day').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      if (dateRange === 'Month') return { startDate: now.subtract(1, 'month').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      
+      if (dateRange.length === 7) { // YYYY-MM
+        const m = dayjs(dateRange + '-01');
+        return { startDate: m.startOf('month').format('YYYY-MM-DD'), endDate: m.endOf('month').format('YYYY-MM-DD') };
+      }
+      
+      if (dateRange.length === 10) { // YYYY-MM-DD
+        return { startDate: dateRange, endDate: dateRange };
+      }
+      
+      return { startDate: '', endDate: '' };
     }
 
-    return filtered.filter(req => 
-      (req.employeeName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (req.reason || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (req.type || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [requests, searchTerm, selectedBranch, employees, user]);
+    if (dateRange.from || dateRange.to) {
+      return { 
+        startDate: dateRange.from || dateRange.to || '', 
+        endDate: dateRange.to || dateRange.from || '' 
+      };
+    }
+
+    return { startDate: '', endDate: '' };
+  }, [dateRange]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedBranch, debouncedSearch]);
+
+  useEffect(() => {
+    fetchLeaveRequests();
+  }, [selectedBranch, page, debouncedSearch, dateRange, user?.token]);
+
+  useEffect(() => setCachedJson('zen_page_leave_requests', requests), [requests]);
+  useEffect(() => setCachedJson('zen_page_leave_pagination', pagination), [pagination]);
+
+  const fetchLeaveRequests = async (silent: boolean = false) => {
+    try {
+      if (!silent && requests.length === 0) setLoading(true);
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: PAGE_LIMIT.toString(),
+        search: debouncedSearch
+      });
+      if (selectedBranch && selectedBranch !== 'all') queryParams.append('branch', selectedBranch);
+      if (dateWindow.startDate) queryParams.append('startDate', dateWindow.startDate);
+      if (dateWindow.endDate) queryParams.append('endDate', dateWindow.endDate);
+
+      const response = await fetch(`${API_URL}/leaves?${queryParams.toString()}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const payload = await response.json();
+
+      if (Array.isArray(payload?.data)) {
+        setRequests(payload.data);
+        setPagination(payload.pagination || null);
+      } else if (Array.isArray(payload)) {
+        setRequests(payload);
+        setPagination(null);
+      } else {
+        setRequests([]);
+        setPagination(null);
+      }
+    } catch (error) {
+      notify('error', 'Error', 'Failed to retrieve leave records');
+      setRequests([]);
+      setPagination(null);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  const fetchData = async () => {
+    await fetchLeaveRequests(true);
+    refreshData(true);
+  };
+
+  const filteredRequests = requests;
+
+  const fetchAllLeavesForExport = async (): Promise<LeaveRequest[]> => {
+    const allLeaves: LeaveRequest[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const queryParams = new URLSearchParams({
+        page: exportPage.toString(),
+        limit: exportLimit.toString(),
+        search: debouncedSearch,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
+      });
+
+      const response = await fetch(`${API_URL}/leaves?${queryParams.toString()}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch leave export rows');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allLeaves.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const unique = new Map<string, LeaveRequest>();
+    allLeaves.forEach((request) => {
+      if (request?._id) {
+        unique.set(request._id, request);
+      }
+    });
+
+    return Array.from(unique.values());
+  };
+
+  const leaveExportColumns = useMemo<ExportColumn<LeaveRequest>[]>(
+    () => [
+      { header: 'Leave ID', accessor: (request) => request._id },
+      { header: 'User ID', accessor: (request) => request.user || '-' },
+      { header: 'Employee Name', accessor: (request) => request.employeeName },
+      { header: 'Branch ID', accessor: (request) => getLeaveBranchId(request) || '-' },
+      { header: 'Branch', accessor: (request) => getLeaveBranchName(request) },
+      { header: 'Leave Type', accessor: (request) => request.type },
+      { header: 'Reason', accessor: (request) => request.reason },
+      { header: 'Start Date', accessor: (request) => formatExportDate(request.startDate) },
+      { header: 'End Date', accessor: (request) => formatExportDate(request.endDate) },
+      {
+        header: 'Date Range',
+        accessor: (request) => `${formatExportDate(request.startDate)} - ${formatExportDate(request.endDate)}`
+      },
+      { header: 'Days Count', accessor: (request) => request.daysCount },
+      { header: 'Duration Label', accessor: (request) => `${request.daysCount} ${request.daysCount === 1 ? 'Day' : 'Days'}` },
+      { header: 'Status', accessor: (request) => request.status },
+      { header: 'Created At', accessor: (request) => formatExportDateTime(request.createdAt) },
+      { header: 'Updated At', accessor: (request) => formatExportDateTime(request.updatedAt) }
+    ],
+    []
+  );
 
   const handleStatusChange = async (id: string, status: string) => {
     try {
@@ -104,12 +284,38 @@ const Leave = () => {
 
   return (
     <ZenPageLayout
-      title="Rest & Recharge"
+      title="Rest & Rejuvenation Registry"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
-      addButtonLabel="Apply for Leave"
-      onAddClick={() => navigate('/leave/apply')}
+      hideViewToggle
+      addButtonLabel={user?.role === 'Employee' ? "Apply Leave" : undefined}
+      onAddClick={() => navigate('/apply-leave')}
       addButtonIcon={<Plus size={18} />}
+      searchActions={
+        <>
+          <div className="flex flex-col gap-2.5 w-full sm:w-[220px]">
+            <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Date Horizon</label>
+            <ZenMasterCalendar
+              label="Date Range"
+              value={dateRange}
+              onChange={(v: any) => setDateRange(v)}
+              selectionType="range"
+              variant="pill"
+              className="w-full"
+              hideLabel
+            />
+          </div>
+          <ExportPopup<LeaveRequest>
+            data={requests}
+            columns={leaveExportColumns}
+            fileName="leave_requests"
+            title="Leave Requests"
+            triggerLabel="Download"
+            description="Choose format and export the complete leave registry with employee, branch, dates, duration, reason, and status values."
+            resolveData={fetchAllLeavesForExport}
+          />
+        </>
+      }
     >
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
          <div className="lg:col-span-1 space-y-8">
@@ -181,7 +387,16 @@ const Leave = () => {
                         </tr>
                      </thead>
                      <tbody className="divide-y divide-zen-brown/5">
-                        {(!filteredRequests || filteredRequests.length === 0) && (
+                        {loading ? (
+                           <tr>
+                              <td colSpan={6} className="px-6 py-24 text-center">
+                                <div className="flex items-center justify-center gap-3 text-xs font-black uppercase tracking-widest text-zen-brown/30">
+                                  <div className="w-4 h-4 border-2 border-zen-sand border-t-transparent rounded-full animate-spin" />
+                                  Synchronizing absence registry...
+                                </div>
+                              </td>
+                           </tr>
+                        ) : (!filteredRequests || filteredRequests.length === 0) && (
                            <tr>
                               <td colSpan={6} className="px-6 py-24 text-center">
                                 <div className="flex flex-col items-center gap-4 opacity-20">
@@ -192,11 +407,11 @@ const Leave = () => {
                            </tr>
                         )}
 
-                        {filteredRequests.map((req, idx) => (
+                        {!loading && filteredRequests.map((req, idx) => (
                            <tr key={req._id} className="transition-all hover:bg-zen-cream/10 group">
                               <td className="text-center">
                                 <span className="text-[10px] font-black text-zen-brown/20 bg-zen-cream/50 px-3 py-1 rounded-full">
-                                  {(idx + 1).toString().padStart(2, '0')}
+                                  {(((pagination?.page || page) - 1) * (pagination?.limit || PAGE_LIMIT) + idx + 1).toString().padStart(2, '0')}
                                 </span>
                               </td>
                               <td>
@@ -208,24 +423,21 @@ const Leave = () => {
                                  </div>
                               </td>
                                <td>
-                                  <div className="flex items-center justify-center gap-2">
-                                     <span className="text-xs text-zen-brown font-bold flex items-center gap-1.5">
-                                       <Tag size={10} className="text-zen-sand" />
+                                  <div className="flex flex-col items-center justify-center leading-none">
+                                     <span className="zen-table-primary">
                                        {req.type}
                                      </span>
-                                     <span className="text-zen-brown/20 text-[10px]">|</span>
-                                     <span className="text-[9px] text-zen-brown/30 italic truncate max-w-[150px]">{req.reason}</span>
+                                     <span className="zen-table-meta mt-1 truncate max-w-[150px] italic">"{req.reason}"</span>
                                   </div>
                                </td>
                                <td>
-                                  <div className="flex items-center justify-center gap-2 py-4">
+                                  <div className="flex flex-col items-center justify-center leading-none">
                                      <div className="flex items-center gap-2 text-xs font-black text-zen-brown/60">
                                        <span>{dayjs(req.startDate).format('MMM DD')}</span>
                                        <ArrowRight size={10} className="text-zen-brown/20" />
                                        <span>{dayjs(req.endDate).format('MMM DD')}</span>
                                      </div>
-                                     <span className="text-zen-brown/20 text-[10px]">|</span>
-                                     <span className="text-[9px] font-bold text-zen-sand uppercase tracking-widest">
+                                     <span className="zen-table-meta mt-1">
                                        {req.daysCount} {req.daysCount === 1 ? 'Day' : 'Days'} Pause
                                      </span>
                                   </div>
@@ -273,7 +485,16 @@ const Leave = () => {
 
                {/* Mobile Friendly Cards */}
                <div className="sm:hidden grid grid-cols-1 divide-y divide-zen-brown/5">
-                  {filteredRequests.map((req) => (
+                  {loading ? (
+                     <div className="p-10 flex items-center justify-center gap-3 text-xs font-black uppercase tracking-widest text-zen-brown/30">
+                       <div className="w-4 h-4 border-2 border-zen-sand border-t-transparent rounded-full animate-spin" />
+                       Synchronizing...
+                     </div>
+                  ) : filteredRequests.length === 0 ? (
+                     <div className="p-10 text-center text-sm font-serif italic text-zen-brown/30">
+                       No absence registry data.
+                     </div>
+                  ) : filteredRequests.map((req) => (
                      <div key={req._id} className="p-8 space-y-6">
                         <div className="flex justify-between items-start">
                            <div className="flex gap-4">
@@ -312,6 +533,15 @@ const Leave = () => {
                   ))}
                </div>
             </div>
+            {pagination && pagination.pages > 1 && (
+              <div className="pt-6">
+                <ZenPagination
+                  currentPage={page}
+                  totalPages={pagination.pages}
+                  onPageChange={setPage}
+                />
+              </div>
+            )}
          </div>
       </div>
 
@@ -327,5 +557,4 @@ const Leave = () => {
 };
 
 export default Leave;
-
 

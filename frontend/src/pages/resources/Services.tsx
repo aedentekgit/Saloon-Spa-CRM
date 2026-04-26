@@ -15,6 +15,7 @@ import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ZenDropdown, ZenInput, ZenTextarea } from '../../components/zen/ZenInputs';
 import { useSettings } from '../../context/SettingsContext';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import { useBranches } from '../../context/BranchContext';
 import { useCategories } from '../../context/CategoryContext';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
@@ -170,6 +171,124 @@ const Services = () => {
   useEffect(() => setCachedJson('zen_page_services_inventory', inventoryList), [inventoryList]);
 
   const filteredServices = services;
+  const inventoryNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    inventoryList.forEach((item: any) => {
+      const key = String(item?._id || item?.id || '');
+      if (!key) return;
+      map.set(key, String(item?.name || item?.title || 'Inventory Item'));
+    });
+    return map;
+  }, [inventoryList]);
+
+  const getInventoryUsageDetails = (service: Service) => {
+    const usage = service.inventoryUsage || [];
+    if (usage.length === 0) return { names: '-', details: '-' };
+
+    const names = usage
+      .map((entry: any) => {
+        if (typeof entry?.inventoryItem === 'object') {
+          return String(
+            entry.inventoryItem?.name ||
+            inventoryNameById.get(String(entry.inventoryItem?._id || '')) ||
+            entry.inventoryItem?._id ||
+            'Inventory Item'
+          );
+        }
+        return String(inventoryNameById.get(String(entry?.inventoryItem || '')) || entry?.inventoryItem || 'Inventory Item');
+      })
+      .join(' | ');
+
+    const details = usage
+      .map((entry: any) => {
+        let itemName = 'Inventory Item';
+        if (typeof entry?.inventoryItem === 'object') {
+          itemName = String(
+            entry.inventoryItem?.name ||
+            inventoryNameById.get(String(entry.inventoryItem?._id || '')) ||
+            entry.inventoryItem?._id ||
+            'Inventory Item'
+          );
+        } else {
+          itemName = String(inventoryNameById.get(String(entry?.inventoryItem || '')) || entry?.inventoryItem || 'Inventory Item');
+        }
+        return `${itemName}: ${entry?.quantity ?? 0} ${entry?.unit || ''}`.trim();
+      })
+      .join(' | ');
+
+    return { names, details };
+  };
+
+  const fetchAllServicesForExport = async (): Promise<Service[]> => {
+    const allServices: Service[] = [];
+    const pageLimit = 200;
+    let exportPage = 1;
+    let totalExportPages = 1;
+
+    do {
+      const queryParams = new URLSearchParams({
+        page: exportPage.toString(),
+        limit: pageLimit.toString(),
+        search: debouncedSearch,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
+      });
+
+      const response = await fetch(`${API_URL}/services?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${user?.token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch services for export');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allServices.push(...pageRows);
+      totalExportPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= totalExportPages);
+
+    const unique = new Map<string, Service>();
+    allServices.forEach((service) => {
+      if (service?._id) {
+        unique.set(service._id, service);
+      }
+    });
+    return Array.from(unique.values());
+  };
+
+  const serviceExportColumns = useMemo<ExportColumn<Service>[]>(
+    () => [
+      { header: 'Service Name', accessor: (service) => service.name },
+      { header: 'Category', accessor: (service) => service.category || 'General Service' },
+      { header: 'Branch', accessor: (service) => service.branch?.name || 'Main Registry' },
+      { header: 'Duration (Min)', accessor: (service) => service.duration },
+      {
+        header: `Price (${settings?.general?.currencySymbol || 'QR'})`,
+        accessor: (service) => service.price
+      },
+      { header: 'Description', accessor: (service) => service.description || '-' },
+      { header: 'Status', accessor: (service) => service.status },
+      { header: 'Commission Type', accessor: (service) => service.commissionType || 'Percentage' },
+      { header: 'Commission Value', accessor: (service) => service.commissionValue ?? 0 },
+      {
+        header: 'Inventory List',
+        accessor: (service) => getInventoryUsageDetails(service).names
+      },
+      {
+        header: 'Inventory Usage',
+        accessor: (service) => getInventoryUsageDetails(service).details
+      }
+    ],
+    [settings?.general?.currencySymbol, inventoryNameById]
+  );
 
   const [formData, setFormData] = useState({
     name: '',
@@ -326,6 +445,17 @@ const Services = () => {
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      searchActions={
+        <ExportPopup<Service>
+          data={filteredServices}
+          columns={serviceExportColumns}
+          fileName="services"
+          title="Services"
+          triggerLabel="Download"
+          description="Choose format and export the complete services list with full details."
+          resolveData={fetchAllServicesForExport}
+        />
+      }
       addButtonLabel={user?.role !== 'Client' ? "Add Service" : undefined}
       onAddClick={() => handleOpenModal()}
       topContent={
@@ -419,15 +549,15 @@ const Services = () => {
             })}
           </div>
         ) : (
-          <div className="w-full bg-white rounded-xl border border-zen-stone shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
+          <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
             <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
               <thead>
-                <tr className="bg-zen-brown text-white/50 border-y border-zen-brown/10">
+                <tr>
                   <th>S No</th>
                   <th>Visual</th>
-                  <th>Protocol Details</th>
-                  <th>Metrics</th>
-                  <th>Mechanism & Status</th>
+                  <th>Service Identity</th>
+                  <th>Pricing</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -457,19 +587,17 @@ const Services = () => {
                         </div>
                       </td>
                       <td>
-                        <div className="flex flex-row items-center justify-center gap-2 px-6">
+                        <div className="flex flex-col items-center justify-center leading-none px-6">
                           <span className="zen-table-primary">{service.name}</span>
-                          <span className="text-zen-brown/20 px-1">|</span>
                           <span className="zen-table-meta">{branchName} • {service.category || 'General'}</span>
                         </div>
                       </td>
                       <td>
-                        <div className="flex flex-row items-center justify-center gap-2">
+                        <div className="flex flex-col items-center justify-center leading-none">
                           <span className="text-base font-serif font-black text-zen-brown leading-none">
                             {settings?.general?.currencySymbol || 'QR'} {service.price}
                           </span>
-                          <span className="text-zen-brown/20 px-1">|</span>
-                          <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0">{service.duration} MIN</span>
+                          <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">{service.duration} MIN</span>
                         </div>
                       </td>
                       <td>

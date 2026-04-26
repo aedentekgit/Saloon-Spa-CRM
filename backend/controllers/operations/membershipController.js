@@ -1,6 +1,7 @@
 const MembershipPlan = require('../../models/operations/MembershipPlan');
 const Membership = require('../../models/operations/Membership');
 const User = require('../../models/core/User');
+const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { getPaginationOptions, buildPaginationMeta } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 const mongoose = require('mongoose');
@@ -14,12 +15,41 @@ const toObjectIdIfValid = (value) => {
   return id;
 };
 
+const getUploadedDocumentPath = (req) => {
+  const file = req.files?.document?.[0] || req.file;
+  if (!file) return '';
+  if (file.path && file.path.startsWith('http')) return file.path;
+  if (file.filename) return `uploads/${file.filename}`;
+  return file.path || file.url || '';
+};
+
+
+
 // @desc    Create a new membership plan
 // @route   POST /api/memberships/plans
 // @access  Private/Admin
 exports.createMembershipPlan = async (req, res) => {
   try {
-    const plan = await MembershipPlan.create(req.body);
+    const document = getUploadedDocumentPath(req);
+    const planData = { ...req.body, document };
+    
+    // Parse numeric fields and arrays if they come as strings (common with FormData)
+    if (typeof planData.price === 'string') planData.price = Number(planData.price);
+    if (typeof planData.durationDays === 'string') planData.durationDays = Number(planData.durationDays);
+    if (typeof planData.maxSessions === 'string') planData.maxSessions = Number(planData.maxSessions);
+    if (typeof planData.isActive === 'string') planData.isActive = planData.isActive === 'true';
+    if (typeof planData.isPopular === 'string') planData.isPopular = planData.isPopular === 'true';
+    if (typeof planData.applicableServices === 'string') {
+       try { planData.applicableServices = JSON.parse(planData.applicableServices); } catch(e) { planData.applicableServices = []; }
+    }
+    if (typeof planData.benefits === 'string') {
+       try { planData.benefits = JSON.parse(planData.benefits); } catch(e) { planData.benefits = planData.benefits.split('\n').filter(b => b.trim()); }
+    }
+    if (typeof planData.branches === 'string') {
+       try { planData.branches = JSON.parse(planData.branches); } catch(e) { planData.branches = []; }
+    }
+
+    const plan = await MembershipPlan.create(planData);
     res.status(201).json(plan);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -58,8 +88,43 @@ exports.getActiveMembershipPlansPublic = async (req, res) => {
 // @access  Private/Admin
 exports.updateMembershipPlan = async (req, res) => {
   try {
-    const plan = await MembershipPlan.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
-    res.json(plan);
+    const plan = await MembershipPlan.findById(req.params.id);
+    if (!plan) return res.status(404).json({ message: 'Plan not found' });
+
+    const updateData = { ...req.body };
+    
+    // Handle Numeric and Boolean fields from FormData
+    if (updateData.price !== undefined) updateData.price = Number(updateData.price);
+    if (updateData.durationDays !== undefined) updateData.durationDays = Number(updateData.durationDays);
+    if (updateData.maxSessions !== undefined) updateData.maxSessions = Number(updateData.maxSessions);
+    if (updateData.isActive !== undefined) updateData.isActive = updateData.isActive === 'true' || updateData.isActive === true;
+    if (updateData.isPopular !== undefined) updateData.isPopular = updateData.isPopular === 'true' || updateData.isPopular === true;
+    
+    if (typeof updateData.applicableServices === 'string') {
+       try { updateData.applicableServices = JSON.parse(updateData.applicableServices); } catch(e) {}
+    }
+    if (typeof updateData.benefits === 'string') {
+       try { updateData.benefits = JSON.parse(updateData.benefits); } catch(e) { updateData.benefits = updateData.benefits.split('\n').filter(b => b.trim()); }
+    }
+    if (typeof updateData.branches === 'string') {
+       try { updateData.branches = JSON.parse(updateData.branches); } catch(e) {}
+    }
+
+    const previousDocument = plan.document;
+    const uploadedDocument = getUploadedDocumentPath(req);
+    if (uploadedDocument) {
+      updateData.document = uploadedDocument;
+    } else if (req.body.removeDocument === 'true' || req.body.removeDocument === true) {
+      updateData.document = '';
+    }
+
+    const updatedPlan = await MembershipPlan.findByIdAndUpdate(req.params.id, updateData, { returnDocument: 'after' });
+    
+    if ((uploadedDocument || req.body.removeDocument === 'true' || req.body.removeDocument === true) && previousDocument && previousDocument !== updatedPlan.document) {
+      await deleteFile(previousDocument);
+    }
+
+    res.json(updatedPlan);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -93,7 +158,9 @@ exports.enrollClient = async (req, res) => {
     }
 
     const plan = await MembershipPlan.findById(planId);
-    if (!plan) return res.status(404).json({ message: 'Plan not found' });
+    if (!plan) {
+      return res.status(404).json({ message: 'Plan not found' });
+    }
 
     const start = startDate ? new Date(startDate) : new Date();
     const end = new Date(start);
@@ -215,9 +282,15 @@ exports.getAllMemberships = async (req, res) => {
   try {
     let query = {};
     const userBranchId = getBranchId(req.user.branch);
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
     if (req.user.role === 'Client') {
       query.client = req.user._id;
+    } else if (req.user.role === 'Admin' && requestedBranch) {
+      query.branch = toObjectIdIfValid(requestedBranch);
     } else if (req.user.role !== 'Admin' && userBranchId) {
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view memberships for another branch.' });
+      }
       query.branch = toObjectIdIfValid(userBranchId);
     }
 
@@ -247,8 +320,14 @@ exports.getMembershipStats = async (req, res) => {
   try {
     let matchQuery = { status: 'Active' };
     const userBranchId = getBranchId(req.user.branch);
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
 
-    if (req.user.role !== 'Admin' && userBranchId) {
+    if (req.user.role === 'Admin' && requestedBranch) {
+      matchQuery.branch = toObjectIdIfValid(requestedBranch);
+    } else if (req.user.role !== 'Admin' && userBranchId) {
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view membership stats for another branch.' });
+      }
       matchQuery.branch = toObjectIdIfValid(userBranchId);
     }
 
@@ -264,8 +343,15 @@ exports.getMembershipStats = async (req, res) => {
     // Distinct active plans count
     const activeTiers = await Membership.distinct('plan', matchQuery);
 
+    const popularityMatch = {};
+    if (req.user.role === 'Admin' && requestedBranch) {
+      popularityMatch.branch = toObjectIdIfValid(requestedBranch);
+    } else if (req.user.role !== 'Admin' && userBranchId) {
+      popularityMatch.branch = toObjectIdIfValid(userBranchId);
+    }
+
     const popularity = await Membership.aggregate([
-      { $match: req.user.role === 'Admin' ? {} : { branch: toObjectIdIfValid(userBranchId) } },
+      { $match: popularityMatch },
       { $group: { _id: '$plan', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $lookup: { from: 'membershipplans', localField: '_id', foreignField: '_id', as: 'planDetails' } }
@@ -313,8 +399,11 @@ exports.deleteMembership = async (req, res) => {
 exports.updateMembership = async (req, res) => {
   try {
     const { planId, branchId, startDate, status } = req.body;
+
     const membership = await Membership.findById(req.params.id);
-    if (!membership) return res.status(404).json({ message: 'Membership not found' });
+    if (!membership) {
+      return res.status(404).json({ message: 'Membership not found' });
+    }
 
     // IDOR Check
     const isBranchManager = req.user.role === 'Manager' && sameBranch(membership.branch, req.user.branch);
@@ -325,7 +414,9 @@ exports.updateMembership = async (req, res) => {
 
     if (planId) {
        const plan = await MembershipPlan.findById(planId);
-       if (!plan) return res.status(404).json({ message: 'Plan not found' });
+       if (!plan) {
+         return res.status(404).json({ message: 'Plan not found' });
+       }
        membership.plan = planId;
        membership.totalSessions = plan.maxSessions;
     }

@@ -13,16 +13,22 @@ import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useData } from '../../context/DataContext';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 
 interface Role {
   _id: string;
   name: string;
   permissions: string[];
+  isActive?: boolean;
   status?: 'Active' | 'Inactive';
+  createdAt?: string;
 }
 
 const ALL_PAGES = [
   { id: 'dashboard', name: 'Dashboard' },
+  { id: 'book', name: 'Booking' },
+  { id: 'profile', name: 'Profile' },
+  { id: 'history', name: 'History' },
   { id: 'memberships', name: 'Memberships' },
   { id: 'services', name: 'Services' },
   { id: 'rooms', name: 'Rooms' },
@@ -49,6 +55,43 @@ const ALL_PAGES = [
 
 const PAGE_LIMIT = 12;
 
+const CORE_ROLES = ['Admin', 'Manager', 'Employee', 'Client'];
+
+const permissionName = (permissionId: string) =>
+  ALL_PAGES.find((page) => page.id === permissionId)?.name || permissionId;
+
+const permissionNames = (permissions: string[] = []) =>
+  permissions.map(permissionName).join(', ') || '-';
+
+const missingPermissions = (permissions: string[] = []) =>
+  ALL_PAGES.filter((page) => !permissions.includes(page.id));
+
+const formatExportDateTime = (value?: string) => {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString().slice(0, 16).replace('T', ' ');
+};
+
+const roleMatchesSearch = (role: Role, searchTerm: string) => {
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  if (!normalizedSearch) return true;
+
+  const missing = missingPermissions(role.permissions);
+  return [
+    role._id,
+    role.name,
+    role.status || 'Active',
+    role.isActive ?? (role.status || 'Active') === 'Active',
+    role.permissions.length,
+    role.permissions.join(', '),
+    permissionNames(role.permissions),
+    missing.map((page) => page.id).join(', '),
+    missing.map((page) => page.name).join(', '),
+    CORE_ROLES.includes(role.name) ? 'Core Role' : 'Custom Role',
+    role.createdAt
+  ].some((value) => String(value ?? '').toLowerCase().includes(normalizedSearch));
+};
+
 const Roles = () => {
   const { user } = useAuth();
   const { roles, refreshData, loading } = useData();
@@ -73,9 +116,7 @@ const Roles = () => {
   };
 
   const filteredRoles = useMemo(() => {
-    return roles.filter(role => 
-      (role.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return roles.filter(role => roleMatchesSearch(role, searchTerm));
   }, [roles, searchTerm]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRoles.length / PAGE_LIMIT));
@@ -85,6 +126,65 @@ const Roles = () => {
     const start = (currentPage - 1) * PAGE_LIMIT;
     return filteredRoles.slice(start, start + PAGE_LIMIT);
   }, [filteredRoles, currentPage]);
+
+  const fetchAllRolesForExport = async (): Promise<Role[]> => {
+    if (!user?.token) return [];
+
+    const allRoles: Role[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const response = await fetch(`${API_URL}/roles?page=${exportPage}&limit=${exportLimit}`, {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch roles for export');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allRoles.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const unique = new Map<string, Role>();
+    allRoles.forEach((role) => {
+      if (role?._id) unique.set(role._id, role);
+    });
+
+    return Array.from(unique.values()).filter((role) => roleMatchesSearch(role, searchTerm));
+  };
+
+  const roleExportColumns = useMemo<ExportColumn<Role>[]>(
+    () => [
+      { header: 'Role ID', accessor: (role) => role._id },
+      { header: 'Role Name', accessor: (role) => role.name },
+      { header: 'Role Type', accessor: (role) => (CORE_ROLES.includes(role.name) ? 'Core Role' : 'Custom Role') },
+      { header: 'Status', accessor: (role) => role.status || 'Active' },
+      { header: 'Is Active', accessor: (role) => role.isActive ?? (role.status || 'Active') === 'Active' },
+      { header: 'Permission Count', accessor: (role) => role.permissions.length },
+      { header: 'Permission IDs', accessor: (role) => role.permissions.join(', ') || '-' },
+      { header: 'Permission Names', accessor: (role) => permissionNames(role.permissions) },
+      { header: 'Missing Permission IDs', accessor: (role) => missingPermissions(role.permissions).map((page) => page.id).join(', ') || '-' },
+      { header: 'Missing Permission Names', accessor: (role) => missingPermissions(role.permissions).map((page) => page.name).join(', ') || '-' },
+      { header: 'Protected From Delete', accessor: (role) => CORE_ROLES.includes(role.name) },
+      { header: 'Created At', accessor: (role) => formatExportDateTime(role.createdAt) },
+      ...ALL_PAGES.map((page) => ({
+        header: `${page.name} Access`,
+        accessor: (role: Role) => (role.permissions.includes(page.id) ? 'Yes' : 'No')
+      }))
+    ],
+    []
+  );
 
   const handleOpenModal = (role: Role | null = null) => {
     if (role) {
@@ -106,6 +206,12 @@ const Roles = () => {
   };
 
   const togglePermission = (permId: string) => {
+    // Prevent removing core permissions for Client role
+    if (editingRole?.name === 'Client' && ['dashboard', 'book', 'profile', 'history'].includes(permId) && formData.permissions.includes(permId)) {
+      notify('error', 'Restricted', 'Core permissions for Client role are mandatory.');
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       permissions: prev.permissions.includes(permId)
@@ -116,7 +222,12 @@ const Roles = () => {
 
   const toggleAllPermissions = () => {
     if (formData.permissions.length === ALL_PAGES.length) {
-      setFormData(prev => ({ ...prev, permissions: [] }));
+      // If Client, keep the core 4 even when clearing all
+      if (editingRole?.name === 'Client') {
+        setFormData(prev => ({ ...prev, permissions: ['dashboard', 'book', 'profile', 'history'] }));
+      } else {
+        setFormData(prev => ({ ...prev, permissions: [] }));
+      }
     } else {
       setFormData(prev => ({ ...prev, permissions: ALL_PAGES.map(p => p.id) }));
     }
@@ -194,6 +305,17 @@ const Roles = () => {
       addButtonLabel="Create Role"
       onAddClick={() => handleOpenModal()}
       hideBranchSelector
+      searchActions={
+        <ExportPopup<Role>
+          data={filteredRoles}
+          columns={roleExportColumns}
+          fileName="roles"
+          title="Roles"
+          triggerLabel="Download"
+          description="Choose format and export the complete role sheet with status, permission summaries, per-module access values, and audit fields."
+          resolveData={fetchAllRolesForExport}
+        />
+      }
       topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
@@ -227,7 +349,7 @@ const Roles = () => {
                  </div>
                     <div className="flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
                        <ZenIconButton icon={Edit} onClick={() => handleOpenModal(role)} />
-                       {role.name !== 'Admin' && (
+                       {!['Admin', 'Client'].includes(role.name) && (
                          <ZenIconButton 
                            icon={Trash2} 
                            variant="danger" 
@@ -331,7 +453,7 @@ const Roles = () => {
                   <td>
                     <div className="flex items-center justify-center gap-2 transition-all duration-500">
                        <ZenIconButton icon={Edit} onClick={() => handleOpenModal(role)} />
-                       {role.name !== 'Admin' && (
+                       {!['Admin', 'Client'].includes(role.name) && (
                          <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} />
                        )}
                     </div>
@@ -494,8 +616,12 @@ const Roles = () => {
                       >
                         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border transition-all duration-300 ${
                           isActive ? 'border-zen-primary/20 bg-zen-primary text-white' : 'border-zen-brown/10 bg-zen-cream text-zen-brown/25'
-                        }`}>
-                          {isActive ? <CheckCircle2 size={17} /> : <Circle size={17} strokeWidth={1.5} />}
+                        } ${editingRole?.name === 'Client' && ['dashboard', 'book', 'profile', 'history'].includes(page.id) ? 'ring-2 ring-zen-sand ring-offset-2' : ''}`}>
+                          {editingRole?.name === 'Client' && ['dashboard', 'book', 'profile', 'history'].includes(page.id) ? (
+                            <Lock size={17} />
+                          ) : (
+                            isActive ? <CheckCircle2 size={17} /> : <Circle size={17} strokeWidth={1.5} />
+                          )}
                         </div>
 
                         <div className="min-w-0 flex-1">

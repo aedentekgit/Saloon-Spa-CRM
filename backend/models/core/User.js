@@ -34,6 +34,9 @@ const userSchema = new mongoose.Schema({
   anniversary: {
     type: Date
   },
+  address: {
+    type: String
+  },
   notes: { 
     type: String 
   },
@@ -81,6 +84,16 @@ const userSchema = new mongoose.Schema({
     type: Date
   },
   fcmTokens: [{ type: String }],
+  clientId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  employeeId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Plus, Edit2, Trash2, MapPin, Mail, Phone, X, 
@@ -16,6 +16,7 @@ import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 
 
 interface Branch {
@@ -30,8 +31,36 @@ interface Branch {
   lng?: number;
   radius?: number;
   allowedIPs?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
+const formatExportDateTime = (value?: string) => {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString().slice(0, 16).replace('T', ' ');
+};
+
+const branchMatchesSearch = (branch: Branch, searchTerm: string) => {
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  if (!normalizedSearch) return true;
+
+  return [
+    branch._id,
+    branch.name,
+    branch.contactNumber,
+    branch.email,
+    branch.address,
+    branch.logo,
+    branch.isActive ? 'Active' : 'Inactive',
+    branch.lat,
+    branch.lng,
+    branch.radius,
+    branch.allowedIPs?.join(', '),
+    branch.createdAt,
+    branch.updatedAt
+  ].some((value) => String(value ?? '').toLowerCase().includes(normalizedSearch));
+};
 
 const Branches = () => {
   const { user } = useAuth();
@@ -222,13 +251,12 @@ const Branches = () => {
   };
 
 
-  const filteredBranches = branches.filter(b => 
-    b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    b.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    b.address.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredBranches = useMemo(
+    () => branches.filter((branch) => branchMatchesSearch(branch, searchTerm)),
+    [branches, searchTerm]
   );
 
-   const toggleBranchStatus = async (branch: Branch) => {
+  const toggleBranchStatus = async (branch: Branch) => {
     try {
       const data = new FormData();
       data.append('isActive', (!branch.isActive).toString());
@@ -257,6 +285,65 @@ const Branches = () => {
     return `${API_URL.replace('/api', '')}/${cleanPath}`;
   };
 
+  const fetchAllBranchesForExport = async (): Promise<Branch[]> => {
+    if (!user?.token) return [];
+
+    const allBranches: Branch[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const response = await fetch(`${API_URL}/branches?page=${exportPage}&limit=${exportLimit}`, {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch branches for export');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allBranches.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const unique = new Map<string, Branch>();
+    allBranches.forEach((branch) => {
+      if (branch?._id) unique.set(branch._id, branch);
+    });
+
+    return Array.from(unique.values()).filter((branch) => branchMatchesSearch(branch, searchTerm));
+  };
+
+  const branchExportColumns = useMemo<ExportColumn<Branch>[]>(
+    () => [
+      { header: 'Branch ID', accessor: (branch) => branch._id },
+      { header: 'Branch Name', accessor: (branch) => branch.name },
+      { header: 'Contact Number', accessor: (branch) => branch.contactNumber },
+      { header: 'Email', accessor: (branch) => branch.email },
+      { header: 'Address', accessor: (branch) => branch.address },
+      { header: 'Status', accessor: (branch) => (branch.isActive ? 'Active' : 'Inactive') },
+      { header: 'Is Active', accessor: (branch) => branch.isActive },
+      { header: 'Latitude', accessor: (branch) => branch.lat ?? '-' },
+      { header: 'Longitude', accessor: (branch) => branch.lng ?? '-' },
+      { header: 'Radius (Meters)', accessor: (branch) => branch.radius ?? '-' },
+      { header: 'Allowed IPs', accessor: (branch) => branch.allowedIPs?.join(', ') || '-' },
+      { header: 'Allowed IP Count', accessor: (branch) => branch.allowedIPs?.length || 0 },
+      { header: 'Logo Path', accessor: (branch) => branch.logo || '-' },
+      { header: 'Logo URL', accessor: (branch) => getImageUrl(branch.logo) || '-' },
+      { header: 'Created At', accessor: (branch) => formatExportDateTime(branch.createdAt) },
+      { header: 'Updated At', accessor: (branch) => formatExportDateTime(branch.updatedAt) }
+    ],
+    [API_URL]
+  );
+
   return (
     <ZenPageLayout
       title="Branches"
@@ -267,6 +354,17 @@ const Branches = () => {
       addButtonLabel="New Branch"
       onAddClick={() => handleOpenModal()}
       hideBranchSelector
+      searchActions={
+        <ExportPopup<Branch>
+          data={filteredBranches}
+          columns={branchExportColumns}
+          fileName="branches"
+          title="Branches"
+          triggerLabel="Download"
+          description="Choose format and export the complete branch sheet with contact, status, logo, geofence, IP, and audit values."
+          resolveData={fetchAllBranchesForExport}
+        />
+      }
       topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
@@ -348,15 +446,15 @@ const Branches = () => {
           ))}
         </div>
       ) : (
-        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
                <thead>
                   <tr>
                      <th>S No</th>
                      <th>Visual</th>
-                     <th>Identity & Registry</th>
-                     <th>Contact Protocol</th>
-                     <th>Presence</th>
+                     <th>Branch Identity</th>
+                     <th>Contact Info</th>
+                     <th>Status</th>
                      <th>Actions</th>
                   </tr>
                </thead>
@@ -384,17 +482,15 @@ const Branches = () => {
                         </div>
                       </td>
                       <td>
-                         <div className="flex items-center justify-center gap-2 px-6">
+                         <div className="flex flex-col items-center justify-center leading-none px-6">
                             <span className="zen-table-primary">{branch.name}</span>
-                            <span className="text-zen-brown/20 text-[10px]">|</span>
                             <span className="zen-table-meta">Active Space Registry</span>
                          </div>
                       </td>
                       <td>
-                         <div className="flex items-center justify-center gap-2">
+                         <div className="flex flex-col items-center justify-center leading-none">
                             <span className="text-base font-serif font-black text-zen-brown leading-none">{branch.contactNumber}</span>
-                            <span className="text-zen-brown/20 text-[10px]">|</span>
-                            <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest lowercase">{branch.email}</span>
+                            <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest lowercase mt-1">{branch.email}</span>
                          </div>
                       </td>
                       <td>

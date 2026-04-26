@@ -5,7 +5,8 @@ import {
   Gem, FileText, Landmark, Boxes, MessageCircle, TrendingUp,
   LogOut, ChevronRight, Settings2, ShieldCheck,
   MapPin, Award, Layers, CreditCard, Percent,
-  Fingerprint, Timer, Shapes, Key, UserRound, Sparkles, Scissors, Clock, ArrowDownRight
+  Fingerprint, Timer, Shapes, Key, UserRound, Sparkles, Scissors, Clock, ArrowDownRight,
+  History
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
@@ -100,25 +101,23 @@ const Sidebar = ({
     },
   ];
 
-  // Flatten for permission check + client renames
-  const mapItemName = (item: { name: string; icon: any; path: string; permission: string }) => {
-    if (user?.role === 'Client') {
-      if (item.name === 'Dashboard') return { ...item, name: 'Sanctuary Home' };
-      if (item.name === 'Appointments') return { ...item, name: 'My Rituals' };
-      if (item.name === 'Memberships') return { ...item, name: 'My Memberships' };
-      if (item.name === 'Services') return { ...item, name: 'Ritual Menu' };
-    }
-    return item;
-  };
+  // Specific Client Menu
+  const clientMenu = [
+    { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard', permission: 'dashboard' },
+    { name: 'Booking', icon: CalendarClock, path: '/book', permission: 'book' },
+    { name: 'Profile', icon: UserRound, path: '/profile', permission: 'profile' },
+    { name: 'History', icon: History, path: '/transactions', permission: 'history' },
+  ];
 
-  const filteredGroups = menuGroups
-    .map(group => ({
-      ...group,
-      items: group.items
-        .filter(item => hasPermission(item.permission))
-        .map(mapItemName)
-    }))
-    .filter(group => group.items.length > 0);
+  const filteredGroups = user?.role === 'Client' 
+    ? [{ label: 'Sanctuary', items: clientMenu.filter(item => hasPermission(item.permission)) }]
+    : menuGroups
+        .map(group => ({
+          ...group,
+          items: group.items
+            .filter(item => hasPermission(item.permission))
+        }))
+        .filter(group => group.items.length > 0);
 
   const renderNavLink = (item: any) => (
     <NavLink
@@ -145,7 +144,7 @@ const Sidebar = ({
             <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} className={isActive ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]' : ''} />
           </div>
           {(!isCollapsed || isMobile) && (
-            <span className={`ml-2.5 text-[12.5px] font-semibold tracking-wide flex-1 truncate ${isActive ? 'text-white' : 'text-zen-brown/60 group-hover:text-zen-brown'}`}>
+            <span className={`ml-2.5 text-[12px] font-semibold tracking-wide flex-1 truncate ${isActive ? 'text-white' : 'text-zen-brown/60 group-hover:text-zen-brown'}`}>
               {item.name}
             </span>
           )}
@@ -155,17 +154,17 @@ const Sidebar = ({
   );
 
   return (
-    <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] ${isCollapsed ? 'lg:w-[72px] w-[min(84vw,16rem)]' : 'lg:w-[230px] w-[min(88vw,18rem)]'}`}>
+    <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] ${isCollapsed ? 'lg:w-[68px] w-[min(84vw,16rem)]' : 'lg:w-[210px] w-[min(88vw,17rem)]'}`}>
       
       {/* Top Logo Section — Professional Classic Branding */}
       <div 
-        className={`flex items-center justify-center border-b border-zen-stone/40 bg-gradient-to-b from-white to-stone-50/20 relative overflow-hidden transition-all duration-500 ${isCollapsed ? 'h-14 sm:h-16' : 'h-20 sm:h-28'}`}
+        className={`flex items-center justify-center border-b border-zen-stone/40 bg-gradient-to-b from-white to-stone-50/20 relative overflow-hidden transition-all duration-500 ${isCollapsed ? 'h-14 sm:h-16' : 'h-20 sm:h-24'}`}
       >
         <div className={`relative transition-all duration-700 ${isCollapsed ? 'scale-90' : 'scale-100'}`}>
           {logoUrl ? (
             <div className={`
               relative p-1 bg-white classic-shine-effect
-              ${isCollapsed ? 'w-10 h-10 sm:w-12 sm:h-12 rounded-[1rem] sm:rounded-[1.2rem] border-[2px] sm:border-[3px]' : 'w-14 h-14 sm:w-20 sm:h-20 rounded-[1.2rem] sm:rounded-[2rem] border-[4px] sm:border-[6px]'}
+              ${isCollapsed ? 'w-10 h-10 sm:w-12 sm:h-12 rounded-[1rem] sm:rounded-[1.2rem] border-[2px] sm:border-[3px]' : 'w-14 h-14 sm:w-16 sm:h-16 rounded-[1.2rem] sm:rounded-[2rem] border-[4px] sm:border-[5px]'}
               border-white transition-all duration-500
               shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_0_20px_rgba(197,163,88,0.05)]
               hover:shadow-[0_25px_50px_-12px_rgba(197,163,88,0.2)] hover:scale-105 transition-all duration-700 cursor-pointer
@@ -197,7 +196,7 @@ const Sidebar = ({
       {/* Navigation Menu */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 scrollbar-hide">
         {filteredGroups.map((group, gi) => (
-          <div key={group.label} className={gi > 0 ? 'mt-3' : ''}>
+          <div key={group.label} className={gi > 0 ? 'mt-2' : ''}>
             {/* Section label — only when expanded */}
             {(!isCollapsed || isMobile) && (
               <p className="px-3 mb-1 text-[9px] font-black uppercase tracking-[0.3em] text-zen-brown/30 select-none">

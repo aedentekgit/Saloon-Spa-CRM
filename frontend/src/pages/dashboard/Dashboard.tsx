@@ -45,8 +45,9 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { ZenMasterCalendar } from '../../components/zen/ZenInputs';
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRange: any }) => {
   const { user } = useAuth();
   const { settings } = useSettings();
   const { employees } = useData();
@@ -57,14 +58,50 @@ const AdminDashboard = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
+  const dateWindow = useMemo(() => {
+    if (!dateRange || dateRange === 'All') return { startDate: '', endDate: '' };
+    
+    const now = dayjs();
+    if (typeof dateRange === 'string') {
+      if (dateRange === 'Today') return { startDate: now.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      if (dateRange === 'Week') return { startDate: now.subtract(7, 'day').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      if (dateRange === 'Month') return { startDate: now.subtract(1, 'month').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      
+      if (dateRange.length === 7) { // YYYY-MM
+        const m = dayjs(dateRange + '-01');
+        return { startDate: m.startOf('month').format('YYYY-MM-DD'), endDate: m.endOf('month').format('YYYY-MM-DD') };
+      }
+      
+      if (dateRange.length === 10) { // YYYY-MM-DD
+        return { startDate: dateRange, endDate: dateRange };
+      }
+      
+      return { startDate: '', endDate: '' };
+    }
+
+    if (dateRange.from || dateRange.to) {
+      return { 
+        startDate: dateRange.from || dateRange.to || '', 
+        endDate: dateRange.to || dateRange.from || '' 
+      };
+    }
+
+    return { startDate: '', endDate: '' };
+  }, [dateRange]);
+
   const fetchStats = async (silent: boolean = false) => {
     try {
       if (!silent && !stats) setLoading(true);
-      const statsUrl = new URL(`${API_URL}/stats/dashboard`);
+      const queryParams = new URLSearchParams();
       if (selectedBranch && selectedBranch !== 'all') {
-        statsUrl.searchParams.set('branch', selectedBranch);
+        queryParams.set('branch', selectedBranch);
       }
-      const response = await fetch(statsUrl.toString(), {
+      if (dateWindow.startDate) queryParams.set('startDate', dateWindow.startDate);
+      if (dateWindow.endDate) queryParams.set('endDate', dateWindow.endDate);
+
+      const queryString = queryParams.toString();
+      const statsUrl = `${API_URL.replace(/\/$/, '')}/stats/dashboard${queryString ? `?${queryString}` : ''}`;
+      const response = await fetch(statsUrl, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
@@ -78,7 +115,7 @@ const AdminDashboard = () => {
 
   React.useEffect(() => {
     fetchStats();
-    
+
     // Pulse polling for real-time dashboard data
     const interval = setInterval(() => {
       if (!shouldPollNow()) return;
@@ -86,7 +123,7 @@ const AdminDashboard = () => {
     }, getPollIntervalMs(30000)); // default 30s
 
     return () => clearInterval(interval);
-  }, [selectedBranch]);
+  }, [selectedBranch, dateRange]);
 
   React.useEffect(() => {
     if (stats) setCachedJson('zen_dashboard_admin_stats', stats);
@@ -99,43 +136,43 @@ const AdminDashboard = () => {
   const displayClients = stats?.clients?.total || 0;
 
   const cards = [
-    { 
-      label: 'TOTAL REVENUE', 
-      value: `${settings?.general?.currencySymbol || 'QR'} ${displayRevenue.toLocaleString()}`, 
-      trend: stats?.revenue?.trend?.length > 0 ? 'Active Stream' : 'Initial Phase', 
-      icon: Coins, 
-      color: 'text-emerald-500', 
-      bg: 'bg-emerald-500/10', 
+    {
+      label: 'TOTAL REVENUE',
+      value: `${settings?.general?.currencySymbol || 'QR'} ${displayRevenue.toLocaleString()}`,
+      trend: stats?.revenue?.trend?.length > 0 ? 'Active Stream' : 'Initial Phase',
+      icon: Coins,
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-500/10',
       glow: 'bg-emerald-500/20',
       delay: 0
     },
-    { 
-      label: 'DAILY REVENUE', 
-      value: `${settings?.general?.currencySymbol || 'QR'} ${displayTodayRevenue.toLocaleString()}`, 
-      trend: stats?.revenue?.today > 0 ? 'Operating Today' : 'System Ready', 
-      icon: Activity, 
-      color: 'text-rose-500', 
-      bg: 'bg-rose-500/10', 
+    {
+      label: 'DAILY REVENUE',
+      value: `${settings?.general?.currencySymbol || 'QR'} ${displayTodayRevenue.toLocaleString()}`,
+      trend: stats?.revenue?.today > 0 ? 'Operating Today' : 'System Ready',
+      icon: Activity,
+      color: 'text-rose-500',
+      bg: 'bg-rose-500/10',
       glow: 'bg-rose-500/20',
       delay: 0.2
     },
-    { 
-      label: 'NET PROFIT', 
-      value: `${settings?.general?.currencySymbol || 'QR'} ${displayProfit.toLocaleString()}`, 
-      trend: 'Final Calculation', 
-      icon: TrendingUp, 
-      color: 'text-sky-500', 
-      bg: 'bg-sky-500/10', 
+    {
+      label: 'NET PROFIT',
+      value: `${settings?.general?.currencySymbol || 'QR'} ${displayProfit.toLocaleString()}`,
+      trend: 'Final Calculation',
+      icon: TrendingUp,
+      color: 'text-sky-500',
+      bg: 'bg-sky-500/10',
       glow: 'bg-sky-500/20',
       delay: 0.4
     },
-    { 
-      label: 'TOTAL CLIENTS', 
-      value: displayClients, 
-      trend: stats?.clients?.newToday > 0 ? `${stats.clients.newToday} New Registries` : 'Steady Base', 
-      icon: Users, 
-      color: 'text-fuchsia-500', 
-      bg: 'bg-fuchsia-500/10', 
+    {
+      label: 'TOTAL CLIENTS',
+      value: displayClients,
+      trend: stats?.clients?.newToday > 0 ? `${stats.clients.newToday} New Registries` : 'Steady Base',
+      icon: Users,
+      color: 'text-fuchsia-500',
+      bg: 'bg-fuchsia-500/10',
       glow: 'bg-fuchsia-500/20',
       delay: 0.6
     },
@@ -170,38 +207,17 @@ const AdminDashboard = () => {
 
 
   return (
-    <div 
-      style={{ 
+    <div
+      style={{
         '--zen-primary': settings?.theme?.primaryColor || '#2D2D2D',
-        height: 'calc(100vh - 100px)' 
-      } as React.CSSProperties} 
+        height: 'calc(100vh - 100px)'
+      } as React.CSSProperties}
       className="space-y-4 sm:space-y-8 font-sans overflow-x-hidden flex flex-col"
     >
       <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 sm:space-y-8 pr-4">
 
 
-      {/* Quick Actions Bar - Classic Stylish Look */}
-      <div className="flex overflow-x-auto pb-2 sm:pb-4 items-center gap-4 scrollbar-hide px-2 -mx-2">
-          {[
-            { label: 'Book Ritual', icon: Sparkles, color: 'bg-zen-brown text-white', path: '/appointments' },
-            { label: 'Digital Punch', icon: Clock, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/attendance' },
-            { label: 'New Artisan', icon: Users, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/employees' },
-            { label: 'Inventory Restock', icon: Target, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/inventory' },
-          ].map((action, i) => (
-           <motion.button
-             key={action.label}
-             initial={{ opacity: 0, x: -20 }}
-             animate={{ opacity: 1, x: 0 }}
-             transition={{ delay: i * 0.1 }}
-             onClick={() => navigate(action.path)}
-             className={`flex shrink-0 items-center justify-center gap-3 px-7 py-3.5 rounded-[1.2rem] text-[10px] font-bold uppercase tracking-[0.2em] shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all active:scale-95 border ${action.color} relative overflow-hidden group`}
-           >
-             <div className="absolute inset-0 bg-gradient-to-tr from-zen-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-             <action.icon size={14} className="relative z-10" />
-             <span className="relative z-10">{action.label}</span>
-           </motion.button>
-         ))}
-      </div>
+
 
       <div className="zen-metrics-grid">
         {cards.map((card, i) => (
@@ -241,33 +257,33 @@ const AdminDashboard = () => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                <XAxis 
-                   dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 500 }} 
+                <XAxis
+                   dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 500 }}
                   dy={15}
                 />
                 <Tooltip
                   cursor={{ stroke: '#F3F4F6', strokeWidth: 2 }}
                   contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="expenses" 
-                  stroke="var(--zen-sand, #8B5CF6)" 
-                  strokeWidth={2} 
-                  strokeDasharray="5 5" 
-                  fill="none" 
+                <Area
+                  type="monotone"
+                  dataKey="expenses"
+                  stroke="var(--zen-sand, #8B5CF6)"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  fill="none"
                   activeDot={{ r: 6 }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="var(--zen-primary, #332766)" 
-                  strokeWidth={3} 
-                  fillOpacity={1} 
-                  fill="url(#colorRevs)" 
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="var(--zen-primary, #332766)"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorRevs)"
                   activeDot={{ r: 6 }}
                 />
               </AreaChart>
@@ -396,8 +412,8 @@ const AdminDashboard = () => {
                       </tr>
                     ) : (
                       stats.appointments.recent.map((apt: any, i: number) => (
-                        <motion.tr 
-                          key={apt._id} 
+                        <motion.tr
+                          key={apt._id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: i * 0.05 }}
@@ -460,7 +476,7 @@ const EmployeeDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = React.useState<any>(() => getCachedJson('zen_dashboard_employee_stats', null));
   const [loading, setLoading] = React.useState(() => !getCachedJson('zen_dashboard_employee_stats', null));
-  
+
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   useEffect(() => {
@@ -478,7 +494,7 @@ const EmployeeDashboard = () => {
         if (!silent) setLoading(false);
       }
     };
-    
+
     fetchEmployeeStats();
 
     const interval = setInterval(() => {
@@ -521,7 +537,7 @@ const EmployeeDashboard = () => {
              <span className="text-[10px] font-bold text-zen-sand uppercase tracking-widest">{user?.name}</span>
           </div>
         </div>
-        
+
         <div className="space-y-6">
           {stats?.recentRituals?.length > 0 ? (
             stats.recentRituals.map((apt: any) => (
@@ -540,7 +556,7 @@ const EmployeeDashboard = () => {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className={`px-6 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm ${
-                    apt.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' : 
+                    apt.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' :
                     apt.status === 'In Service' ? 'bg-indigo-500/10 text-indigo-600' : 'bg-orange-500/10 text-orange-600'
                   }`}>
                     {apt.status}
@@ -564,8 +580,8 @@ const EmployeeDashboard = () => {
 };
 
 
-const ManagerDashboard = () => {
-  return <AdminDashboard />; // Managers now use the same dynamic Command Center as Admins
+const ManagerDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRange: any }) => {
+  return <AdminDashboard dateRange={dateRange} setDateRange={setDateRange} />; // Managers now use the same dynamic Command Center as Admins
 };
 
 
@@ -591,7 +607,7 @@ const ClientDashboard = () => {
         if (!silent) setLoading(false);
       }
     };
-    
+
     fetchClientStats();
 
     const interval = setInterval(() => {
@@ -605,7 +621,7 @@ const ClientDashboard = () => {
   useEffect(() => {
     if (stats) setCachedJson('zen_dashboard_client_stats', stats);
   }, [stats]);
-  
+
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div></div>;
 
   const cards = [
@@ -630,7 +646,7 @@ const ClientDashboard = () => {
             <h3 className="text-3xl font-serif font-bold text-black tracking-tight">Your Relaxation Journey</h3>
             <p className="text-xs font-bold text-black/20 uppercase tracking-[0.4em] mt-2">Recent Sanctuary History</p>
           </header>
-          
+
           <div className="space-y-6">
             {stats?.visits?.all?.length > 0 ? (
               stats.visits.all.map((apt: any) => (
@@ -645,7 +661,7 @@ const ClientDashboard = () => {
                     </div>
                   </div>
                   <div className={`px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                    apt.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' : 
+                    apt.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' :
                     'bg-zen-brown/5 text-zen-brown/30 border border-zen-brown/15'
                   }`}>
                     {apt.status}
@@ -663,7 +679,7 @@ const ClientDashboard = () => {
         <div className="lg:col-span-4 space-y-8">
           <div className="bg-zen-brown p-12 rounded-[2rem] text-white shadow-lg relative overflow-hidden group h-full flex flex-col justify-between border border-zen-gold/20">
             <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-zen-gold/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
-            
+
             <div className="relative z-10">
                <Sparkles size={40} className="mb-8 opacity-40 hover:rotate-12 transition-transform" />
                <h3 className="text-3xl font-serif font-bold mb-6 tracking-tight">Zen Wisdom</h3>
@@ -672,7 +688,7 @@ const ClientDashboard = () => {
                </p>
             </div>
 
-            <ZenButton 
+            <ZenButton
               onClick={() => navigate('/appointments')}
               className="relative z-10 w-full py-5 bg-white text-zen-sand rounded-[1rem] font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/5 font-sans"
             >
@@ -688,18 +704,57 @@ const ClientDashboard = () => {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [dateRange, setDateRange] = useState<any>('All');
 
   return (
-    <ZenPageLayout 
-      title="Dashboard Overview" 
-      hideSearch 
+    <ZenPageLayout
+      title="Dashboard Overview"
+      hideSearch
       hideAddButton
-      hideBranchSelector={true}
+      hideBranchSelector={false}
       hideViewToggle={true}
+      searchActions={
+        <div className="flex items-center gap-6 lg:gap-10 w-full overflow-hidden">
+          <div className="flex items-center gap-3 mr-auto overflow-x-auto scrollbar-hide py-1 shrink-0">
+              {[
+                { label: 'Book Ritual', icon: Sparkles, color: 'bg-zen-brown text-white', path: '/appointments' },
+                { label: 'Digital Punch', icon: Clock, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/attendance' },
+                { label: 'New Artisan', icon: Users, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/employees' },
+                { label: 'Inventory Restock', icon: Target, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/inventory' },
+              ].map((action, i) => (
+               <motion.button
+                 key={action.label}
+                 initial={{ opacity: 0, x: -20 }}
+                 animate={{ opacity: 1, x: 0 }}
+                 transition={{ delay: i * 0.1 }}
+                 onClick={() => navigate(action.path)}
+                 className={`flex shrink-0 items-center justify-center gap-3 px-5 py-2.5 rounded-[0.85rem] text-[9px] font-bold uppercase tracking-[0.2em] shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 border ${action.color} relative overflow-hidden group h-[46px]`}
+               >
+                 <div className="absolute inset-0 bg-gradient-to-tr from-zen-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                 <action.icon size={12} className="relative z-10" />
+                 <span className="relative z-10">{action.label}</span>
+               </motion.button>
+             ))}
+          </div>
+
+          <div className="flex items-center gap-4 shrink-0">
+            <ZenMasterCalendar
+              label="Date Range"
+              value={dateRange}
+              onChange={(v: any) => setDateRange(v)}
+              selectionType="range"
+              variant="pill"
+              className="w-[200px]"
+              hideLabel
+            />
+          </div>
+        </div>
+      }
     >
       <div className="mt-0">
-        {user?.role === 'Admin' && <AdminDashboard />}
-        {user?.role === 'Manager' && <ManagerDashboard />}
+        {user?.role === 'Admin' && <AdminDashboard dateRange={dateRange} setDateRange={setDateRange} />}
+        {user?.role === 'Manager' && <ManagerDashboard dateRange={dateRange} setDateRange={setDateRange} />}
         {user?.role === 'Employee' && <EmployeeDashboard />}
         {user?.role === 'Client' && <ClientDashboard />}
       </div>

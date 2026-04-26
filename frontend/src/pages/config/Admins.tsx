@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import dayjs from 'dayjs';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
@@ -17,7 +17,12 @@ import { ZenDropdown, ZenInput } from '../../components/zen/ZenInputs';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 
+interface BranchRef {
+  _id?: string;
+  name?: string;
+}
 
 interface Admin {
   _id: string;
@@ -25,8 +30,73 @@ interface Admin {
   email: string;
   role: string;
   status: 'Active' | 'Inactive';
+  branch?: BranchRef | string;
+  isActive?: boolean;
+  phone?: string;
+  dob?: string;
+  anniversary?: string;
+  address?: string;
+  notes?: string;
+  preferences?: string;
+  totalSpending?: number;
+  visits?: number;
+  profilePic?: string;
+  isEmailVerified?: boolean;
+  loginAttempts?: number;
+  lockUntil?: string;
   createdAt: string;
 }
+
+const getAdminBranchId = (admin: Admin) => {
+  if (!admin.branch) return '';
+  return typeof admin.branch === 'string' ? admin.branch : admin.branch._id || '';
+};
+
+const getAdminBranchName = (admin: Admin) => {
+  if (!admin.branch) return '-';
+  return typeof admin.branch === 'string' ? admin.branch : admin.branch.name || '-';
+};
+
+const formatExportDate = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD') : value;
+};
+
+const formatExportDateTime = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : value;
+};
+
+const adminMatchesSearch = (admin: Admin, searchTerm: string) => {
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  if (!normalizedSearch) return true;
+
+  return [
+    admin._id,
+    admin.name,
+    admin.email,
+    admin.role,
+    admin.status,
+    admin.isActive,
+    getAdminBranchId(admin),
+    getAdminBranchName(admin),
+    admin.phone,
+    admin.dob,
+    admin.anniversary,
+    admin.address,
+    admin.notes,
+    admin.preferences,
+    admin.totalSpending,
+    admin.visits,
+    admin.profilePic,
+    admin.isEmailVerified,
+    admin.loginAttempts,
+    admin.lockUntil,
+    admin.createdAt
+  ].some((value) => String(value ?? '').toLowerCase().includes(normalizedSearch));
+};
 
 const Admins = () => {
   const { user } = useAuth();
@@ -216,9 +286,73 @@ const Admins = () => {
   };
 
 
-  const filteredAdmins = admins.filter(admin => 
-    admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    admin.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAdmins = useMemo(
+    () => admins.filter((admin) => adminMatchesSearch(admin, searchTerm)),
+    [admins, searchTerm]
+  );
+
+  const fetchAllAdminsForExport = async (): Promise<Admin[]> => {
+    if (!user?.token) return [];
+
+    const allAdmins: Admin[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const response = await fetch(`${API_URL}/admins?page=${exportPage}&limit=${exportLimit}`, {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch admins for export');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allAdmins.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const unique = new Map<string, Admin>();
+    allAdmins.forEach((admin) => {
+      if (admin?._id) unique.set(admin._id, admin);
+    });
+
+    return Array.from(unique.values()).filter((admin) => adminMatchesSearch(admin, searchTerm));
+  };
+
+  const adminExportColumns = useMemo<ExportColumn<Admin>[]>(
+    () => [
+      { header: 'Admin ID', accessor: (admin) => admin._id },
+      { header: 'Name', accessor: (admin) => admin.name },
+      { header: 'Email', accessor: (admin) => admin.email },
+      { header: 'Role', accessor: (admin) => admin.role },
+      { header: 'Status', accessor: (admin) => admin.status || 'Active' },
+      { header: 'Is Active', accessor: (admin) => admin.isActive ?? admin.status === 'Active' },
+      { header: 'Branch ID', accessor: (admin) => getAdminBranchId(admin) || '-' },
+      { header: 'Branch', accessor: (admin) => getAdminBranchName(admin) },
+      { header: 'Phone', accessor: (admin) => admin.phone || '-' },
+      { header: 'DOB', accessor: (admin) => formatExportDate(admin.dob) },
+      { header: 'Anniversary', accessor: (admin) => formatExportDate(admin.anniversary) },
+      { header: 'Address', accessor: (admin) => admin.address || '-' },
+      { header: 'Notes', accessor: (admin) => admin.notes || '-' },
+      { header: 'Preferences', accessor: (admin) => admin.preferences || '-' },
+      { header: 'Total Spending', accessor: (admin) => admin.totalSpending ?? 0 },
+      { header: 'Visits', accessor: (admin) => admin.visits ?? 0 },
+      { header: 'Profile Pic', accessor: (admin) => admin.profilePic || '-' },
+      { header: 'Email Verified', accessor: (admin) => admin.isEmailVerified ?? false },
+      { header: 'Login Attempts', accessor: (admin) => admin.loginAttempts ?? 0 },
+      { header: 'Lock Until', accessor: (admin) => formatExportDateTime(admin.lockUntil) },
+      { header: 'Created At', accessor: (admin) => formatExportDateTime(admin.createdAt) }
+    ],
+    []
   );
 
   return (
@@ -231,6 +365,17 @@ const Admins = () => {
       addButtonLabel="Recruit Admin"
       onAddClick={() => handleOpenModal()}
       hideBranchSelector
+      searchActions={
+        <ExportPopup<Admin>
+          data={filteredAdmins}
+          columns={adminExportColumns}
+          fileName="admins"
+          title="Admins"
+          triggerLabel="Download"
+          description="Choose format and export the complete admin sheet with identity, role, branch, contact, status, security, and audit values."
+          resolveData={fetchAllAdminsForExport}
+        />
+      }
       topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[

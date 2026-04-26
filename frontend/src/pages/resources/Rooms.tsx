@@ -24,6 +24,7 @@ import { useSettings } from '../../context/SettingsContext';
 
 import { Modal } from '../../components/shared/Modal';
 import { notify } from '../../components/shared/ZenNotification';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
 import { ZenInput, ZenDropdown, ZenDatePicker } from '../../components/zen/ZenInputs';
 import { ZenPagination } from '../../components/zen/ZenPagination';
@@ -46,11 +47,29 @@ interface Room {
   type: string;
   status: 'Free' | 'Occupied' | 'Cleaning';
   timer: string;
-  branch?: Branch;
+  branch?: Branch | string;
   image?: string;
   isActive: boolean;
   cleaningDuration?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+const getRoomBranchId = (room: Room) => {
+  if (!room.branch) return '';
+  return typeof room.branch === 'string' ? room.branch : room.branch._id || '';
+};
+
+const getRoomBranchName = (room: Room) => {
+  if (!room.branch) return 'Main Branch';
+  return typeof room.branch === 'string' ? room.branch : room.branch.name || 'Main Branch';
+};
+
+const formatExportDate = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : value;
+};
 
 const Rooms = () => {
   const navigate = useNavigate();
@@ -70,6 +89,7 @@ const Rooms = () => {
   const [roomImageFile, setRoomImageFile] = useState<File | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
 
   const [activeTab, setActiveTab] = useState<'bookings' | 'profile'>('bookings');
   const [roomAppointments, setRoomAppointments] = useState<any[]>(() => getCachedJson('zen_page_room_appointments', []));
@@ -117,8 +137,19 @@ const Rooms = () => {
   const PAGE_LIMIT = 12;
 
   useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedBranch, debouncedSearch]);
+
+  useEffect(() => {
     fetchRooms();
-  }, [selectedBranch, page]);
+  }, [selectedBranch, page, debouncedSearch, user?.token]);
 
   useEffect(() => setCachedJson('zen_page_rooms_list', rooms), [rooms]);
   useEffect(() => setCachedJson('zen_page_room_appointments', roomAppointments), [roomAppointments]);
@@ -127,7 +158,14 @@ const Rooms = () => {
   const fetchRooms = async () => {
     try {
       if (rooms.length === 0) setLoading(true);
-      const response = await fetch(`${API_URL}/rooms?page=${page}&limit=${PAGE_LIMIT}`, {
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: PAGE_LIMIT.toString(),
+        search: debouncedSearch,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
+      });
+
+      const response = await fetch(`${API_URL}/rooms?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
@@ -183,7 +221,7 @@ const Rooms = () => {
         name: room.name,
         type: room.type,
         status: room.status,
-        branch: room.branch?._id || '',
+        branch: getRoomBranchId(room),
         isActive: room.isActive !== undefined ? room.isActive : true,
         cleaningDuration: room.cleaningDuration || 0
       });
@@ -280,24 +318,67 @@ const Rooms = () => {
     }
   };
 
-  const filteredRooms = useMemo(() => {
-    let filtered = rooms;
+  const fetchAllRoomsForExport = async (): Promise<Room[]> => {
+    const allRooms: Room[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
 
-    // Filter by Branch
-    if (selectedBranch && selectedBranch !== 'all') {
-      filtered = filtered.filter(room => {
-        const branchId = room.branch?._id || (typeof room.branch === 'string' ? room.branch : (room as any).branchId);
-        return branchId === selectedBranch;
+    do {
+      const queryParams = new URLSearchParams({
+        page: exportPage.toString(),
+        limit: exportLimit.toString(),
+        search: debouncedSearch,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
       });
-    }
 
-    // Filter by Search Term
-    return filtered.filter(room => 
-      room.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      room.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (room.branch?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [rooms, searchTerm, selectedBranch]);
+      const response = await fetch(`${API_URL}/rooms?${queryParams}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch rooms for export');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allRooms.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const unique = new Map<string, Room>();
+    allRooms.forEach((room) => {
+      if (room?._id) {
+        unique.set(room._id, room);
+      }
+    });
+
+    return Array.from(unique.values());
+  };
+
+  const roomExportColumns = useMemo<ExportColumn<Room>[]>(
+    () => [
+      { header: 'Room Name', accessor: (room) => room.name },
+      { header: 'Room Category', accessor: (room) => room.type || 'None' },
+      { header: 'Branch', accessor: (room) => getRoomBranchName(room) },
+      { header: 'Operational State', accessor: (room) => room.status || 'Free' },
+      { header: 'Availability', accessor: (room) => (room.isActive ? 'Active' : 'Inactive') },
+      { header: 'Cleaning Duration (Min)', accessor: (room) => room.cleaningDuration ?? 0 },
+      { header: 'Timer', accessor: (room) => room.timer || '00:00' },
+      { header: 'Image', accessor: (room) => room.image || '-' },
+      { header: 'Created At', accessor: (room) => formatExportDate(room.createdAt) },
+      { header: 'Updated At', accessor: (room) => formatExportDate(room.updatedAt) }
+    ],
+    []
+  );
+
+  const filteredRooms = rooms;
 
 
   const roomImageBaseUrl = API_URL.replace('/api', '');
@@ -317,6 +398,17 @@ const Rooms = () => {
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      searchActions={
+        <ExportPopup<Room>
+          data={filteredRooms}
+          columns={roomExportColumns}
+          fileName="rooms"
+          title="Rooms"
+          triggerLabel="Download"
+          description="Choose format and export the complete rooms list with branch, status, cleaning, and image details."
+          resolveData={fetchAllRoomsForExport}
+        />
+      }
       addButtonLabel="Add Room"
       onAddClick={() => handleOpenModal()}
       topContent={
@@ -365,7 +457,7 @@ const Rooms = () => {
                       </div>
                       <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 flex flex-col gap-2">
                         <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[8px] sm:text-[9px] font-bold tracking-widest text-white uppercase border border-white/40 shadow-sm">
-                          {room.branch?.name || 'Main Branch'}
+                          {getRoomBranchName(room)}
                         </span>
                       </div>
                     </div>
@@ -400,18 +492,18 @@ const Rooms = () => {
               })}
             </div>
           ) : (
-            <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-sm overflow-hidden animate-in fade-in duration-700">
+            <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
               <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
                 <thead>
-                  <tr className="border-b border-gray-50 bg-gray-50/50">
-                    <th className="py-4 text-[10px] font-black uppercase tracking-widest text-zen-brown/40">S No</th>
-                    <th className="py-4 text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Visual</th>
-                    <th className="py-4 text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Branch</th>
-                    <th className="py-4 text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Room Name</th>
-                    <th className="py-4 text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Category</th>
-                    <th className="py-4 text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Cleaning</th>
-                    <th className="py-4 text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Status</th>
-                    <th className="py-4 text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Actions</th>
+                  <tr>
+                    <th>S No</th>
+                    <th>Visual</th>
+                    <th>Branch</th>
+                    <th>Room Name</th>
+                    <th>Category</th>
+                    <th>Cleaning</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -434,12 +526,11 @@ const Rooms = () => {
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 text-[11px] font-bold text-zen-brown/60">{room.branch?.name || 'Main Branch'}</td>
+                          <td className="py-4 text-[11px] font-bold text-zen-brown/60">{getRoomBranchName(room)}</td>
                           <td className="py-4">
-                            <div className="flex flex-row items-center justify-center gap-2">
+                            <div className="flex flex-col items-center justify-center leading-none">
                               <span className="text-sm font-bold text-zen-brown">{room.name}</span>
-                              <span className="text-zen-brown/20 px-1">|</span>
-                              <span className="text-[9px] font-medium text-zen-brown/30 uppercase tracking-widest">Active Space</span>
+                              <span className="text-[9px] font-medium text-zen-brown/30 uppercase tracking-widest mt-1">Active Space</span>
                             </div>
                           </td>
                           <td className="py-4">

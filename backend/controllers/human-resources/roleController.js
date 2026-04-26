@@ -46,8 +46,25 @@ exports.updateRole = async (req, res) => {
     const role = await Role.findById(req.params.id);
 
     if (role) {
+      // Prevent renaming system roles
+      if (['Admin', 'Manager', 'Employee', 'Client'].includes(role.name) && name && name !== role.name) {
+        return res.status(400).json({ message: 'Cannot rename core system roles' });
+      }
+
       role.name = name || role.name;
-      role.permissions = permissions || role.permissions;
+
+      // Ensure Client role has core permissions as default
+      let finalPermissions = permissions || role.permissions;
+      if (role.name === 'Client') {
+        const required = ['dashboard', 'book', 'profile', 'history'];
+        required.forEach(p => {
+          if (!finalPermissions.includes(p)) {
+            finalPermissions.push(p);
+          }
+        });
+      }
+      
+      role.permissions = finalPermissions;
       role.status = status || role.status;
       role.isActive = status === 'Active' ? true : status === 'Inactive' ? false : role.isActive;
 
@@ -68,8 +85,9 @@ exports.deleteRole = async (req, res) => {
   try {
     const role = await Role.findById(req.params.id);
     if (role) {
-      if (['Admin', 'Manager', 'Employee', 'Client'].includes(role.name)) {
-        return res.status(400).json({ message: 'Cannot delete system roles' });
+      // Specifically protect Admin and Client as requested, plus other core roles
+      if (['Admin', 'Client', 'Manager', 'Employee'].includes(role.name)) {
+        return res.status(400).json({ message: `The ${role.name} role is a core system requirement and cannot be removed.` });
       }
       await role.deleteOne();
       res.json({ message: 'Role removed' });

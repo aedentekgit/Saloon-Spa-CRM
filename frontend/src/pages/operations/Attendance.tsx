@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
 import {
   Clock, Shield, TrendingUp, Search, User, LogIn, LogOut,
-  Trash2, Calendar as CalendarIcon, Sparkles, Grid, List, Users
+  Trash2, Calendar as CalendarIcon, Sparkles, Grid, List, Users, Edit2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
@@ -10,7 +10,7 @@ import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
 import { notify } from '../../components/shared/ZenNotification';
 import { useSettings } from '../../context/SettingsContext';
-import { ZenDropdown, ZenInput } from '../../components/zen/ZenInputs';
+import { ZenDropdown, ZenInput, ZenMasterCalendar } from '../../components/zen/ZenInputs';
 import { Modal } from '../../components/shared/Modal';
 import { useBranches } from '../../context/BranchContext';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
@@ -37,6 +37,7 @@ const Attendance = () => {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
   const [employees, setEmployees] = useState<any[]>([]);
   const [manualFormData, setManualFormData] = useState({
     employeeId: '',
@@ -49,6 +50,7 @@ const Attendance = () => {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [dateRange, setDateRange] = useState<any>('All');
   const [shifts, setShifts] = useState<any[]>([]);
 
   const isAdminOrManager = user?.role === 'Admin' || user?.role === 'Manager';
@@ -56,7 +58,38 @@ const Attendance = () => {
 
   useEffect(() => {
     fetchHistory();
-  }, [selectedBranch, page]);
+  }, [selectedBranch, page, dateRange]);
+
+  const dateWindow = useMemo(() => {
+    if (!dateRange || dateRange === 'All') return { startDate: '', endDate: '' };
+    
+    const now = dayjs();
+    if (typeof dateRange === 'string') {
+      if (dateRange === 'Today') return { startDate: now.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      if (dateRange === 'Week') return { startDate: now.subtract(7, 'day').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      if (dateRange === 'Month') return { startDate: now.subtract(1, 'month').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      
+      if (dateRange.length === 7) { // YYYY-MM
+        const m = dayjs(dateRange + '-01');
+        return { startDate: m.startOf('month').format('YYYY-MM-DD'), endDate: m.endOf('month').format('YYYY-MM-DD') };
+      }
+      
+      if (dateRange.length === 10) { // YYYY-MM-DD
+        return { startDate: dateRange, endDate: dateRange };
+      }
+      
+      return { startDate: '', endDate: '' };
+    }
+
+    if (dateRange.from || dateRange.to) {
+      return { 
+        startDate: dateRange.from || dateRange.to || '', 
+        endDate: dateRange.to || dateRange.from || '' 
+      };
+    }
+
+    return { startDate: '', endDate: '' };
+  }, [dateRange]);
 
   useEffect(() => {
     if (isAdminOrManager) {
@@ -90,12 +123,15 @@ const Attendance = () => {
   const fetchHistory = async (silent: boolean = false) => {
     try {
       if (!silent) setLoading(true);
-      const url = new URL(`${API_URL}/attendance`);
-      url.searchParams.append('page', page.toString());
-      url.searchParams.append('limit', '12');
-      if (selectedBranch && selectedBranch !== 'all') url.searchParams.append('branch', selectedBranch);
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: '12'
+      });
+      if (selectedBranch && selectedBranch !== 'all') queryParams.append('branch', selectedBranch);
+      if (dateWindow.startDate) queryParams.append('startDate', dateWindow.startDate);
+      if (dateWindow.endDate) queryParams.append('endDate', dateWindow.endDate);
 
-      const response = await fetch(url.toString(), {
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/attendance?${queryParams.toString()}`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const resData = await response.json();
@@ -152,21 +188,39 @@ const Attendance = () => {
     );
   }, [attendance, searchTerm]);
 
+  const handleEditRecord = (record: AttendanceRecord) => {
+    setEditingRecord(record);
+    setManualFormData({
+      employeeId: record.user?._id || record.user || '',
+      date: dayjs(record.date).format('YYYY-MM-DD'),
+      checkIn: record.checkIn,
+      checkOut: record.checkOut,
+      status: record.status
+    });
+    setIsManualModalOpen(true);
+  };
+
   const handleManualEntrySubmit = async () => {
     if (!manualFormData.employeeId) return notify('warning', 'Missing Selection', 'Please select a specialist first');
-    
+
     try {
       setIsSubmitting(true);
       const selectedEmp = employees.find(e => e._id === manualFormData.employeeId);
       const payload = {
         ...manualFormData,
         targetUserId: manualFormData.employeeId,
-        employeeName: selectedEmp?.name,
-        shift: selectedEmp?.shift
+        employeeName: selectedEmp?.name || editingRecord?.employeeName,
+        shift: selectedEmp?.shift || editingRecord?.shift
       };
 
-      const response = await fetch(`${API_URL}/attendance`, {
-        method: 'POST',
+      const url = editingRecord
+        ? `${API_URL}/attendance/${editingRecord._id}`
+        : `${API_URL}/attendance`;
+
+      const method = editingRecord ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Authorization': `Bearer ${user?.token}`,
           'Content-Type': 'application/json'
@@ -175,8 +229,9 @@ const Attendance = () => {
       });
 
       if (response.ok) {
-        notify('success', 'Registry Synchronized', 'Manual attendance record has been verified and committed');
+        notify('success', editingRecord ? 'Registry Updated' : 'Registry Synchronized', editingRecord ? 'Attendance record has been corrected' : 'Manual attendance record has been verified and committed');
         setIsManualModalOpen(false);
+        setEditingRecord(null);
         fetchHistory();
       } else {
         const error = await response.json();
@@ -195,9 +250,23 @@ const Attendance = () => {
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
-      onViewModeChange={setViewMode}
+      onViewModeChange={(mode) => setViewMode(mode as any)}
       addButtonLabel={isAdminOrManager ? "Manual Entry" : undefined}
       onAddClick={() => setIsManualModalOpen(true)}
+      searchActions={
+        <div className="flex flex-col gap-2.5 w-full sm:w-[220px]">
+          <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Date Horizon</label>
+          <ZenMasterCalendar
+            label="Date Range"
+            value={dateRange}
+            onChange={(v: any) => setDateRange(v)}
+            selectionType="range"
+            variant="pill"
+            className="w-full"
+            hideLabel
+          />
+        </div>
+      }
       topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {stats.map((stat, i) => (
@@ -256,107 +325,129 @@ const Attendance = () => {
                    </div>
 
                    {isAdminOrManager && (
-                      <div className="mt-8 pt-6 border-t border-zen-stone/20 flex justify-end">
-                         <ZenIconButton icon={Trash2} variant="danger" size="sm" onClick={() => handleDeleteRecord(row._id)} />
+                      <div className="mt-8 pt-6 border-t border-zen-stone/20 flex justify-end gap-2">
+                         <ZenIconButton icon={Edit2} onClick={() => handleEditRecord(row)} />
+                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteRecord(row._id)} />
                       </div>
                    )}
                 </div>
              ))}
           </div>
         ) : (
-          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden flex flex-col min-h-[420px] sm:min-h-[600px] mx-4 lg:mx-2">
-             <div className="table-container scrollbar-hide">
-                <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
-                   <thead>
-                      <tr>
-                         <th>S No</th>
-                         {isAdminOrManager && <th>Specialist</th>}
-                         <th>Verification Date</th>
-                         <th>Ritual Span</th>
-                         <th>Value Created</th>
-                         <th>Status</th>
-                         {isAdminOrManager && <th>Actions</th>}
-                      </tr>
-                   </thead>
-                   <tbody>
-                      {(!filteredAttendance || filteredAttendance.length === 0) && (
-                         <tr>
-                            <td colSpan={isAdminOrManager ? 7 : 6} className="py-32 text-center text-[11px] font-sans text-gray-400">
-                               <div className="flex flex-col items-center gap-6 opacity-[0.08]">
-                                  <Shield size={100} strokeWidth={0.5} />
-                                  <p className="italic font-serif text-2xl tracking-tight">The registry remains undisturbed.</p>
-                               </div>
-                            </td>
-                         </tr>
-                      )}
+          <>
+            <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700 mx-4 lg:mx-2">
+               <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
+                 <thead>
+                   <tr>
+                      <th>S No</th>
+                      {isAdminOrManager && <th>Specialist</th>}
+                      <th>Date / Time</th>
+                      <th>Duration</th>
+                      <th>Value Created</th>
+                      <th>Status</th>
+                      {isAdminOrManager && <th>Actions</th>}
+                   </tr>
+                </thead>
+                     <tbody>
+                        {(!filteredAttendance || filteredAttendance.length === 0) && (
+                           <tr>
+                              <td colSpan={isAdminOrManager ? 7 : 6} className="py-32 text-center text-[11px] font-sans text-gray-400">
+                                 <div className="flex flex-col items-center gap-6 opacity-[0.08]">
+                                    <Shield size={100} strokeWidth={0.5} />
+                                    <p className="italic font-serif text-2xl tracking-tight">The registry remains undisturbed.</p>
+                                 </div>
+                              </td>
+                           </tr>
+                        )}
 
-                      {filteredAttendance.map((row, index) => (
-                         <tr key={row._id}>
-                            <td>
-                              {((page - 1) * 12 + index + 1).toString().padStart(2, '0')}
-                            </td>
-                            {isAdminOrManager && (
-                               <td>
-                                  <div className="flex items-center justify-center gap-2">
-                                     <span className="zen-table-primary">{row.employeeName}</span>
-                                     <span className="text-zen-brown/20 text-[10px]">|</span>
-                                     <span className="zen-table-meta">{row.shift || 'Sanctuary'} Artisan</span>
-                                  </div>
-                               </td>
-                            )}
-                            <td>
-                               <div className="flex items-center justify-center gap-2">
-                                  <span className="zen-table-primary">{dayjs(row.date).format('DD MMM, YYYY')}</span>
-                                  <span className="text-zen-brown/20 text-[10px]">|</span>
-                                  <span className="zen-table-meta">{row.checkIn} — {row.checkOut}</span>
-                               </div>
-                            </td>
-                            <td>
-                               <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-zen-stone/40 rounded-full border border-zen-stone">
-                                  <span className="text-xs font-serif font-bold text-zen-brown italic">{Math.floor((row.duration || 0) / 60)}h {(row.duration || 0) % 60}m</span>
-                               </div>
-                            </td>
-                            <td>
-                               <span className="zen-table-primary">
-                                  {settings?.general?.currencySymbol} {row.dailyEarnings?.toLocaleString() || '0'}
-                               </span>
-                            </td>
-                            <td>
-                               <div className="flex items-center justify-center">
-                                  <ZenBadge variant={row.status === 'Present' && row.checkOut !== '--' ? 'leaf' : 'sand'} className="text-[9px] font-black px-6 py-2">
-                                     {row.status === 'Present' && row.checkOut !== '--' ? 'COMPLETED' : row.status.toUpperCase()}
-                                  </ZenBadge>
-                               </div>
-                            </td>
-                            {isAdminOrManager && (
-                               <td className="px-6">
-                                  <ZenIconButton icon={Trash2} variant="danger" size="sm" onClick={() => handleDeleteRecord(row._id)} />
-                               </td>
-                            )}
-                         </tr>
-                      ))}
-                   </tbody>
-                </table>
-             </div>
+                        {filteredAttendance.map((row, index) => (
+                           <tr key={row._id}>
+                              <td>
+                                {((page - 1) * 12 + index + 1).toString().padStart(2, '0')}
+                              </td>
+                              {isAdminOrManager && (
+                                 <td>
+                                    <div className="flex flex-col items-center justify-center leading-none">
+                                       <span className="zen-table-primary">{row.employeeName}</span>
+                                       <span className="zen-table-meta">{row.shift || 'Sanctuary'} Artisan</span>
+                                    </div>
+                                 </td>
+                              )}
+                              <td>
+                                 <div className="flex flex-col items-center justify-center leading-none">
+                                    <span className="zen-table-primary">{dayjs(row.date).format('DD MMM, YYYY')}</span>
+                                    <span className="zen-table-meta mt-1">{row.checkIn} — {row.checkOut}</span>
+                                 </div>
+                              </td>
+                              <td>
+                                 <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-zen-stone/40 rounded-full border border-zen-stone">
+                                    <span className="text-xs font-serif font-bold text-zen-brown italic">{Math.floor((row.duration || 0) / 60)}h {(row.duration || 0) % 60}m</span>
+                                 </div>
+                              </td>
+                              <td>
+                                 <span className="zen-table-primary">
+                                    {settings?.general?.currencySymbol} {row.dailyEarnings?.toLocaleString() || '0'}
+                                 </span>
+                              </td>
+                              <td>
+                                 <div className="flex items-center justify-center">
+                                    <ZenBadge variant={row.status === 'Present' && row.checkOut !== '--' ? 'leaf' : 'sand'} className="text-[9px] font-black px-6 py-2">
+                                       {row.status === 'Present' && row.checkOut !== '--' ? 'COMPLETED' : row.status.toUpperCase()}
+                                    </ZenBadge>
+                                 </div>
+                              </td>
+                              {isAdminOrManager && (
+                                 <td className="px-6">
+                                    <div className="flex justify-center gap-2">
+                                       <ZenIconButton icon={Edit2} onClick={() => handleEditRecord(row)} />
+                                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteRecord(row._id)} />
+                                    </div>
+                                 </td>
+                              )}
+                           </tr>
+                        ))}
+                     </tbody>
+                  </table>
+               </div>
 
-             <div className="p-8 border-t border-zen-stone/10 mt-auto">
-                <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-             </div>
-          </div>
+               <div className="p-8 border-t border-zen-stone/10 mt-auto">
+                  <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+               </div>
+          </>
         )}
       </div>
 
       <Modal
         isOpen={isManualModalOpen}
-        onClose={() => setIsManualModalOpen(false)}
-        title="Registry Override"
+        onClose={() => {
+          setIsManualModalOpen(false);
+          setEditingRecord(null);
+          setManualFormData({
+            employeeId: '',
+            date: dayjs().format('YYYY-MM-DD'),
+            checkIn: '09:00 AM',
+            checkOut: '06:00 PM',
+            status: 'Present'
+          });
+        }}
+        title={editingRecord ? "Registry Correction" : "Registry Override"}
         maxWidth="max-w-2xl"
         footer={(
           <div className="flex flex-col sm:flex-row gap-4 w-full">
             <ZenButton
               type="button"
               variant="secondary"
-              onClick={() => setIsManualModalOpen(false)}
+              onClick={() => {
+                setIsManualModalOpen(false);
+                setEditingRecord(null);
+                setManualFormData({
+                  employeeId: '',
+                  date: dayjs().format('YYYY-MM-DD'),
+                  checkIn: '09:00 AM',
+                  checkOut: '06:00 PM',
+                  status: 'Present'
+                });
+              }}
               className="flex-1 !rounded-[1.35rem] !py-4"
             >
               Cancel
@@ -368,7 +459,7 @@ const Attendance = () => {
               style={{ backgroundColor: primaryColor }}
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Committing...' : 'Commit Registry Change'}
+              {isSubmitting ? (editingRecord ? 'Correcting...' : 'Committing...') : (editingRecord ? 'Update Record' : 'Commit Registry Change')}
             </ZenButton>
           </div>
         )}
@@ -387,8 +478,8 @@ const Attendance = () => {
                      <Sparkles size={24} />
                   </div>
                   <div>
-                     <h4 className="font-serif text-2xl font-black text-zen-brown">Manual Verification</h4>
-                     <p className="text-[10px] font-black uppercase tracking-[0.35em] mt-1.5" style={{ color: `${primaryColor}80` }}>Direct registry modification protocol</p>
+                     <h4 className="font-serif text-2xl font-black text-zen-brown">{editingRecord ? 'Record Correction' : 'Manual Verification'}</h4>
+                     <p className="text-[10px] font-black uppercase tracking-[0.35em] mt-1.5" style={{ color: `${primaryColor}80` }}>{editingRecord ? 'Modify historical entry details' : 'Direct registry modification protocol'}</p>
                   </div>
                </div>
 
@@ -396,8 +487,9 @@ const Attendance = () => {
                   <div className="md:col-span-2">
                      <ZenDropdown
                         label="Select Specialist"
+                        disabled={!!editingRecord}
                         options={employees
-                           .filter(e => !attendance.some(a => (a.user === e._id || a.user?._id === e._id) && a.date === manualFormData.date))
+                           .filter(e => editingRecord || !attendance.some(a => (a.user === e._id || a.user?._id === e._id) && a.date === manualFormData.date))
                            .map(e => e.name)}
                         value={employees.find(e => e._id === manualFormData.employeeId)?.name || ''}
                         onChange={(val) => {
@@ -415,7 +507,7 @@ const Attendance = () => {
                         icon={User}
                      />
                   </div>
-                  <ZenInput label="Record Date" type="date" icon={CalendarIcon} value={manualFormData.date} onChange={(e: any) => setManualFormData({...manualFormData, date: e.target.value})} />
+                  <ZenInput label="Record Date" type="date" icon={CalendarIcon} value={manualFormData.date} onChange={(e: any) => setManualFormData({...manualFormData, date: e.target.value})} disabled={!!editingRecord} />
                   <ZenDropdown label="Presence Status" options={['Present', 'Absent', 'Half Day', 'On Leave']} value={manualFormData.status} onChange={(val) => setManualFormData({...manualFormData, status: val})} icon={Shield} />
                   <ZenInput label="Clock In" placeholder="09:00 AM" icon={LogIn} value={manualFormData.checkIn} onChange={(e: any) => setManualFormData({...manualFormData, checkIn: e.target.value})} />
                   <ZenInput label="Clock Out" placeholder="06:00 PM" icon={LogOut} value={manualFormData.checkOut} onChange={(e: any) => setManualFormData({...manualFormData, checkOut: e.target.value})} />

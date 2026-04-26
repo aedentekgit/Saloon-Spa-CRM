@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 require('dotenv').config();
-const isProd = process.env.NODE_ENV === 'production';
+const strictMode = process.argv.includes('--strict') || process.env.CHECK_ENV_STRICT === 'true';
+const isProd = process.env.NODE_ENV === 'production' || strictMode;
 const jwtSecret = String(process.env.JWT_SECRET || '');
 
 const checks = [

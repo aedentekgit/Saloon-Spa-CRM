@@ -31,6 +31,8 @@ import { motion } from 'motion/react';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
 import { notify } from '../../components/shared/ZenNotification';
+import { ZenMasterCalendar } from '../../components/zen/ZenInputs';
+import dayjs from 'dayjs';
 
 interface Invoice {
   total: number;
@@ -55,9 +57,65 @@ import { useData } from '../../context/DataContext';
 const Reports = () => {
   const { user } = useAuth();
   const { invoices, expenses, services, appointments, loading } = useData();
+  const [dateRange, setDateRange] = useState<any>('All');
 
-  const totalIncome = useMemo(() => invoices.reduce((acc, inv) => acc + (inv.total || 0), 0), [invoices]);
-  const totalExpenses = useMemo(() => expenses.reduce((acc, exp) => acc + (exp.amount || 0), 0), [expenses]);
+  const dateWindow = useMemo(() => {
+    if (!dateRange || dateRange === 'All') return { startDate: '', endDate: '' };
+    
+    const now = dayjs();
+    if (typeof dateRange === 'string') {
+      if (dateRange === 'Today') return { startDate: now.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      if (dateRange === 'Week') return { startDate: now.subtract(7, 'day').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      if (dateRange === 'Month') return { startDate: now.subtract(1, 'month').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      
+      if (dateRange.length === 7) { // YYYY-MM
+        const m = dayjs(dateRange + '-01');
+        return { startDate: m.startOf('month').format('YYYY-MM-DD'), endDate: m.endOf('month').format('YYYY-MM-DD') };
+      }
+      
+      if (dateRange.length === 10) { // YYYY-MM-DD
+        return { startDate: dateRange, endDate: dateRange };
+      }
+      
+      return { startDate: '', endDate: '' };
+    }
+
+    if (dateRange.from || dateRange.to) {
+      return { 
+        startDate: dateRange.from || dateRange.to || '', 
+        endDate: dateRange.to || dateRange.from || '' 
+      };
+    }
+
+    return { startDate: '', endDate: '' };
+  }, [dateRange]);
+
+  const filteredInvoices = useMemo(() => {
+    if (!dateWindow.startDate) return invoices;
+    return invoices.filter(inv => {
+      const d = dayjs(inv.date).format('YYYY-MM-DD');
+      return d >= dateWindow.startDate && d <= dateWindow.endDate;
+    });
+  }, [invoices, dateWindow]);
+
+  const filteredExpenses = useMemo(() => {
+    if (!dateWindow.startDate) return expenses;
+    return expenses.filter(exp => {
+      const d = dayjs(exp.date).format('YYYY-MM-DD');
+      return d >= dateWindow.startDate && d <= dateWindow.endDate;
+    });
+  }, [expenses, dateWindow]);
+
+  const filteredAppointments = useMemo(() => {
+    if (!dateWindow.startDate) return appointments;
+    return appointments.filter(apt => {
+      const d = dayjs(apt.date).format('YYYY-MM-DD');
+      return d >= dateWindow.startDate && d <= dateWindow.endDate;
+    });
+  }, [appointments, dateWindow]);
+
+  const totalIncome = useMemo(() => filteredInvoices.reduce((acc, inv) => acc + (inv.total || 0), 0), [filteredInvoices]);
+  const totalExpenses = useMemo(() => filteredExpenses.reduce((acc, exp) => acc + (exp.amount || 0), 0), [filteredExpenses]);
 
   const revenueData = useMemo(() => [
     { name: 'Cycle 1', revenue: totalIncome * 0.4, expenses: totalExpenses * 0.3 },
@@ -72,7 +130,7 @@ const Reports = () => {
   const serviceData = useMemo(() => {
     const counts = new Map<string, number>();
 
-    appointments.forEach((appointment) => {
+    filteredAppointments.forEach((appointment) => {
       if (!appointment.service) return;
       counts.set(appointment.service, (counts.get(appointment.service) || 0) + 1);
     });
@@ -84,7 +142,7 @@ const Reports = () => {
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
-  }, [services, appointments]);
+  }, [services, filteredAppointments]);
 
   const COLORS = ['#332766', '#8B5CF6', '#10B981', '#E2E8F0', '#1E293B'];
 
@@ -95,6 +153,20 @@ const Reports = () => {
       hideAddButton
       hideBranchSelector
       hideViewToggle
+      searchActions={
+        <div className="flex flex-col gap-2.5 w-full sm:w-[220px]">
+          <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Date Horizon</label>
+          <ZenMasterCalendar
+            label="Date Range"
+            value={dateRange}
+            onChange={(v: any) => setDateRange(v)}
+            selectionType="range"
+            variant="pill"
+            className="w-full"
+            hideLabel
+          />
+        </div>
+      }
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">
         <div>

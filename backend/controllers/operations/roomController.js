@@ -1,16 +1,49 @@
 const Room = require('../../models/operations/Room');
+const Branch = require('../../models/operations/Branch');
 const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
+
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const applyRoomSearch = async (query, search) => {
+  const searchTerm = String(search || '').trim();
+  if (!searchTerm) return query;
+
+  const regex = new RegExp(escapeRegex(searchTerm), 'i');
+  const matchingBranches = await Branch.find({ name: regex }).select('_id').lean();
+  const branchIds = matchingBranches.map(branch => branch._id);
+
+  query.$or = [
+    { name: regex },
+    { type: regex },
+    { status: regex },
+    { timer: regex }
+  ];
+
+  if (branchIds.length > 0) {
+    query.$or.push({ branch: { $in: branchIds } });
+  }
+
+  return query;
+};
 
 // @desc    Get public rooms
 // @route   GET /api/rooms/public
 // @access  Public
 const getPublicRooms = async (req, res) => {
   try {
+    const query = {};
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
+    if (requestedBranch) {
+      query.branch = requestedBranch;
+    }
+
+    await applyRoomSearch(query, req.query.search);
+
     const { data, pagination } = await paginateModelQuery(
       Room,
-      {},
+      query,
       req,
       { populate: 'branch' }
     );
@@ -25,12 +58,23 @@ const getPublicRooms = async (req, res) => {
 // @access  Private
 const getRooms = async (req, res) => {
   try {
-    let query = {};
-    if (req.user && req.user.role !== 'Admin') {
-      if (req.user.branch) {
-        query.branch = getBranchId(req.user.branch);
+    const query = {};
+    const userBranchId = getBranchId(req.user.branch);
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
+
+    if (req.user.role === 'Admin') {
+      if (requestedBranch) {
+        query.branch = requestedBranch;
       }
+    } else {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      query.branch = userBranchId;
     }
+
+    await applyRoomSearch(query, req.query.search);
+
     const { data, pagination } = await paginateModelQuery(Room, query, req, {
       populate: 'branch'
     });

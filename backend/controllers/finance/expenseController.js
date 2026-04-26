@@ -1,4 +1,5 @@
 const Expense = require('../../models/finance/Expense');
+const Branch = require('../../models/operations/Branch');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 
@@ -42,10 +43,22 @@ const getExpenses = async (req, res) => {
 
     if (search) {
       const rx = new RegExp(escapeRegex(String(search)), 'i');
-      query.$or = [{ title: rx }, { category: rx }];
+      const matchingBranches = await Branch.find({ name: rx }).select('_id').lean();
+      const branchIds = matchingBranches.map(branch => branch._id);
+
+      query.$or = [{ title: rx }, { category: rx }, { date: rx }];
+      if (branchIds.length > 0) {
+        query.$or.push({ branch: { $in: branchIds } });
+      }
+
+      const numericSearch = Number(search);
+      if (Number.isFinite(numericSearch)) {
+        query.$or.push({ amount: numericSearch });
+      }
     }
 
     const { data, pagination } = await paginateModelQuery(Expense, query, req, {
+      populate: 'branch',
       sort: { date: -1, createdAt: -1 }
     });
     res.json(pagination ? { data, pagination } : data);

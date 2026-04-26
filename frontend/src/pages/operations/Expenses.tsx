@@ -16,24 +16,72 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
-import { ZenInput, ZenDropdown } from '../../components/zen/ZenInputs';
+import { ZenInput, ZenDropdown, ZenMasterCalendar } from '../../components/zen/ZenInputs';
 import { BranchSelector } from '../../components/zen/BranchSelector';
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { notify } from '../../components/shared/ZenNotification';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
+interface BranchRef {
+  _id?: string;
+  name?: string;
+}
+
+interface UserRef {
+  _id?: string;
+  name?: string;
+  email?: string;
+}
+
 interface Expense {
   _id: string;
+  user?: string | UserRef;
   title: string;
   category: string;
   amount: number;
   date: string;
-  branch?: any;
+  branch?: BranchRef | string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const CATEGORIES = ['All', 'Inventory', 'Utilities', 'Staff', 'Marketing', 'Rent', 'Misc'] as const;
+
+const getExpenseBranchId = (expense: Expense) => {
+  if (!expense.branch) return '';
+  return typeof expense.branch === 'string' ? expense.branch : expense.branch._id || '';
+};
+
+const getExpenseBranchName = (expense: Expense) => {
+  if (!expense.branch) return 'Main Registry';
+  return typeof expense.branch === 'string' ? expense.branch : expense.branch.name || 'Main Registry';
+};
+
+const getExpenseUserId = (expense: Expense) => {
+  if (!expense.user) return '';
+  return typeof expense.user === 'string' ? expense.user : expense.user._id || '';
+};
+
+const getExpenseUserLabel = (expense: Expense) => {
+  if (!expense.user) return '-';
+  if (typeof expense.user === 'string') return expense.user;
+  return expense.user.name || expense.user.email || expense.user._id || '-';
+};
+
+const formatExportDate = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD') : value;
+};
+
+const formatExportDateTime = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : value;
+};
 
 const Expenses = () => {
   const { user } = useAuth();
@@ -47,7 +95,7 @@ const Expenses = () => {
   const [loading, setLoading] = useState(() => getCachedJson<Expense[]>('zen_page_expenses_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('All');
-  const [dateRange, setDateRange] = useState<'All' | 'Today' | 'Week' | 'Month'>('All');
+  const [dateRange, setDateRange] = useState<any>('All');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -65,32 +113,56 @@ const Expenses = () => {
   });
 
   const dateWindow = useMemo(() => {
-    if (dateRange === 'All') return { startDate: '', endDate: '' };
+    if (!dateRange || dateRange === 'All') return { startDate: '', endDate: '' };
+    
     const now = dayjs();
-    const start =
-      dateRange === 'Today'
-        ? now
-        : dateRange === 'Week'
-          ? now.subtract(7, 'day')
-          : now.subtract(1, 'month');
-    return { startDate: start.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+    if (typeof dateRange === 'string') {
+      if (dateRange === 'Today') return { startDate: now.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      if (dateRange === 'Week') return { startDate: now.subtract(7, 'day').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      if (dateRange === 'Month') return { startDate: now.subtract(1, 'month').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+      
+      if (dateRange.length === 7) { // YYYY-MM
+        const m = dayjs(dateRange + '-01');
+        return { startDate: m.startOf('month').format('YYYY-MM-DD'), endDate: m.endOf('month').format('YYYY-MM-DD') };
+      }
+      
+      if (dateRange.length === 10) { // YYYY-MM-DD
+        return { startDate: dateRange, endDate: dateRange };
+      }
+      
+      return { startDate: '', endDate: '' };
+    }
+
+    if (dateRange.from || dateRange.to) {
+      return { 
+        startDate: dateRange.from || dateRange.to || '', 
+        endDate: dateRange.to || dateRange.from || '' 
+      };
+    }
+
+    return { startDate: '', endDate: '' };
   }, [dateRange]);
+
+  const buildExpenseQueryParams = (targetPage: number, limit: number) => {
+    const queryParams = new URLSearchParams({
+      page: String(targetPage),
+      limit: String(limit),
+      search: searchTerm,
+      category: category !== 'All' ? category : '',
+      startDate: dateWindow.startDate,
+      endDate: dateWindow.endDate
+    });
+    if (selectedBranch && selectedBranch !== 'all') {
+      queryParams.set('branch', selectedBranch);
+    }
+    return queryParams;
+  };
 
   const fetchExpenses = async (silent: boolean = false) => {
     if (!user?.token) return;
     try {
       if (!silent && expenses.length === 0) setLoading(true);
-      const queryParams = new URLSearchParams({
-        page: String(page),
-        limit: String(PAGE_LIMIT),
-        search: searchTerm,
-        category: category !== 'All' ? category : '',
-        startDate: dateWindow.startDate,
-        endDate: dateWindow.endDate
-      });
-      if (selectedBranch && selectedBranch !== 'all') {
-        queryParams.set('branch', selectedBranch);
-      }
+      const queryParams = buildExpenseQueryParams(page, PAGE_LIMIT);
 
       const res = await fetch(`${API_URL}/expenses?${queryParams.toString()}`, {
         headers: { 'Authorization': `Bearer ${user.token}` }
@@ -134,6 +206,68 @@ const Expenses = () => {
     const total = expenses.reduce((acc, exp) => acc + (Number(exp.amount) || 0), 0);
     return { total };
   }, [expenses]);
+
+  const fetchAllExpensesForExport = async (): Promise<Expense[]> => {
+    if (!user?.token) return [];
+
+    const allExpenses: Expense[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const queryParams = buildExpenseQueryParams(exportPage, exportLimit);
+      const response = await fetch(`${API_URL}/expenses?${queryParams.toString()}`, {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch expenses for export');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allExpenses.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const unique = new Map<string, Expense>();
+    allExpenses.forEach((expense, index) => {
+      const key = expense?._id || `${expense.title}-${expense.date}-${index}`;
+      unique.set(key, expense);
+    });
+
+    return Array.from(unique.values());
+  };
+
+  const expenseExportColumns = useMemo<ExportColumn<Expense>[]>(
+    () => {
+      const currency = settings?.general?.currencySymbol || 'QR';
+
+      return [
+        { header: 'Expense ID', accessor: (expense) => expense._id },
+        { header: 'Title', accessor: (expense) => expense.title },
+        { header: 'Category', accessor: (expense) => expense.category },
+        { header: 'Amount', accessor: (expense) => Number(expense.amount || 0) },
+        { header: 'Display Amount', accessor: (expense) => `${currency} ${Number(expense.amount || 0)}` },
+        { header: 'Currency', accessor: () => currency },
+        { header: 'Date', accessor: (expense) => formatExportDate(expense.date) },
+        { header: 'Branch ID', accessor: (expense) => getExpenseBranchId(expense) || '-' },
+        { header: 'Branch', accessor: (expense) => getExpenseBranchName(expense) },
+        { header: 'User ID', accessor: (expense) => getExpenseUserId(expense) || '-' },
+        { header: 'Recorded By', accessor: (expense) => getExpenseUserLabel(expense) },
+        { header: 'Created At', accessor: (expense) => formatExportDateTime(expense.createdAt) },
+        { header: 'Updated At', accessor: (expense) => formatExportDateTime(expense.updatedAt) }
+      ];
+    },
+    [settings?.general?.currencySymbol]
+  );
 
   const openCreateModal = () => {
     setEditingExpense(null);
@@ -299,14 +433,15 @@ const Expenses = () => {
               />
             </div>
 
-            <div className="flex flex-col gap-2.5 w-full xl:w-auto">
-              <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Date Range</label>
-              <ZenDropdown
+            <div className="flex flex-col gap-2.5 w-full sm:w-[220px]">
+              <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Date Horizon</label>
+              <ZenMasterCalendar
                 label="Date Range"
                 value={dateRange}
                 onChange={(v: any) => setDateRange(v)}
-                options={['All', 'Today', 'Week', 'Month']}
-                className="w-full sm:min-w-[200px]"
+                selectionType="range"
+                variant="pill"
+                className="w-full"
                 hideLabel
               />
             </div>
@@ -315,6 +450,17 @@ const Expenses = () => {
               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Branch</label>
               <BranchSelector className="w-full sm:min-w-[220px]" />
             </div>
+
+            <ExportPopup<Expense>
+              data={expenses}
+              columns={expenseExportColumns}
+              fileName="expenses"
+              title="Expenses"
+              triggerLabel="Download"
+              description="Choose format and export the complete expense sheet with title, category, amount, branch, date, user, and audit values."
+              resolveData={fetchAllExpensesForExport}
+              className="xl:w-auto"
+            />
 
             <div className="flex flex-col gap-2.5 w-full xl:w-auto">
               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Management</label>
@@ -330,89 +476,80 @@ const Expenses = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-zen-stone zen-pointed-surface shadow-[0_18px_45px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="px-6 sm:px-8 py-4 border-b border-zen-brown/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-bold text-zen-brown tracking-tight">Expense Registry</h3>
-              <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Operational outflow records</p>
-            </div>
-          </div>
-
-          <div className="table-container overflow-x-auto">
-            <table className="w-full text-center border-collapse min-w-[700px] sm:min-w-[860px]">
-              <thead>
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+          <table className="w-full text-center border-collapse min-w-[800px]">
+            <thead>
+              <tr>
+                <th>S No</th>
+                <th>Expense Identity</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white/40">
+              {loading ? (
                 <tr>
-                  <th className="!text-left pl-10">Entry</th>
-                  <th>Category</th>
-                  <th>Amount</th>
-                  <th>Date</th>
-                  <th className="!text-right pr-10">Actions</th>
+                  <td colSpan={6} className="py-20">
+                    <div className="flex flex-col items-center gap-4 opacity-40">
+                      <div className="w-8 h-8 border-2 border-zen-brown/15 border-t-zen-brown rounded-full animate-spin" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Syncing…</span>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white/40">
-                {loading ? (
-                  <tr>
-                    <td colSpan={5} className="py-20">
-                      <div className="flex flex-col items-center gap-4 opacity-40">
-                        <div className="w-8 h-8 border-2 border-zen-brown/15 border-t-zen-brown rounded-full animate-spin" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Syncing…</span>
+              ) : expenses.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-20 text-center text-zen-brown/25 font-serif italic text-xl">
+                    No expenses found for this filter.
+                  </td>
+                </tr>
+              ) : (
+                expenses.map((exp, idx) => (
+                  <tr key={exp._id} className="group hover:bg-white/80 transition-all duration-300">
+                    <td className="text-center italic opacity-40">
+                      {((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}
+                    </td>
+                    <td>
+                      <div className="flex flex-col items-center justify-center leading-none">
+                        <span className="zen-table-primary">{exp.title}</span>
+                        <span className="zen-table-meta">{getExpenseBranchName(exp)} • {getExpenseUserLabel(exp)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <ZenBadge variant="sand" className="scale-90 font-black tracking-widest">{exp.category}</ZenBadge>
+                    </td>
+                    <td>
+                      <span className="text-base font-serif font-black text-zen-brown leading-none">
+                        {settings?.general?.currencySymbol || 'QR'} {Number(exp.amount || 0).toLocaleString()}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="text-[11px] font-bold text-zen-brown/40 uppercase tracking-widest">
+                        {exp.date ? dayjs(exp.date).format('DD MMM, YYYY') : '—'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex items-center justify-center gap-3">
+                        <ZenIconButton
+                          icon={Edit2}
+                          onClick={() => openEditModal(exp)}
+                        />
+                        <ZenIconButton
+                          icon={Trash2}
+                          variant="danger"
+                          onClick={() => {
+                            setExpenseToDelete(exp._id);
+                            setIsConfirmOpen(true);
+                          }}
+                        />
                       </div>
                     </td>
                   </tr>
-                ) : expenses.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-20 text-center text-zen-brown/25 font-serif italic text-xl">
-                      No expenses found for this filter.
-                    </td>
-                  </tr>
-                ) : (
-                  expenses.map((exp, idx) => (
-                    <tr key={exp._id} className="group hover:bg-white/80 transition-all duration-300">
-                      <td className="!text-left !pl-10">
-                        <div className="flex items-center gap-2">
-                          <span className="zen-table-primary">{exp.title}</span>
-                          <span className="text-zen-brown/20 text-[10px]">|</span>
-                          <span className="zen-table-meta">{String(idx + 1).padStart(2, '0')}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <ZenBadge variant="secondary">{exp.category}</ZenBadge>
-                      </td>
-                      <td>
-                        <span className="font-serif text-[16px] font-black text-zen-brown">
-                          {settings?.general?.currencySymbol || 'QR'} {Number(exp.amount || 0).toLocaleString()}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="text-[11px] font-semibold text-zen-brown/60">
-                          {exp.date ? dayjs(exp.date).format('DD MMM YYYY') : '—'}
-                        </span>
-                      </td>
-                      <td className="!text-right !pr-10">
-                        <div className="flex items-center justify-end gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
-                          <ZenIconButton
-                            icon={Edit2}
-                            variant="outline"
-                            size="lg"
-                            onClick={() => openEditModal(exp)}
-                          />
-                          <ZenIconButton
-                            icon={Trash2}
-                            variant="danger"
-                            size="lg"
-                            onClick={() => {
-                              setExpenseToDelete(exp._id);
-                              setIsConfirmOpen(true);
-                            }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
         <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />

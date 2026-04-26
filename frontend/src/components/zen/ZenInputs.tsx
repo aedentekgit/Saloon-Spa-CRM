@@ -291,24 +291,24 @@ export const ZenAutocomplete = ({
   );
 };
 
-export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', type, required, containerClassName, ...props }: any) => {
+export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', type, required, containerClassName, compact, ...props }: any) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
   
   return (
-    <div className={`space-y-3 group ${containerClassName || ''}`}>
-      <label className={`text-[10px] font-black uppercase tracking-[0.4em] ml-1.5 flex items-center gap-1 ${variant === 'dark' ? 'text-white/60' : 'text-zen-brown/40'}`}>
+    <div className={`space-y-2 group ${containerClassName || ''}`}>
+      <label className={`text-[9px] font-bold uppercase tracking-[0.3em] ml-1 flex items-center gap-1 ${variant === 'dark' ? 'text-white/60' : 'text-zen-brown/40'}`}>
         {label}
         {required && <span className="text-red-400 text-xs mt-0.5">*</span>}
       </label>
       <div className="relative flex items-center">
         {variant === 'professional' ? (
           <div className={`w-full relative flex items-center transition-all duration-300 ${props.disabled ? 'opacity-40' : ''}`}>
-            {Icon && <Icon className="absolute left-5 text-zen-brown/30 group-focus-within:text-zen-brown transition-colors" size={16} />}
+            {Icon && <Icon className={`absolute ${compact ? 'left-3' : 'left-4'} text-zen-brown/30 group-focus-within:text-zen-brown transition-colors`} size={compact ? 14 : 16} />}
             <input 
               {...props}
               type={isPassword ? (showPassword ? 'text' : 'password') : type}
-              className={`w-full py-3 sm:py-3.5 ${Icon ? 'pl-12' : 'pl-4'} pr-4 bg-white border border-zen-brown/10 rounded-2xl outline-none transition-all font-serif text-sm sm:text-base text-zen-brown placeholder:text-zen-brown/20 focus:border-zen-sand/40 focus:ring-4 focus:ring-zen-sand/5 shadow-sm group-hover:border-zen-brown/20 ${props.className || ''}`}
+              className={`w-full ${compact ? 'py-2.5' : 'py-3 sm:py-3.5'} ${Icon ? (compact ? 'pl-9' : 'pl-10') : 'pl-4'} pr-4 bg-white border border-zen-brown/10 rounded-2xl outline-none transition-all font-serif ${compact ? 'text-xs' : 'text-sm sm:text-base'} text-zen-brown placeholder:text-zen-brown/20 focus:border-zen-sand/40 focus:ring-4 focus:ring-zen-sand/5 shadow-sm group-hover:border-zen-brown/20 ${props.className || ''}`}
             />
             {isPassword && (
               <button
@@ -359,166 +359,60 @@ interface DatePickerProps {
   hideLabel?: boolean;
 }
 
-export const ZenDatePicker = ({ 
-  label, value, onChange, className = "", 
-  icon: Icon = Calendar, hideLabel 
-}: DatePickerProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [viewDate, setViewDate] = useState(dayjs(value || undefined));
-  const containerRef = useRef<HTMLDivElement>(null);
-  const calendarRef = useRef<HTMLDivElement>(null);
-  const floatingStyle = useFloatingAnchor(containerRef, isOpen, 12, 350);
+export const ZenDatePicker = (props: any) => (
+  <ZenMasterCalendar {...props} selectionType="single" />
+);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node) &&
-          calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+export const ZenMonthPicker = (props: any) => (
+  <ZenMasterCalendar {...props} selectionType="month" />
+);
 
-  const daysInMonth = viewDate.daysInMonth();
-  const startDay = viewDate.startOf('month').day();
-  const days = [];
-
-  // Padding days from previous month
-  for (let i = 0; i < startDay; i++) {
-    days.push(<div key={`empty-${i}`} className="w-8 h-8 opacity-0" />);
-  }
-
-  // Current month days
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = viewDate.date(d).format('YYYY-MM-DD');
-    const isSelected = value === date;
-    const isToday = dayjs().format('YYYY-MM-DD') === date;
-
-    days.push(
-      <button
-        key={d}
-        type="button"
-        onClick={() => {
-          onChange(date);
-          setIsOpen(false);
-        }}
-        className={`w-9 h-9 rounded-xl text-[10px] font-black transition-all duration-300 flex items-center justify-center
-          ${isSelected ? 'bg-zen-brown text-white shadow-lg scale-110 z-10' : 
-            isToday ? 'bg-zen-cream/40 text-zen-brown border border-zen-brown/35' : 
-            'text-zen-brown/60 hover:bg-zen-cream/50 hover:text-zen-brown'}
-        `}
-      >
-        {d}
-      </button>
-    );
-  }
-
-  return (
-    <div className={`space-y-3 relative group ${className}`} ref={containerRef}>
-      <label className={`text-[10px] font-black uppercase tracking-[0.4em] text-zen-brown/40 ml-1.5 ${hideLabel ? 'sr-only' : ''}`}>{label}</label>
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-1 pb-4 bg-transparent border-b-[2px] border-zen-brown/30 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/60 group-focus-within:border-zen-brown transition-all group/input"
-      >
-        <div className="flex items-center gap-4">
-          <Icon size={18} className="text-zen-brown/40 group-hover/input:text-zen-brown/60 transition-colors" />
-          <span className={`font-serif text-xl ${value ? 'text-zen-brown font-black' : 'text-zen-brown/40'}`}>
-            {value ? dayjs(value).format('DD / MM / YYYY') : 'Select Date'}
-          </span>
-        </div>
-        <ChevronDown size={20} className={`text-zen-brown/40 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
-      </div>
-
-
-
-      {isOpen && createPortal(
-        <div 
-          ref={calendarRef}
-          className={`fixed bg-white border border-zen-brown/10 shadow-[0_30px_100px_-20px_rgba(45,45,45,0.15)] animate-in zoom-in-95 fade-in duration-300 z-[99999] min-w-[320px] rounded-[1rem] p-6`}
-          style={window.innerWidth < 640 ? {
-            left: 16,
-            top: '50%',
-            width: 'calc(100vw - 32px)',
-            transform: 'translateY(-50%)',
-            minWidth: 'unset',
-            maxHeight: '70vh'
-          } : floatingStyle}
-        >
-          {/* Calendar Header */}
-          <div className="flex items-center justify-between mb-8 px-1">
-            <button type="button" onClick={() => setViewDate(viewDate.subtract(1, 'month'))} className="p-2 hover:bg-zen-cream rounded-full transition-colors text-zen-brown/40 hover:text-zen-brown">
-              <ChevronLeft size={18} />
-            </button>
-            <div className="text-center">
-              <h4 className="font-serif font-black text-zen-brown text-sm tracking-tight capitalize">{viewDate.format('MMMM')}</h4>
-              <p className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-[0.2em]">{viewDate.format('YYYY')}</p>
-            </div>
-            <button type="button" onClick={() => setViewDate(viewDate.add(1, 'month'))} className="p-2 hover:bg-zen-cream rounded-full transition-colors text-zen-brown/40 hover:text-zen-brown">
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
-          {/* Weekday Labels */}
-          <div className="grid grid-cols-7 mb-2">
-            {['S','M','T','W','T','F','S'].map((d, i) => (
-              <div key={i} className="text-center text-[8px] font-black text-zen-brown/20 uppercase py-2">{d}</div>
-            ))}
-          </div>
-
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {days}
-          </div>
-
-          {/* Footer Actions */}
-          <div className="mt-6 pt-4 border-t border-zen-brown/15 flex justify-between items-center px-1">
-            <button 
-              type="button"
-              onClick={() => {
-                const today = dayjs().format('YYYY-MM-DD');
-                onChange(today);
-                setViewDate(dayjs());
-                setIsOpen(false);
-              }}
-              className="text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-600 transition-colors"
-            >
-              Today
-            </button>
-            <button 
-              type="button"
-              onClick={() => {
-                onChange('');
-                setIsOpen(false);
-              }}
-              className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest hover:text-red-400 transition-colors"
-            >
-              Clear
-            </button>
-          </div>
-        </div>,
-        document.body
-      )}
-    </div>
-  );
-};
-
-export const ZenTextarea = ({ label, ...props }: any) => (
+export const ZenTextarea = ({ label, icon: Icon, ...props }: any) => (
   <div className="space-y-3 group mt-4">
-    <label className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>
-    <textarea 
-      {...props}
-              className={`w-full p-3.5 sm:p-4 bg-white border border-zen-brown/15 rounded-[1.25rem] outline-none focus:border-zen-brown/30 transition-all font-serif text-sm sm:text-base text-zen-brown h-24 sm:h-28 resize-none shadow-sm ${props.className || ''}`}
-    />
-
+    <label className="text-[10px] font-black uppercase tracking-[0.4em] ml-1.5 text-zen-brown/40">{label}</label>
+    <div className="relative flex items-start">
+      {Icon && <Icon className="absolute left-5 top-5 text-zen-brown/30 group-focus-within:text-zen-brown transition-colors" size={16} />}
+      <textarea 
+        {...props}
+        className={`w-full ${Icon ? 'pl-12' : 'pl-4'} pr-4 py-4 bg-white border border-zen-brown/10 rounded-2xl outline-none transition-all font-serif text-sm sm:text-base text-zen-brown placeholder:text-zen-brown/20 focus:border-zen-sand/40 focus:ring-4 focus:ring-zen-sand/5 shadow-sm group-hover:border-zen-brown/20 h-28 sm:h-32 resize-none ${props.className || ''}`}
+      />
+    </div>
   </div>
 );
 
-export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLabel }: any) => {
+
+export const ZenMasterCalendar = ({ 
+  label, 
+  selectionType = 'single', 
+  value, 
+  onChange, 
+  className = "", 
+  hideLabel = false,
+  icon: Icon = Calendar,
+  placeholder = "Select Date",
+  variant = 'line'
+}: {
+  label: string;
+  selectionType?: 'single' | 'range' | 'month';
+  value: any;
+  onChange: (val: any) => void;
+  className?: string;
+  hideLabel?: boolean;
+  icon?: any;
+  placeholder?: string;
+  variant?: 'line' | 'pill';
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const floatingStyle = useFloatingAnchor(containerRef, isOpen, 12, 300);
+  const floatingStyle = useFloatingAnchor(containerRef, isOpen, 12, 340);
+
+  const [viewDate, setViewDate] = useState(dayjs(
+    selectionType === 'range' ? (value?.from || dayjs()) : 
+    selectionType === 'month' ? (value ? value + '-01' : dayjs()) :
+    (value || dayjs())
+  ));
+  const [currentMode, setCurrentMode] = useState<'days' | 'months' | 'years'>(selectionType === 'month' ? 'months' : 'days');
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -531,20 +425,60 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLab
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const months = useMemo(() => {
-    const res = [];
-    let curr = dayjs().startOf('month');
-    for (let i = 0; i < 12; i++) {
-      res.push({
-        label: curr.format('MMMM YYYY'),
-        value: curr.format('YYYY-MM')
-      });
-      curr = curr.subtract(1, 'month');
+  const daysInMonth = useMemo(() => {
+    const start = viewDate.startOf('month').startOf('week');
+    const end = viewDate.endOf('month').endOf('week');
+    const days = [];
+    let curr = start;
+    while (curr.isBefore(end) || curr.isSame(end, 'day')) {
+      days.push(curr);
+      curr = curr.add(1, 'day');
     }
-    return res;
-  }, []);
+    return days;
+  }, [viewDate]);
 
-  const selectedMonth = months.find(m => m.value === value) || months[0];
+  const isSelected = (date: dayjs.Dayjs) => {
+    if (selectionType === 'single') return dayjs(value).isSame(date, 'day');
+    if (selectionType === 'range') {
+      return (value?.from && date.isSame(dayjs(value.from), 'day')) || 
+             (value?.to && date.isSame(dayjs(value.to), 'day'));
+    }
+    return false;
+  };
+
+  const isInRange = (date: dayjs.Dayjs) => {
+    if (selectionType !== 'range' || !value?.from || !value?.to) return false;
+    return date.isAfter(dayjs(value.from), 'day') && date.isBefore(dayjs(value.to), 'day');
+  };
+
+  const handleDateClick = (date: dayjs.Dayjs) => {
+    if (selectionType === 'single') {
+      onChange(date.format('YYYY-MM-DD'));
+      setIsOpen(false);
+    } else if (selectionType === 'range') {
+      if (!value?.from || (value.from && value.to)) {
+        onChange({ from: date.format('YYYY-MM-DD'), to: null });
+      } else {
+        const from = dayjs(value.from);
+        if (date.isBefore(from)) {
+          onChange({ from: date.format('YYYY-MM-DD'), to: value.from });
+        } else {
+          onChange({ ...value, to: date.format('YYYY-MM-DD') });
+        }
+      }
+    }
+  };
+
+  const displayValue = useMemo(() => {
+    if (selectionType === 'single') return value ? dayjs(value).format('DD MMM, YYYY') : placeholder;
+    if (selectionType === 'month') return value ? dayjs(value + '-01').format('MMMM YYYY') : placeholder;
+    if (selectionType === 'range') {
+      if (!value?.from) return placeholder;
+      if (!value?.to) return `${dayjs(value.from).format('DD MMM')} - ...`;
+      return `${dayjs(value.from).format('DD MMM')} - ${dayjs(value.to).format('DD MMM')}`;
+    }
+    return placeholder;
+  }, [value, selectionType, placeholder]);
 
   return (
     <div className={`relative group ${className}`} ref={containerRef}>
@@ -552,56 +486,169 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLab
       
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between cursor-pointer group/trigger"
+        className={variant === 'pill'
+          ? "h-[50px] bg-white px-5 rounded-[1.35rem] border border-zen-brown/10 flex items-center justify-between gap-4 hover:border-zen-brown/20 transition-all cursor-pointer shadow-sm relative group/trigger"
+          : "flex items-center justify-between cursor-pointer group/trigger"
+        }
       >
-         <div className="flex items-center gap-4">
-          <div className="w-9 h-9 rounded-xl bg-zen-cream/30 flex items-center justify-center text-zen-brown/30 group-hover/trigger:text-zen-brown transition-all duration-500">
-            <Calendar size={16} strokeWidth={1.5} />
+        <div className="flex items-center gap-4">
+          <div className={variant === 'pill' 
+            ? "text-zen-brown/30 group-hover/trigger:text-zen-brown transition-colors" 
+            : "w-10 h-10 rounded-2xl bg-zen-cream/40 flex items-center justify-center text-zen-brown/30 group-hover/trigger:text-zen-brown transition-all duration-500 border border-zen-brown/5 group-hover/trigger:border-zen-brown/20"
+          }>
+            <Icon size={18} strokeWidth={1.5} />
           </div>
-          <span className="text-sm sm:text-base font-serif font-bold text-zen-brown tracking-tight">
-            {selectedMonth.label}
+          <span className={`font-serif tracking-tight ${variant === 'pill' ? 'text-sm font-black text-zen-brown' : 'text-sm sm:text-base font-black text-zen-brown'}`}>
+            {displayValue}
           </span>
         </div>
         <ChevronDown 
-          size={20} 
+          size={variant === 'pill' ? 14 : 20} 
           className={`text-zen-brown/20 transition-transform duration-700 ease-in-out ${isOpen ? 'rotate-180 text-zen-brown' : ''}`} 
         />
       </div>
 
-       <div className="h-px w-full bg-zen-brown/5 mt-3 mb-1" />
+      {variant === 'line' && <div className="h-px w-full bg-zen-brown/5 mt-3 mb-1" />}
 
       {isOpen && createPortal(
         <div 
           ref={dropdownRef}
-          className={`fixed bg-white border border-zen-brown/10 shadow-3xl overflow-hidden animate-in zoom-in-95 fade-in duration-500 z-[99999] p-4 min-w-[280px] rounded-[1rem]`}
+          className={`fixed bg-white border border-zen-brown/10 shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden animate-in zoom-in-95 fade-in duration-500 z-[99999] rounded-[2rem] p-6 w-[340px]`}
           style={window.innerWidth < 640 ? {
             left: 16,
-            top: '50%',
+            bottom: 16,
             width: 'calc(100vw - 32px)',
-            transform: 'translateY(-50%)',
             minWidth: 'unset',
-            maxHeight: '70vh'
           } : floatingStyle}
         >
-          <div className="max-h-[320px] overflow-y-auto scrollbar-hide space-y-1">
-            {months.map((m) => (
-              <div 
-                key={m.value}
-                onClick={() => {
-                  onChange(m.value);
-                  setIsOpen(false);
-                }}
-                className={`px-6 py-4 rounded-[1rem] text-sm font-serif transition-all duration-300 cursor-pointer flex items-center justify-between group/item
-                  ${value === m.value 
-                    ? 'bg-zen-brown text-white shadow-xl scale-[1.02]' 
-                    : 'text-zen-brown/40 hover:bg-zen-cream/40 hover:text-zen-brown hover:translate-x-1'
-                  }
-                `}
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <button 
+              onClick={() => setViewDate(viewDate.subtract(1, currentMode === 'days' ? 'month' : 'year'))}
+              className="w-10 h-10 rounded-xl hover:bg-zen-cream/40 flex items-center justify-center text-zen-brown/40 hover:text-zen-brown transition-all"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            
+            <div className="flex flex-col items-center">
+              <button 
+                onClick={() => setCurrentMode(currentMode === 'days' ? 'months' : 'days')}
+                className="text-sm font-black uppercase tracking-widest text-zen-brown hover:text-zen-sand transition-colors"
               >
-                <span className={`font-bold ${value === m.value ? 'text-white' : ''}`}>{m.label}</span>
-                {value === m.value && <Sparkles size={14} className="text-white/40 animate-pulse" />}
+                {viewDate.format(currentMode === 'days' ? 'MMMM YYYY' : 'YYYY')}
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setViewDate(viewDate.add(1, currentMode === 'days' ? 'month' : 'year'))}
+              className="w-10 h-10 rounded-xl hover:bg-zen-cream/40 flex items-center justify-center text-zen-brown/40 hover:text-zen-brown transition-all"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+
+          {currentMode === 'days' && (
+            <>
+              {/* Weekdays */}
+              <div className="grid grid-cols-7 mb-2">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
+                  <div key={d} className="text-center text-[10px] font-black text-zen-brown/20">{d}</div>
+                ))}
               </div>
-            ))}
+
+              {/* Days Grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {daysInMonth.map((date, i) => {
+                  const selected = isSelected(date);
+                  const ranged = isInRange(date);
+                  const isCurrentMonth = date.isSame(viewDate, 'month');
+                  
+                  return (
+                    <div key={i} className="relative">
+                      <button
+                        onClick={() => handleDateClick(date)}
+                        className={`
+                          w-10 h-10 rounded-xl text-xs font-bold transition-all relative z-10
+                          ${!isCurrentMonth ? 'text-zen-brown/10' : 'text-zen-brown'}
+                          ${selected ? 'bg-zen-brown text-white shadow-lg shadow-zen-brown/20' : 'hover:bg-zen-cream/40'}
+                        `}
+                      >
+                        {date.date()}
+                      </button>
+                      {ranged && (
+                        <div className="absolute inset-0 bg-zen-brown/5 z-0" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {currentMode === 'months' && (
+            <div className="grid grid-cols-3 gap-2">
+              {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => {
+                const isSelectedMonth = selectionType === 'month' && value === viewDate.month(i).format('YYYY-MM');
+                return (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      if (selectionType === 'month') {
+                        onChange(viewDate.month(i).format('YYYY-MM'));
+                        setIsOpen(false);
+                      } else {
+                        setViewDate(viewDate.month(i));
+                        setCurrentMode('days');
+                      }
+                    }}
+                    className={`
+                      py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all
+                      ${isSelectedMonth ? 'bg-zen-brown text-white shadow-lg' : 'text-zen-brown/40 hover:bg-zen-cream/40 hover:text-zen-brown'}
+                    `}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Footer Actions */}
+          <div className="mt-6 pt-6 border-t border-zen-brown/5 flex items-center justify-between">
+            <button 
+              onClick={() => {
+                if (selectionType === 'range') onChange({ from: null, to: null });
+                else onChange(null);
+                setIsOpen(false);
+              }}
+              className="text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-600 transition-colors"
+            >
+              Clear
+            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  const today = dayjs();
+                  setViewDate(today);
+                  if (selectionType === 'single') {
+                    onChange(today.format('YYYY-MM-DD'));
+                    setIsOpen(false);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-zen-cream/40 text-[10px] font-black uppercase tracking-widest text-zen-brown hover:bg-zen-cream/60 transition-all"
+              >
+                Today
+              </button>
+              {selectionType === 'range' && (
+                <button 
+                  onClick={() => setIsOpen(false)}
+                  disabled={!value?.from || !value?.to}
+                  className="px-4 py-2 rounded-xl bg-zen-brown text-white text-[10px] font-black uppercase tracking-widest hover:bg-zen-brown/90 transition-all shadow-lg shadow-zen-brown/20 disabled:opacity-30"
+                >
+                  Apply
+                </button>
+              )}
+            </div>
           </div>
         </div>,
         document.body
@@ -609,3 +656,4 @@ export const ZenMonthPicker = ({ label, value, onChange, className = "", hideLab
     </div>
   );
 };
+

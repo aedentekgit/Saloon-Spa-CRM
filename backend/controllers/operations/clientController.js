@@ -1,10 +1,18 @@
 const User = require('../../models/core/User');
 const Membership = require('../../models/operations/Membership');
 const Appointment = require('../../models/operations/Appointment');
+const Invoice = require('../../models/finance/Invoice');
 const path = require('path');
 const { deleteFile } = require('../../middleware/uploadMiddleware');
 const { getPaginationOptions, buildPaginationMeta } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
+
+const normalizeName = (value = '') => String(value).trim().toLowerCase();
+const toNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+const isCountedVisit = (appointment) => appointment.status !== 'Cancelled';
 
 // @desc    Get all clients
 // @route   GET /api/clients
@@ -59,20 +67,65 @@ exports.getClients = async (req, res) => {
     .sort({ createdAt: -1 })
     .lean();
 
-    // Fetch all appointments for these clients (Search by both clientId and name string for legacy/fallback support)
+    const clientNames = clients.map(c => c.name).filter(Boolean);
+    
+    // Fetch all appointments for these clients, including name-only legacy rows.
     const appointments = await Appointment.find({
-      clientId: { $in: clientIds }
+      $or: [
+        { clientId: { $in: clientIds } },
+        { clientId: { $exists: false }, client: { $in: clientNames } },
+        { clientId: null, client: { $in: clientNames } }
+      ]
     }).populate('branch').sort({ date: -1, time: -1 }).lean();
+
+    const invoices = await Invoice.find({
+      $or: [
+        { clientId: { $in: clientIds } },
+        { clientId: { $exists: false }, clientName: { $in: clientNames } },
+        { clientId: null, clientName: { $in: clientNames } }
+      ]
+    }).select('clientId clientName total').lean();
+
+    const spendingByClientId = new Map();
+    const spendingByClientName = new Map();
+    invoices.forEach(invoice => {
+      const amount = toNumber(invoice.total);
+      const invoiceClientId = invoice.clientId?.toString();
+
+      if (invoiceClientId) {
+        spendingByClientId.set(
+          invoiceClientId,
+          (spendingByClientId.get(invoiceClientId) || 0) + amount
+        );
+        return;
+      }
+
+      const nameKey = normalizeName(invoice.clientName);
+      if (nameKey) {
+        spendingByClientName.set(
+          nameKey,
+          (spendingByClientName.get(nameKey) || 0) + amount
+        );
+      }
+    });
 
     // Map everything to clients
     const clientsWithData = clients.map(client => {
       const clientMemberships = memberships.filter(m => m.client?.toString() === client._id.toString());
       const clientAppointments = appointments.filter(
-        a => a.clientId?.toString() === client._id.toString()
+        a =>
+          a.clientId?.toString() === client._id.toString() ||
+          (!a.clientId && normalizeName(a.client) === normalizeName(client.name))
       );
+      const clientId = client._id.toString();
+      const derivedSpending =
+        (spendingByClientId.get(clientId) || 0) +
+        (spendingByClientName.get(normalizeName(client.name)) || 0);
       
       return {
         ...client,
+        visits: clientAppointments.filter(isCountedVisit).length,
+        totalSpending: derivedSpending,
         membership: clientMemberships.find(m => m.status === 'Active') || clientMemberships[0] || null,
         memberships: clientMemberships,
         appointments: clientAppointments
@@ -115,10 +168,22 @@ exports.createClient = async (req, res) => {
     }
     
     let profilePic = '';
-
     if (req.files) {
       if (req.files.profilePic) {
         profilePic = req.files.profilePic[0].path || req.files.profilePic[0].url;
+      }
+    }
+
+    // Generate Client ID (CL0001 format)
+    const lastClient = await User.findOne({ role: 'Client', clientId: { $exists: true } })
+      .sort({ clientId: -1 });
+    
+    let nextClientId = 'CL0001';
+    if (lastClient && lastClient.clientId) {
+      const lastIdMatch = lastClient.clientId.match(/\d+/);
+      if (lastIdMatch) {
+        const nextNumber = parseInt(lastIdMatch[0], 10) + 1;
+        nextClientId = `CL${nextNumber.toString().padStart(4, '0')}`;
       }
     }
 
@@ -133,7 +198,8 @@ exports.createClient = async (req, res) => {
       profilePic,
       password,
       role: 'Client', // Explicitly set to Client for this controller
-      branch: assignedBranch
+      branch: assignedBranch,
+      clientId: nextClientId
     });
 
     res.status(201).json(client);

@@ -8,12 +8,14 @@
     "dev": "nodemon server.js",
     "seed": "node seeder.js",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:security:auth": "node --test tests/auth-security.test.js",
+    "test:security:auth:full": "node tests/run-auth-security.js",
     "test:security:branch": "node --test tests/branch-security.test.js",
     "test:security:branch:full": "node tests/run-branch-security.js",
     "check:syntax": "find . -name '*.js' -not -path './node_modules/*' -print0 | xargs -0 -n1 node --check",
     "check:env-security": "node scripts/check-env-security.js",
     "audit:policy": "node scripts/audit-policy.js",
-    "security:ci": "npm run check:env-security && npm run check:syntax && npm run test:security:branch:full && npm run audit:policy"
+    "security:ci": "npm run check:env-security && npm run check:syntax && npm run test:security:auth:full && npm run test:security:branch:full && npm run audit:policy"
   },
   "keywords": [],
   "author": "",

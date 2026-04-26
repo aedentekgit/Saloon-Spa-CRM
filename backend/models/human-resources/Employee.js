@@ -7,6 +7,7 @@ const employeeSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, select: false },
   address: { type: String },
+  dob: { type: Date },
   salary: { type: Number, default: 0 },
   profilePic: { type: String },
   services: [{ type: String }],
@@ -46,6 +47,11 @@ const employeeSchema = new mongoose.Schema({
     fileType: String,
     uploadedAt: { type: Date, default: Date.now }
   }],
+  employeeId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
   createdAt: { type: Date, default: Date.now }
 });
 

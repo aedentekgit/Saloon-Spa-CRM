@@ -20,6 +20,8 @@ import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
+import { useBranches } from '../../context/BranchContext';
 
 
 interface MembershipPlan {
@@ -38,6 +40,7 @@ interface Membership {
 
 interface Client {
   _id: string;
+  clientId?: string;
   name: string;
   phone: string;
   email?: string;
@@ -49,16 +52,48 @@ interface Client {
   profilePic?: string;
   status: string;
   role: string;
+  branch?: string | { _id?: string; name?: string };
   membership?: Membership | null;
   memberships?: Membership[];
   appointments?: any[];
   createdAt: string;
 }
 
+interface InvoiceSummary {
+  _id?: string;
+  clientId?: string | { _id?: string };
+  clientName?: string;
+  total?: number | string;
+  branch?: string | { _id?: string };
+}
+
+const normalizeName = (value: unknown) => String(value || '').trim().toLowerCase();
+const getEntityId = (value: unknown) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && '_id' in value) {
+    return String((value as { _id?: unknown })._id || '');
+  }
+  return String(value);
+};
+const toAmount = (value: unknown) => {
+  const parsed = Number(String(value ?? 0).replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+const getClientVisitCount = (client: Client) => {
+  if (Array.isArray(client.appointments)) {
+    return client.appointments.filter((appointment: any) => appointment?.status !== 'Cancelled').length;
+  }
+
+  return toAmount(client.visits);
+};
+const getClientTotalSpending = (client: Client) => toAmount(client.totalSpending);
+
 const Clients = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { settings } = useSettings();
+  const { branches, selectedBranch } = useBranches();
   const [roles, setRoles] = useState<string[]>(() => getCachedJson('zen_page_clients_roles', []));
   const [clients, setClients] = useState<Client[]>(() => getCachedJson('zen_page_clients_list', []));
   const [counts, setCounts] = useState(() => getCachedJson('zen_page_clients_counts', {
@@ -128,12 +163,25 @@ const Clients = () => {
     setPage(1);
   }, [viewMode]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [selectedBranch]);
+
   const PAGE_LIMIT = 12;
 
   const fetchClients = async (silent: boolean = false) => {
     try {
       if (!silent && clients.length === 0) setLoading(true);
-      const response = await fetch(`${API_URL}/clients?page=${page}&limit=${PAGE_LIMIT}`, {
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: PAGE_LIMIT.toString()
+      });
+
+      if (selectedBranch !== 'all') {
+        queryParams.set('branch', selectedBranch);
+      }
+
+      const response = await fetch(`${API_URL}/clients?${queryParams.toString()}`, {
         headers: { 
           'Authorization': `Bearer ${user?.token}`,
           'Accept': 'application/json'
@@ -142,7 +190,20 @@ const Clients = () => {
       
       const data = await response.json();
       if (data.data) {
-        setClients(data.data);
+        let nextClients = data.data;
+        try {
+          const invoices = await fetchInvoicesForClientMetrics();
+          nextClients = enrichClientsWithMetrics(nextClients, invoices);
+        } catch (metricsError) {
+          console.error('Error enriching client metrics:', metricsError);
+          nextClients = nextClients.map((client: Client) => ({
+            ...client,
+            visits: getClientVisitCount(client),
+            totalSpending: getClientTotalSpending(client)
+          }));
+        }
+
+        setClients(nextClients);
         setTotalPages(data.pagination.pages);
         setCounts({
           total: data.pagination.total || 0,
@@ -150,7 +211,20 @@ const Clients = () => {
           membership: data.pagination.membershipTotal || 0
         });
       } else if (Array.isArray(data)) {
-        setClients(data);
+        let nextClients = data;
+        try {
+          const invoices = await fetchInvoicesForClientMetrics();
+          nextClients = enrichClientsWithMetrics(nextClients, invoices);
+        } catch (metricsError) {
+          console.error('Error enriching client metrics:', metricsError);
+          nextClients = nextClients.map((client: Client) => ({
+            ...client,
+            visits: getClientVisitCount(client),
+            totalSpending: getClientTotalSpending(client)
+          }));
+        }
+
+        setClients(nextClients);
         setTotalPages(1);
         setCounts({
           total: data.length,
@@ -198,7 +272,7 @@ const Clients = () => {
     }, getPollIntervalMs(30000)); // default 30s
 
     return () => clearInterval(interval);
-  }, [page, user?.token]);
+  }, [page, selectedBranch, user?.token]);
 
   useEffect(() => setCachedJson('zen_page_clients_list', clients), [clients]);
   useEffect(() => setCachedJson('zen_page_clients_counts', counts), [counts]);
@@ -210,9 +284,195 @@ const Clients = () => {
     // Filter by Search Term
     return filtered.filter(client => 
       (client.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-      (client.phone || '').includes(searchTerm)
+      (client.phone || '').includes(searchTerm) ||
+      (client.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
   }, [clients, searchTerm]);
+
+  const branchNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    branches.forEach((branch) => map.set(branch._id, branch.name));
+    return map;
+  }, [branches]);
+
+  const getClientBranchName = (client: Client) => {
+    if (!client.branch) return 'Main Branch';
+
+    if (typeof client.branch === 'object') {
+      const branchId = client.branch._id || '';
+      return client.branch.name || branchNameById.get(branchId) || 'Main Branch';
+    }
+
+    return branchNameById.get(client.branch) || 'Main Branch';
+  };
+
+  const filterClientList = (rows: Client[]) => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return rows;
+    return rows.filter((client) =>
+      (client.name?.toLowerCase() || '').includes(query) ||
+      (client.phone || '').includes(query) ||
+      (client.email?.toLowerCase() || '').includes(query)
+    );
+  };
+
+  const fetchInvoicesForClientMetrics = async (): Promise<InvoiceSummary[]> => {
+    const invoices: InvoiceSummary[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const queryParams = new URLSearchParams({
+        page: exportPage.toString(),
+        limit: exportLimit.toString()
+      });
+
+      const response = await fetch(`${API_URL}/invoices?${queryParams.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${user?.token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch invoices for client totals');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      invoices.push(
+        ...pageRows.filter((invoice: InvoiceSummary) =>
+          selectedBranch === 'all' || getEntityId(invoice.branch) === selectedBranch
+        )
+      );
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    return invoices;
+  };
+
+  const enrichClientsWithMetrics = (rows: Client[], invoices: InvoiceSummary[]) => {
+    const spendingByClientId = new Map<string, number>();
+    const spendingByClientName = new Map<string, number>();
+
+    invoices.forEach((invoice) => {
+      const amount = toAmount(invoice.total);
+      const clientId = getEntityId(invoice.clientId);
+
+      if (clientId) {
+        spendingByClientId.set(clientId, (spendingByClientId.get(clientId) || 0) + amount);
+        return;
+      }
+
+      const clientName = normalizeName(invoice.clientName);
+      if (clientName) {
+        spendingByClientName.set(clientName, (spendingByClientName.get(clientName) || 0) + amount);
+      }
+    });
+
+    return rows.map((client) => {
+      const invoiceSpending =
+        (spendingByClientId.get(client._id) || 0) +
+        (spendingByClientName.get(normalizeName(client.name)) || 0);
+
+      return {
+        ...client,
+        visits: getClientVisitCount(client),
+        totalSpending: invoiceSpending > 0 ? invoiceSpending : getClientTotalSpending(client)
+      };
+    });
+  };
+
+  const fetchAllClientsForExport = async (): Promise<Client[]> => {
+    const allClients: Client[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const queryParams = new URLSearchParams({
+        page: exportPage.toString(),
+        limit: exportLimit.toString()
+      });
+
+      if (selectedBranch !== 'all') {
+        queryParams.set('branch', selectedBranch);
+      }
+
+      const response = await fetch(`${API_URL}/clients?${queryParams.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${user?.token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch client export list');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allClients.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const uniqueClients = new Map<string, Client>();
+    allClients.forEach((client) => {
+      if (client?._id) {
+        uniqueClients.set(client._id, client);
+      }
+    });
+
+    const invoices = await fetchInvoicesForClientMetrics();
+    const enrichedClients = enrichClientsWithMetrics(Array.from(uniqueClients.values()), invoices);
+
+    return filterClientList(enrichedClients);
+  };
+
+  const clientExportColumns = useMemo<ExportColumn<Client>[]>(
+    () => [
+      { header: 'ID', accessor: (client) => client.clientId || '-' },
+      { header: 'Client Name', accessor: (client) => client.name },
+      { header: 'Phone', accessor: (client) => client.phone || '-' },
+      { header: 'Email', accessor: (client) => client.email || '-' },
+      { header: 'Branch', accessor: (client) => getClientBranchName(client) },
+      { header: 'Status', accessor: (client) => client.status || '-' },
+      { header: 'Role', accessor: (client) => client.role || 'Client' },
+      { header: 'Membership Plan', accessor: (client) => client.membership?.plan?.name || '-' },
+      {
+        header: 'Sessions Left',
+        accessor: (client) =>
+          client.membership
+            ? `${client.membership.remainingSessions}/${client.membership.totalSessions}`
+            : '-'
+      },
+      { header: 'Visits', accessor: (client) => getClientVisitCount(client) },
+      {
+        header: `Total Spending (${settings?.general?.currencySymbol || 'QR'})`,
+        accessor: (client) => getClientTotalSpending(client)
+      },
+      { header: 'Date of Birth', accessor: (client) => (client.dob ? dayjs(client.dob).format('DD MMM YYYY') : '-') },
+      { header: 'Notes', accessor: (client) => client.notes || '-' },
+      {
+        header: 'Joined On',
+        accessor: (client) => (client.createdAt ? dayjs(client.createdAt).format('DD MMM YYYY, hh:mm A') : '-')
+      }
+    ],
+    [settings?.general?.currencySymbol, branchNameById]
+  );
 
   const handleOpenModal = (client: Client | null = null) => {
     if (client) {
@@ -382,6 +642,17 @@ const Clients = () => {
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      searchActions={
+        <ExportPopup<Client>
+          data={filteredClients}
+          columns={clientExportColumns}
+          fileName="clients"
+          title="Clients"
+          triggerLabel="Download"
+          description="Choose format and export the complete clients list with profile, membership, and spending details."
+          resolveData={fetchAllClientsForExport}
+        />
+      }
       addButtonLabel="Welcome Client"
       onAddClick={() => handleOpenModal()}
       addButtonIcon={<UserPlus size={18} />}
@@ -422,7 +693,10 @@ const Clients = () => {
                    </div>
                    
                    <div className="min-w-0 flex-1">
-                       <h3 className="text-xl lg:text-2xl font-serif text-zen-brown tracking-tight truncate">{client.name}</h3>
+                       <h3 className="text-xl lg:text-2xl font-serif text-zen-brown tracking-tight truncate flex items-center gap-2">
+                          {client.name}
+                          {client.clientId && <span className="text-[10px] font-sans font-bold text-zen-sand tracking-widest opacity-70">#{client.clientId}</span>}
+                       </h3>
                         <div className="flex items-center gap-2 mt-1 lg:mt-2">
                            <p className="text-[10px] lg:text-[11px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">
                              {client.membership ? client.membership.plan.name : 'Member'}
@@ -483,14 +757,14 @@ const Clients = () => {
             <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
               <thead>
                 <tr>
-                <th>S NO</th>
-                <th>Portrait</th>
-                <th>Client</th>
-                <th>Contact & Email</th>
-                <th>Membership</th>
-                <th>Spending</th>
-                <th>Status</th>
-                <th>Actions</th>
+                  <th>S No</th>
+                  <th>Portrait</th>
+                  <th>Client Identity</th>
+                  <th>Contact Info</th>
+                  <th>Membership</th>
+                  <th>Value</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody className="">
@@ -521,25 +795,22 @@ const Clients = () => {
                       </div>
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
-                      <div className="flex flex-row items-center justify-center gap-2">
+                      <div className="flex flex-col items-center justify-center">
                         <span className="zen-table-primary">{client.name}</span>
-                        <span className="text-zen-brown/20 px-1">|</span>
-                        <span className="zen-table-meta text-[10px]">Member since {dayjs(client.createdAt).format('YYYY')}</span>
+                        {client.clientId && <span className="text-[9px] font-bold text-zen-sand tracking-widest mt-0.5 opacity-80">#{client.clientId}</span>}
                       </div>
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
-                      <div className="flex flex-row items-center justify-center gap-2">
-                        <span className="text-sm text-zen-brown/70 italic font-medium">{client.phone}</span>
-                        <span className="text-zen-brown/20 px-1">|</span>
-                        <span className="text-[10px] text-zen-brown/30 font-medium lowercase tracking-tight mt-0 truncate max-w-[150px]">{client.email || 'No email registered'}</span>
+                      <div className="flex flex-col items-center justify-center gap-0.5">
+                        <span className="text-[13px] text-zen-brown/70 italic font-black">{client.phone}</span>
+                        <span className="text-[9px] text-zen-brown/30 font-bold lowercase tracking-widest mt-0 truncate max-w-[150px]">{client.email || 'No email registered'}</span>
                       </div>
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
                       {client.membership ? (
-                        <div className="flex flex-row items-center justify-center gap-2">
+                        <div className="flex flex-col items-center justify-center gap-1">
                           <ZenBadge variant="sand" className="scale-90">{client.membership.plan.name}</ZenBadge>
-                          <span className="text-zen-brown/20 px-1">|</span>
-                          <span className="zen-table-meta mt-0">
+                          <span className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-widest mt-0">
                             {client.membership.remainingSessions}/{client.membership.totalSessions} SESS. LEFT
                           </span>
                         </div>
@@ -548,10 +819,9 @@ const Clients = () => {
                       )}
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
-                      <div className="flex flex-row items-center justify-center gap-2">
+                      <div className="flex flex-col items-center justify-center gap-0.5">
                         <span className="zen-table-primary">{settings?.general?.currencySymbol || 'QR'} {client.totalSpending?.toLocaleString()}</span>
-                        <span className="text-zen-brown/20 px-1">|</span>
-                        <span className="zen-table-meta">{client.visits} visits</span>
+                        <span className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-widest mt-0">{client.visits} visits</span>
                       </div>
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">

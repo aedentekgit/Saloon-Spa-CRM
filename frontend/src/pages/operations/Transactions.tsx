@@ -7,7 +7,6 @@ import {
   ArrowDownRight, 
   Filter, 
   Search, 
-  Download, 
   MoreVertical,
   Calendar as CalendarIcon,
   CreditCard,
@@ -29,32 +28,295 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
-import { ZenInput, ZenDropdown, ZenDatePicker } from '../../components/zen/ZenInputs';
+import { ZenInput, ZenDropdown, ZenDatePicker, ZenMasterCalendar } from '../../components/zen/ZenInputs';
 import { useSettings } from '../../context/SettingsContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { notify } from '../../components/shared/ZenNotification';
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 
 dayjs.extend(isBetween);
 
+interface BranchRef {
+  _id?: string;
+  name?: string;
+}
+
+interface InvoiceItem {
+  name?: string;
+  price?: number;
+  duration?: number;
+}
+
+interface InvoicePayment {
+  mode?: string;
+  amount?: number;
+}
+
 interface Transaction {
   id: string;
+  sourceModel: 'Invoice' | 'Expense';
+  sourceId: string;
   type: 'Inflow' | 'Outflow';
   title: string;
   category: string;
   amount: number;
+  signedAmount: number;
   date: string;
   method: string;
   status: 'Completed' | 'Pending' | 'Failed';
   reference?: string;
   branch?: string;
+  branchId?: string;
+  invoiceNumber?: string;
+  clientId?: string;
+  clientName?: string;
+  paymentMode?: string;
+  paymentsSummary?: string;
+  itemsCount?: number;
+  itemsSummary?: string;
+  subtotal?: number;
+  gst?: number;
+  discount?: number;
+  total?: number;
+  expenseTitle?: string;
+  expenseCategory?: string;
+  expenseUserId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 import { useData } from '../../context/DataContext';
 
 const PAYMENT_MODES = ['Cash', 'Card', 'UPI', 'GPay', 'Split'] as const;
+
+const getEntityId = (value: any) => {
+  if (!value) return '';
+  return typeof value === 'string' ? value : value._id || '';
+};
+
+const getBranchLabel = (branch?: BranchRef | string, branchNameById?: Map<string, string>) => {
+  if (!branch) return 'Main Branch';
+  if (typeof branch === 'string') return branchNameById?.get(branch) || branch;
+  return branch.name || branchNameById?.get(branch._id || '') || 'Main Branch';
+};
+
+const summarizeInvoiceItems = (items?: InvoiceItem[]) => {
+  if (!items || items.length === 0) return '-';
+  return items
+    .map((item) => {
+      const bits = [item.name || 'Item'];
+      if (typeof item.price === 'number') bits.push(`${item.price}`);
+      if (typeof item.duration === 'number') bits.push(`${item.duration}m`);
+      return bits.join(' / ');
+    })
+    .join(' | ');
+};
+
+const summarizePayments = (payments?: InvoicePayment[]) => {
+  if (!payments || payments.length === 0) return '-';
+  return payments
+    .map((payment) => `${payment.mode || 'Mode'}: ${payment.amount ?? 0}`)
+    .join(' | ');
+};
+
+const formatExportDate = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD') : value;
+};
+
+const formatExportDateTime = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : value;
+};
+
+const buildDateWindow = (dateRange: any) => {
+  if (!dateRange || dateRange === 'All') return { startDate: '', endDate: '' };
+  
+  const now = dayjs();
+  if (typeof dateRange === 'string') {
+    if (dateRange === 'Today') return { startDate: now.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+    if (dateRange === 'Week') return { startDate: now.subtract(7, 'day').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+    if (dateRange === 'Month') return { startDate: now.subtract(1, 'month').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+    
+    if (dateRange.length === 7) { // YYYY-MM
+      const m = dayjs(dateRange + '-01');
+      return { startDate: m.startOf('month').format('YYYY-MM-DD'), endDate: m.endOf('month').format('YYYY-MM-DD') };
+    }
+    
+    if (dateRange.length === 10) { // YYYY-MM-DD
+      return { startDate: dateRange, endDate: dateRange };
+    }
+    
+    return { startDate: '', endDate: '' };
+  }
+
+  if (dateRange.from || dateRange.to) {
+    return { 
+      startDate: dateRange.from || dateRange.to || '', 
+      endDate: dateRange.to || dateRange.from || '' 
+    };
+  }
+
+  return { startDate: '', endDate: '' };
+};
+
+const buildTransactionRows = (
+  invoicesList: any[],
+  expensesList: any[],
+  branchNameById?: Map<string, string>
+): Transaction[] => {
+  const invoiceRows: Transaction[] = Array.isArray(invoicesList)
+    ? invoicesList.map((inv: any) => {
+        const sourceId = inv._id || inv.id || '';
+        const branchId = getEntityId(inv.branch);
+        return {
+          id: sourceId,
+          sourceModel: 'Invoice',
+          sourceId,
+          type: 'Inflow',
+          title: `Service: ${inv.clientName || '-'}`,
+          category: 'Service Revenue',
+          amount: inv.total || 0,
+          signedAmount: inv.total || 0,
+          date: inv.date,
+          method: inv.paymentMode || 'Cash',
+          status: 'Completed',
+          reference: inv.invoiceNumber,
+          branch: getBranchLabel(inv.branch, branchNameById),
+          branchId,
+          invoiceNumber: inv.invoiceNumber || '-',
+          clientId: getEntityId(inv.clientId) || '-',
+          clientName: inv.clientName || '-',
+          paymentMode: inv.paymentMode || '-',
+          paymentsSummary: summarizePayments(inv.payments),
+          itemsCount: Array.isArray(inv.items) ? inv.items.length : 0,
+          itemsSummary: summarizeInvoiceItems(inv.items),
+          subtotal: inv.subtotal || 0,
+          gst: inv.gst || 0,
+          discount: inv.discount || 0,
+          total: inv.total || 0,
+          expenseTitle: '-',
+          expenseCategory: '-',
+          expenseUserId: '-',
+          createdAt: inv.createdAt,
+          updatedAt: inv.updatedAt
+        };
+      })
+    : [];
+
+  const expenseRows: Transaction[] = Array.isArray(expensesList)
+    ? expensesList.map((exp: any) => {
+        const sourceId = exp._id || exp.id || '';
+        const branchId = getEntityId(exp.branch);
+        return {
+          id: sourceId,
+          sourceModel: 'Expense',
+          sourceId,
+          type: 'Outflow',
+          title: exp.title,
+          category: exp.category,
+          amount: exp.amount || 0,
+          signedAmount: -(exp.amount || 0),
+          date: exp.date,
+          method: 'Direct Outflow',
+          status: 'Completed',
+          reference: '-',
+          branch: getBranchLabel(exp.branch, branchNameById),
+          branchId,
+          invoiceNumber: '-',
+          clientId: '-',
+          clientName: '-',
+          paymentMode: '-',
+          paymentsSummary: '-',
+          itemsCount: 0,
+          itemsSummary: '-',
+          subtotal: 0,
+          gst: 0,
+          discount: 0,
+          total: 0,
+          expenseTitle: exp.title,
+          expenseCategory: exp.category,
+          expenseUserId: getEntityId(exp.user) || '-',
+          createdAt: exp.createdAt,
+          updatedAt: exp.updatedAt
+        };
+      })
+    : [];
+
+  return [...invoiceRows, ...expenseRows].sort(
+    (a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()
+  );
+};
+
+const filterTransactions = (
+  rows: Transaction[],
+  searchTerm: string,
+  branchFilter: string,
+  statusFilter: 'All' | Transaction['status'],
+  dateRange: any
+) => {
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const now = dayjs();
+
+  return rows.filter((t) => {
+    const searchableValues = [
+      t.id,
+      t.sourceModel,
+      t.sourceId,
+      t.type,
+      t.title,
+      t.category,
+      t.amount,
+      t.signedAmount,
+      t.date,
+      t.method,
+      t.status,
+      t.reference,
+      t.branch,
+      t.branchId,
+      t.invoiceNumber,
+      t.clientId,
+      t.clientName,
+      t.paymentMode,
+      t.paymentsSummary,
+      t.itemsCount,
+      t.itemsSummary,
+      t.subtotal,
+      t.gst,
+      t.discount,
+      t.total,
+      t.expenseTitle,
+      t.expenseCategory,
+      t.expenseUserId,
+      t.createdAt,
+      t.updatedAt
+    ];
+
+    const matchesSearch =
+      !normalizedSearch ||
+      searchableValues.some((value) => String(value ?? '').toLowerCase().includes(normalizedSearch));
+
+    const matchesBranch = branchFilter === 'All' || t.branch === branchFilter;
+    const matchesStatus = statusFilter === 'All' || t.status === statusFilter;
+
+    let matchesDate = true;
+    if (dateRange && dateRange !== 'All') {
+      const window = buildDateWindow(dateRange);
+      if (window.startDate && window.endDate) {
+        matchesDate = dayjs(t.date).isBetween(dayjs(window.startDate), dayjs(window.endDate), 'day', '[]');
+      } else if (window.startDate) {
+        matchesDate = dayjs(t.date).isSame(dayjs(window.startDate), 'day');
+      }
+    }
+
+    return matchesSearch && matchesBranch && matchesStatus && matchesDate;
+  });
+};
 
 const Transactions = () => {
   const { user } = useAuth();
@@ -64,8 +326,8 @@ const Transactions = () => {
   const [loading, setLoading] = useState(() => getCachedJson<Transaction[]>('zen_page_transactions_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [branchFilter, setBranchFilter] = useState<string>('All');
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Completed' | 'Pending'>('All');
-  const [dateRange, setDateRange] = useState<'All' | 'Today' | 'Week' | 'Month'>('All');
+  const [statusFilter, setStatusFilter] = useState<'All' | Transaction['status']>('All');
+  const [dateRange, setDateRange] = useState<any>('All');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -74,6 +336,33 @@ const Transactions = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+
+  const branchNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    branches.forEach((branch: any) => {
+      if (branch?._id && branch?.name) map.set(branch._id, branch.name);
+    });
+    return map;
+  }, [branches]);
+
+  const branchOptions = useMemo(() => {
+    const names = new Set<string>();
+    branches.forEach((branch: any) => {
+      if (branch?.name) names.add(branch.name);
+    });
+    transactions.forEach((transaction) => {
+      if (transaction.branch) names.add(transaction.branch);
+    });
+    return ['All', ...Array.from(names).sort((a, b) => a.localeCompare(b))];
+  }, [branches, transactions]);
+
+  const selectedBranchId = useMemo(() => {
+    if (branchFilter === 'All') return '';
+    const match = branches.find((branch: any) => branch?.name === branchFilter);
+    return match?._id || '';
+  }, [branchFilter, branches]);
+
+  const transactionDateWindow = useMemo(() => buildDateWindow(dateRange), [dateRange]);
 
   useEffect(() => {
     fetchData();
@@ -92,51 +381,31 @@ const Transactions = () => {
       const invoicesList = Array.isArray(invData) ? invData : (invData?.data || []);
       const expensesList = Array.isArray(expData) ? expData : (expData?.data || []);
 
-      const combined: Transaction[] = [
-        ...(Array.isArray(invoicesList) ? invoicesList.map((inv: any) => ({
-          id: inv._id || inv.id,
-          type: 'Inflow' as const,
-          title: `Service: ${inv.clientName}`,
-          category: 'Service Revenue',
-          amount: inv.total || 0,
-          date: inv.date,
-          method: inv.paymentMode || 'Cash',
-          status: 'Completed' as const,
-          reference: inv.invoiceNumber,
-          branch: inv.branch?.name || 'Main Branch'
-        })) : []),
-        ...(Array.isArray(expensesList) ? expensesList.map((exp: any) => ({
-          id: exp._id || exp.id,
-          type: 'Outflow' as const,
-          title: exp.title,
-          category: exp.category,
-          amount: exp.amount || 0,
-          date: exp.date,
-          method: 'Direct Outflow',
-          status: 'Completed' as const,
-          branch: exp.branch?.name || 'Main Branch'
-        })) : [])
-      ];
+      const combined = buildTransactionRows(
+        invoicesList,
+        user?.role !== 'Client' ? expensesList : [],
+        branchNameById
+      );
 
       // Fallback to high-quality mock data if backend returns empty
       if (combined.length === 0) {
         const mockTransactions: Transaction[] = [
-          { id: 'TX-8821', type: 'Inflow', title: 'Service: Fatima Al-Sayed', category: 'Service Revenue', amount: 450, date: dayjs().subtract(0, 'day').format(), method: 'Cash', status: 'Completed', reference: 'INV-101' },
-          { id: 'TX-8822', type: 'Inflow', title: 'Service: Mohammed Rashid', category: 'Service Revenue', amount: 1200, date: dayjs().subtract(1, 'day').format(), method: 'Card', status: 'Completed', reference: 'INV-102' },
-          { id: 'TX-8823', type: 'Outflow', title: 'Office Rent', category: 'Fixed Expense', amount: 5000, date: dayjs().subtract(2, 'day').format(), method: 'Bank', status: 'Completed' },
-          { id: 'TX-8824', type: 'Inflow', title: 'Service: Sara Hamad', category: 'Service Revenue', amount: 850, date: dayjs().subtract(3, 'day').format(), method: 'Transfer', status: 'Completed', reference: 'INV-103' },
-          { id: 'TX-8825', type: 'Outflow', title: 'Botanical Supplies', category: 'Variable Expense', amount: 450, date: dayjs().subtract(4, 'day').format(), method: 'Cash', status: 'Completed' },
-          { id: 'TX-8826', type: 'Inflow', title: 'Service: Khalid Abdullah', category: 'Service Revenue', amount: 2100, date: dayjs().subtract(5, 'day').format(), method: 'Card', status: 'Completed', reference: 'INV-104' },
+          { id: 'TX-8821', sourceModel: 'Invoice', sourceId: 'TX-8821', type: 'Inflow', title: 'Service: Fatima Al-Sayed', category: 'Service Revenue', amount: 450, signedAmount: 450, date: dayjs().subtract(0, 'day').format(), method: 'Cash', status: 'Completed', reference: 'INV-101', invoiceNumber: 'INV-101', clientName: 'Fatima Al-Sayed', paymentMode: 'Cash' },
+          { id: 'TX-8822', sourceModel: 'Invoice', sourceId: 'TX-8822', type: 'Inflow', title: 'Service: Mohammed Rashid', category: 'Service Revenue', amount: 1200, signedAmount: 1200, date: dayjs().subtract(1, 'day').format(), method: 'Card', status: 'Completed', reference: 'INV-102', invoiceNumber: 'INV-102', clientName: 'Mohammed Rashid', paymentMode: 'Card' },
+          { id: 'TX-8823', sourceModel: 'Expense', sourceId: 'TX-8823', type: 'Outflow', title: 'Office Rent', category: 'Fixed Expense', amount: 5000, signedAmount: -5000, date: dayjs().subtract(2, 'day').format(), method: 'Bank', status: 'Completed', expenseTitle: 'Office Rent', expenseCategory: 'Fixed Expense' },
+          { id: 'TX-8824', sourceModel: 'Invoice', sourceId: 'TX-8824', type: 'Inflow', title: 'Service: Sara Hamad', category: 'Service Revenue', amount: 850, signedAmount: 850, date: dayjs().subtract(3, 'day').format(), method: 'Transfer', status: 'Completed', reference: 'INV-103', invoiceNumber: 'INV-103', clientName: 'Sara Hamad', paymentMode: 'Transfer' },
+          { id: 'TX-8825', sourceModel: 'Expense', sourceId: 'TX-8825', type: 'Outflow', title: 'Botanical Supplies', category: 'Variable Expense', amount: 450, signedAmount: -450, date: dayjs().subtract(4, 'day').format(), method: 'Cash', status: 'Completed', expenseTitle: 'Botanical Supplies', expenseCategory: 'Variable Expense' },
+          { id: 'TX-8826', sourceModel: 'Invoice', sourceId: 'TX-8826', type: 'Inflow', title: 'Service: Khalid Abdullah', category: 'Service Revenue', amount: 2100, signedAmount: 2100, date: dayjs().subtract(5, 'day').format(), method: 'Card', status: 'Completed', reference: 'INV-104', invoiceNumber: 'INV-104', clientName: 'Khalid Abdullah', paymentMode: 'Card' },
         ];
         setTransactions(mockTransactions);
       } else {
-        setTransactions(combined.sort((a, b) => dayjs(b.date).unix() - dayjs(a.date).unix()));
+        setTransactions(combined);
       }
     } catch (error) {
        // Fallback logic also for fetch errors
        const mockTransactions: Transaction[] = [
-          { id: 'TX-8821', type: 'Inflow', title: 'Service: Fatima Al-Sayed', category: 'Service Revenue', amount: 450, date: dayjs().format(), method: 'Cash', status: 'Completed', reference: 'INV-101' },
-          { id: 'TX-8823', type: 'Outflow', title: 'Office Rent', category: 'Fixed Expense', amount: 5000, date: dayjs().subtract(2, 'day').format(), method: 'Bank', status: 'Completed' },
+          { id: 'TX-8821', sourceModel: 'Invoice', sourceId: 'TX-8821', type: 'Inflow', title: 'Service: Fatima Al-Sayed', category: 'Service Revenue', amount: 450, signedAmount: 450, date: dayjs().format(), method: 'Cash', status: 'Completed', reference: 'INV-101', invoiceNumber: 'INV-101', clientName: 'Fatima Al-Sayed', paymentMode: 'Cash' },
+          { id: 'TX-8823', sourceModel: 'Expense', sourceId: 'TX-8823', type: 'Outflow', title: 'Office Rent', category: 'Fixed Expense', amount: 5000, signedAmount: -5000, date: dayjs().subtract(2, 'day').format(), method: 'Bank', status: 'Completed', expenseTitle: 'Office Rent', expenseCategory: 'Fixed Expense' },
        ];
        setTransactions(mockTransactions);
        notify('warning', 'Offline Mode', 'Displaying local transaction cache.');
@@ -148,22 +417,7 @@ const Transactions = () => {
   useEffect(() => setCachedJson('zen_page_transactions_list', transactions), [transactions]);
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => {
-      const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           t.id.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesBranch = branchFilter === 'All' || t.branch === branchFilter;
-      const matchesStatus = statusFilter === 'All' || t.status === statusFilter;
-      
-      let matchesDate = true;
-      const now = dayjs();
-      if (dateRange === 'Today') matchesDate = dayjs(t.date).isSame(now, 'day');
-      else if (dateRange === 'Week') matchesDate = dayjs(t.date).isAfter(now.subtract(7, 'day'));
-      else if (dateRange === 'Month') matchesDate = dayjs(t.date).isAfter(now.subtract(1, 'month'));
-
-      return matchesSearch && matchesBranch && matchesStatus && matchesDate;
-    });
+    return filterTransactions(transactions, searchTerm, branchFilter, statusFilter, dateRange);
   }, [transactions, searchTerm, branchFilter, statusFilter, dateRange]);
 
   const stats = useMemo(() => {
@@ -184,6 +438,98 @@ const Transactions = () => {
     const start = (page - 1) * PAGE_LIMIT;
     return filteredTransactions.slice(start, start + PAGE_LIMIT);
   }, [filteredTransactions, page]);
+
+  const fetchPagedRows = async (endpoint: 'invoices' | 'expenses') => {
+    const rows: any[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const queryParams = new URLSearchParams({
+        page: exportPage.toString(),
+        limit: exportLimit.toString(),
+        startDate: transactionDateWindow.startDate,
+        endDate: transactionDateWindow.endDate
+      });
+      if (selectedBranchId) {
+        queryParams.set('branch', selectedBranchId);
+      }
+
+      const response = await fetch(`${API_URL}/${endpoint}?${queryParams.toString()}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Unable to fetch ${endpoint} export rows`);
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      rows.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    return rows;
+  };
+
+  const fetchAllTransactionsForExport = async (): Promise<Transaction[]> => {
+    const [invoicesList, expensesList] = await Promise.all([
+      fetchPagedRows('invoices'),
+      user?.role !== 'Client' ? fetchPagedRows('expenses') : Promise.resolve([])
+    ]);
+
+    const rows = buildTransactionRows(invoicesList, expensesList, branchNameById);
+    return filterTransactions(rows, searchTerm, branchFilter, statusFilter, dateRange);
+  };
+
+  const transactionExportColumns = useMemo<ExportColumn<Transaction>[]>(
+    () => {
+      const currency = settings?.general?.currencySymbol || 'QR';
+      const money = (value?: number) => `${currency} ${Number(value || 0)}`;
+
+      return [
+        { header: 'Transaction ID', accessor: (transaction) => transaction.id },
+        { header: 'Source Model', accessor: (transaction) => transaction.sourceModel },
+        { header: 'Source ID', accessor: (transaction) => transaction.sourceId },
+        { header: 'Type', accessor: (transaction) => transaction.type },
+        { header: 'Title', accessor: (transaction) => transaction.title },
+        { header: 'Category', accessor: (transaction) => transaction.category },
+        { header: 'Status', accessor: (transaction) => transaction.status },
+        { header: 'Date', accessor: (transaction) => formatExportDate(transaction.date) },
+        { header: 'Branch ID', accessor: (transaction) => transaction.branchId || '-' },
+        { header: 'Branch', accessor: (transaction) => transaction.branch || '-' },
+        { header: 'Method', accessor: (transaction) => transaction.method },
+        { header: 'Reference', accessor: (transaction) => transaction.reference || '-' },
+        { header: 'Raw Amount', accessor: (transaction) => Number(transaction.amount || 0) },
+        { header: 'Signed Amount', accessor: (transaction) => money(transaction.signedAmount) },
+        { header: 'Display Amount', accessor: (transaction) => money(transaction.amount) },
+        { header: 'Invoice Number', accessor: (transaction) => transaction.invoiceNumber || '-' },
+        { header: 'Client ID', accessor: (transaction) => transaction.clientId || '-' },
+        { header: 'Client Name', accessor: (transaction) => transaction.clientName || '-' },
+        { header: 'Payment Mode', accessor: (transaction) => transaction.paymentMode || '-' },
+        { header: 'Payments', accessor: (transaction) => transaction.paymentsSummary || '-' },
+        { header: 'Items Count', accessor: (transaction) => transaction.itemsCount || 0 },
+        { header: 'Items', accessor: (transaction) => transaction.itemsSummary || '-' },
+        { header: 'Subtotal', accessor: (transaction) => money(transaction.subtotal) },
+        { header: 'GST', accessor: (transaction) => money(transaction.gst) },
+        { header: 'Discount', accessor: (transaction) => money(transaction.discount) },
+        { header: 'Invoice Total', accessor: (transaction) => money(transaction.total) },
+        { header: 'Expense Title', accessor: (transaction) => transaction.expenseTitle || '-' },
+        { header: 'Expense Category', accessor: (transaction) => transaction.expenseCategory || '-' },
+        { header: 'Expense User ID', accessor: (transaction) => transaction.expenseUserId || '-' },
+        { header: 'Created At', accessor: (transaction) => formatExportDateTime(transaction.createdAt) },
+        { header: 'Updated At', accessor: (transaction) => formatExportDateTime(transaction.updatedAt) }
+      ];
+    },
+    [settings?.general?.currencySymbol]
+  );
 
   const handleDelete = async () => {
     if (!selectedTransaction) return;
@@ -267,21 +613,71 @@ const Transactions = () => {
 
   return (
     <ZenPageLayout
-      title="Transaction Registry"
+      title={user?.role === 'Client' ? "My History" : "Transaction Registry"}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       hideAddButton
+      hideViewToggle
+      searchActions={
+        <>
+          <div className="flex flex-col gap-2.5 w-full sm:w-auto">
+            <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Status</label>
+            <ZenDropdown
+              label="Status"
+              value={statusFilter}
+              onChange={(value: any) => setStatusFilter(value)}
+              options={['All', 'Completed', 'Pending', 'Failed']}
+              className="w-full sm:min-w-[180px]"
+              hideLabel
+            />
+          </div>
+          <div className="flex flex-col gap-2.5 w-full sm:w-[220px]">
+            <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Date Horizon</label>
+            <ZenMasterCalendar
+              label="Date Range"
+              value={dateRange}
+              onChange={(value: any) => setDateRange(value)}
+              selectionType="range"
+              variant="pill"
+              className="w-full"
+              hideLabel
+            />
+          </div>
+          <div className="flex flex-col gap-2.5 w-full sm:w-auto">
+            <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Branch</label>
+            <ZenDropdown
+              label="Branch"
+              value={branchFilter}
+              onChange={(value: any) => setBranchFilter(value)}
+              options={branchOptions}
+              className="w-full sm:min-w-[210px]"
+              hideLabel
+            />
+          </div>
+          <ExportPopup<Transaction>
+            data={filteredTransactions}
+            columns={transactionExportColumns}
+            fileName="transactions"
+            title="Transactions"
+            triggerLabel="Download"
+            description="Choose format and export the complete transaction sheet with source, branch, invoice, expense, payment, amount, and audit values."
+            resolveData={fetchAllTransactionsForExport}
+          />
+        </>
+      }
       topContent={
-        <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
-          {[
-            { label: 'Total Inflow', value: stats.inflow, icon: ArrowUpRight, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Revenue stream' },
-            { label: 'Total Outflow', value: stats.outflow, icon: ArrowDownRight, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Expenses' },
-            { label: 'Net Balance', value: stats.net, icon: Receipt, color: 'text-sky-500', bg: 'bg-sky-500/10', glow: 'bg-sky-500/20', trend: 'Balance' },
-            { label: 'Avg. Transfer', value: stats.avg, icon: CheckCircle2, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Mean value' }
-          ].map((stat, i) => (
-            <ZenStatCard key={i} {...stat} value={`${settings?.general.currencySymbol || 'QR'} ${stat.value.toLocaleString()}`} delay={i * 0.2} />
-          ))}
-        </div>
+        user?.role !== 'Client' ? (
+          <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+            {[
+              { label: 'Total Inflow', value: stats.inflow, icon: ArrowUpRight, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Revenue stream' },
+              { label: 'Total Outflow', value: stats.outflow, icon: ArrowDownRight, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Expenses' },
+              { label: 'Net Balance', value: stats.net, icon: Receipt, color: 'text-sky-500', bg: 'bg-sky-500/10', glow: 'bg-sky-500/20', trend: 'Balance' },
+              { label: 'Avg. Transfer', value: stats.avg, icon: CheckCircle2, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Mean value' }
+            ].map((stat, i) => (
+              <ZenStatCard key={i} {...stat} value={`${settings?.general.currencySymbol || 'QR'} ${stat.value.toLocaleString()}`} delay={i * 0.2} />
+            ))}
+          </div>
+        ) : null
       }
     >
       <div className="space-y-6 pb-20">
@@ -289,29 +685,20 @@ const Transactions = () => {
 
 
         {/* Immersive Transaction Table */}
-        <div className="bg-white border border-zen-stone zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden animate-in fade-in duration-700">
-          <div className="flex items-center justify-between gap-4 px-6 sm:px-8 py-4 border-b border-zen-brown/5">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 tracking-tight">Transaction Registry</h3>
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Chronological inflow and outflow ledger</p>
-            </div>
-            <ZenBadge variant="leaf" className="px-3 sm:px-5">{filteredTransactions.length} Records</ZenBadge>
-          </div>
-          <div className="table-container overflow-x-auto">
-            <div className="min-w-[760px] lg:min-w-[1000px]">
-              <table className="w-full text-center border-collapse">
-                <thead>
-                  <tr>
-                    <th>S NO</th>
-                    <th>VISUAL</th>
-                    <th>PROTOCOL DETAILS</th>
-                    <th>CLASSIFICATION</th>
-                    <th>VOLUME</th>
-                    <th>MECHANISM</th>
-                    <th>STATUS</th>
-                    <th>ACTIONS</th>
-                  </tr>
-                </thead>
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+          <table className="w-full text-center border-collapse min-w-[1000px]">
+            <thead>
+              <tr>
+                <th>S No</th>
+                <th>Visual</th>
+                <th>Transaction Identity</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
                 <tbody>
                   <AnimatePresence mode="popLayout">
                     {filteredTransactions.length === 0 ? (
@@ -342,12 +729,11 @@ const Transactions = () => {
                             </div>
                           </td>
                           <td>
-                            <div className="flex items-center justify-center gap-3 px-6">
-                              <span className="zen-table-primary">{t.title}</span>
-                              <span className="text-zen-brown/20 text-[10px]">|</span>
+                            <div className="flex flex-col items-center justify-center gap-1 px-6">
+                              <span className="zen-table-primary leading-none">{t.title}</span>
                               <div className="flex items-center gap-2">
                                  <span className="zen-table-meta">{t.id}</span>
-                                 <span className="w-0.5 h-0.5 rounded-full bg-zen-brown/10" />
+                                 <span className="w-1 h-1 rounded-full bg-zen-brown/10" />
                                  <span className="zen-table-meta">{dayjs(t.date).format('MMM DD, YYYY')}</span>
                               </div>
                             </div>
@@ -385,8 +771,12 @@ const Transactions = () => {
                           <td>
                              <div className="flex justify-center items-center gap-2">
                                 <ZenIconButton icon={ExternalLink} onClick={() => notify('info', 'Protocol Report', `Preparing comprehensive report for ${t.id}`)} />
-                                <ZenIconButton icon={Edit2} onClick={() => { setSelectedTransaction(t); setIsEditModalOpen(true); }} />
-                                <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setSelectedTransaction(t); setIsConfirmOpen(true); }} />
+                                {user?.role !== 'Client' && (
+                                  <>
+                                    <ZenIconButton icon={Edit2} onClick={() => { setSelectedTransaction(t); setIsEditModalOpen(true); }} />
+                                    <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setSelectedTransaction(t); setIsConfirmOpen(true); }} />
+                                  </>
+                                )}
                              </div>
                           </td>
                         </motion.tr>
@@ -396,8 +786,6 @@ const Transactions = () => {
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
 
         {/* Pagination Service */}
         <ZenPagination 
