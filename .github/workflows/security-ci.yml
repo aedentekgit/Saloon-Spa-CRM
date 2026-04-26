@@ -1,0 +1,94 @@
+name: Security CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  backend-security:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand({ ping: 1 })' --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PORT: 5005
+      NODE_ENV: test
+      MONGODB_URI: mongodb://127.0.0.1:27017/spa_crm_ci
+      JWT_SECRET: ci_super_secure_jwt_secret_please_rotate_1234567890
+      FRONTEND_URL: http://localhost:3000
+      UPLOAD_DIR: uploads/ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Start backend API
+        run: |
+          nohup node server.js > /tmp/backend.log 2>&1 &
+        working-directory: backend
+
+      - name: Wait for API health
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:5005/api/health > /dev/null; then
+              echo "API is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend failed to become healthy"
+          cat /tmp/backend.log || true
+          exit 1
+
+      - name: Run backend security gate
+        run: npm run security:ci
+        working-directory: backend
+
+      - name: Show backend logs on failure
+        if: failure()
+        run: cat /tmp/backend.log || true
+
+  frontend-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Typecheck
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Build
+        run: npm run build
+        working-directory: frontend
+
+      - name: Audit
+        run: npm run audit:check
+        working-directory: frontend

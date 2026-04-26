@@ -1,5 +1,6 @@
 const MembershipPlan = require('../../models/operations/MembershipPlan');
 const Membership = require('../../models/operations/Membership');
+const User = require('../../models/core/User');
 const { getPaginationOptions, buildPaginationMeta } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 const mongoose = require('mongoose');
@@ -120,20 +121,41 @@ exports.enrollClient = async (req, res) => {
 // @access  Private
 exports.getClientMemberships = async (req, res) => {
   try {
+    const userBranchId = getBranchId(req.user.branch);
     // IDOR Check
     const isSelf = req.params.clientId === req.user._id.toString();
-    const isAdminOrManager = req.user.role === 'Admin' || req.user.role === 'Manager';
+    const isAdmin = req.user.role === 'Admin';
+    const isManager = req.user.role === 'Manager';
     
-    if (!isAdminOrManager && !isSelf) {
+    if (!isAdmin && !isManager && !isSelf) {
       return res.status(403).json({ message: 'Access Denied: You can only view your own memberships.' });
     }
 
+    const membershipQuery = { client: req.params.clientId };
+
+    if (isManager) {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+
+      const targetClient = await User.findById(req.params.clientId).select('_id role branch');
+      if (!targetClient || targetClient.role !== 'Client') {
+        return res.status(404).json({ message: 'Client not found' });
+      }
+
+      if (!sameBranch(targetClient.branch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: You can only view memberships from your own branch.' });
+      }
+
+      membershipQuery.branch = toObjectIdIfValid(userBranchId);
+    }
+
     const { paginate, page, limit, skip } = getPaginationOptions(req);
-    const membershipsQuery = Membership.find({ client: req.params.clientId })
+    const membershipsQuery = Membership.find(membershipQuery)
       .populate('plan')
       .populate('branch')
       .sort({ createdAt: -1 });
-    const total = paginate ? await Membership.countDocuments({ client: req.params.clientId }) : null;
+    const total = paginate ? await Membership.countDocuments(membershipQuery) : null;
     const memberships = paginate ? await membershipsQuery.skip(skip).limit(limit) : await membershipsQuery;
     res.json(paginate ? { data: memberships, pagination: buildPaginationMeta(total || 0, page, limit) } : memberships);
   } catch (error) {
@@ -146,7 +168,7 @@ exports.getClientMemberships = async (req, res) => {
 // @access  Private
 exports.redeemMembershipSession = async (req, res) => {
   try {
-    const { serviceId, appointmentId, branchId, notes } = req.body;
+    const { serviceId, appointmentId, notes } = req.body;
     const membership = await Membership.findById(req.params.id).populate('plan');
 
     if (!membership) return res.status(404).json({ message: 'Membership not found' });
@@ -177,7 +199,7 @@ exports.redeemMembershipSession = async (req, res) => {
     membership.usageHistory.push({
       service: serviceId,
       appointment: appointmentId,
-      branch: branchId || membership.branch,
+      branch: membership.branch,
       notes,
       usedAt: new Date()
     });

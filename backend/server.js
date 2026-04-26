@@ -12,6 +12,18 @@ const path = require('path');
 const fs = require('fs');
 const paginationMiddleware = require('./middleware/paginationMiddleware');
 
+const assertSecurityEnv = () => {
+  const secret = String(process.env.JWT_SECRET || '');
+  const isProd = process.env.NODE_ENV === 'production';
+  const isWeak = !secret || secret.length < 32 || secret === 'your_super_secret_key_123';
+
+  if (isProd && isWeak) {
+    throw new Error('Security Misconfiguration: JWT_SECRET must be a strong secret (>=32 chars) in production.');
+  }
+};
+
+assertSecurityEnv();
+
 // Route files
 const userRoutes = require('./routes/core/userRoutes');
 const settingsRoutes = require('./routes/core/settingsRoutes');

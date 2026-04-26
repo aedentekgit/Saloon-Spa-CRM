@@ -41,10 +41,7 @@ exports.getDashboardStats = async (req, res) => {
     // Branching logic for Role-specific dynamism
     if (req.user.role === 'Client') {
       const myAppointments = await Appointment.find({
-        $or: [
-          { clientId: req.user._id },
-          { client: req.user.name }
-        ]
+        clientId: req.user._id
       }).sort({ date: -1 }).lean();
       const totalVisits = myAppointments.filter(a => a.status === 'Completed').length;
       const upcomingApt = myAppointments
@@ -67,10 +64,7 @@ exports.getDashboardStats = async (req, res) => {
 
     if (req.user.role === 'Employee') {
       const myAppointments = await Appointment.find({
-        $or: [
-          { employeeId: req.user._id },
-          { employee: req.user.name }
-        ]
+        employeeId: req.user._id
       }).populate('clientId').sort({ date: -1 }).lean();
       const completed = myAppointments.filter(a => a.status === 'Completed').length;
       const todayApts = myAppointments.filter(a => a.date === todayStr).length;

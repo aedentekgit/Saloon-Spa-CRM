@@ -9,13 +9,21 @@ const getShifts = async (req, res) => {
   try {
     const { branch } = req.query;
     let query = {};
+    const userBranchId = getBranchId(req.user?.branch);
     
-    if (branch && branch !== 'all') {
-      query.branch = branch;
-    }
-
     if (!req.user) {
       query.status = 'Active';
+      if (branch && branch !== 'all') {
+        query.branch = getBranchId(branch);
+      }
+    } else if (req.user.role === 'Admin') {
+      if (branch && branch !== 'all') {
+        query.branch = getBranchId(branch);
+      }
+    } else if (userBranchId) {
+      query.branch = userBranchId;
+    } else {
+      return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
     }
 
     const { data, pagination } = await paginateModelQuery(Shift, query, req, {

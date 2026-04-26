@@ -1,6 +1,7 @@
 const Appointment = require('../../models/operations/Appointment');
 const User = require('../../models/core/User');
 const Notification = require('../../models/core/Notification');
+const crypto = require('crypto');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 
@@ -53,7 +54,7 @@ const getAppointments = async (req, res) => {
     // Optional dynamic filters
     if (req.query.roomId) query.roomId = req.query.roomId;
     if (req.query.room) query.room = req.query.room;
-    if (req.query.clientId) query.clientId = req.query.clientId;
+    if (req.query.clientId && req.user.role !== 'Client') query.clientId = req.query.clientId;
     if (req.query.date) query.date = req.query.date;
     if (req.query.status) query.status = req.query.status;
 
@@ -70,6 +71,17 @@ const createAppointment = async (req, res) => {
   try {
     const userBranchId = getBranchId(req.user.branch);
     const appointmentBranchId = getBranchId(req.body.branch || userBranchId);
+    const isAdmin = req.user.role === 'Admin';
+    const isClient = req.user.role === 'Client';
+
+    if (!isAdmin && !isClient && !sameBranch(appointmentBranchId, userBranchId)) {
+      return res.status(403).json({ message: 'Access Denied: Cannot create appointments for another branch.' });
+    }
+
+    if (isClient && req.body.clientId && req.body.clientId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access Denied: Clients can only book for themselves.' });
+    }
+
     const appointmentData = {
       ...req.body,
       branch: appointmentBranchId,
@@ -148,7 +160,12 @@ const createAppointment = async (req, res) => {
     // ------------------------------------------
 
     // Auto-resolve clientId
-    if (!appointmentData.clientId && appointmentData.client) {
+    if (isClient) {
+      appointmentData.clientId = req.user._id;
+      appointmentData.client = req.user.name || appointmentData.client;
+      appointmentData.clientEmail = req.user.email || appointmentData.clientEmail;
+      appointmentData.clientPhone = req.user.phone || appointmentData.clientPhone;
+    } else if (!appointmentData.clientId && appointmentData.client) {
       const foundClient = await User.findOne({ name: appointmentData.client, role: 'Client' });
       if (foundClient) appointmentData.clientId = foundClient._id;
     }
@@ -257,24 +274,77 @@ const updateAppointment = async (req, res) => {
     const isOwner = appointment.clientId?.toString() === req.user._id.toString();
     const isBranchStaff = sameBranch(appointment.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isOwnerOnly = isOwner && !isBranchStaff && !isAdmin;
 
     if (!isAdmin && !isBranchStaff && !isOwner) {
       return res.status(403).json({ message: 'Access Denied' });
     }
 
+    if (!isAdmin && req.body.branch && !sameBranch(req.body.branch, appointment.branch)) {
+      return res.status(403).json({ message: 'Access Denied: You cannot reassign appointment branch.' });
+    }
+
+    const incoming = req.body || {};
+    const allowedForStaff = [
+      'client',
+      'clientPhone',
+      'clientEmail',
+      'service',
+      'serviceId',
+      'employee',
+      'employeeId',
+      'date',
+      'time',
+      'room',
+      'roomId',
+      'bookingType',
+      'status',
+      'cancellationReason'
+    ];
+    const allowedForOwnerOnly = [
+      'clientPhone',
+      'clientEmail',
+      'service',
+      'serviceId',
+      'employee',
+      'employeeId',
+      'date',
+      'time',
+      'room',
+      'roomId',
+      'cancellationReason'
+    ];
+    const allowedForAdmin = [...allowedForStaff, 'branch', 'clientId', 'user'];
+    const allowedFields = isAdmin
+      ? allowedForAdmin
+      : isOwnerOnly
+        ? allowedForOwnerOnly
+        : allowedForStaff;
+
+    const updatePayload = {};
+    for (const field of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(incoming, field)) {
+        updatePayload[field] = incoming[field];
+      }
+    }
+
+    if (isOwnerOnly && Object.prototype.hasOwnProperty.call(updatePayload, 'status')) {
+      return res.status(403).json({ message: 'Access Denied: You cannot directly change appointment status.' });
+    }
+
     const oldStatus = appointment.status;
-    const { date, time, employee, room } = req.body;
+    const { date, time, employee, room } = updatePayload;
 
     // --- CONFLICT VALIDATION (Staff + Room) ---
     const checkDate = date || appointment.date;
     const checkTime = time || appointment.time;
     const checkEmployee = employee || appointment.employee;
     const checkRoom = room || appointment.room;
-    const checkBranch = getBranchId(req.body.branch || appointment.branch);
+    const checkBranch = getBranchId(updatePayload.branch || appointment.branch);
 
     if (checkDate && checkTime && checkEmployee) {
       const Service = require('../../models/operations/Service');
-      const updatedService = req.body.service || appointment.service;
+      const updatedService = updatePayload.service || appointment.service;
       const selectedService = await Service.findOne({ name: updatedService });
       const serviceDuration = selectedService?.duration || 60;
 
@@ -305,11 +375,11 @@ const updateAppointment = async (req, res) => {
     }
     // ------------------------------------------
 
-    Object.assign(appointment, req.body);
+    Object.assign(appointment, updatePayload);
     const updatedAppointment = await appointment.save();
 
     // Trigger notification if status changed during update
-    if (req.body.status && req.body.status !== oldStatus) {
+    if (updatePayload.status && updatePayload.status !== oldStatus) {
       // Re-fetch populated for notification
       const populated = await Appointment.findById(updatedAppointment._id).populate('branch');
       try {
@@ -324,8 +394,8 @@ const updateAppointment = async (req, res) => {
         if (recipientEmail) {
           let subject = '';
           let message = '';
-          const status = req.body.status;
-          const reason = req.body.cancellationReason;
+          const status = updatePayload.status;
+          const reason = updatePayload.cancellationReason;
 
           if (status === 'Confirmed') {
             subject = 'Appointment Confirmed - Zen Sanctuary & Spa';
@@ -389,6 +459,20 @@ const updateAppointmentStatus = async (req, res) => {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
+    const isOwner = appointment.clientId?.toString() === req.user._id.toString();
+    const isBranchManager = req.user.role === 'Manager' && sameBranch(appointment.branch, req.user.branch);
+    const isAdmin = req.user.role === 'Admin';
+
+    const allowedStatus = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value' });
+    }
+
+    const isOwnerCancellation = isOwner && status === 'Cancelled' && ['Pending', 'Confirmed'].includes(appointment.status);
+    if (!isAdmin && !isBranchManager && !isOwnerCancellation) {
+      return res.status(403).json({ message: 'Access Denied: You cannot update this appointment status.' });
+    }
+
     appointment.status = status;
     if (cancellationReason) {
       appointment.cancellationReason = cancellationReason;
@@ -444,10 +528,13 @@ const updateAppointmentStatus = async (req, res) => {
 const getPublicAppointments = async (req, res) => {
   try {
     const { branch, date, status } = req.query;
+    if (!branch) {
+      return res.status(400).json({ message: 'Branch is required' });
+    }
     let query = {
       status: { $in: ['Confirmed', 'Pending'] }
     };
-    if (branch) query.branch = branch;
+    query.branch = branch;
     if (date) query.date = date;
     if (status) {
       const statusList = String(status)
@@ -603,7 +690,8 @@ const createGuestAppointment = async (req, res) => {
         status: 'Active',
         notes: 'Created via Guest Booking',
         branch: appointmentBranch,
-        password: Math.random().toString(36).slice(-8) // Generate random dummy password
+        // Guest accounts get a non-user-facing random secret.
+        password: crypto.randomBytes(16).toString('hex')
       });
     }
 

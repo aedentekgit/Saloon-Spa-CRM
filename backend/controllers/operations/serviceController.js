@@ -8,9 +8,13 @@ const { getBranchId, sameBranch } = require('../../utils/branch');
 // @access  Public
 const getPublicServices = async (req, res) => {
   try {
+    const query = { status: 'Active' };
+    if (req.query.branch && req.query.branch !== 'all') {
+      query.branch = getBranchId(req.query.branch);
+    }
     const { data, pagination } = await paginateModelQuery(
       Service,
-      {},
+      query,
       req,
       { populate: ['branch', 'category'] }
     );
@@ -25,7 +29,22 @@ const getPublicServices = async (req, res) => {
 // @access  Private/Public
 const getServices = async (req, res) => {
   try {
-    const { data, pagination } = await paginateModelQuery(Service, {}, req, {
+    const query = {};
+    const userBranchId = getBranchId(req.user.branch);
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
+
+    if (req.user.role === 'Admin') {
+      if (requestedBranch) {
+        query.branch = requestedBranch;
+      }
+    } else {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      query.branch = userBranchId;
+    }
+
+    const { data, pagination } = await paginateModelQuery(Service, query, req, {
       populate: ['branch', 'inventoryUsage.inventoryItem', 'category']
     });
     res.json(pagination ? { data, pagination } : data);
