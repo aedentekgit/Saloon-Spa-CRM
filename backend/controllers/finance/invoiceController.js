@@ -1,4 +1,5 @@
 const Invoice = require('../../models/finance/Invoice');
+const User = require('../../models/core/User');
 const Employee = require('../../models/human-resources/Employee');
 const Service = require('../../models/operations/Service');
 const { paginateModelQuery } = require('../../utils/pagination');
@@ -57,9 +58,36 @@ const createInvoice = async (req, res) => {
 
   try {
     const userBranchId = getBranchId(req.user.branch);
+    const isAdmin = req.user.role === 'Admin';
+    const isClient = req.user.role === 'Client';
+    const requestedBranch = getBranchId(branch) || userBranchId;
+
+    if (isClient) {
+      return res.status(403).json({ message: 'Access Denied: Clients cannot create invoices.' });
+    }
+
+    if (!requestedBranch) {
+      return res.status(400).json({ message: 'Branch assignment required' });
+    }
+
+    if (!isAdmin && !sameBranch(requestedBranch, userBranchId)) {
+      return res.status(403).json({ message: 'Access Denied: Cannot create invoices for another branch.' });
+    }
+
+    let targetClientId = clientId || undefined;
+    if (targetClientId) {
+      const targetClient = await User.findById(targetClientId).select('_id role branch');
+      if (!targetClient || targetClient.role !== 'Client') {
+        return res.status(400).json({ message: 'Invalid client selection for invoice.' });
+      }
+      if (!isAdmin && targetClient.branch && !sameBranch(targetClient.branch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Selected client belongs to another branch.' });
+      }
+    }
+
     const invoice = await Invoice.create({
-      user: clientId || req.user._id,
-      clientId: clientId || undefined,
+      user: targetClientId || req.user._id,
+      clientId: targetClientId,
       invoiceNumber,
       clientName,
       items,
@@ -70,7 +98,7 @@ const createInvoice = async (req, res) => {
       paymentMode,
       payments,
       date,
-      branch: getBranchId(branch) || userBranchId || undefined
+      branch: requestedBranch
     });
     
     // Auto-update Employee Earnings and Inventory Stock

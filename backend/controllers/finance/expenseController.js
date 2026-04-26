@@ -62,13 +62,29 @@ const createExpense = async (req, res) => {
 
   try {
     const userBranchId = getBranchId(req.user.branch);
+    const isAdmin = req.user.role === 'Admin';
+    const isClient = req.user.role === 'Client';
+    const requestedBranch = getBranchId(branch) || userBranchId;
+
+    if (isClient) {
+      return res.status(403).json({ message: 'Access Denied: Clients cannot create expenses.' });
+    }
+
+    if (!requestedBranch) {
+      return res.status(400).json({ message: 'Branch assignment required' });
+    }
+
+    if (!isAdmin && !sameBranch(requestedBranch, userBranchId)) {
+      return res.status(403).json({ message: 'Access Denied: Cannot create expenses for another branch.' });
+    }
+
     const expense = await Expense.create({
       user: req.user._id,
       title,
       category,
       amount,
       date,
-      branch: getBranchId(branch) || userBranchId || undefined
+      branch: requestedBranch
     });
 
     res.status(201).json(expense);
