@@ -43,6 +43,39 @@ const resolveUploadDir = () => {
   return path.isAbsolute(configured) ? configured : path.join(__dirname, '..', configured);
 };
 
+const normalizeSlashes = (value = '') => String(value).replace(/\\/g, '/');
+
+const getStoredFilePath = (file) => {
+  if (!file) return '';
+
+  const url = file.secure_url || file.url || file.path;
+  if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  if (file.filename) {
+    return `uploads/${path.basename(file.filename)}`;
+  }
+
+  if (file.path) {
+    const normalizedPath = normalizeSlashes(file.path);
+    const normalizedUploadDir = normalizeSlashes(resolveUploadDir()).replace(/\/$/, '');
+
+    if (normalizedPath.startsWith(`${normalizedUploadDir}/`)) {
+      return `uploads/${normalizedPath.slice(normalizedUploadDir.length + 1)}`;
+    }
+
+    const uploadsIndex = normalizedPath.toLowerCase().lastIndexOf('/uploads/');
+    if (uploadsIndex !== -1) {
+      return `uploads/${normalizedPath.slice(uploadsIndex + '/uploads/'.length)}`;
+    }
+
+    return `uploads/${path.basename(normalizedPath)}`;
+  }
+
+  return '';
+};
+
 // Helper to get active settings
 const getActiveSettings = async () => {
   let settings = await Settings.findOne();
@@ -168,13 +201,26 @@ const deleteFile = async (url) => {
     } else {
       // Local file
       // Normalize path (standardize / vs \)
-      const relativePath = url.replace(/\\/g, '/');
+      const relativePath = normalizeSlashes(url);
       const filename = relativePath.split('/').pop();
-      const filePath = path.join(resolveUploadDir(), filename);
+      const uploadMarkerIndex = relativePath.toLowerCase().lastIndexOf('/uploads/');
+      const uploadRelativePath = uploadMarkerIndex === -1
+        ? relativePath.replace(/^\.?\//, '').replace(/^uploads\//i, '')
+        : relativePath.slice(uploadMarkerIndex + '/uploads/'.length);
+      const cleanUploadRelativePath = uploadRelativePath.replace(/^uploads\//i, '');
+      const candidatePaths = [
+        path.join(resolveUploadDir(), cleanUploadRelativePath),
+        path.join(DEFAULT_UPLOAD_DIR, cleanUploadRelativePath),
+        filename ? path.join(resolveUploadDir(), filename) : '',
+        filename ? path.join(DEFAULT_UPLOAD_DIR, filename) : ''
+      ].filter(Boolean);
 
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        console.log(`Local file deleted: ${filePath}`);
+      for (const filePath of [...new Set(candidatePaths)]) {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`Local file deleted: ${filePath}`);
+          return;
+        }
       }
     }
   } catch (error) {
@@ -184,5 +230,8 @@ const deleteFile = async (url) => {
 
 module.exports = {
   upload,
-  deleteFile
+  deleteFile,
+  getStoredFilePath,
+  resolveUploadDir,
+  DEFAULT_UPLOAD_DIR
 };

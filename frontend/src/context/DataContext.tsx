@@ -66,7 +66,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const [clients, setClients] = useState<Client[]>(() => getCachedJson('zen_clients', initialClients));
   const [employees, setEmployees] = useState<Employee[]>(() => getCachedJson('zen_employees', initialEmployees));
   const [services, setServices] = useState<Service[]>(() => {
@@ -128,29 +128,64 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!silent && !hasVisibleData) setLoading(true);
       const headers = { 'Authorization': `Bearer ${user.token}` };
+      const requestIf = (allowed: boolean, url: string) => (
+        allowed ? fetch(url, { headers }) : Promise.resolve(null)
+      );
+      const readJson = async (response: Response | null) => {
+        if (!response) return [];
+        try {
+          return await response.json();
+        } catch (_error) {
+          return [];
+        }
+      };
+      const canReadClients = hasPermission('clients') || hasPermission('appointments') || hasPermission('billing');
+      const canReadEmployees = hasPermission('employees') || hasPermission('appointments') || hasPermission('attendance') || hasPermission('payroll');
+      const canReadServices = hasPermission('services') || hasPermission('appointments') || hasPermission('billing') || hasPermission('book');
+      const canReadInventory = hasPermission('inventory');
+      const canReadInvoices = hasPermission('billing') || hasPermission('finance') || hasPermission('transactions') || hasPermission('history');
+      const canReadAppointments = hasPermission('appointments') || hasPermission('book');
+      const canReadExpenses = hasPermission('finance');
+      const canReadAttendance = hasPermission('attendance') || hasPermission('payroll');
+      const canReadLeaves = hasPermission('leave') || hasPermission('payroll');
+      const canReadRoles = hasPermission('roles');
+      const canReadBranches = hasPermission('branches') || hasPermission('settings');
       
       const [cliRes, empRes, serRes, invenRes, invoiceRes, appRes, expenseRes, attendanceRes, leavesRes, rolesRes, branchesRes] = await Promise.all([
-        fetch(`${API_URL}/clients?limit=50`, { headers }), 
-        fetch(`${API_URL}/employees`, { headers }),
-        fetch(`${API_URL}/services`, { headers }),
-        fetch(`${API_URL}/inventory?limit=50`, { headers }),
-        fetch(`${API_URL}/invoices`, { headers }),
-        fetch(`${API_URL}/appointments`, { headers }),
-        fetch(`${API_URL}/expenses`, { headers }),
-        fetch(`${API_URL}/attendance`, { headers }),
-        fetch(`${API_URL}/leaves`, { headers }),
-        fetch(`${API_URL}/roles`, { headers }),
-        fetch(`${API_URL}/branches`, { headers })
+        requestIf(canReadClients, `${API_URL}/clients?limit=50`), 
+        requestIf(canReadEmployees, `${API_URL}/employees`),
+        requestIf(canReadServices, `${API_URL}/services`),
+        requestIf(canReadInventory, `${API_URL}/inventory?limit=50`),
+        requestIf(canReadInvoices, `${API_URL}/invoices`),
+        requestIf(canReadAppointments, `${API_URL}/appointments`),
+        requestIf(canReadExpenses, `${API_URL}/expenses`),
+        requestIf(canReadAttendance, `${API_URL}/attendance`),
+        requestIf(canReadLeaves, `${API_URL}/leaves`),
+        requestIf(canReadRoles, `${API_URL}/roles`),
+        requestIf(canReadBranches, `${API_URL}/branches`)
       ]);
 
-      if ([cliRes, empRes, serRes, invenRes, invoiceRes, appRes, expenseRes, attendanceRes, leavesRes, rolesRes, branchesRes].some(res => res.status === 401)) {
+      const responses = [cliRes, empRes, serRes, invenRes, invoiceRes, appRes, expenseRes, attendanceRes, leavesRes, rolesRes, branchesRes];
+      
+      // If any core endpoint returns 401, it means the session is truly invalid/expired
+      const hasAuthError = responses.some(res => res?.status === 401);
+      if (hasAuthError) {
+        console.warn('Session expired or invalid token. Logging out.');
         logout();
         return;
       }
 
+      // Log 403 errors but don't logout - they just mean the user doesn't have permission for that specific data
+      responses.forEach((res, index) => {
+        if (res?.status === 403) {
+          const endpoints = ['clients', 'employees', 'services', 'inventory', 'invoices', 'appointments', 'expenses', 'attendance', 'leaves', 'roles', 'branches'];
+          console.warn(`Access Denied (403) for endpoint: ${endpoints[index]}. This is expected if your role doesn't have these permissions.`);
+        }
+      });
+
       const [cliData, empData, serData, invenData, invoiceData, appData, expenseData, attendanceData, leavesData, rolesData, branchesData] = await Promise.all([
-        cliRes.json(), empRes.json(), serRes.json(), invenRes.json(), invoiceRes.json(), appRes.json(),
-        expenseRes.json(), attendanceRes.json(), leavesRes.json(), rolesRes.json(), branchesRes.json()
+        readJson(cliRes), readJson(empRes), readJson(serRes), readJson(invenRes), readJson(invoiceRes), readJson(appRes),
+        readJson(expenseRes), readJson(attendanceRes), readJson(leavesRes), readJson(rolesRes), readJson(branchesRes)
       ]);
 
       if (Array.isArray(cliData)) setClients(cliData);

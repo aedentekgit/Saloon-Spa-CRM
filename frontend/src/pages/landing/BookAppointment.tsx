@@ -15,6 +15,7 @@ import { notify } from '../../components/shared/ZenNotification';
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
 import { withBase } from '../../utils/assetPath';
 import { useAuth } from '../../context/AuthContext';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 const ANY_SPECIALIST = 'Any available specialist';
@@ -43,8 +44,7 @@ const BookAppointment = () => {
   const getServiceImage = (serviceName: string) => {
     const service = services.find(s => s.name === serviceName);
     if (!service || !service.image) return 'https://images.unsplash.com/photo-1540555700478-4be289aefcf1?q=80&w=2070&auto=format&fit=crop';
-    if (service.image.startsWith('http')) return service.image;
-    return `${API_URL.replace('/api', '')}/${service.image.replace(/^\.?\//, '').replace(/\\/g, '/')}`;
+    return getImageUrl(service.image);
   };
   const [staff, setStaff] = useState<any[]>([]);
   const [shifts, setShifts] = useState<any[]>([]);

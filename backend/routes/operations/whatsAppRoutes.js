@@ -4,10 +4,10 @@ const {
   getCampaigns,
   createCampaign
 } = require('../../controllers/operations/whatsAppController');
-const { protect } = require('../../middleware/authMiddleware');
+const { protect, requirePermission } = require('../../middleware/authMiddleware');
 
 router.route('/')
-  .get(protect, getCampaigns)
-  .post(protect, createCampaign);
+  .get(protect, requirePermission('whatsapp'), getCampaigns)
+  .post(protect, requirePermission('whatsapp'), createCampaign);
 
 module.exports = router;

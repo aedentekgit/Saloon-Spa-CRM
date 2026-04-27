@@ -18,6 +18,7 @@ import { ZenButton } from '../../components/zen/ZenButtons';
 import { ZenInput, ZenTextarea } from '../../components/zen/ZenInputs';
 import { notify } from '../../components/shared/ZenNotification';
 import { Modal } from '../../components/shared/Modal';
+import { getImageUrl } from '../../utils/imageUrl';
 
 interface ProfileData {
   _id: string;
@@ -172,9 +173,7 @@ const Profile = () => {
     );
   }
 
-  const profilePicUrl = profile.profilePic 
-    ? (profile.profilePic.startsWith('http') ? profile.profilePic : `${API_URL.split('/api')[0]}/${profile.profilePic.replace(/^\.?\//, '')}`)
-    : null;
+  const profilePicUrl = getImageUrl(profile.profilePic) || null;
 
   return (
     <ZenPageLayout

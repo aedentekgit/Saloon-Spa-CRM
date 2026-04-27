@@ -17,6 +17,7 @@ import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
+import { getImageUrl } from '../../utils/imageUrl';
 
 
 interface Branch {
@@ -276,13 +277,6 @@ const Branches = () => {
     } catch (error) {
        notify('error', 'Status Error', 'Failed to synchronize operational state');
     }
-  };
-
-  const getImageUrl = (path: string | undefined) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    const cleanPath = path.replace(/^\.?\//, '');
-    return `${API_URL.replace('/api', '')}/${cleanPath}`;
   };
 
   const fetchAllBranchesForExport = async (): Promise<Branch[]> => {

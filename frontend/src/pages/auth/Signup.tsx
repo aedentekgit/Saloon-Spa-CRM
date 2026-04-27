@@ -50,24 +50,24 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen w-full bg-zen-cream flex items-center justify-center p-4 sm:p-8 font-sans">
-       <div className="w-full max-w-[1000px] bg-white rounded-[1.75rem] sm:rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col lg:flex-row min-h-[460px] sm:min-h-[600px] border-2 sm:border-[4px] border-zen-stone/30">
-          
-          {/* Left side Image */}
-          <div className="hidden lg:block w-1/2 p-3 relative">
-             <div className="w-full h-full rounded-[2.5rem] overflow-hidden relative shadow-inner">
-                <img 
-                  src={withBase('/login-bg.png')} 
-                  alt="Sanctuary" 
-                  className="w-full h-full object-cover"
-                />
-             </div>
-          </div>
+        <div className="w-full max-w-[1000px] bg-white rounded-[1.75rem] sm:rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col lg:flex-row-reverse min-h-[460px] sm:min-h-[600px] border-2 sm:border-[4px] border-zen-stone/30">
+           
+           {/* Branding Image */}
+           <div className="hidden lg:block w-1/2 p-3 relative">
+              <div className="w-full h-full rounded-[2.5rem] overflow-hidden relative shadow-inner group/img cursor-pointer">
+                 <img 
+                   src={withBase('/login-bg.png')} 
+                   alt="Sanctuary" 
+                   className="w-full h-full object-cover transition-transform duration-1000 group-hover/img:scale-110"
+                 />
+              </div>
+           </div>
 
           {/* Right side Form */}
           <div className="w-full lg:w-1/2 flex items-center justify-center p-5 sm:p-8 lg:p-16 relative">
              <div className="w-full max-w-sm space-y-8">
                 <div className="space-y-3">
-                   <h1 className="text-[2.75rem] font-black text-zen-brown tracking-tight leading-none">Create account.</h1>
+                   <h1 className="text-[2.75rem] font-black text-zen-brown tracking-tight leading-none">Create account</h1>
                    <p className="text-sm font-medium text-zen-brown/40 italic mt-2">Join us and start your journey today</p>
                 </div>
 
@@ -79,49 +79,49 @@ const Signup = () => {
                     )}
                     
                     <div className="space-y-4">
-                       <div className="relative">
+                       <div className="relative group">
                           <input
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             placeholder="Full Name"
-                            className="w-full bg-zen-cream text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-zen-sand/30 transition-all border border-zen-stone/60"
+                            className="w-full bg-white text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-4 focus:ring-zen-sand/20 focus:border-zen-sand/60 transition-all border border-zen-stone/40 shadow-[0_4px_20px_rgba(0,0,0,0.03)] focus:shadow-[0_4px_20px_rgba(217,185,155,0.15)] group-hover:border-zen-sand/40"
                             required
                           />
-                          <User size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30" />
+                          <User size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30 group-focus-within:text-zen-sand transition-colors" />
                        </div>
 
-                       <div className="relative">
+                       <div className="relative group">
                           <input
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             placeholder="Mail id"
-                            className="w-full bg-zen-cream text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-zen-sand/30 transition-all border border-zen-stone/60"
+                            className="w-full bg-white text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-4 focus:ring-zen-sand/20 focus:border-zen-sand/60 transition-all border border-zen-stone/40 shadow-[0_4px_20px_rgba(0,0,0,0.03)] focus:shadow-[0_4px_20px_rgba(217,185,155,0.15)] group-hover:border-zen-sand/40"
                             required
                           />
-                          <Mail size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30" />
+                          <Mail size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30 group-focus-within:text-zen-sand transition-colors" />
                        </div>
 
-                       <div className="relative">
+                       <div className="relative group">
                           <input
                             type="tel"
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                             placeholder="Phone number"
-                            className="w-full bg-zen-cream text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-zen-sand/30 transition-all border border-zen-stone/60"
+                            className="w-full bg-white text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-4 focus:ring-zen-sand/20 focus:border-zen-sand/60 transition-all border border-zen-stone/40 shadow-[0_4px_20px_rgba(0,0,0,0.03)] focus:shadow-[0_4px_20px_rgba(217,185,155,0.15)] group-hover:border-zen-sand/40"
                             required
                           />
-                          <Phone size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30" />
+                          <Phone size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30 group-focus-within:text-zen-sand transition-colors" />
                        </div>
 
-                       <div className="relative">
+                       <div className="relative group">
                           <input
                             type={showPassword ? "text" : "password"}
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                             placeholder="Password"
-                            className="w-full bg-zen-cream text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-zen-sand/30 transition-all border border-zen-stone/60"
+                            className="w-full bg-white text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-4 focus:ring-zen-sand/20 focus:border-zen-sand/60 transition-all border border-zen-stone/40 shadow-[0_4px_20px_rgba(0,0,0,0.03)] focus:shadow-[0_4px_20px_rgba(217,185,155,0.15)] group-hover:border-zen-sand/40"
                             required
                             minLength={6}
                           />
@@ -135,15 +135,15 @@ const Signup = () => {
                        </div>
                     </div>
 
-                    <div className="pt-2">
-                       <button
-                         type="submit"
-                         disabled={loading}
-                         className="w-full py-4 bg-zen-sand hover:opacity-90 disabled:opacity-50 text-white text-[13px] font-bold shadow-[0_8px_20px_rgba(0,0,0,0.12)] rounded-3xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
-                       >
-                         {loading ? 'Processing...' : 'Sign up now'} {!loading && <span className="w-1.5 h-1.5 rounded-full bg-white ml-2 opacity-80 group-hover:opacity-100"></span>}
-                       </button>
-                    </div>
+                     <div className="pt-2">
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="w-full py-4 bg-zen-sand hover:opacity-90 disabled:opacity-50 text-white text-[13px] font-bold shadow-[0_8px_20px_rgba(0,0,0,0.12)] rounded-3xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
+                        >
+                          {loading ? 'Processing...' : 'Sign up now'}
+                        </button>
+                     </div>
 
                     <div className="text-center pt-6">
                        <p className="text-[11px] font-bold text-zen-brown/35">

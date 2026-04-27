@@ -30,7 +30,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 const MobileFooter: React.FC = () => {
-  const { hasPermission, logout } = useAuth();
+  const { user, hasPermission, logout } = useAuth();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const footerItems = [
@@ -41,28 +41,43 @@ const MobileFooter: React.FC = () => {
   ];
 
   const sheetItems = [
-    { name: 'Memberships', icon: Crown, path: '/memberships', permission: 'billing' },
+    { name: 'Memberships', icon: Crown, path: '/memberships', permission: ['memberships', 'billing'] },
     { name: 'Rooms', icon: Bed, path: '/rooms', permission: 'rooms' },
     { name: 'Specialists', icon: UserRound, path: '/employees', permission: 'employees' },
     { name: 'Presence', icon: UserCheck, path: '/attendance', permission: 'attendance' },
-    { name: 'Shifts', icon: Repeat, path: '/shifts', permission: 'settings' },
-    { name: 'Payroll', icon: TrendingUp, path: '/payroll', permission: 'finance' },
+    { name: 'Shifts', icon: Repeat, path: '/shifts', permission: ['shifts', 'settings'] },
+    { name: 'Payroll', icon: TrendingUp, path: '/payroll', permission: ['payroll', 'finance'] },
     { name: 'Leave Matrix', icon: CalendarDays, path: '/leave', permission: 'leave' },
     { name: 'Finance Hub', icon: Wallet, path: '/finance', permission: 'finance' },
     { name: 'Inventory', icon: Package, path: '/inventory', permission: 'inventory' },
     { name: 'WhatsApp', icon: MessageSquare, path: '/whatsapp', permission: 'whatsapp' },
     { name: 'Reports', icon: BarChart3, path: '/reports', permission: 'reports' },
-    { name: 'Branches', icon: Building2, path: '/branches', permission: 'settings' },
-    { name: 'Room Logic', icon: DoorOpen, path: '/room-categories', permission: 'settings' },
-    { name: 'Service Logic', icon: Sparkles, path: '/service-categories', permission: 'settings' },
-    { name: 'Admins', icon: UserRound, path: '/admins', permission: 'roles' },
+    { name: 'Branches', icon: Building2, path: '/branches', permission: ['branches', 'settings'] },
+    { name: 'Room Logic', icon: DoorOpen, path: '/room-categories', permission: ['room-categories', 'settings'] },
+    { name: 'Service Logic', icon: Sparkles, path: '/service-categories', permission: ['service-categories', 'settings'] },
+    { name: 'Admins', icon: UserRound, path: '/admins', permission: ['admins', 'roles'] },
     { name: 'Admin', icon: Shield, path: '/roles', permission: 'roles' },
-    { name: 'Tax/GST', icon: Percent, path: '/tax', permission: 'settings' },
+    { name: 'Tax/GST', icon: Percent, path: '/settings', permission: 'settings' },
     { name: 'Settings', icon: SettingsIcon, path: '/settings', permission: 'settings' },
   ];
 
-  const filteredFooter = footerItems.filter(item => hasPermission(item.permission));
-  const filteredSheet = sheetItems.filter(item => hasPermission(item.permission));
+  const clientFooterItems = [
+    { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', permission: 'dashboard' },
+    { name: 'Booking', icon: Calendar, path: '/book', permission: 'book' },
+    { name: 'Profile', icon: UserRound, path: '/profile', permission: 'profile' },
+    { name: 'History', icon: Repeat, path: '/transactions', permission: ['history', 'transactions', 'finance'] },
+  ];
+
+  const canAccessItem = (permission: string | string[]) => (
+    Array.isArray(permission)
+      ? permission.some((perm) => hasPermission(perm))
+      : hasPermission(permission)
+  );
+
+  const filteredFooter = (user?.role === 'Client' ? clientFooterItems : footerItems)
+    .filter(item => canAccessItem(item.permission));
+  const filteredSheet = (user?.role === 'Client' ? [] : sheetItems)
+    .filter(item => canAccessItem(item.permission));
 
   return (
     <>

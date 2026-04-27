@@ -24,7 +24,7 @@ interface BranchContextType {
 const BranchContext = createContext<BranchContextType | undefined>(undefined);
 
 export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [branches, setBranches] = useState<Branch[]>(() => getCachedJson('zen_branch_context_list', []));
   const [selectedBranch, setSelectedBranchState] = useState<string>(() => {
     const saved = localStorage.getItem('zen_selected_branch');
@@ -42,11 +42,13 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     try {
       if (!silent && branches.length === 0) setLoading(true);
-      const response = await fetch(`${API_URL}/branches`, {
+      const endpoint = hasPermission('branches') || hasPermission('settings') ? 'branches' : 'branches/public';
+      const response = await fetch(`${API_URL}/${endpoint}`, {
         headers: { 'Authorization': `Bearer ${user.token}` }
       });
       const data = await response.json();
-      setBranches(data);
+      const branchList = Array.isArray(data) ? data : (data?.data || []);
+      setBranches(Array.isArray(branchList) ? branchList : []);
     } catch (error) {
       console.error('Failed to fetch branches:', error);
     } finally {

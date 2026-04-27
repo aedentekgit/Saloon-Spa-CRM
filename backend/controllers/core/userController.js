@@ -4,6 +4,7 @@ const Role = require('../../models/human-resources/Role');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../../utils/sendEmail');
+const { getStoredFilePath } = require('../../middleware/uploadMiddleware');
 
 const getFrontendUrl = () => process.env.FRONTEND_URL || 'http://localhost:3000';
 
@@ -143,7 +144,16 @@ exports.loginUser = async (req, res) => {
     if (type === 'Client') effectiveRole = 'Client';
 
     const roleData = await Role.findOne({ name: effectiveRole });
-    const permissions = roleData ? roleData.permissions : [];
+    
+    // Consistent with authMiddleware.js fallback
+    const DEFAULT_ROLE_PERMISSIONS = {
+      Admin: ['*'],
+      Manager: ['dashboard', 'clients', 'appointments', 'memberships', 'rooms', 'employees', 'attendance', 'shifts', 'payroll', 'leave', 'services', 'billing', 'finance', 'transactions', 'inventory', 'whatsapp', 'reports', 'branches', 'room-categories', 'service-categories', 'settings'],
+      Employee: ['dashboard', 'appointments', 'clients', 'services', 'attendance', 'leave'],
+      Client: ['dashboard', 'book', 'profile', 'history']
+    };
+
+    const permissions = roleData ? (roleData.permissions || []) : (DEFAULT_ROLE_PERMISSIONS[effectiveRole] || []);
 
     res.json({
       _id: user._id,
@@ -349,7 +359,7 @@ exports.uploadProfilePic = async (req, res) => {
     const { user } = await findUserByEmail(req.user.email);
 
     if (user) {
-      user.profilePic = req.file.path;
+      user.profilePic = getStoredFilePath(req.file);
       await user.save();
 
       res.json({

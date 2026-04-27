@@ -1,6 +1,65 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/core/User');
 const Employee = require('../models/human-resources/Employee');
+const Role = require('../models/human-resources/Role');
+
+const DEFAULT_ROLE_PERMISSIONS = {
+  Admin: ['*'],
+  Manager: [
+    'dashboard',
+    'clients',
+    'appointments',
+    'memberships',
+    'rooms',
+    'employees',
+    'attendance',
+    'shifts',
+    'payroll',
+    'leave',
+    'services',
+    'billing',
+    'finance',
+    'transactions',
+    'inventory',
+    'whatsapp',
+    'reports',
+    'branches',
+    'room-categories',
+    'service-categories',
+    'settings'
+  ],
+  Employee: ['dashboard', 'appointments', 'clients', 'services', 'attendance', 'leave'],
+  Client: ['dashboard', 'book', 'profile', 'history']
+};
+
+const resolveRoleAccess = async (roleName) => {
+  const role = String(roleName || '').trim();
+  const roleData = role ? await Role.findOne({ name: role }).lean() : null;
+
+  if (!roleData) {
+    return {
+      isActive: true,
+      permissions: DEFAULT_ROLE_PERMISSIONS[role] || []
+    };
+  }
+
+  const isInactive = roleData.status === 'Inactive' || roleData.isActive === false;
+  return {
+    isActive: !isInactive,
+    permissions: Array.isArray(roleData.permissions) ? roleData.permissions : []
+  };
+};
+
+const hasServerPermission = (req, requiredPermissions = []) => {
+  const required = Array.isArray(requiredPermissions) ? requiredPermissions : [requiredPermissions];
+  if (!req.user || required.length === 0) return false;
+  if (req.user.role === 'Admin') return true;
+
+  const permissions = Array.isArray(req.userPermissions) ? req.userPermissions : [];
+  if (permissions.includes('*')) return true;
+
+  return required.some((permission) => permissions.includes(permission));
+};
 
 const protect = async (req, res, next) => {
   let token;
@@ -22,6 +81,21 @@ const protect = async (req, res, next) => {
       if (!req.user) {
         req.user = await Employee.findById(decoded.id).select('-password');
         if (req.user) req.user.role = 'Employee'; // Set role for middleware
+      }
+
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authorized, user not found' });
+      }
+
+      if (req.user.isActive === false || req.user.status === 'Inactive') {
+        return res.status(403).json({ message: 'Account is inactive' });
+      }
+
+      const roleAccess = await resolveRoleAccess(req.user.role);
+      req.userPermissions = roleAccess.permissions;
+
+      if (!roleAccess.isActive && req.user.role !== 'Admin') {
+        return res.status(403).json({ message: 'Role is inactive' });
       }
 
       // Check if email is verified (skip for Employees as they are often added by admin)
@@ -50,7 +124,7 @@ const admin = (req, res, next) => {
   if (req.user && req.user.role === 'Admin') {
     return next();
   } else {
-    return res.status(401).json({ message: 'Not authorized as an admin' });
+    return res.status(403).json({ message: 'Access Denied: Admin privileges required' });
   }
 };
 
@@ -58,8 +132,20 @@ const manager = (req, res, next) => {
   if (req.user && (req.user.role === 'Admin' || req.user.role === 'Manager')) {
     return next();
   } else {
-    return res.status(401).json({ message: 'Not authorized: Manager access required' });
+    return res.status(403).json({ message: 'Access Denied: Manager or Admin access required' });
   }
 };
 
-module.exports = { protect, admin, manager };
+const requirePermission = (...permissions) => (req, res, next) => {
+  const required = permissions.flat().filter(Boolean);
+
+  if (hasServerPermission(req, required)) {
+    return next();
+  }
+
+  return res.status(403).json({
+    message: 'Access Denied: Your role does not have permission for this resource.'
+  });
+};
+
+module.exports = { protect, admin, manager, requirePermission, hasServerPermission };

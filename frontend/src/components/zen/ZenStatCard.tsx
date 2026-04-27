@@ -37,19 +37,21 @@ export const ZenStatCard: React.FC<ZenStatCardProps> = ({
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-zen-gold/5 rounded-full blur-3xl group-hover:bg-zen-gold/10 transition-colors duration-1000" />
       
       <div className="relative z-10 flex flex-col gap-4 sm:gap-5">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-baseline gap-3 min-w-0 flex-1">
-            <h5 className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.3em] leading-none truncate shrink-0">{label}</h5>
-            <p className="text-lg sm:text-xl font-serif font-black text-zen-brown tracking-tight leading-none truncate group-hover:scale-[1.05] transition-transform duration-500 origin-left">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+            <h5 className="text-[9px] sm:text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.25em] leading-tight">
+              {label}
+            </h5>
+            <p className="text-xl sm:text-2xl font-serif font-black text-zen-brown tracking-tight leading-none truncate group-hover:translate-x-1 transition-transform duration-500 origin-left">
               {value}
             </p>
           </div>
 
-          <div className="relative scale-75 origin-right shrink-0">
+          <div className="relative shrink-0">
             {/* 3D Glass Icon Case */}
             <div className={`absolute inset-0 rounded-[1.25rem] ${glow} blur-lg opacity-40 group-hover:opacity-60 transition-all duration-700`} />
-            <div className={`w-12 h-12 rounded-[1.25rem] ${bg} border border-white/50 backdrop-blur-md flex items-center justify-center relative z-10 group-hover:-translate-y-1 group-hover:rotate-6 transition-all duration-500 shadow-sm`}>
-              <Icon className={`${color} transition-transform duration-500 group-hover:scale-110`} size={22} strokeWidth={1.5} />
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-[1.25rem] ${bg} border border-white/50 backdrop-blur-md flex items-center justify-center relative z-10 group-hover:-translate-y-1 group-hover:rotate-6 transition-all duration-500 shadow-sm`}>
+              <Icon className={`${color} transition-transform duration-500 group-hover:scale-110`} size={20} strokeWidth={1.5} />
             </div>
           </div>
         </div>

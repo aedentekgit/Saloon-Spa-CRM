@@ -6,10 +6,10 @@ const {
   updateGSTRate, 
   deleteGSTRate 
 } = require('../../controllers/finance/gstController');
-const { protect, admin } = require('../../middleware/authMiddleware');
+const { protect, admin, requirePermission } = require('../../middleware/authMiddleware');
 
 router.route('/')
-  .get(protect, getGSTRates)
+  .get(protect, requirePermission('billing', 'settings'), getGSTRates)
   .post(protect, admin, createGSTRate);
 
 router.route('/:id')

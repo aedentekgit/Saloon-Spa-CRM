@@ -6,14 +6,14 @@ const {
   updateLeaveStatus,
   deleteLeave
 } = require('../../controllers/human-resources/leaveController');
-const { protect } = require('../../middleware/authMiddleware');
+const { protect, requirePermission } = require('../../middleware/authMiddleware');
 
 router.route('/')
-  .get(protect, getLeaves)
-  .post(protect, createLeave);
+  .get(protect, requirePermission('leave'), getLeaves)
+  .post(protect, requirePermission('leave'), createLeave);
 
 router.route('/:id')
-  .put(protect, updateLeaveStatus)
-  .delete(protect, deleteLeave);
+  .put(protect, requirePermission('leave'), updateLeaveStatus)
+  .delete(protect, requirePermission('leave'), deleteLeave);
 
 module.exports = router;

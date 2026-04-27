@@ -3,9 +3,9 @@ import { ArrowRight, Sparkles, Waves, Leaf, Sun, Coffee, Music, Clock, Coins, Al
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
-const BASE_URL = API_URL.replace('/api', '');
 
 // Category → icon mapping
 const categoryIconMap: Record<string, React.ElementType> = {
@@ -27,16 +27,6 @@ function getCategoryIcon(category?: string): React.ElementType {
     if (key.includes(k)) return icon;
   }
   return Sparkles;
-}
-
-function getImageUrl(path?: string): string {
-  if (!path) return '';
-  if (path.startsWith('http') || path.startsWith('data:')) return path;
-  const clean = path.replace(/^\.?\/?/, '');
-  if (!clean.startsWith('uploads/') && !clean.startsWith('images/')) {
-    return `${BASE_URL}/uploads/${clean}`;
-  }
-  return `${BASE_URL}/${clean}`;
 }
 
 interface Branch {

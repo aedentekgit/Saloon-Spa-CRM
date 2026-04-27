@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
+import { getImageUrl } from '../../utils/imageUrl';
 import dayjs from 'dayjs';
 import { 
   UserPlus, Phone, Edit2, Trash2, User as UserIcon,
@@ -611,13 +612,7 @@ const Clients = () => {
     }
   };
 
-  const getImageUrl = (path: string | undefined) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    // Remove ./ if present and ensure a leading slash
-    const cleanPath = path.replace(/^\.?\//, '');
-    return `${API_URL.replace('/api', '')}/${cleanPath}`;
-  };
+
 
   const clientTabs: Array<{ id: 'profile' | 'membership' | 'history'; label: string }> = [
     { id: 'profile', label: 'Profile' }
@@ -695,7 +690,7 @@ const Clients = () => {
                    <div className="min-w-0 flex-1">
                        <h3 className="text-xl lg:text-2xl font-serif text-zen-brown tracking-tight truncate flex items-center gap-2">
                           {client.name}
-                          {client.clientId && <span className="text-[10px] font-sans font-bold text-zen-sand tracking-widest opacity-70">#{client.clientId}</span>}
+                          {client.clientId && <span className="text-[10px] font-sans font-bold text-zen-sand tracking-widest opacity-70">{client.clientId}</span>}
                        </h3>
                         <div className="flex items-center gap-2 mt-1 lg:mt-2">
                            <p className="text-[10px] lg:text-[11px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">
@@ -797,7 +792,7 @@ const Clients = () => {
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
                       <div className="flex flex-col items-center justify-center">
                         <span className="zen-table-primary">{client.name}</span>
-                        {client.clientId && <span className="text-[9px] font-bold text-zen-sand tracking-widest mt-0.5 opacity-80">#{client.clientId}</span>}
+                        {client.clientId && <span className="text-[9px] font-bold text-zen-sand tracking-widest mt-0.5 opacity-80">{client.clientId}</span>}
                       </div>
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">

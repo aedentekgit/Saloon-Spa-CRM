@@ -6,14 +6,14 @@ const {
   deleteExpense,
   updateExpense
 } = require('../../controllers/finance/expenseController');
-const { protect } = require('../../middleware/authMiddleware');
+const { protect, requirePermission } = require('../../middleware/authMiddleware');
 
 router.route('/')
-  .get(protect, getExpenses)
-  .post(protect, createExpense);
+  .get(protect, requirePermission('finance'), getExpenses)
+  .post(protect, requirePermission('finance'), createExpense);
 
 router.route('/:id')
-  .patch(protect, updateExpense)
-  .delete(protect, deleteExpense);
+  .patch(protect, requirePermission('finance'), updateExpense)
+  .delete(protect, requirePermission('finance'), deleteExpense);
 
 module.exports = router;

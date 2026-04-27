@@ -254,15 +254,14 @@ const Attendance = () => {
       addButtonLabel={isAdminOrManager ? "Manual Entry" : undefined}
       onAddClick={() => setIsManualModalOpen(true)}
       searchActions={
-        <div className="flex flex-col gap-2.5 w-full sm:w-[220px]">
-          <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Date Horizon</label>
+        <div className="flex items-center shrink-0 h-[52px]">
           <ZenMasterCalendar
             label="Date Range"
             value={dateRange}
             onChange={(v: any) => setDateRange(v)}
             selectionType="range"
             variant="pill"
-            className="w-full"
+            className="w-[200px]"
             hideLabel
           />
         </div>

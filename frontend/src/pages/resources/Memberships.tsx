@@ -38,6 +38,7 @@ import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import { useBranches } from '../../context/BranchContext';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -51,13 +52,6 @@ const getEntityId = (value: any) => {
 const formatDate = (value: any) => value ? dayjs(value).format('DD MMM YYYY') : '-';
 const formatDateTime = (value: any) => value ? dayjs(value).format('DD MMM YYYY, hh:mm A') : '-';
 const money = (value: any) => Number(value || 0).toLocaleString();
-const getImageUrl = (path: string | undefined) => {
-   if (!path) return '';
-   if (path.startsWith('http')) return path;
-   const cleanPath = path.replace(/^\.?\//, '');
-   return `${API_URL.replace('/api', '')}/${cleanPath}`;
-};
-
 const Memberships = () => {
     const { user } = useAuth();
     const { selectedBranch } = useBranches();
@@ -758,7 +752,7 @@ title="Membership Management"
           </div>
 
           {activeTab === 'registry' && (
-            <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 pt-2 pb-8 px-1 sm:px-2">
               {[
                 { label: 'Total Clients', value: (stats?.totalActive ?? memberships.length).toString(), icon: Users, trend: `${stats?.totalActive || 0} active currently`, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', delay: 0 },
                 { label: 'Plan Engagement', value: stats?.activeTiers?.toString() || '0', icon: BarChart3, trend: 'In membership', color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', delay: 0.2 },
@@ -1229,8 +1223,22 @@ title="Membership Management"
                />
 
                <div className="flex flex-col items-center justify-center text-center space-y-4">
-                  <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center text-zen-brown/40 group-hover/upload:text-zen-sand group-hover/upload:scale-110 transition-all duration-500">
-                     {planDocumentFile || (planFormData as any).document ? <FileText size={32} /> : <Upload size={32} />}
+                  <div className="w-24 h-24 rounded-3xl bg-white shadow-md flex items-center justify-center text-zen-brown/40 group-hover/upload:text-zen-sand group-hover/upload:scale-105 transition-all duration-500 overflow-hidden border-2 border-white">
+                     {planDocumentFile ? (
+                        planDocumentFile.type.startsWith('image/') ? (
+                           <img src={URL.createObjectURL(planDocumentFile)} className="w-full h-full object-cover" alt="Preview" />
+                        ) : (
+                           <FileText size={32} strokeWidth={1.5} />
+                        )
+                     ) : ((planFormData as any).document && !removePlanDocument) ? (
+                        /\.(jpg|jpeg|png|webp|gif|avif)$/i.test((planFormData as any).document) ? (
+                           <img src={getImageUrl((planFormData as any).document)} className="w-full h-full object-cover" alt="Current" />
+                        ) : (
+                           <FileText size={32} strokeWidth={1.5} />
+                        )
+                     ) : (
+                        <Upload size={32} strokeWidth={1.5} />
+                     )}
                   </div>
 
                   <div className="space-y-1">

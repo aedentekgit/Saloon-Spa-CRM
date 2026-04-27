@@ -43,6 +43,7 @@ const branchRoutes = require('./routes/operations/branchRoutes');
 const categoryRoutes = require('./routes/operations/categoryRoutes');
 const shiftRoutes = require('./routes/human-resources/shiftRoutes');
 const notificationRoutes = require('./routes/core/notificationRoutes');
+const { DEFAULT_UPLOAD_DIR } = require('./middleware/uploadMiddleware');
 
 // Connect to database
 connectDB();
@@ -55,8 +56,10 @@ const uploadDir = path.isAbsolute(uploadDirConfig)
   ? uploadDirConfig
   : path.join(__dirname, uploadDirConfig);
 
-// Required behind Nginx so client IP/rate-limit behaves correctly.
-app.set('trust proxy', 1);
+// Required behind Nginx/Cloudflare so client IP/rate-limit behaves correctly.
+if (process.env.TRUST_PROXY === 'true' || !isDev) {
+  app.set('trust proxy', 1);
+}
 
 // Standard Middleware
 app.use(compression());
@@ -105,16 +108,16 @@ app.use(helmet({
 // Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: isDev ? 10000 : 1000,
+  max: isDev ? 100000 : 1000, // Very lenient in dev
   message: { success: false, message: 'Too many requests from this IP, please try again after 15 minutes' }
 });
 app.use('/api', limiter);
 
 // Specific rate limiter for login and password reset
 const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // limit each IP to 10 auth requests per hour
-  message: 'Too many authentication attempts, please try again after an hour'
+  windowMs: 15 * 60 * 1000, // 15 minutes instead of 1 hour
+  max: isDev ? 10000 : 20, // Much more lenient in dev, slightly more in prod
+  message: 'Too many authentication attempts, please try again after 15 minutes'
 });
 app.use('/api/users/login', authLimiter);
 app.use('/api/users/forgotpassword', authLimiter);
@@ -133,7 +136,14 @@ app.use('/api', (req, res, next) => {
 app.use(paginationMiddleware);
 
 // Static folder for uploads
+const uploadDirName = path.basename(uploadDir);
+if (uploadDirName && uploadDirName !== 'uploads') {
+  app.use(`/uploads/${uploadDirName}`, express.static(uploadDir));
+}
 app.use('/uploads', express.static(uploadDir));
+if (path.resolve(uploadDir) !== path.resolve(DEFAULT_UPLOAD_DIR)) {
+  app.use('/uploads', express.static(DEFAULT_UPLOAD_DIR));
+}
 
 // Serve Frontend in Production
 const frontendPath = path.join(__dirname, '../frontend/dist');

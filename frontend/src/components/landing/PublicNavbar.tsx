@@ -3,16 +3,7 @@ import { NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, Sparkles, User, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { usePublicSettings } from './usePublicSettings';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
-const BASE_URL = API_URL.replace('/api', '');
-
-function getImageUrl(path?: string): string {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  const clean = path.replace(/^\.?\/?/, '');
-  return `${BASE_URL}/${clean}`;
-}
+import { getImageUrl } from '../../utils/imageUrl';
 
 const PublicNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);

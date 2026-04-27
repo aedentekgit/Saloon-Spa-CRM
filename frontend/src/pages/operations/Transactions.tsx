@@ -319,7 +319,7 @@ const filterTransactions = (
 };
 
 const Transactions = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { settings } = useSettings();
   const { branches } = useData();
   const [transactions, setTransactions] = useState<Transaction[]>(() => getCachedJson('zen_page_transactions_list', []));
@@ -371,13 +371,16 @@ const Transactions = () => {
   const fetchData = async () => {
     try {
       if (transactions.length === 0) setLoading(true);
+      const canViewExpenses = user?.role !== 'Client' && hasPermission('finance');
       const [invRes, expRes] = await Promise.all([
         fetch(`${API_URL}/invoices`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
-        fetch(`${API_URL}/expenses`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
+        canViewExpenses
+          ? fetch(`${API_URL}/expenses`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
+          : Promise.resolve(null)
       ]);
       
       const invData = await invRes.json();
-      const expData = await expRes.json();
+      const expData = expRes ? await expRes.json() : [];
       const invoicesList = Array.isArray(invData) ? invData : (invData?.data || []);
       const expensesList = Array.isArray(expData) ? expData : (expData?.data || []);
 
@@ -388,7 +391,7 @@ const Transactions = () => {
       );
 
       // Fallback to high-quality mock data if backend returns empty
-      if (combined.length === 0) {
+      if (combined.length === 0 && user?.role !== 'Client') {
         const mockTransactions: Transaction[] = [
           { id: 'TX-8821', sourceModel: 'Invoice', sourceId: 'TX-8821', type: 'Inflow', title: 'Service: Fatima Al-Sayed', category: 'Service Revenue', amount: 450, signedAmount: 450, date: dayjs().subtract(0, 'day').format(), method: 'Cash', status: 'Completed', reference: 'INV-101', invoiceNumber: 'INV-101', clientName: 'Fatima Al-Sayed', paymentMode: 'Cash' },
           { id: 'TX-8822', sourceModel: 'Invoice', sourceId: 'TX-8822', type: 'Inflow', title: 'Service: Mohammed Rashid', category: 'Service Revenue', amount: 1200, signedAmount: 1200, date: dayjs().subtract(1, 'day').format(), method: 'Card', status: 'Completed', reference: 'INV-102', invoiceNumber: 'INV-102', clientName: 'Mohammed Rashid', paymentMode: 'Card' },
@@ -402,6 +405,11 @@ const Transactions = () => {
         setTransactions(combined);
       }
     } catch (error) {
+       if (user?.role === 'Client') {
+         setTransactions([]);
+         setLoading(false);
+         return;
+       }
        // Fallback logic also for fetch errors
        const mockTransactions: Transaction[] = [
           { id: 'TX-8821', sourceModel: 'Invoice', sourceId: 'TX-8821', type: 'Inflow', title: 'Service: Fatima Al-Sayed', category: 'Service Revenue', amount: 450, signedAmount: 450, date: dayjs().format(), method: 'Cash', status: 'Completed', reference: 'INV-101', invoiceNumber: 'INV-101', clientName: 'Fatima Al-Sayed', paymentMode: 'Cash' },
@@ -620,37 +628,34 @@ const Transactions = () => {
       hideViewToggle
       searchActions={
         <>
-          <div className="flex flex-col gap-2.5 w-full sm:w-auto">
-            <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Status</label>
+          <div className="flex items-center shrink-0 h-[52px]">
             <ZenDropdown
               label="Status"
               value={statusFilter}
               onChange={(value: any) => setStatusFilter(value)}
               options={['All', 'Completed', 'Pending', 'Failed']}
-              className="w-full sm:min-w-[180px]"
+              className="w-[180px]"
               hideLabel
             />
           </div>
-          <div className="flex flex-col gap-2.5 w-full sm:w-[220px]">
-            <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Date Horizon</label>
+          <div className="flex items-center shrink-0 h-[52px]">
             <ZenMasterCalendar
               label="Date Range"
               value={dateRange}
               onChange={(value: any) => setDateRange(value)}
               selectionType="range"
               variant="pill"
-              className="w-full"
+              className="w-[200px]"
               hideLabel
             />
           </div>
-          <div className="flex flex-col gap-2.5 w-full sm:w-auto">
-            <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Branch</label>
+          <div className="flex items-center shrink-0 h-[52px]">
             <ZenDropdown
               label="Branch"
               value={branchFilter}
               onChange={(value: any) => setBranchFilter(value)}
               options={branchOptions}
-              className="w-full sm:min-w-[210px]"
+              className="w-[180px]"
               hideLabel
             />
           </div>

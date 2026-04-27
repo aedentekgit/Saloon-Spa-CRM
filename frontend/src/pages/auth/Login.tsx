@@ -30,25 +30,25 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = await login(email, password);
-    if (success) {
+    const result = await login(email, password);
+    if (result.success) {
       navigate('/dashboard');
     } else {
-      setError('Invalid registry credentials');
+      setError(result.message || 'Invalid registry credentials');
     }
   };
 
   return (
     <div className="min-h-screen w-full bg-zen-cream flex items-center justify-center p-4 sm:p-8 font-sans">
-       <div className="w-full max-w-[1000px] bg-white rounded-[1.75rem] sm:rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col lg:flex-row min-h-[460px] sm:min-h-[600px] border-2 sm:border-[4px] border-zen-stone/30">
+       <div className="w-full max-w-[1000px] bg-white rounded-[1.75rem] sm:rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col lg:flex-row-reverse min-h-[460px] sm:min-h-[600px] border-2 sm:border-[4px] border-zen-stone/30">
           
-          {/* Left side Image */}
+          {/* Branding Image */}
           <div className="hidden lg:block w-1/2 p-3 relative">
-             <div className="w-full h-full rounded-[2.5rem] overflow-hidden relative shadow-inner">
+             <div className="w-full h-full rounded-[2.5rem] overflow-hidden relative shadow-inner group/img cursor-pointer">
                 <img 
                   src={withBase('/login-bg.png')} 
                   alt="Sanctuary" 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-1000 group-hover/img:scale-110"
                 />
              </div>
           </div>
@@ -69,25 +69,25 @@ const Login = () => {
                     )}
                     
                     <div className="space-y-4">
-                       <div className="relative">
+                       <div className="relative group">
                           <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Mail id"
-                            className="w-full bg-zen-cream text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-zen-sand/30 transition-all border border-zen-stone/60"
+                            className="w-full bg-white text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-4 focus:ring-zen-sand/10 focus:border-zen-sand/40 transition-all border border-zen-stone/40 shadow-[0_4px_20px_rgba(0,0,0,0.03)] group-hover:border-zen-sand/20"
                             required
                           />
-                          <Mail size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30" />
+                          <Mail size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30 group-focus-within:text-zen-sand transition-colors" />
                        </div>
 
-                       <div className="relative">
+                       <div className="relative group">
                           <input
                             type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Password"
-                            className="w-full bg-zen-cream text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-2 focus:ring-zen-sand/30 transition-all border border-zen-stone/60"
+                            className="w-full bg-white text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-4 focus:ring-zen-sand/10 focus:border-zen-sand/40 transition-all border border-zen-stone/40 shadow-[0_4px_20px_rgba(0,0,0,0.03)] group-hover:border-zen-sand/20"
                             required
                           />
                           <button 
@@ -109,17 +109,11 @@ const Login = () => {
                          type="submit"
                          className="w-full py-4 bg-zen-sand hover:opacity-90 text-white text-[13px] font-bold shadow-[0_8px_20px_rgba(0,0,0,0.12)] rounded-3xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
                        >
-                         Sign in now <span className="w-1.5 h-1.5 rounded-full bg-white ml-2 opacity-80 group-hover:opacity-100"></span>
+                         Sign in now
                        </button>
                     </div>
 
-                    <div className="pt-4">
-                       <div className="bg-zen-cream border border-zen-stone/60 rounded-full py-2.5 px-6 mx-auto w-max shadow-[0_2px_10px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-white transition-colors" onClick={() => {setEmail('admin@gmail.com'); setPassword('admin123');}}>
-                          <p className="text-[8px] font-bold text-zen-brown/35 uppercase tracking-widest flex items-center gap-3">
-                             Admin: admin@gmail.com <span className="w-1 h-1 rounded-full bg-zen-brown/20"></span> Pass: admin123
-                          </p>
-                       </div>
-                    </div>
+
 
                     <div className="text-center pt-2">
                        <p className="text-[11px] font-bold text-zen-brown/35">

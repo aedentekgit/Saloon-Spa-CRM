@@ -81,6 +81,17 @@ test('client role cannot create expenses or invoices', { skip: !hasClient }, asy
   assert.equal(invoice.status, 403, `Expected 403 for client invoice creation, got ${invoice.status}`);
 });
 
+test('client role cannot access protected admin/config resources', { skip: !hasClient }, async () => {
+  const settings = await requestJson({ token: CLIENT_TOKEN, path: '/settings' });
+  assert.equal(settings.status, 403, `Expected 403 for client settings access, got ${settings.status}`);
+
+  const roles = await requestJson({ token: CLIENT_TOKEN, path: '/roles' });
+  assert.equal(roles.status, 403, `Expected 403 for client roles access, got ${roles.status}`);
+
+  const inventory = await requestJson({ token: CLIENT_TOKEN, path: '/inventory' });
+  assert.equal(inventory.status, 403, `Expected 403 for client inventory access, got ${inventory.status}`);
+});
+
 test('manager cannot write resources into foreign branch', { skip: !(hasManager && hasForeignBranch) }, async () => {
   const today = new Date().toISOString().slice(0, 10);
 

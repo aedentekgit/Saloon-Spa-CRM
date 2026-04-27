@@ -689,7 +689,7 @@ const ClientDashboard = () => {
             </div>
 
             <ZenButton
-              onClick={() => navigate('/appointments')}
+              onClick={() => navigate('/book')}
               className="relative z-10 w-full py-5 bg-white text-zen-sand rounded-[1rem] font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/5 font-sans"
             >
               Book Your Next Escape
@@ -703,9 +703,15 @@ const ClientDashboard = () => {
 
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState<any>('All');
+  const quickActions = [
+    { label: 'Book Ritual', icon: Sparkles, color: 'bg-zen-brown text-white', path: hasPermission('appointments') ? '/appointments' : '/book', permissions: ['appointments', 'book'] },
+    { label: 'Digital Punch', icon: Clock, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/attendance', permissions: ['attendance'] },
+    { label: 'New Artisan', icon: Users, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/employees', permissions: ['employees'] },
+    { label: 'Inventory Restock', icon: Target, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/inventory', permissions: ['inventory'] },
+  ].filter((action) => action.permissions.some((permission) => hasPermission(permission)));
 
   return (
     <ZenPageLayout
@@ -717,12 +723,7 @@ const Dashboard = () => {
       searchActions={
         <div className="flex items-center gap-6 lg:gap-10 w-full overflow-hidden">
           <div className="flex items-center gap-3 mr-auto overflow-x-auto scrollbar-hide py-1 shrink-0">
-              {[
-                { label: 'Book Ritual', icon: Sparkles, color: 'bg-zen-brown text-white', path: '/appointments' },
-                { label: 'Digital Punch', icon: Clock, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/attendance' },
-                { label: 'New Artisan', icon: Users, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/employees' },
-                { label: 'Inventory Restock', icon: Target, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/inventory' },
-              ].map((action, i) => (
+              {quickActions.map((action, i) => (
                <motion.button
                  key={action.label}
                  initial={{ opacity: 0, x: -20 }}

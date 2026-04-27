@@ -261,27 +261,24 @@ const Payroll = () => {
       hideAddButton
       headerActions={
         <>
-            <div className="flex flex-col gap-2.5 w-full sm:w-[240px]">
-                <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Time Window</label>
-                <div className="h-[52px] px-4 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] flex items-center shadow-sm">
-                    <ZenMonthPicker
-                        value={selectedMonth}
-                        onChange={setSelectedMonth}
-                        className="w-full !border-none !shadow-none !bg-transparent"
-                        hideLabel
-                    />
-                </div>
-            </div>
-
-            <ExportPopup<PayrollRecord>
-              data={payrollData}
-              columns={payrollExportColumns}
-              fileName={`payroll_${selectedMonth}`}
-              title="Payroll"
-              triggerLabel="Export Report"
-              description="Choose format and export the complete payroll ledger with attendance, leave, deduction, overtime, and payout values."
-              resolveData={fetchAllPayrollForExport}
+          <div className="flex items-center shrink-0 h-[52px]">
+            <ZenMonthPicker
+              value={selectedMonth}
+              onChange={setSelectedMonth}
+              className="w-[200px]"
+              hideLabel
+              variant="pill"
             />
+          </div>
+          <ExportPopup<PayrollRecord>
+            data={payrollData}
+            columns={payrollExportColumns}
+            fileName={`payroll_${selectedMonth}`}
+            title="Payroll"
+            triggerLabel="Export Report"
+            description="Choose format and export the complete payroll ledger with attendance, leave, deduction, overtime, and payout values."
+            resolveData={fetchAllPayrollForExport}
+          />
         </>
       }
       topContent={

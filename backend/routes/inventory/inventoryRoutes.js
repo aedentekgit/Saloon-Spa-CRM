@@ -6,15 +6,15 @@ const {
   updateInventoryItem,
   deleteInventoryItem
 } = require('../../controllers/inventory/inventoryController');
-const { protect } = require('../../middleware/authMiddleware');
+const { protect, requirePermission } = require('../../middleware/authMiddleware');
 const { upload } = require('../../middleware/uploadMiddleware');
 
 router.route('/')
-  .get(protect, getInventory)
-  .post(protect, upload.single('inventoryImage'), createInventoryItem);
+  .get(protect, requirePermission('inventory'), getInventory)
+  .post(protect, requirePermission('inventory'), upload.single('inventoryImage'), createInventoryItem);
 
 router.route('/:id')
-  .put(protect, upload.single('inventoryImage'), updateInventoryItem)
-  .delete(protect, deleteInventoryItem);
+  .put(protect, requirePermission('inventory'), upload.single('inventoryImage'), updateInventoryItem)
+  .delete(protect, requirePermission('inventory'), deleteInventoryItem);
 
 module.exports = router;

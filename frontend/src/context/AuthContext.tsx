@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
+import { type UserRole, hasPermissionForRole } from '../config/accessControl';
 
-export type UserRole = 'Admin' | 'Manager' | 'Employee' | 'Client';
+export type { UserRole };
 
 interface User {
   _id?: string;
@@ -15,20 +16,12 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password?: string) => Promise<boolean>;
+  login: (email: string, password?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   hasPermission: (permId: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Guardian: Default Permission Sets for Roles
-const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
-  'Admin': ['*'],
-  'Manager': ['dashboard', 'appointments', 'billing', 'clients', 'services', 'rooms', 'employees', 'attendance', 'finance', 'inventory', 'whatsapp', 'reports', 'settings', 'leave'],
-  'Employee': ['dashboard', 'appointments', 'clients', 'services', 'attendance', 'leave'],
-  'Client': ['dashboard', 'book', 'profile', 'history']
-};
 
 // Safely access Vite environment variables
 const getApiUrl = () => {
@@ -40,6 +33,17 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
+
+const parseResponseBody = async (response: Response) => {
+  const text = await response.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch (_error) {
+    return { message: text };
+  }
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
@@ -61,20 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = (permId: string): boolean => {
     if (!user) return false;
-    // Admin always has full access
-    if (user.role.toLowerCase() === 'admin') return true;
-    
-    // Check custom permissions first
-    if (user.permissions && user.permissions.length > 0) {
-      if (user.permissions.includes(permId)) return true;
-    }
-
-    // Fallback to role-based defaults (Guardian)
-    const defaults = DEFAULT_PERMISSIONS[user.role] || [];
-    return defaults.includes(permId) || defaults.includes('*');
+    return hasPermissionForRole(user.role, user.permissions, permId);
   };
 
-  const login = async (email: string, password?: string): Promise<boolean> => {
+  const login = async (email: string, password?: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const response = await fetch(`${API_URL}/users/login`, {
         method: 'POST',
@@ -84,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const data = await parseResponseBody(response);
 
       if (response.ok) {
         const userData: User = {
@@ -98,14 +92,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         setUser(userData);
         localStorage.setItem('zen_spa_user', JSON.stringify(userData));
-        return true;
+        return { success: true };
       } else {
-        console.error('Login failed:', data.message || 'Unknown error');
-        return false;
+        const message = data.message || data.error || `Login failed (${response.status})`;
+        console.error('Login failed:', message);
+        return { success: false, message };
       }
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      return { success: false, message: 'Unable to connect to the login service' };
     }
   };
 

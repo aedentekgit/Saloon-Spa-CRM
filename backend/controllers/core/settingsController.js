@@ -1,5 +1,5 @@
 const Settings = require('../../models/core/Settings');
-const { deleteFile } = require('../../middleware/uploadMiddleware');
+const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { sendNotification } = require('../../utils/firebase');
 const { execSync } = require('child_process');
 const fs = require('fs');
@@ -50,13 +50,22 @@ const buildPublicSettings = (settings) => ({
     address: settings?.general?.address || '123 Wellness St, City',
     contactNumber: settings?.general?.contactNumber || '+1234567890',
     country: settings?.general?.country || 'Qatar',
+    countryIso: settings?.general?.countryIso || 'QA',
+    currency: settings?.general?.currency || 'QAR',
     dialingCode: settings?.general?.dialingCode || '+974',
-    currencySymbol: settings?.general?.currencySymbol || 'QR'
+    currencySymbol: settings?.general?.currencySymbol || 'QR',
+    dateTimeFormat: settings?.general?.dateTimeFormat || 'DD/MM/YYYY hh:mm A'
   },
   theme: {
     primaryColor: settings?.theme?.primaryColor || '#2D1622',
     headingFont: settings?.theme?.headingFont || 'Italiana',
     bodyFont: settings?.theme?.bodyFont || 'Plus Jakarta Sans'
+  },
+  upload: {
+    provider: settings?.upload?.provider || 'local'
+  },
+  billing: {
+    gstEnabled: Boolean(settings?.billing?.gstEnabled)
   },
   workingHours: settings?.workingHours || {
     monday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
@@ -214,9 +223,7 @@ exports.uploadLogo = async (req, res) => {
       await deleteFile(settings.general.logo);
     }
 
-    const logoUrl = req.file.path.startsWith('http') 
-      ? req.file.path 
-      : `uploads/${req.file.filename}`;
+    const logoUrl = getStoredFilePath(req.file);
     
     settings.general.logo = logoUrl;
     settings.markModified('general');
@@ -243,7 +250,7 @@ exports.uploadFont = async (req, res) => {
     }
 
     let filePath = req.file.path.replace(/\\/g, '/');
-    let fontUrl = filePath.startsWith('http') ? filePath : `uploads/${req.file.filename}`;
+    let fontUrl = getStoredFilePath(req.file);
     const fileExt = path.extname(req.file.originalname).toLowerCase();
     
     // If it's a zip file and local, extract it

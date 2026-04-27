@@ -213,14 +213,11 @@ export const ExportPopup = <T extends object>({
 
   return (
     <>
-      <div className={`flex flex-col gap-2.5 w-full sm:w-auto ${className}`}>
-        <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">
-          Export
-        </label>
+      <div className={`flex items-center h-[52px] ${className}`}>
         <button
           onClick={() => setIsOpen(true)}
           disabled={isPreparing}
-          className="w-full sm:w-auto shrink-0 h-[52px] rounded-[1.15rem] px-8 shadow-sm flex items-center justify-center gap-2 active:scale-95 group transition-all duration-700 bg-white border border-zen-brown/10 text-zen-brown font-black text-[10px] uppercase tracking-[0.2em] relative overflow-hidden"
+          className="w-full sm:w-auto shrink-0 h-full rounded-[1.15rem] px-8 shadow-sm flex items-center justify-center gap-2 active:scale-95 group transition-all duration-700 bg-white border border-zen-brown/10 text-zen-brown font-black text-[10px] uppercase tracking-[0.2em] relative overflow-hidden"
         >
           <div className="absolute inset-0 bg-gradient-to-tr from-zen-gold/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           <span className="relative z-10">{triggerLabel}</span>

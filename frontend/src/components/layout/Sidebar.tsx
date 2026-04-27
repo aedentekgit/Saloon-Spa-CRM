@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useSettings } from '../../context/SettingsContext';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const Sidebar = ({
   isCollapsed,
@@ -26,9 +27,8 @@ const Sidebar = ({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
   const logoUrl = settings?.general?.logo 
-    ? (settings.general.logo.startsWith('http') ? settings.general.logo : `${API_URL.split('/api')[0]}/${settings.general.logo.replace(/^\.?\//, '')}`)
+    ? getImageUrl(settings.general.logo)
     : null;
 
   React.useEffect(() => {
@@ -50,7 +50,7 @@ const Sidebar = ({
       label: 'Clients',
       items: [
         { name: 'Clients', icon: Users, path: '/clients', permission: 'clients' },
-        { name: 'Memberships', icon: Gem, path: '/memberships', permission: 'billing' },
+        { name: 'Memberships', icon: Gem, path: '/memberships', permission: ['memberships', 'billing'] },
       ]
     },
     {
@@ -67,8 +67,8 @@ const Sidebar = ({
         { name: 'Employees', icon: Briefcase, path: '/employees', permission: 'employees' },
         { name: 'Attendance Ritual', icon: Clock, path: '/attendance', permission: 'attendance' },
 
-        { name: 'Shifts', icon: Timer, path: '/shifts', permission: 'settings' },
-        { name: 'Payroll', icon: Landmark, path: '/payroll', permission: 'finance' },
+        { name: 'Shifts', icon: Timer, path: '/shifts', permission: ['shifts', 'settings'] },
+        { name: 'Payroll', icon: Landmark, path: '/payroll', permission: ['payroll', 'finance'] },
         { name: 'Leave History', icon: CalendarOff, path: '/leave', permission: 'leave' },
         { name: 'Apply Leave', icon: Sparkles, path: '/leave/apply', permission: 'leave' },
       ]
@@ -78,7 +78,7 @@ const Sidebar = ({
       items: [
         { name: 'Finance', icon: Landmark, path: '/finance', permission: 'finance' },
         { name: 'Expenses', icon: ArrowDownRight, path: '/expenses', permission: 'finance' },
-        { name: 'Transactions', icon: FileText, path: '/transactions', permission: 'finance' },
+        { name: 'Transactions', icon: FileText, path: '/transactions', permission: ['transactions', 'finance'] },
         { name: 'Reports', icon: TrendingUp, path: '/reports', permission: 'reports' },
       ]
     },
@@ -91,10 +91,10 @@ const Sidebar = ({
     {
       label: 'Admin',
       items: [
-        { name: 'Branches', icon: MapPin, path: '/branches', permission: 'settings' },
-        { name: 'Room Category', icon: Layers, path: '/room-categories', permission: 'settings' },
-        { name: 'Service Category', icon: Shapes, path: '/service-categories', permission: 'settings' },
-        { name: 'Admins', icon: ShieldCheck, path: '/admins', permission: 'roles' },
+        { name: 'Branches', icon: MapPin, path: '/branches', permission: ['branches', 'settings'] },
+        { name: 'Room Category', icon: Layers, path: '/room-categories', permission: ['room-categories', 'settings'] },
+        { name: 'Service Category', icon: Shapes, path: '/service-categories', permission: ['service-categories', 'settings'] },
+        { name: 'Admins', icon: ShieldCheck, path: '/admins', permission: ['admins', 'roles'] },
         { name: 'Roles', icon: Key, path: '/roles', permission: 'roles' },
         { name: 'Settings', icon: Settings2, path: '/settings', permission: 'settings' },
       ]
@@ -106,16 +106,22 @@ const Sidebar = ({
     { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard', permission: 'dashboard' },
     { name: 'Booking', icon: CalendarClock, path: '/book', permission: 'book' },
     { name: 'Profile', icon: UserRound, path: '/profile', permission: 'profile' },
-    { name: 'History', icon: History, path: '/transactions', permission: 'history' },
+    { name: 'History', icon: History, path: '/transactions', permission: ['history', 'transactions', 'finance'] },
   ];
 
+  const canAccessItem = (permission: string | string[]) => (
+    Array.isArray(permission)
+      ? permission.some((perm) => hasPermission(perm))
+      : hasPermission(permission)
+  );
+
   const filteredGroups = user?.role === 'Client' 
-    ? [{ label: 'Sanctuary', items: clientMenu.filter(item => hasPermission(item.permission)) }]
+    ? [{ label: 'Sanctuary', items: clientMenu.filter(item => canAccessItem(item.permission)) }]
     : menuGroups
         .map(group => ({
           ...group,
           items: group.items
-            .filter(item => hasPermission(item.permission))
+            .filter(item => canAccessItem(item.permission))
         }))
         .filter(group => group.items.length > 0);
 

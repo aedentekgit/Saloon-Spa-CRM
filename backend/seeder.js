@@ -7,17 +7,17 @@ const roles = [
   {
     name: 'Admin',
     description: 'System Administrator with full access',
-    permissions: ['dashboard', 'clients', 'appointments', 'rooms', 'employees', 'attendance', 'leave', 'services', 'billing', 'finance', 'inventory', 'whatsapp', 'reports', 'settings', 'roles']
+    permissions: ['dashboard', 'book', 'profile', 'history', 'memberships', 'services', 'rooms', 'clients', 'appointments', 'employees', 'attendance', 'shifts', 'payroll', 'leave', 'finance', 'transactions', 'inventory', 'billing', 'whatsapp', 'reports', 'branches', 'room-categories', 'service-categories', 'admins', 'roles', 'settings']
   },
   {
     name: 'Manager',
     description: 'Spa Manager with most access',
-    permissions: ['dashboard', 'clients', 'appointments', 'rooms', 'employees', 'attendance', 'leave', 'services', 'billing', 'inventory', 'whatsapp', 'reports', 'settings']
+    permissions: ['dashboard', 'clients', 'appointments', 'memberships', 'rooms', 'employees', 'attendance', 'shifts', 'payroll', 'leave', 'services', 'billing', 'finance', 'transactions', 'inventory', 'whatsapp', 'reports', 'branches', 'room-categories', 'service-categories', 'settings']
   },
   {
     name: 'Employee',
     description: 'Staff member with limited access',
-    permissions: ['dashboard', 'appointments', 'attendance', 'leave']
+    permissions: ['dashboard', 'appointments', 'clients', 'services', 'attendance', 'leave']
   },
   {
     name: 'Client',

@@ -27,6 +27,7 @@ import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { useBranches } from '../../context/BranchContext';
 import { useData } from '../../context/DataContext';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { getImageUrl } from '../../utils/imageUrl';
 
 
 interface Role {
@@ -494,14 +495,10 @@ const Employees = () => {
   const employeeExportColumns = useMemo<ExportColumn<Employee>[]>(
     () => {
       const currency = settings?.general?.currencySymbol || 'QR';
-      const assetBaseUrl = API_URL.replace('/api', '');
       const money = (value?: number) =>
         typeof value === 'number' ? `${currency} ${value}` : '-';
       const assetUrl = (path?: string) => {
-        if (!path) return '-';
-        if (path.startsWith('http')) return path;
-        const cleanPath = path.replace(/^\.?\//, '');
-        return `${assetBaseUrl}/${cleanPath}`;
+        return getImageUrl(path) || '-';
       };
       const documentSummary = (employee: Employee) =>
         employee.documents
@@ -712,12 +709,7 @@ const Employees = () => {
     );
   };
 
-  const getImageUrl = (path: string | undefined) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    const cleanPath = path.replace(/^\.?\//, '');
-    return `${API_URL.replace('/api', '')}/${cleanPath}`;
-  };
+
 
   const employeeModalTabs = [
     { id: 'profile' as const, label: 'Profile' },
@@ -783,7 +775,7 @@ const Employees = () => {
                     <div className="min-w-0">
                        <h3 className="text-xl font-serif font-black text-zen-brown truncate leading-tight mb-1 flex items-center gap-2">
                           {emp.name}
-                          {emp.employeeId && <span className="text-[10px] font-sans font-bold text-zen-sand tracking-widest opacity-70">#{emp.employeeId}</span>}
+                          {emp.employeeId && <span className="text-[10px] font-sans font-bold text-zen-sand tracking-widest opacity-70">{emp.employeeId}</span>}
                        </h3>
                        <p className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest">{emp.role}</p>
                     </div>
@@ -792,7 +784,7 @@ const Employees = () => {
                  <div className="space-y-4 mb-6">
                     <div className="flex items-center justify-between text-[10px]">
                        <span className="text-zen-brown/40 font-bold uppercase tracking-wider">Operational ID</span>
-                       <span className="font-serif italic font-medium text-zen-brown/60">#{emp.employeeId || emp._id.slice(-6).toUpperCase()}</span>
+                       <span className="font-serif italic font-medium text-zen-brown/60">{emp.employeeId || emp._id.slice(-6).toUpperCase()}</span>
                     </div>
                     <div className="flex items-center justify-between">
                        <span className="text-[10px] text-zen-brown/40 font-bold uppercase tracking-wider">Branch</span>
@@ -853,7 +845,7 @@ const Employees = () => {
                       <td>
                          <div className="flex flex-col items-center justify-center gap-0.5 px-6">
                             <span className="zen-table-primary">{emp.name}</span>
-                            {emp.employeeId && <span className="text-[9px] font-bold text-zen-sand tracking-widest opacity-80">#{emp.employeeId}</span>}
+                            {emp.employeeId && <span className="text-[9px] font-bold text-zen-sand tracking-widest opacity-80">{emp.employeeId}</span>}
                             <span className="text-[10px] text-zen-brown/40 font-medium uppercase tracking-tight mt-1">{emp.role} • {getEmployeeBranchName(emp)}</span>
                          </div>
                       </td>
@@ -1421,7 +1413,7 @@ const Employees = () => {
                             </div>
                             <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300">
                               <a
-                                href={doc.url?.startsWith('http') ? doc.url : `${API_URL.replace('/api', '')}/${doc.url?.split('uploads/').pop()?.replace(/^\.?\//, '')}`}
+                                href={getImageUrl(doc.url)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="w-9 h-9 rounded-xl bg-zen-cream flex items-center justify-center text-zen-brown/40 hover:text-zen-brown transition-colors"

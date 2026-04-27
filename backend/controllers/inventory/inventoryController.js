@@ -1,5 +1,5 @@
 const Inventory = require('../../models/inventory/Inventory');
-const { deleteFile } = require('../../middleware/uploadMiddleware');
+const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 
@@ -73,7 +73,7 @@ const createInventoryItem = async (req, res) => {
 
   let image = '';
   if (req.file) {
-    image = req.file.path || req.file.url || `/uploads/${req.file.filename}`;
+    image = getStoredFilePath(req.file);
   }
 
   try {
@@ -129,7 +129,7 @@ const updateInventoryItem = async (req, res) => {
       if (item.image) {
         await deleteFile(item.image);
       }
-      item.image = req.file.path || req.file.url || `/uploads/${req.file.filename}`;
+      item.image = getStoredFilePath(req.file);
     }
 
     const updatedItem = await item.save();

@@ -13,9 +13,9 @@ import { usePublicSettings } from '../../components/landing/usePublicSettings';
 import { motion, AnimatePresence } from 'motion/react';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { withBase } from '../../utils/assetPath';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
-const BASE_URL = API_URL.replace('/api', '');
 
 interface Branch {
   _id: string;
@@ -33,22 +33,6 @@ interface Employee {
   specialties?: string[];
   bio?: string;
   yearsOfExperience?: number;
-}
-
-function getImageUrl(path?: string): string {
-  if (!path || path === 'undefined' || path === 'null') return '';
-  if (path.startsWith('http') || path.startsWith('data:')) return path;
-  
-  const clean = path.replace(/^\.?\/?/, '');
-  
-  // If it already contains the full URL or localhost, return as is
-  if (clean.includes('://') || clean.includes('localhost:')) return clean;
-
-  // If it doesn't already have 'uploads/' and isn't in 'images/', assume it's in uploads
-  if (!clean.startsWith('uploads/') && !clean.startsWith('images/')) {
-    return `${BASE_URL}/uploads/${clean}`;
-  }
-  return `${BASE_URL}/${clean}`;
 }
 
 function getBranchName(branch?: Branch | string): string {

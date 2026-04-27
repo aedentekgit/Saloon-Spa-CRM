@@ -1,5 +1,5 @@
 const Branch = require('../../models/operations/Branch');
-const { deleteFile } = require('../../middleware/uploadMiddleware');
+const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
 
 
@@ -54,14 +54,7 @@ const createBranch = async (req, res) => {
     let logo = '';
     if (req.files && req.files.logo) {
       const file = req.files.logo[0];
-      // Standardize path: if it's local, it might be an absolute path or just a filename. 
-      // We want 'uploads/filename' for consistency with our static serving.
-      if (file.path && !file.path.startsWith('http')) {
-        const filename = file.filename || file.path.split(/[/\\]/).pop();
-        logo = `uploads/${filename}`;
-      } else {
-        logo = file.path || file.url;
-      }
+      logo = getStoredFilePath(file);
     }
 
     const branch = await Branch.create({
@@ -108,12 +101,7 @@ const updateBranch = async (req, res) => {
             await deleteFile(branch.logo);
          }
          const file = req.files.logo[0];
-         if (file.path && !file.path.startsWith('http')) {
-            const filename = file.filename || file.path.split(/[/\\]/).pop();
-            branch.logo = `uploads/${filename}`;
-         } else {
-            branch.logo = file.path || file.url;
-         }
+         branch.logo = getStoredFilePath(file);
       }
 
       const updatedBranch = await branch.save();

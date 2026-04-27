@@ -1,4 +1,5 @@
 import { withBase } from './assetPath';
+import { getImageUrl } from './imageUrl';
 
 type RoomBranch = {
   name?: string;
@@ -88,14 +89,14 @@ const normalizeCustomRoomImage = (value: string, baseUrl: string) => {
 
   const clean = value.replace(/^\.?\//, '');
   if (clean.startsWith('uploads/') || clean.includes('/uploads/')) {
-    return `${baseUrl}/${clean}`;
+    return getImageUrl(clean);
   }
 
   if (isRoomPhotoPath(clean)) {
     return withBase(`/images/${clean}`);
   }
 
-  return `${baseUrl}/uploads/${clean}`;
+  return getImageUrl(clean);
 };
 
 const getRoomSeed = (room: RoomImageSource) => {

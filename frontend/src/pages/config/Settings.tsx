@@ -41,6 +41,7 @@ import { countries } from '../../utils/countries';
 import { validatePhoneNumber, getPhoneValidationProtocol } from '../../utils/validation';
 import { useSettings } from '../../context/SettingsContext';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { getImageUrl } from '../../utils/imageUrl';
 
 interface SettingsData {
   general: {
@@ -129,9 +130,31 @@ type SettingsSection = 'foundations' | 'hours' | 'storage' | 'visuals' | 'alerts
 const Settings = () => {
   const { user } = useAuth();
   const { refreshSettings } = useSettings();
-  const [loading, setLoading] = useState(() => !getCachedJson<SettingsData | null>('zen_settings_page', null));
+  const defaultSettings: SettingsData = {
+    general: { siteName: '', logo: '', email: '', address: '', contactNumber: '', country: '', countryIso: '', dialingCode: '', currency: '', currencySymbol: '', dateTimeFormat: 'DD/MM/YYYY' },
+    theme: { primaryColor: '#2D1622', darkMode: false, headingFont: '', bodyFont: '' },
+    upload: { provider: 'local', cloudinaryCloudName: '', cloudinaryApiKey: '', cloudinaryApiSecret: '' },
+    whatsapp: { instanceId: '', token: '', provider: 'ultramsg', enabled: false },
+    notifications: { pushEnabled: false },
+    payroll: { type: 'Monthly', allowedPaidLeaves: 1.5, allowedPaidHours: 12 },
+    workingHours: {
+      monday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+      tuesday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+      wednesday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+      thursday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+      friday: { isOpen: true, openTime: '14:00', closeTime: '23:00' },
+      saturday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
+      sunday: { isOpen: true, openTime: '09:00', closeTime: '21:00' }
+    },
+    billing: { gstEnabled: false }
+  };
+
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<SettingsData | null>(() => getCachedJson<SettingsData | null>('zen_settings_page', null));
+  const [settings, setSettings] = useState<SettingsData>(() => {
+    const cached = getCachedJson<SettingsData | null>('zen_settings_page', null);
+    return cached && cached.general ? cached : defaultSettings;
+  });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection>('foundations');
 
@@ -270,7 +293,8 @@ const Settings = () => {
 
   const fetchSettings = async () => {
     try {
-      if (!settings) setLoading(true);
+      // Keep loading true if we don't have valid settings yet
+      if (!settings || !settings.general.siteName) setLoading(true);
       const response = await fetch(`${API_URL}/settings`, {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
@@ -307,31 +331,31 @@ const Settings = () => {
   };
 
   useEffect(() => {
-    if (settings?.theme?.primaryColor) {
+    if (settings.theme?.primaryColor) {
       document.documentElement.style.setProperty('--zen-sand', settings.theme.primaryColor);
       document.documentElement.style.setProperty('--zen-primary', settings.theme.primaryColor);
     }
-  }, [settings?.theme?.primaryColor]);
+  }, [settings.theme?.primaryColor]);
 
   useEffect(() => {
     if (settings) setCachedJson('zen_settings_page', settings);
   }, [settings]);
 
   useEffect(() => {
-    if (settings?.smtp?.port) {
+    if (settings.smtp?.port) {
        const port = parseInt(settings.smtp.port.toString());
        if (port === 465 && settings.smtp.encryption !== 'ssl') {
-          setSettings(prev => prev ? {...prev, smtp: {...prev.smtp!, encryption: 'ssl'}} : null);
+          setSettings(prev => ({...prev, smtp: {...prev.smtp!, encryption: 'ssl'}}));
        } else if (port === 587 && settings.smtp.encryption !== 'tls') {
-          setSettings(prev => prev ? {...prev, smtp: {...prev.smtp!, encryption: 'tls'}} : null);
+          setSettings(prev => ({...prev, smtp: {...prev.smtp!, encryption: 'tls'}}));
        }
     }
-  }, [settings?.smtp?.port]);
+  }, [settings.smtp?.port]);
 
   useEffect(() => {
     const injectFont = (name: string, url: string) => {
       if (!url || !url.match(/uploads/i)) return;
-      const fullUrl = url.startsWith('http') ? url : `${API_URL.split('/api')[0]}/${url.replace(/^\.?\//, '')}`;
+      const fullUrl = getImageUrl(url);
       const styleId = `font-face-${name}`;
       let styleEl = document.getElementById(styleId);
       if (!styleEl) {
@@ -342,9 +366,9 @@ const Settings = () => {
       styleEl.innerHTML = `@font-face { font-family: '${name}'; src: url('${fullUrl}'); font-display: swap; }`;
     };
 
-    if (settings?.theme?.headingFont) injectFont('CustomHeadingFont', settings.theme.headingFont);
-    if (settings?.theme?.bodyFont) injectFont('CustomBodyFont', settings.theme.bodyFont);
-  }, [settings?.theme?.headingFont, settings?.theme?.bodyFont]);
+    if (settings.theme?.headingFont) injectFont('CustomHeadingFont', settings.theme.headingFont);
+    if (settings.theme?.bodyFont) injectFont('CustomBodyFont', settings.theme.bodyFont);
+  }, [settings.theme?.headingFont, settings.theme.bodyFont]);
 
   const handleSave = async (section: keyof SettingsData) => {
     if (!settings) return;
@@ -465,7 +489,7 @@ const Settings = () => {
     }
   };
 
-  if (loading || !settings) {
+  if (loading && (!settings || !settings.general.siteName)) {
     return (
       <div className="flex items-center justify-center min-h-[600px]">
         <motion.div 
@@ -641,7 +665,7 @@ const Settings = () => {
                                        {(logoFile || settings.general.logo) ? (
                                          <div className="relative p-3 bg-white zen-pointed-surface border border-zen-brown/15 shadow-sm">
                                             <img 
-                                              src={logoFile ? URL.createObjectURL(logoFile) : (settings.general.logo && settings.general.logo.startsWith('http') ? settings.general.logo : `${API_URL.split('/api')[0]}/${settings.general.logo?.replace(/^\.?\//, '')}`)} 
+                                              src={logoFile ? URL.createObjectURL(logoFile) : getImageUrl(settings.general.logo)} 
                                               alt="Logo" 
                                               className="h-40 w-40 object-cover zen-pointed-surface shadow-sm" 
                                             />

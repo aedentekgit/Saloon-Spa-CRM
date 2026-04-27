@@ -1,6 +1,6 @@
 const Room = require('../../models/operations/Room');
 const Branch = require('../../models/operations/Branch');
-const { deleteFile } = require('../../middleware/uploadMiddleware');
+const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 
@@ -106,12 +106,7 @@ const createRoom = async (req, res) => {
     let image = '';
     if (req.files && req.files.image) {
       const file = req.files.image[0];
-      if (file.path && !file.path.startsWith('http')) {
-        const filename = file.filename || file.path.split(/[/\\]/).pop();
-        image = `uploads/${filename}`;
-      } else {
-        image = file.path || file.url;
-      }
+      image = getStoredFilePath(file);
     }
 
     const room = await Room.create({
@@ -165,12 +160,7 @@ const updateRoom = async (req, res) => {
         await deleteFile(room.image);
       }
       const file = req.files.image[0];
-      if (file.path && !file.path.startsWith('http')) {
-        const filename = file.filename || file.path.split(/[/\\]/).pop();
-        room.image = `uploads/${filename}`;
-      } else {
-        room.image = file.path || file.url;
-      }
+      room.image = getStoredFilePath(file);
     }
 
     const updatedRoom = await room.save();

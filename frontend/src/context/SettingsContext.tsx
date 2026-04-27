@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
 import { getCachedJson, setCachedJson } from '../utils/localCache';
+import { getImageUrl } from '../utils/imageUrl';
 
 export interface SettingsData {
   general: {
@@ -129,7 +130,7 @@ const deriveSidebarGradient = (primaryColor?: string) => {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const [settings, setSettings] = useState<SettingsData | null>(() => getCachedJson<SettingsData | null>('zen_settings', null));
   const [loading, setLoading] = useState(() => !getCachedJson<SettingsData | null>('zen_settings', null));
 
@@ -142,12 +143,20 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     try {
       if (!silent && !settings) setLoading(true);
-      const response = await fetch(`${API_URL}/settings`, {
+      const endpoint = hasPermission('settings') ? 'settings' : 'settings/public';
+      const response = await fetch(`${API_URL}/${endpoint}`, {
         headers: { 'Authorization': `Bearer ${user.token}` }
       });
 
       if (response.status === 401) {
         logout();
+        return;
+      }
+
+      if (response.status === 403 && endpoint !== 'settings/public') {
+        const publicResponse = await fetch(`${API_URL}/settings/public`);
+        const publicData = await publicResponse.json();
+        setSettings(publicData);
         return;
       }
 
@@ -237,7 +246,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         let googleFontsToLoad: string[] = [];
         
         const isCustomFont = (fName: string) => fName.match(/\.(woff|woff2|ttf|otf|zip)$/i) || fName.startsWith('uploads/');
-        const getFontUrl = (fName: string) => fName.startsWith('http') ? fName : `${API_URL.split('/api')[0]}/${fName.replace(/^\.?\//, '')}`;
+        const getFontUrl = (fName: string) => getImageUrl(fName);
         
         if (isCustomFont(hFont)) {
            styleContent += `
@@ -296,9 +305,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Update Favicon — render as circle using canvas
       if (settings.general && settings.general.logo) {
-        const logoUrl = settings.general.logo.startsWith('http') 
-          ? settings.general.logo 
-          : `${API_URL.split('/api')[0]}/${settings.general.logo.replace(/^\.?\//, '')}`;
+        const logoUrl = getImageUrl(settings.general.logo);
         
         const makeCircularFavicon = (src: string) => {
           const img = new Image();

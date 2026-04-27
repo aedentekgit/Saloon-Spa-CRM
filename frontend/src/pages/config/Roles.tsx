@@ -14,6 +14,7 @@ import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useData } from '../../context/DataContext';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
+import { PERMISSION_DEFINITIONS } from '../../config/accessControl';
 
 interface Role {
   _id: string;
@@ -24,34 +25,7 @@ interface Role {
   createdAt?: string;
 }
 
-const ALL_PAGES = [
-  { id: 'dashboard', name: 'Dashboard' },
-  { id: 'book', name: 'Booking' },
-  { id: 'profile', name: 'Profile' },
-  { id: 'history', name: 'History' },
-  { id: 'memberships', name: 'Memberships' },
-  { id: 'services', name: 'Services' },
-  { id: 'rooms', name: 'Rooms' },
-  { id: 'clients', name: 'Clients' },
-  { id: 'appointments', name: 'Appointments' },
-  { id: 'employees', name: 'Employees' },
-  { id: 'attendance', name: 'Attendance' },
-  { id: 'shifts', name: 'Shifts' },
-  { id: 'payroll', name: 'Payroll' },
-  { id: 'leave', name: 'Leave' },
-  { id: 'finance', name: 'Finance' },
-  { id: 'transactions', name: 'Transactions' },
-  { id: 'inventory', name: 'Inventory' },
-  { id: 'billing', name: 'Billing' },
-  { id: 'whatsapp', name: 'WhatsApp' },
-  { id: 'reports', name: 'Reports' },
-  { id: 'branches', name: 'Branches' },
-  { id: 'room-categories', name: 'Room Category' },
-  { id: 'service-categories', name: 'Service Category' },
-  { id: 'admins', name: 'Admins' },
-  { id: 'roles', name: 'Roles' },
-  { id: 'settings', name: 'Settings' }
-];
+const ALL_PAGES = [...PERMISSION_DEFINITIONS];
 
 const PAGE_LIMIT = 12;
 

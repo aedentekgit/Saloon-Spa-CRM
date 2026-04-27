@@ -6,14 +6,14 @@ const {
   deleteAttendance,
   updateAttendance
 } = require('../../controllers/human-resources/attendanceController');
-const { protect } = require('../../middleware/authMiddleware');
+const { protect, requirePermission } = require('../../middleware/authMiddleware');
 
 router.route('/')
-  .get(protect, getAttendance)
-  .post(protect, markAttendance);
+  .get(protect, requirePermission('attendance'), getAttendance)
+  .post(protect, requirePermission('attendance'), markAttendance);
 
 router.route('/:id')
-  .put(protect, updateAttendance)
-  .delete(protect, deleteAttendance);
+  .put(protect, requirePermission('attendance'), updateAttendance)
+  .delete(protect, requirePermission('attendance'), deleteAttendance);
 
 module.exports = router;

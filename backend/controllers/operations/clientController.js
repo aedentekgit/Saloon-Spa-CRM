@@ -3,7 +3,7 @@ const Membership = require('../../models/operations/Membership');
 const Appointment = require('../../models/operations/Appointment');
 const Invoice = require('../../models/finance/Invoice');
 const path = require('path');
-const { deleteFile } = require('../../middleware/uploadMiddleware');
+const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { getPaginationOptions, buildPaginationMeta } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 
@@ -168,10 +168,9 @@ exports.createClient = async (req, res) => {
     }
     
     let profilePic = '';
-    if (req.files) {
-      if (req.files.profilePic) {
-        profilePic = req.files.profilePic[0].path || req.files.profilePic[0].url;
-      }
+    if (req.files && req.files.profilePic) {
+      const file = req.files.profilePic[0];
+      profilePic = getStoredFilePath(file);
     }
 
     // Generate Client ID (CL0001 format)
@@ -255,13 +254,12 @@ exports.updateClient = async (req, res) => {
       client.password = password;
     }
 
-    if (req.files) {
-      if (req.files.profilePic) {
-        if (client.profilePic) {
-          await deleteFile(client.profilePic);
-        }
-        client.profilePic = req.files.profilePic[0].path || req.files.profilePic[0].url;
+    if (req.files && req.files.profilePic) {
+      if (client.profilePic) {
+        await deleteFile(client.profilePic);
       }
+      const file = req.files.profilePic[0];
+      client.profilePic = getStoredFilePath(file);
     }
 
     const updatedClient = await client.save();

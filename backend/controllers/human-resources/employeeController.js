@@ -1,7 +1,7 @@
 const Employee = require('../../models/human-resources/Employee');
 const Branch = require('../../models/operations/Branch');
 const path = require('path');
-const { deleteFile } = require('../../middleware/uploadMiddleware');
+const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 const mongoose = require('mongoose');
@@ -180,7 +180,8 @@ exports.createEmployee = async (req, res) => {
 
     let profilePic = '';
     if (req.files && req.files.profilePic) {
-      profilePic = req.files.profilePic[0].path || req.files.profilePic[0].url;
+      const file = req.files.profilePic[0];
+      profilePic = getStoredFilePath(file);
     }
 
     // Generate Employee ID (EMP0001 format)
@@ -277,7 +278,8 @@ exports.updateEmployee = async (req, res) => {
       if (employee.profilePic) {
         await deleteFile(employee.profilePic);
       }
-      employee.profilePic = req.files.profilePic[0].path || req.files.profilePic[0].url;
+      const file = req.files.profilePic[0];
+      employee.profilePic = getStoredFilePath(file);
     }
 
     const updatedEmployee = await employee.save();
@@ -347,11 +349,9 @@ exports.uploadDocument = async (req, res) => {
     }
 
     const { name, fileType } = req.body;
-    const documentUrl = req.file.path || req.file.url;
-
     const newDocument = {
       name: name || req.file.originalname,
-      url: req.file.filename ? `uploads/${req.file.filename}` : (req.file.path || req.file.url),
+      url: getStoredFilePath(req.file),
       fileType: fileType || path.extname(req.file.originalname).substring(1),
       uploadedAt: new Date()
     };

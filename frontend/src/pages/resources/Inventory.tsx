@@ -36,6 +36,7 @@ import { notify } from '../../components/shared/ZenNotification';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { getImageUrl } from '../../utils/imageUrl';
 
 interface InventoryItem {
   _id: string;
@@ -159,13 +160,6 @@ const Inventory = () => {
   const filteredInventory = inventory;
 
   const lowStockCount = metrics.lowStockCount;
-
-  const getImageUrl = (path: string | undefined) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    const cleanPath = path.replace(/^\.?\//, '');
-    return `${API_URL.replace('/api', '')}/${cleanPath}`;
-  };
 
   const handleOpenModal = (item: InventoryItem | null = null) => {
     setImageFile(null);

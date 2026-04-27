@@ -9,20 +9,20 @@ const {
   updateAppointmentStatus,
   deleteAppointment
 } = require('../../controllers/operations/appointmentController');
-const { protect } = require('../../middleware/authMiddleware');
+const { protect, requirePermission } = require('../../middleware/authMiddleware');
 
 router.get('/public', getPublicAppointments);
 router.post('/guest', createGuestAppointment);
 
 router.route('/')
-  .get(protect, getAppointments)
-  .post(protect, createAppointment);
+  .get(protect, requirePermission('appointments', 'book'), getAppointments)
+  .post(protect, requirePermission('appointments', 'book'), createAppointment);
 
-router.patch('/:id/status', protect, updateAppointmentStatus);
+router.patch('/:id/status', protect, requirePermission('appointments', 'book'), updateAppointmentStatus);
 
 router.route('/:id')
-  .put(protect, updateAppointment)
-  .patch(protect, updateAppointmentStatus)
-  .delete(protect, deleteAppointment);
+  .put(protect, requirePermission('appointments', 'book'), updateAppointment)
+  .patch(protect, requirePermission('appointments', 'book'), updateAppointmentStatus)
+  .delete(protect, requirePermission('appointments', 'book'), deleteAppointment);
 
 module.exports = router;

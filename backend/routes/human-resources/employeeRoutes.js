@@ -9,7 +9,7 @@ const {
   uploadDocument,
   deleteDocument
 } = require('../../controllers/human-resources/employeeController');
-const { protect, manager } = require('../../middleware/authMiddleware');
+const { protect, manager, requirePermission } = require('../../middleware/authMiddleware');
 const { upload } = require('../../middleware/uploadMiddleware');
 
 // Define fields for multi-upload
@@ -18,7 +18,7 @@ const staffUploads = upload.fields([
 ]);
 
 router.get('/public', getPublicEmployees);
-router.get('/', protect, getEmployees);
+router.get('/', protect, requirePermission('employees'), getEmployees);
 router.post('/', protect, manager, staffUploads, createEmployee);
 router.put('/:id', protect, manager, staffUploads, updateEmployee);
 router.delete('/:id', protect, manager, deleteEmployee);

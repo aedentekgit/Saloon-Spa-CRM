@@ -20,6 +20,7 @@ import { useBranches } from '../../context/BranchContext';
 import { useCategories } from '../../context/CategoryContext';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { getImageUrl } from '../../utils/imageUrl';
 
 
 interface Branch {
@@ -303,13 +304,6 @@ const Services = () => {
     commissionValue: 10,
     inventoryUsage: [] as any[]
   });
-
-  const getImageUrl = (path: string | undefined) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    const cleanPath = path.replace(/^\.?\//, '');
-    return `${API_URL.replace('/api', '')}/${cleanPath}`;
-  };
 
   const handleOpenModal = (service: Service | null = null) => {
     setImageFile(null);

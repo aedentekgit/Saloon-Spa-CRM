@@ -16,7 +16,7 @@ const Navbar = ({
   isCollapsed: boolean,
   setIsCollapsed: (v: boolean) => void
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -251,14 +251,16 @@ const Navbar = ({
                   <UserRound size={16} className="text-zen-brown/30" />
                   My Profile
                 </Link>
-                <Link 
-                  to="/settings" 
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-5 py-2.5 text-sm font-semibold text-zen-brown hover:bg-zen-cream transition-colors"
-                >
-                  <Settings size={16} className="text-zen-brown/30" />
-                  Settings
-                </Link>
+                {hasPermission('settings') && (
+                  <Link 
+                    to="/settings" 
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-5 py-2.5 text-sm font-semibold text-zen-brown hover:bg-zen-cream transition-colors"
+                  >
+                    <Settings size={16} className="text-zen-brown/30" />
+                    Settings
+                  </Link>
+                )}
                 <div className="mx-5 my-1 border-t border-zen-stone/30" />
                 <button 
                   onClick={() => {

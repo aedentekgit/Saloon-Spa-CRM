@@ -34,6 +34,7 @@ import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { useBranches } from '../../context/BranchContext';
 import { useCategories } from '../../context/CategoryContext';
 import { resolveRoomImageMeta } from '../../utils/roomImage';
+import { getAssetBaseUrl } from '../../utils/imageUrl';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 
 interface Branch {
@@ -381,7 +382,7 @@ const Rooms = () => {
   const filteredRooms = rooms;
 
 
-  const roomImageBaseUrl = API_URL.replace('/api', '');
+  const roomImageBaseUrl = getAssetBaseUrl();
   const getDisplayImage = (room: Room) => resolveRoomImageMeta(room, roomImageBaseUrl);
   const previewRoom = editingRoom || (formData.name ? {
     name: formData.name,

@@ -65,6 +65,7 @@ const MembershipTiers = React.lazy(() => import('./pages/landing/MembershipTiers
 
 import { ZenLoadingBarrier } from './components/zen/ZenLoading';
 import { useData } from './context/DataContext';
+import { getRoutePermissions, isAuthenticatedOnlyRoute } from './config/accessControl';
 
 const Layout = () => {
   const { user, loading: authLoading } = useAuth();
@@ -141,8 +142,48 @@ const Layout = () => {
   );
 };
 
+const AccessDenied = ({ required }: { required: string[] }) => {
+  const location = useLocation();
+
+  return (
+    <div className="min-h-[calc(100dvh-72px)] flex items-center justify-center px-6 py-16">
+      <div className="w-full max-w-xl rounded-2xl border border-zen-brown/10 bg-white p-8 sm:p-10 text-center shadow-sm">
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-500">
+          <span className="text-2xl font-black">!</span>
+        </div>
+        <h1 className="text-3xl font-serif font-black text-zen-brown">Access Restricted</h1>
+        <p className="mt-3 text-sm font-semibold leading-6 text-zen-brown/50">
+          Your current role does not include access to {location.pathname}.
+        </p>
+        {required.length > 0 && (
+          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.25em] text-zen-brown/30">
+            Required: {required.join(' / ')}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ProtectedPage = ({ children }: { children: React.ReactElement }) => {
+  const { hasPermission } = useAuth();
+  const location = useLocation();
+  const required = getRoutePermissions(location.pathname);
+
+  if (isAuthenticatedOnlyRoute(location.pathname)) {
+    return children;
+  }
+
+  if (!required || !required.some((permission) => hasPermission(permission))) {
+    return <AccessDenied required={required || []} />;
+  }
+
+  return children;
+};
+
 const AppRoutes = () => {
   const { user } = useAuth();
+  const guarded = (element: React.ReactElement) => <ProtectedPage>{element}</ProtectedPage>;
 
   return (
     <React.Suspense fallback={<ZenLoadingBarrier />}>
@@ -165,32 +206,32 @@ const AppRoutes = () => {
 
         {/* Protected Dashboards */}
         <Route element={<Layout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/clients" element={<Clients />} />
-          <Route path="/appointments" element={<Appointments />} />
-          <Route path="/rooms" element={<Rooms />} />
-          <Route path="/employees" element={<Employees />} />
-          <Route path="/attendance" element={<Attendance />} />
-          <Route path="/leave" element={<Leave />} />
-          <Route path="/leave/apply" element={<ApplyLeave />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/memberships" element={<Memberships />} />
-          <Route path="/billing" element={<Billing />} />
-          <Route path="/finance" element={<Finance />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/whatsapp" element={<WhatsApp />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/roles" element={<Roles />} />
-          <Route path="/branches" element={<Branches />} />
-          <Route path="/room-categories" element={<RoomCategories />} />
-          <Route path="/service-categories" element={<ServiceCategories />} />
-          <Route path="/admins" element={<Admins />} />
-          <Route path="/payroll" element={<Payroll />} />
-          <Route path="/shifts" element={<Shifts />} />
-          <Route path="/transactions" element={<Transactions />} />
-          <Route path="/expenses" element={<Expenses />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/dashboard" element={guarded(<Dashboard />)} />
+          <Route path="/clients" element={guarded(<Clients />)} />
+          <Route path="/appointments" element={guarded(<Appointments />)} />
+          <Route path="/rooms" element={guarded(<Rooms />)} />
+          <Route path="/employees" element={guarded(<Employees />)} />
+          <Route path="/attendance" element={guarded(<Attendance />)} />
+          <Route path="/leave" element={guarded(<Leave />)} />
+          <Route path="/leave/apply" element={guarded(<ApplyLeave />)} />
+          <Route path="/services" element={guarded(<Services />)} />
+          <Route path="/memberships" element={guarded(<Memberships />)} />
+          <Route path="/billing" element={guarded(<Billing />)} />
+          <Route path="/finance" element={guarded(<Finance />)} />
+          <Route path="/inventory" element={guarded(<Inventory />)} />
+          <Route path="/whatsapp" element={guarded(<WhatsApp />)} />
+          <Route path="/reports" element={guarded(<Reports />)} />
+          <Route path="/settings" element={guarded(<Settings />)} />
+          <Route path="/roles" element={guarded(<Roles />)} />
+          <Route path="/branches" element={guarded(<Branches />)} />
+          <Route path="/room-categories" element={guarded(<RoomCategories />)} />
+          <Route path="/service-categories" element={guarded(<ServiceCategories />)} />
+          <Route path="/admins" element={guarded(<Admins />)} />
+          <Route path="/payroll" element={guarded(<Payroll />)} />
+          <Route path="/shifts" element={guarded(<Shifts />)} />
+          <Route path="/transactions" element={guarded(<Transactions />)} />
+          <Route path="/expenses" element={guarded(<Expenses />)} />
+          <Route path="/profile" element={guarded(<Profile />)} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

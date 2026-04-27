@@ -6,7 +6,7 @@ const {
   updateClient,
   deleteClient
 } = require('../../controllers/operations/clientController');
-const { protect } = require('../../middleware/authMiddleware');
+const { protect, requirePermission } = require('../../middleware/authMiddleware');
 const { upload } = require('../../middleware/uploadMiddleware');
 
 // Define fields for multi-upload
@@ -14,10 +14,10 @@ const clientUploads = upload.fields([
   { name: 'profilePic', maxCount: 1 }
 ]);
 
-router.get('/', protect, getClients);
-router.post('/', protect, clientUploads, createClient);
-router.put('/:id', protect, clientUploads, updateClient);
-router.delete('/:id', protect, deleteClient);
+router.get('/', protect, requirePermission('clients'), getClients);
+router.post('/', protect, requirePermission('clients'), clientUploads, createClient);
+router.put('/:id', protect, requirePermission('clients'), clientUploads, updateClient);
+router.delete('/:id', protect, requirePermission('clients'), deleteClient);
 
 // Client Management (Documents not supported yet for clients)
 

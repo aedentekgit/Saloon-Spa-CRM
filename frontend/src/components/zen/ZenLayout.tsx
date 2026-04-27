@@ -73,9 +73,9 @@ export const ZenPageLayout = ({
       
       {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel) || searchActions || headerActions) && (
         <div className="zen-pointed-surface border border-zen-stone bg-white shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-4 mb-4">
-          <div className="flex items-center gap-5 lg:gap-8 overflow-hidden">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 sm:gap-5 lg:gap-8 overflow-hidden">
             {!hideSearch && (
-              <div className="flex-1 w-full flex items-center gap-4">
+              <div className="w-full lg:flex-1 flex items-center gap-4">
                 <div className="relative group flex-1">
                   <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
                   <input 
@@ -89,8 +89,12 @@ export const ZenPageLayout = ({
               </div>
             )}
 
-            <div className="flex items-center w-full lg:w-auto justify-end gap-5 lg:gap-8 lg:ml-auto shrink-0">
-              {searchActions && searchActions}
+            <div className="flex flex-wrap items-center justify-start lg:justify-end gap-3 sm:gap-5 lg:gap-8 lg:ml-auto shrink-0">
+              {searchActions && (
+                <div className="flex-shrink-0">
+                  {searchActions}
+                </div>
+              )}
 
               {!hideBranchSelector && (
                 <div className="flex items-center shrink-0">
@@ -98,19 +102,23 @@ export const ZenPageLayout = ({
                 </div>
               )}
 
-              {headerActions && headerActions}
+              {headerActions && (
+                <div className="flex-shrink-0">
+                  {headerActions}
+                </div>
+              )}
 
               {!hideViewToggle && onViewModeChange && (
                 <div className="flex items-center h-[52px] bg-zen-cream/50 p-1 rounded-[1.15rem] border border-zen-stone shadow-inner shrink-0 relative">
                     <button 
                       onClick={() => onViewModeChange('grid')}
-                      className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all duration-500 relative z-10 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-md' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
+                      className={`h-full aspect-square px-4 flex items-center justify-center rounded-xl transition-all duration-500 relative z-10 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-md' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
                     >
                       <Grid size={18} />
                     </button>
                     <button 
                       onClick={() => onViewModeChange('table')}
-                      className={`h-full aspect-square flex items-center justify-center rounded-xl transition-all duration-500 relative z-10 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-md' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
+                      className={`h-full aspect-square px-4 flex items-center justify-center rounded-xl transition-all duration-500 relative z-10 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-md' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
                     >
                       <List size={18} />
                     </button>
@@ -118,10 +126,10 @@ export const ZenPageLayout = ({
               )}
 
               {!hideAddButton && addButtonLabel && onAddClick && (
-                <div className="flex items-center">
+                <div className="flex items-center flex-1 lg:flex-none">
                   <button 
                     onClick={onAddClick}
-                    className="w-full sm:w-auto shrink-0 h-[52px] rounded-[1.15rem] px-8 shadow-sm flex items-center justify-center gap-2 active:scale-95 group transition-all duration-700 bg-zen-brown text-white font-black text-[10px] uppercase tracking-[0.2em] relative overflow-hidden"
+                    className="w-full lg:w-auto shrink-0 h-[52px] rounded-[1.15rem] px-8 shadow-sm flex items-center justify-center gap-2 active:scale-95 group transition-all duration-700 bg-zen-brown text-white font-black text-[10px] uppercase tracking-[0.2em] relative overflow-hidden whitespace-nowrap"
                   >
                     <div className="absolute inset-0 bg-gradient-to-tr from-zen-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                     <span className="relative z-10">{addButtonLabel}</span>

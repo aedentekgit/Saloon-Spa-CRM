@@ -1,7 +1,7 @@
 const MembershipPlan = require('../../models/operations/MembershipPlan');
 const Membership = require('../../models/operations/Membership');
 const User = require('../../models/core/User');
-const { deleteFile } = require('../../middleware/uploadMiddleware');
+const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { getPaginationOptions, buildPaginationMeta } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 const mongoose = require('mongoose');
@@ -18,9 +18,7 @@ const toObjectIdIfValid = (value) => {
 const getUploadedDocumentPath = (req) => {
   const file = req.files?.document?.[0] || req.file;
   if (!file) return '';
-  if (file.path && file.path.startsWith('http')) return file.path;
-  if (file.filename) return `uploads/${file.filename}`;
-  return file.path || file.url || '';
+  return getStoredFilePath(file);
 };
 
 

@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Sparkles, MapPin, Loader2, DoorOpen, Wind, Coffee, Music, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { resolveRoomImageMeta } from '../../utils/roomImage';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { withBase } from '../../utils/assetPath';
+import { getAssetBaseUrl } from '../../utils/imageUrl';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
-const BASE_URL = API_URL.replace('/api', '');
+const BASE_URL = getAssetBaseUrl();
 
 interface Branch {
   _id: string;
@@ -281,9 +283,12 @@ const LandingRooms = () => {
                             ))}
                         </div>
                         
-                        <button className="w-full py-3.5 border border-zen-primary/10 rounded-full text-[9px] font-bold uppercase tracking-[0.3em] hover:bg-zen-primary hover:text-white text-zen-brown transition-all duration-500 mt-2">
-                           Reserve Chamber
-                        </button>
+                        <Link 
+                            to="/book"
+                            className="w-full py-3.5 border border-zen-primary/10 rounded-full text-[9px] font-bold uppercase tracking-[0.3em] hover:bg-zen-primary hover:text-white text-zen-brown transition-all duration-500 mt-2 flex items-center justify-center"
+                         >
+                            Reserve Chamber
+                         </Link>
                       </div>
                     </div>
                   );

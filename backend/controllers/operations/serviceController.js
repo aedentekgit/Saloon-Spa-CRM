@@ -1,5 +1,5 @@
 const Service = require('../../models/operations/Service');
-const { deleteFile } = require('../../middleware/uploadMiddleware');
+const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 
@@ -74,18 +74,18 @@ const createService = async (req, res) => {
     const userBranchId = getBranchId(req.user.branch);
     const selectedBranch = getBranchId(branch) || userBranchId;
     if (req.user.role !== 'Admin' && !sameBranch(selectedBranch, userBranchId)) {
-      if (req.file) await deleteFile(req.file.path);
+      if (req.file) await deleteFile(getStoredFilePath(req.file));
       return res.status(403).json({ message: 'Access Denied: Cannot create services for other branches.' });
     }
 
     let image = req.body.image;
     if (req.file) {
-      image = req.file.path.startsWith('http') ? req.file.path : `uploads/${req.file.filename}`;
+      image = getStoredFilePath(req.file);
     }
 
     const serviceExists = await Service.findOne({ name, branch: selectedBranch });
     if (serviceExists) {
-      if (req.file) await deleteFile(req.file.path);
+      if (req.file) await deleteFile(getStoredFilePath(req.file));
       return res.status(400).json({ message: 'Service already exists in this branch' });
     }
 
@@ -105,7 +105,7 @@ const createService = async (req, res) => {
 
     res.status(201).json(service);
   } catch (error) {
-    if (req.file) await deleteFile(req.file.path);
+    if (req.file) await deleteFile(getStoredFilePath(req.file));
     res.status(400).json({ message: error.message });
   }
 };
@@ -118,7 +118,7 @@ const updateService = async (req, res) => {
     const service = await Service.findById(req.params.id);
 
     if (!service) {
-      if (req.file) await deleteFile(req.file.path);
+      if (req.file) await deleteFile(getStoredFilePath(req.file));
       return res.status(404).json({ message: 'Service not found' });
     }
 
@@ -127,7 +127,7 @@ const updateService = async (req, res) => {
     const isBranchManager = req.user.role === 'Manager' && sameBranch(service.branch, req.user.branch);
     
     if (!isAdmin && !isBranchManager) {
-      if (req.file) await deleteFile(req.file.path);
+      if (req.file) await deleteFile(getStoredFilePath(req.file));
       return res.status(403).json({ message: 'Access Denied: You cannot update services of other branches.' });
     }
 
@@ -156,7 +156,7 @@ const updateService = async (req, res) => {
 
     if (req.file) {
       if (service.image) await deleteFile(service.image);
-      service.image = req.file.path.startsWith('http') ? req.file.path : `uploads/${req.file.filename}`;
+      service.image = getStoredFilePath(req.file);
     } else if (req.body.image) {
       service.image = req.body.image;
     }
@@ -164,7 +164,7 @@ const updateService = async (req, res) => {
     const updatedService = await service.save();
     res.json(updatedService);
   } catch (error) {
-    if (req.file) await deleteFile(req.file.path);
+    if (req.file) await deleteFile(getStoredFilePath(req.file));
     res.status(400).json({ message: error.message });
   }
 };
