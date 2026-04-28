@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { 
-  Package, 
-  Plus, 
-  Search, 
-  AlertTriangle, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Edit2, 
+import {
+  Package,
+  Plus,
+  Search,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownRight,
+  Edit2,
   Trash2,
   Boxes,
   Box,
@@ -32,6 +32,7 @@ import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
 import { ZenInput, ZenDropdown } from '../../components/zen/ZenInputs';
 import { Modal } from '../../components/shared/Modal';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import { notify } from '../../components/shared/ZenNotification';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
@@ -47,6 +48,10 @@ interface InventoryItem {
   vendor: string;
   unit: string;
   image?: string;
+  branch?: {
+    _id: string;
+    name: string;
+  } | string;
 }
 
 const Inventory = () => {
@@ -88,6 +93,8 @@ const Inventory = () => {
     branch: ''
   });
 
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
@@ -121,6 +128,36 @@ const Inventory = () => {
 
   const PAGE_LIMIT = 12;
 
+  const inventoryExportColumns = useMemo<ExportColumn<InventoryItem>[]>(() => [
+    { header: 'Material Name', accessor: 'name' },
+    { header: 'Category', accessor: 'category' },
+    { header: 'Current Stock', accessor: (item) => `${item.stock} ${item.unit || 'Nos'}` },
+    { header: 'Minimum Level', accessor: (item) => `${item.lowStock} ${item.unit || 'Nos'}` },
+    { header: 'Supplier', accessor: (item) => item.vendor || 'N/A' },
+    { header: 'Branch Location', accessor: (item: any) => item.branch?.name || 'Main Registry' },
+    { header: 'Inventory Status', accessor: (item) => item.stock <= item.lowStock ? 'REPLENISH' : 'STABLE' }
+  ], []);
+
+  const fetchAllInventoryForExport = async () => {
+    try {
+      const queryParams = new URLSearchParams({
+        limit: '1000',
+        search: searchTerm,
+        branch: selectedBranch,
+        category: selectedCategory !== 'All' ? selectedCategory : ''
+      });
+
+      const response = await fetch(`${API_URL}/inventory?${queryParams}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const data = await response.json();
+      return data.data || (Array.isArray(data) ? data : []);
+    } catch (error) {
+      notify('error', 'Export Error', 'Could not retrieve full inventory list for export');
+      return [];
+    }
+  };
+
   const fetchInventory = async (silent: boolean = false) => {
     try {
       if (!silent && inventory.length === 0) setLoading(true);
@@ -136,7 +173,7 @@ const Inventory = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      
+
       if (data.data) {
         setInventory(data.data);
         setTotalPages(data.pagination.pages);
@@ -179,12 +216,12 @@ const Inventory = () => {
       });
     } else {
       setEditingItem(null);
-      setFormData({ 
-        name: '', 
-        category: 'None', 
-        stock: 0, 
-        lowStock: 5, 
-        vendor: '', 
+      setFormData({
+        name: '',
+        category: 'None',
+        stock: 0,
+        lowStock: 5,
+        vendor: '',
         unit: 'Nos',
         image: '',
         branch: selectedBranch !== 'all' ? selectedBranch : (branches[0]?._id || '')
@@ -218,7 +255,7 @@ const Inventory = () => {
     try {
       const response = await fetch(`${API_URL}/inventory/${id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user?.token}`
         },
@@ -234,8 +271,47 @@ const Inventory = () => {
     }
   };
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      errors.name = 'Resource Name Required';
+    } else {
+      const isDuplicate = inventory.some(item =>
+        item.name.toLowerCase() === formData.name.trim().toLowerCase() &&
+        item._id !== editingItem?._id
+      );
+      if (isDuplicate) errors.name = 'Duplicate Resource Name';
+    }
+
+    if (formData.category === 'None') {
+      errors.category = 'Sector Required';
+    }
+
+    if (formData.stock < 0) {
+      errors.stock = 'Invalid Reserve Level';
+    }
+
+    if (formData.lowStock < 0) {
+      errors.lowStock = 'Invalid Threshold';
+    }
+
+    if (!formData.branch) {
+      errors.branch = 'Branch Assignment Required';
+    }
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      notify('error', 'Validation Failure', 'Please refine the highlighted resource fields.');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     const url = editingItem ? `${API_URL}/inventory/${editingItem._id}` : `${API_URL}/inventory`;
     const method = editingItem ? 'PUT' : 'POST';
 
@@ -248,14 +324,14 @@ const Inventory = () => {
       data.append('vendor', formData.vendor);
       data.append('branch', formData.branch);
       data.append('unit', formData.unit);
-      
+
       if (imageFile) {
         data.append('inventoryImage', imageFile);
       }
 
       const response = await fetch(url, {
         method,
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${user?.token}`
         },
         body: data
@@ -265,9 +341,12 @@ const Inventory = () => {
         notify('success', editingItem ? 'Inventory Updated' : 'Resource Recorded', editingItem ? 'Item details saved successfully.' : 'New item added to inventory.');
         setIsModalOpen(false);
         fetchInventory();
+      } else {
+        const error = await response.json();
+        notify('error', 'Update Error', error.message || 'Action failed');
       }
     } catch (error) {
-      notify('error', 'Processing Error', 'Failed to conclude the material registration.');
+      notify('error', 'Update Error', 'Connection failure');
     }
   };
 
@@ -280,6 +359,17 @@ const Inventory = () => {
       onViewModeChange={setViewMode}
       addButtonLabel="Add Item"
       onAddClick={() => handleOpenModal()}
+      searchActions={
+        <ExportPopup
+          data={filteredInventory}
+          columns={inventoryExportColumns}
+          fileName="inventory_report"
+          title="Inventory"
+          triggerLabel="Download"
+          description="Generate a comprehensive report of your current stock levels, categories, and replenishment status across selected branches."
+          resolveData={fetchAllInventoryForExport}
+        />
+      }
       topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
@@ -302,16 +392,16 @@ const Inventory = () => {
                 const branchName = (item as any).branch?.name || 'Main Registry';
 
                 return (
-                  <div 
-                    key={item._id} 
+                  <div
+                    key={item._id}
                     className="group relative bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-zen-brown/15 overflow-hidden flex flex-col transition-all duration-700 hover:shadow-xl hover:translate-y-[-4px]"
                     style={{ animationDelay: `${i * 50}ms` }}
                   >
                     {/* Visual Frame */}
                     <div className="aspect-[16/10] relative overflow-hidden bg-zen-cream/50">
                       {imgUrl ? (
-                        <img 
-                          src={imgUrl} 
+                        <img
+                          src={imgUrl}
                           alt={item.name}
                           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                         />
@@ -330,7 +420,7 @@ const Inventory = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="p-6 flex flex-col flex-1">
                       <div className="mb-4">
                          <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">{item.category}</span>
@@ -347,7 +437,7 @@ const Inventory = () => {
                             </div>
                             <ZenBadge variant="sand" className="text-[8px] font-bold uppercase py-1">{branchName}</ZenBadge>
                          </div>
-                         
+
                          <div className="flex items-center justify-between gap-2 pt-4 border-t border-black/[0.03]">
                             <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-wider">{item.vendor || 'Inventory'}</span>
                             <div className="flex items-center gap-2">
@@ -367,7 +457,7 @@ const Inventory = () => {
               )}
            </div>
         ) : (
-           <div className="w-full bg-white rounded-xl border border-zen-stone shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden table-container">
+           <div className="w-full bg-white/80 backdrop-blur-xl rounded-[2rem] border border-zen-brown/15 shadow-none overflow-hidden table-container">
               <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
                  <thead>
                     <tr>
@@ -453,9 +543,9 @@ const Inventory = () => {
       </div>
 
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         title={editingItem ? 'Edit Inventory Item' : 'New Inventory Item'}
         subtitle="Manage stock records"
         maxWidth="max-w-4xl"
@@ -463,8 +553,8 @@ const Inventory = () => {
         footer={
           <div className="flex gap-6">
             <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1">Cancel</ZenButton>
-            <ZenButton 
-              type="submit" 
+            <ZenButton
+              type="submit"
               form="inventory-form"
               className="flex-[2] shadow-sm shadow-zen-brown/20 flex items-center justify-center gap-3"
             >
@@ -504,6 +594,7 @@ const Inventory = () => {
                    placeholder="e.g. 24K Gold Facial Serum"
                    value={formData.name}
                    onChange={(e: any) => setFormData({...formData, name: e.target.value})}
+                   error={formErrors.name}
                  />
               </div>
            </div>
@@ -514,13 +605,15 @@ const Inventory = () => {
                 value={formData.category}
                 onChange={val => setFormData({...formData, category: val})}
                 options={['None', ...inventoryCategories]}
+                error={!!formErrors.category}
               />
               <ZenInput
                 type="number"
                 label="Opening Stock"
                 required
                 value={formData.stock}
-                onChange={(e: any) => setFormData({...formData, stock: parseInt(e.target.value)})}
+                onChange={(e: any) => setFormData({...formData, stock: parseInt(e.target.value) || 0})}
+                error={formErrors.stock}
               />
               <ZenDropdown
                 label="Unit"
@@ -536,7 +629,8 @@ const Inventory = () => {
                 label="Reorder Level"
                 required
                 value={formData.lowStock}
-                onChange={(e: any) => setFormData({...formData, lowStock: parseInt(e.target.value)})}
+                onChange={(e: any) => setFormData({...formData, lowStock: parseInt(e.target.value) || 0})}
+                error={formErrors.lowStock}
               />
               <ZenDropdown
                 label="Assigned Branch"
@@ -546,6 +640,8 @@ const Inventory = () => {
                   if (b) setFormData({...formData, branch: b._id});
                 }}
                 options={(branches || []).map(b => b.name)}
+                error={!!formErrors.branch}
+                disabled={user?.role !== 'Admin'}
               />
            </div>
            <div className="grid grid-cols-1 gap-8">
@@ -568,7 +664,7 @@ const Inventory = () => {
                   <span className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest">{settings?.upload.provider === 'cloudinary' ? 'Cloud Storage' : 'Local Storage'}</span>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-4">
                 <label htmlFor="inventory-image-footer" className="flex-1 h-12 bg-white border border-zen-brown/25 rounded-xl flex items-center justify-center gap-3 cursor-pointer hover:bg-zen-brown hover:text-white hover:border-zen-brown transition-all group/btn shadow-sm">
                    <Camera size={16} className="text-zen-brown/30 group-hover/btn:text-white transition-colors" />
@@ -585,7 +681,7 @@ const Inventory = () => {
                     setImagePreview(null);
                   }
                 }} />
-                
+
                 {imageFile && (
                   <div className="flex items-center gap-2 text-zen-leaf">
                     <Sparkles size={12} />

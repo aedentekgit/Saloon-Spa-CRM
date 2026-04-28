@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { getImageUrl } from '../../utils/imageUrl';
 import dayjs from 'dayjs';
-import { 
+import {
   UserPlus, Phone, Edit2, Trash2, User as UserIcon,
   Sparkles, X, Calendar, Camera, Mail, Info, Lock, Eye, EyeOff, MapPin, ChevronRight, History, Search, Grid, List, Zap, Users
 } from 'lucide-react';
@@ -106,14 +106,14 @@ const Clients = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  
+
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_clients_view') as 'grid' | 'table') || 'grid';
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -184,12 +184,12 @@ const Clients = () => {
       }
 
       const response = await fetch(`${API_URL}/clients?${queryParams.toString()}`, {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${user?.token}`,
           'Accept': 'application/json'
         }
       });
-      
+
       const data = await response.json();
       if (data.data) {
         let nextClients = data.data;
@@ -253,7 +253,7 @@ const Clients = () => {
         if (Array.isArray(roleData)) {
           const roleNames = roleData.map((r: any) => r.name);
           setRoles(roleNames);
-          
+
           if (!editingClient && roleNames.includes('Client')) {
             setFormData(prev => ({ ...prev, role: 'Client' }));
           }
@@ -284,8 +284,8 @@ const Clients = () => {
     let filtered = clients;
 
     // Filter by Search Term
-    return filtered.filter(client => 
-      (client.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+    return filtered.filter(client =>
+      (client.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (client.phone || '').includes(searchTerm) ||
       (client.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
@@ -482,8 +482,8 @@ const Clients = () => {
       // Strip dialing code for editing if it exists
       const dialingCode = settings?.general?.dialingCode || '+974';
       const rawPhone = client.phone || '';
-      const cleanPhone = rawPhone.startsWith(dialingCode) 
-        ? rawPhone.slice(dialingCode.length) 
+      const cleanPhone = rawPhone.startsWith(dialingCode)
+        ? rawPhone.slice(dialingCode.length)
         : rawPhone;
 
       setFormData({
@@ -499,16 +499,16 @@ const Clients = () => {
       });
     } else {
       setEditingClient(null);
-      setFormData({ 
-        name: '', 
-        phone: '', 
-        email: '', 
-        dob: '', 
-        notes: '', 
-        status: 'Active', 
-        role: roles.includes('Client') ? 'Client' : (roles[0] || ''), 
-        password: '', 
-        confirmPassword: '' 
+      setFormData({
+        name: '',
+        phone: '',
+        email: '',
+        dob: '',
+        notes: '',
+        status: 'Active',
+        role: roles.includes('Client') ? 'Client' : (roles[0] || ''),
+        password: '',
+        confirmPassword: ''
       });
     }
     setProfilePicFile(null);
@@ -524,7 +524,7 @@ const Clients = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       notify('error', 'Validation Error', 'Passwords do not match');
       return;
@@ -539,7 +539,7 @@ const Clients = () => {
 
     const data = new FormData();
     const fullPhone = `${settings?.general?.dialingCode || '+974'}${formData.phone}`;
-    
+
     Object.entries(formData).forEach(([key, value]) => {
       if (key === 'confirmPassword') return;
       if (key === 'phone') {
@@ -599,7 +599,7 @@ const Clients = () => {
     try {
       const response = await fetch(`${API_URL}/clients/${client._id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${user?.token}`,
           'Content-Type': 'application/json'
         },
@@ -688,7 +688,7 @@ const Clients = () => {
                         </div>
                       )}
                    </div>
-                   
+
                    <div className="min-w-0 flex-1">
                        <h3 className="text-xl lg:text-2xl font-serif text-zen-brown tracking-tight truncate flex items-center gap-2">
                           {client.name}
@@ -724,7 +724,7 @@ const Clients = () => {
               <div className="relative z-10 pt-4 border-t border-zen-brown/15">
                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <button 
+                            <button
                               onClick={() => toggleClientStatus(client)}
                               className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 ${client.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-sm' : 'bg-red-50 text-red-400 border-red-100'}`}
                             >
@@ -749,7 +749,7 @@ const Clients = () => {
           ))}
         </div>
       ) : (
-        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
           <div className="table-container">
             <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
               <thead>
@@ -823,7 +823,7 @@ const Clients = () => {
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
                       <div className="flex justify-center">
-                        <button 
+                        <button
                           onClick={() => toggleClientStatus(client)}
                           className="transition-transform active:scale-95"
                         >

@@ -10,29 +10,35 @@ interface BranchSelectorProps {
   hideLabel?: boolean;
 }
 
-export const BranchSelector = ({ 
-  className = "", 
+export const BranchSelector = ({
+  className = "",
   variant = "pill",
-  hideLabel = true 
+  hideLabel = true
 }: BranchSelectorProps) => {
   const { user } = useAuth();
   const { branches, selectedBranch, setSelectedBranch } = useBranches();
 
-  if (user?.role !== 'Admin') return null;
+  const isAdmin = user?.role === 'Admin';
+  const userBranchId = typeof user?.branch === 'string' ? user.branch : user?.branch?._id || '';
+  const lockedBranchId = isAdmin ? selectedBranch : (userBranchId || selectedBranch);
 
-  const branchOptions = ['All Branches', ...branches.map(b => b.name)];
-  const currentBranchName = selectedBranch === 'all' 
-    ? 'All Branches' 
-    : branches.find(b => b._id === selectedBranch)?.name || 'All Branches';
+  if (!user) return null;
 
-  const handleBranchChange = (name: string) => {
-    if (name === 'All Branches') {
-      setSelectedBranch('all');
-    } else {
-      const branch = branches.find(b => b.name === name);
-      if (branch) setSelectedBranch(branch._id);
-    }
+  const visibleBranches = isAdmin ? branches : branches.filter(branch => branch._id === lockedBranchId);
+  const lockedOptions = visibleBranches.length > 0
+    ? visibleBranches.map(b => ({ label: b.name, value: b._id }))
+    : (lockedBranchId ? [{ label: 'Assigned Branch', value: lockedBranchId }] : []);
+  const branchOptions = isAdmin
+    ? [{ label: 'All Branches', value: 'all' }, ...visibleBranches.map(b => ({ label: b.name, value: b._id }))]
+    : lockedOptions;
+  const currentValue = isAdmin ? selectedBranch : lockedBranchId;
+
+  const handleBranchChange = (value: string) => {
+    if (!isAdmin) return;
+    setSelectedBranch(value);
   };
+
+  if (!isAdmin && !lockedBranchId) return null;
 
   return (
     <div className={`w-full min-w-0 sm:min-w-[220px] sm:w-auto ${className}`}>
@@ -42,8 +48,9 @@ export const BranchSelector = ({
         variant={variant}
         icon={GitBranch}
         options={branchOptions}
-        value={currentBranchName}
+        value={currentValue || (isAdmin ? 'all' : '')}
         onChange={handleBranchChange}
+        disabled={!isAdmin}
       />
     </div>
   );

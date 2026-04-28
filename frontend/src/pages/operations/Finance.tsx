@@ -1,22 +1,22 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Coins, 
-  TrendingUp, 
-  TrendingDown, 
-  Plus, 
-  Filter, 
-  Trash2, 
+import {
+  Coins,
+  TrendingUp,
+  TrendingDown,
+  Plus,
+  Filter,
+  Trash2,
 } from 'lucide-react';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
@@ -250,20 +250,12 @@ const Finance = () => {
   const [expenses, setExpenses] = useState<Expense[]>(() => getCachedJson('zen_page_finance_expenses', []));
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(() => {
     const cachedInvoices = getCachedJson<Invoice[]>('zen_page_finance_invoices', []);
     const cachedExpenses = getCachedJson<Expense[]>('zen_page_finance_expenses', []);
     return cachedInvoices.length === 0 && cachedExpenses.length === 0;
-  });
-
-  const [formData, setFormData] = useState({
-    title: '',
-    category: 'Inventory',
-    amount: 0,
-    date: dayjs().format('YYYY-MM-DD')
   });
 
   const [trendData, setTrendData] = useState<any[]>(() => getCachedJson('zen_page_finance_trend', []));
@@ -305,13 +297,13 @@ const Finance = () => {
       const invData = await invRes.json();
       const expData = await expRes.json();
       const statsData = await statsRes.json();
-      
+
       const invoicesList = Array.isArray(invData) ? invData : (invData.data || []);
       const expensesList = Array.isArray(expData) ? expData : (expData.data || []);
-      
+
       setInvoices(invoicesList);
       setExpenses(expensesList);
-      
+
       if (statsData.revenue?.trend) {
         setTrendData(statsData.revenue.trend);
       }
@@ -436,28 +428,6 @@ const Finance = () => {
   );
 
 
-  const handleAddExpense = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await fetch(`${API_URL}/expenses`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        notify('success', 'Expense Recorded', 'The entry has been recorded.');
-        setIsModalOpen(false);
-        fetchData();
-        setFormData({ title: '', category: 'Inventory', amount: 0, date: dayjs().format('YYYY-MM-DD') });
-      }
-    } catch (error) {
-      notify('error', 'Save Error', 'Failed to update tactical record.');
-    }
-  };
 
   const executeDelete = async () => {
     if (!expenseToDelete) return;
@@ -483,8 +453,6 @@ const Finance = () => {
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       hideViewToggle
-      addButtonLabel="Log Expenditure"
-      onAddClick={() => setIsModalOpen(true)}
       searchActions={
         <ExportPopup<LedgerRow>
           data={ledgerRows}
@@ -513,7 +481,7 @@ const Finance = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 font-sans">
         {/* Left Side: Chart */}
         <div className="lg:col-span-7 w-full flex flex-col">
-           <div className="bg-white border border-zen-stone zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-6 sm:p-8 lg:p-10 min-h-[360px] sm:min-h-[420px] relative overflow-hidden">
+           <div className="bg-white border border-zen-stone zen-pointed-surface shadow-none p-6 sm:p-8 lg:p-10 min-h-[360px] sm:min-h-[420px] relative overflow-hidden">
              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-zen-brown/5">
                 <div>
                    <h3 className="text-xl font-bold text-gray-900 tracking-tight">Financial Status</h3>
@@ -553,24 +521,24 @@ const Finance = () => {
                        </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                    <XAxis 
-                      dataKey="name" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#64748B', fontSize: 10, fontWeight: 700 }} 
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748B', fontSize: 10, fontWeight: 700 }}
                     />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#64748B', fontSize: 10, fontWeight: 700 }} 
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748B', fontSize: 10, fontWeight: 700 }}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        borderRadius: '1.5rem', 
-                        border: 'none', 
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: '1.5rem',
+                        border: 'none',
                         boxShadow: '0 20px 40px rgba(0,0,0,0.05)',
                         padding: '1.5rem'
-                      }} 
+                      }}
                     />
                     <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
                     <Area type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={3} strokeDasharray="10 10" fillOpacity={1} fill="url(#colorExpense)" />
@@ -582,7 +550,7 @@ const Finance = () => {
 
         {/* Right Side: Ledger */}
         <div className="lg:col-span-5 w-full flex flex-col">
-           <div className="bg-white border border-zen-stone zen-pointed-surface shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden">
+           <div className="bg-white border border-zen-stone zen-pointed-surface shadow-none overflow-hidden">
               <div className="flex justify-between items-center gap-4 px-6 sm:px-8 py-4 border-b border-zen-brown/5">
                  <div>
                     <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Activity</h3>
@@ -634,8 +602,8 @@ const Finance = () => {
                            ledgerRows.map((row, idx) => {
                              const isExpense = row.kind === 'Expense';
                              return (
-                               <motion.tr 
-                                 key={row.id} 
+                               <motion.tr
+                                 key={row.id}
                                  initial={{ opacity: 0 }}
                                  animate={{ opacity: 1 }}
                                  exit={{ opacity: 0 }}
@@ -697,64 +665,6 @@ const Finance = () => {
         </div>
       </div>
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title="Log Expenditure"
-        subtitle="Record an external outflow"
-        headerIcon={TrendingDown}
-        footer={
-          <div className="flex gap-6">
-            <ZenButton 
-               type="button" 
-               variant="secondary" 
-               onClick={() => setIsModalOpen(false)} 
-               className="flex-1 text-[10px] tracking-[0.2em] font-black"
-            >
-               DISCARD
-            </ZenButton>
-            <ZenButton 
-               type="submit" 
-               form="log-expenditure-form" 
-               className="flex-[2] bg-zen-sand hover:bg-zen-sand/90 shadow-lg shadow-zen-sand/20 text-[10px] tracking-[0.2em] font-black"
-            >
-               SAVE ENTRY
-            </ZenButton>
-          </div>
-        }
-      >
-        <form id="log-expenditure-form" onSubmit={handleAddExpense} className="space-y-8">
-           <ZenInput
-             label="Resource Identity"
-             required
-             placeholder="e.g. Monthly Retainer"
-             value={formData.title}
-             onChange={(e: any) => setFormData({...formData, title: e.target.value})}
-           />
-
-           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-              <ZenDropdown
-                label="Tactical Category"
-                value={formData.category}
-                onChange={(val: any) => setFormData({...formData, category: val})}
-                options={['Inventory', 'Utilities', 'Staff', 'Marketing', 'Rent', 'Misc']}
-              />
-              <ZenInput
-                type="number"
-                label={`Exchange Volume (${settings?.general?.currencySymbol || 'QR'})`}
-                required
-                value={formData.amount}
-                onChange={(e: any) => setFormData({...formData, amount: parseInt(e.target.value) || 0})}
-              />
-           </div>
-
-           <ZenDatePicker
-             label="Ledger Entry Date"
-             value={formData.date}
-             onChange={(val: any) => setFormData({...formData, date: val})}
-           />
-        </form>
-      </Modal>
 
       <ConfirmDialog
         isOpen={isConfirmOpen}

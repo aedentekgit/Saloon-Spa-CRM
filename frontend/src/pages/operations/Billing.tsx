@@ -1,15 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { 
-  Printer, 
-  Share2, 
-  CreditCard, 
-  Smartphone, 
-  Wallet, 
-  Plus, 
-  Trash2, 
-  Receipt, 
-  Zap, 
+import {
+  Printer,
+  Share2,
+  CreditCard,
+  Smartphone,
+  Wallet,
+  Plus,
+  Trash2,
+  Receipt,
+  Zap,
   Sparkles,
   Search,
   ChevronRight,
@@ -30,6 +30,7 @@ import { ZenInput, ZenDropdown, ZenAutocomplete } from '../../components/zen/Zen
 import { notify } from '../../components/shared/ZenNotification';
 import { useSettings } from '../../context/SettingsContext';
 import { useData } from '../../context/DataContext';
+import { useBranches } from '../../context/BranchContext';
 
 interface Service {
   _id: string;
@@ -62,7 +63,8 @@ const Billing = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
   const { invoices, clients: rawClients, services: rawServices, refreshData } = useData();
-  
+  const { selectedBranch } = useBranches();
+
   const clients = useMemo(() => rawClients.filter((c: any) => c.status === 'Active'), [rawClients]);
   const services = useMemo(() => rawServices.filter((s: any) => s.status === 'Active'), [rawServices]);
 
@@ -161,10 +163,10 @@ const Billing = () => {
           notify('error', 'Limit Exceeded', 'The current membership cycle balance is fully utilized');
           return item;
         }
-        
+
         const isCurrentlyRedeeming = !item.isRedeem;
         const totalRedeemedAlready = invoiceItems.filter(i => i.isRedeem && i.uniqueId !== uniqueId).length;
-        
+
         if (isCurrentlyRedeeming && (totalRedeemedAlready >= activeMembership.remainingSessions)) {
            notify('error', 'Insufficient Balance', 'Cannot allocate more redemptions than registered balance');
            return item;
@@ -196,7 +198,7 @@ const Billing = () => {
 
     setLoading(true);
     const nextNumber = `INV-${dayjs().year()}-${String(invoices.length + 1).padStart(3, '0')}`;
-    
+
     const newInvoice = {
       invoiceNumber: nextNumber,
       clientId: selectedClient._id || undefined,
@@ -209,13 +211,14 @@ const Billing = () => {
       total,
       paymentMode,
       payments: paymentMode === 'Split' ? payments.filter(p => p.amount > 0) : [{ mode: paymentMode, amount: total }],
-      date: dayjs().format('YYYY-MM-DD')
+      date: dayjs().format('YYYY-MM-DD'),
+      branch: selectedBranch !== 'all' ? selectedBranch : (user?.branch || undefined)
     };
 
     try {
       const response = await fetch(`${API_URL}/invoices`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user?.token}`
         },
@@ -224,20 +227,20 @@ const Billing = () => {
 
       if (response.ok) {
         const savedInvoice = await response.json();
-        
+
         const redemptions = invoiceItems.filter(item => item.isRedeem);
         if (redemptions.length > 0 && activeMembership) {
            for (const item of redemptions) {
               await fetch(`${API_URL}/memberships/${activeMembership._id}/redeem`, {
                  method: 'POST',
-                 headers: { 
+                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${user?.token}`
                  },
                  body: JSON.stringify({
                     serviceId: item._id,
                     notes: `System Settlement via Invoice ${nextNumber}`,
-                    branchId: user?.branch || undefined
+                    branchId: newInvoice.branch
                  })
               });
            }
@@ -250,6 +253,9 @@ const Billing = () => {
         setPayments(payments.map(p => ({ ...p, amount: 0 })));
         setPaymentMode('Card');
         refreshData();
+      } else {
+        const errData = await response.json();
+        notify('error', 'Settlement Failed', errData.message || 'The terminal encountered an internal sync error.');
       }
     } catch (error) {
       notify('error', 'Sync Error', 'The settlement sync failed. Please verify records.');
@@ -260,92 +266,121 @@ const Billing = () => {
 
   return (
     <ZenPageLayout
-      title="Intelligent Billing Terminal"
+      title="Billing Terminal"
       hideSearch
       hideAddButton
-      hideBranchSelector
+      hideBranchSelector={false}
       hideViewToggle
     >
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-        
-        {/* Left Column: Input & Selection */}
-        <div className="xl:col-span-8 space-y-8">
-          
-          {/* Client & Status Section */}
-          <div className="zen-pointed-surface bg-white border border-black/5 p-8 shadow-sm">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-              <div className="flex-1 w-full max-w-md">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-full bg-zen-sand/10 flex items-center justify-center text-zen-sand">
-                    <User size={16} />
-                  </div>
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-black/40">Ambassador Selection</h3>
-                </div>
-                <ZenAutocomplete 
-                  label=""
-                  hideLabel
-                  placeholder="Identify Recipient..."
-                  options={clients.map(c => ({ id: c._id, name: c.name, subtext: c.phone }))}
-                  value={selectedClient?._id || selectedClient?.name || ''}
-                  onChange={(val) => {
-                    if (!val || val === 'None') {
-                      setSelectedClient(null);
-                      return;
-                    }
-                    const client = clients.find(c => c._id === val || c.name === val);
-                    if (client) {
-                      setSelectedClient(client);
-                    } else {
-                      setSelectedClient({ _id: '', name: val, phone: '' });
-                    }
-                  }}
-                  allowCustom
-                  className="w-full"
-                />
-              </div>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start max-w-[1600px] mx-auto">
 
-              {selectedClient && (
-                <motion.div 
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="zen-pointed-surface flex items-center gap-4 bg-gray-50 p-4 rounded-3xl border border-black/5 shadow-sm"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-white border border-black/5 flex items-center justify-center text-zen-sand shadow-sm">
-                    {activeMembership ? <Crown size={24} /> : <User size={24} />}
+        {/* Left Column: Input & Selection */}
+        <div className="xl:col-span-8 space-y-6">
+
+          {/* Ambassador Selection Section */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/15 p-10 relative overflow-hidden group">
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-zen-sand/10 rounded-full blur-3xl transition-transform duration-1000 group-hover:scale-150" />
+
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+              <div className="flex-1 w-full">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-zen-brown/5 flex items-center justify-center text-zen-brown/40">
+                    <User size={22} strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-black/20 uppercase tracking-widest">Selected Profile</p>
-                    <p className="font-serif text-lg font-bold text-black">{selectedClient.name}</p>
+                    <h3 className="text-[11px] font-bold uppercase tracking-[0.4em] text-zen-brown/30">Ambassador Selection</h3>
+                    <p className="text-xs text-zen-brown/20 mt-0.5">Link a profile to initiate settlement protocol</p>
                   </div>
-                </motion.div>
-              )}
+                </div>
+
+                <div className="relative group/input">
+                  <ZenAutocomplete
+                    label=""
+                    hideLabel
+                    placeholder="Search by name or contact identifier..."
+                    options={clients.map(c => ({ id: c._id, name: c.name, subtext: c.phone }))}
+                    value={selectedClient?._id || selectedClient?.name || ''}
+                    onChange={(val) => {
+                      if (!val || val === 'None') {
+                        setSelectedClient(null);
+                        return;
+                      }
+                      const client = clients.find(c => c._id === val || c.name === val);
+                      if (client) {
+                        setSelectedClient(client);
+                      } else {
+                        setSelectedClient({ _id: '', name: val, phone: '' });
+                      }
+                    }}
+                    allowCustom
+                    className="w-full"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover/input:opacity-100 transition-opacity pointer-events-none">
+                    <Search size={18} className="text-zen-brown/20" />
+                  </div>
+                </div>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {selectedClient ? (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                    className="flex items-center gap-5 bg-white/50 backdrop-blur-md pl-6 pr-8 py-5 rounded-[2rem] border border-zen-brown/10 shadow-sm min-w-[280px]"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-white border border-zen-brown/10 flex items-center justify-center text-zen-gold shadow-sm shrink-0">
+                      {activeMembership ? <Crown size={28} strokeWidth={1.5} /> : <User size={28} strokeWidth={1.5} />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.2em] mb-1">Active Profile</p>
+                      <p className="font-serif text-xl font-bold text-zen-brown truncate">{selectedClient.name}</p>
+                      {selectedClient.phone && <p className="text-[10px] font-bold text-zen-gold uppercase tracking-widest mt-0.5">{selectedClient.phone}</p>}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="hidden md:flex flex-col items-end opacity-20"
+                  >
+                    <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-zen-brown/30 flex items-center justify-center">
+                      <Plus size={24} className="text-zen-brown" />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {activeMembership && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="zen-pointed-surface mt-8 p-6 bg-zen-sand/[0.03] rounded-[2rem] border border-zen-sand/10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm"
+                className="mt-10 p-8 bg-gradient-to-br from-zen-sand/[0.08] to-transparent rounded-[2.5rem] border border-zen-sand/20 flex flex-col md:flex-row items-center justify-between gap-8"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-zen-sand shadow-sm">
-                    <Sparkles size={20} />
+                <div className="flex items-center gap-5">
+                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-zen-sand shadow-lg shadow-zen-sand/10">
+                    <Sparkles size={24} />
                   </div>
                   <div>
-                    <h4 className="text-[10px] font-bold text-zen-sand uppercase tracking-widest">Active Privilege Detected</h4>
-                    <p className="font-serif text-base font-bold text-black">{activeMembership.plan.name} Tier</p>
+                    <h4 className="text-[11px] font-bold text-zen-sand uppercase tracking-[0.3em]">Privilege Tier Unlocked</h4>
+                    <p className="font-serif text-lg font-bold text-zen-brown">{activeMembership.plan.name}</p>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-8">
+
+                <div className="flex items-center gap-10">
                   <div className="text-right">
-                    <p className="text-[10px] font-bold text-black/20 uppercase tracking-widest">Registry Balance</p>
-                    <p className="text-sm font-bold text-black">{activeMembership.remainingSessions} / {activeMembership.totalSessions} Nodes</p>
+                    <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mb-1">Node Balance</p>
+                    <div className="flex items-baseline justify-end gap-1">
+                      <span className="text-lg font-bold text-zen-brown">{activeMembership.remainingSessions}</span>
+                      <span className="text-[10px] font-bold text-zen-brown/30 uppercase">/ {activeMembership.totalSessions}</span>
+                    </div>
                   </div>
-                  <div className="h-8 w-[1px] bg-zen-sand/20" />
+                  <div className="h-10 w-[1px] bg-zen-sand/20" />
                   <div className="text-right">
-                    <p className="text-[10px] font-bold text-black/20 uppercase tracking-widest">Entitlement</p>
-                    <p className="text-sm font-bold text-zen-leaf">
+                    <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mb-1">Entitlement</p>
+                    <p className="text-sm font-bold text-zen-leaf flex items-center gap-1.5 justify-end">
+                      <Zap size={14} className="fill-current" />
                       {activeMembership.plan.discountValue > 0 ? (
                         `${activeMembership.plan.discountValue}${activeMembership.plan.discountType === 'Percentage' ? '%' : ` ${settings?.general.currencySymbol || 'QR'}`} Deduction`
                       ) : (
@@ -359,19 +394,22 @@ const Billing = () => {
           </div>
 
           {/* Service Registry Section */}
-          <div className="zen-pointed-surface bg-white border border-black/5 shadow-sm flex flex-col">
-            <div className="p-8 border-b border-black/5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-zen-leaf/10 flex items-center justify-center text-zen-leaf">
-                  <ShoppingBag size={16} />
+          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/15 flex flex-col overflow-hidden">
+            <div className="px-10 py-8 border-b border-zen-brown/10 flex flex-col sm:flex-row items-center justify-between gap-6 bg-zen-brown/[0.02]">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-zen-leaf/5 flex items-center justify-center text-zen-leaf">
+                  <ShoppingBag size={20} strokeWidth={1.5} />
                 </div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-black/40">Active Registry</h3>
+                <div>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.4em] text-zen-brown/30 leading-none">Active Registry</h3>
+                  <p className="text-[10px] text-zen-brown/20 mt-1 uppercase tracking-widest">{invoiceItems.length} items staged</p>
+                </div>
               </div>
-              <div className="w-64">
-                <ZenDropdown 
+              <div className="w-full sm:w-72">
+                <ZenDropdown
                   label=""
                   hideLabel
-                  placeholder="+ Add Service Item"
+                  placeholder="+ Add Service Protocol"
                   options={services.map(s => s.name)}
                   value=""
                   onChange={handleAddService}
@@ -379,79 +417,94 @@ const Billing = () => {
               </div>
             </div>
 
-            <div className="table-container p-0 overflow-x-auto">
-              <table className="w-full border-collapse">
+            <div className="overflow-x-auto">
+              <table className="w-full">
                 <thead>
-                  <tr>
-                    <th>Internal Reference</th>
-                    <th>Energy Value</th>
-                    <th>Settlement Logic</th>
-                    <th>Actions</th>
+                  <tr className="bg-zen-brown/[0.02]">
+                    <th className="px-10 py-4 text-left text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] border-b border-zen-brown/5">Reference</th>
+                    <th className="px-8 py-4 text-right text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] border-b border-zen-brown/5">Energy Value</th>
+                    <th className="px-8 py-4 text-center text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] border-b border-zen-brown/5">Logic</th>
+                    <th className="px-10 py-4 text-center text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] border-b border-zen-brown/5">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-black/5">
+                <tbody className="divide-y divide-zen-brown/5">
                   <AnimatePresence mode="popLayout">
                     {invoiceItems.length === 0 ? (
-                      <motion.tr 
+                      <motion.tr
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                       >
-                        <td colSpan={4} className="px-8 py-20 text-center">
-                          <div className="flex flex-col items-center gap-3 opacity-20">
-                            <ShoppingBag size={48} strokeWidth={1} />
-                            <p className="font-serif italic text-lg">Registry is currently vacant</p>
+                        <td colSpan={4} className="px-10 py-32 text-center">
+                          <div className="flex flex-col items-center gap-5 opacity-30">
+                            <ShoppingBag size={64} strokeWidth={1} className="text-zen-brown" />
+                            <div className="space-y-1">
+                              <p className="font-serif italic text-2xl text-zen-brown">Registry is vacant</p>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-zen-brown">Awaiting item selection</p>
+                            </div>
                           </div>
                         </td>
                       </motion.tr>
                     ) : (
                       invoiceItems.map((item) => (
-                        <motion.tr 
+                        <motion.tr
                           key={item.uniqueId}
                           layout
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          className="group hover:bg-gray-50/80 transition-all"
+                          className="group hover:bg-zen-brown/[0.01] transition-all"
                         >
-                          <td className="px-6 py-5">
-                            <div className="flex items-center gap-4">
-                              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border transition-all ${item.isRedeem ? 'bg-zen-sand/10 border-zen-sand/20 text-zen-sand' : 'bg-white border-black/5 text-black/20 group-hover:text-black/40'}`}>
-                                {item.isRedeem ? <Sparkles size={18} /> : <div className="w-2 h-2 rounded-full bg-current" />}
+                          <td className="px-10 py-6">
+                            <div className="flex items-center gap-5">
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all duration-500 ${item.isRedeem ? 'bg-zen-sand/10 border-zen-sand/20 text-zen-sand shadow-inner shadow-zen-sand/5' : 'bg-white border-zen-brown/10 text-zen-brown/20 group-hover:border-zen-brown/30 group-hover:text-zen-brown/40'}`}>
+                                {item.isRedeem ? <Sparkles size={20} /> : <Zap size={18} strokeWidth={1.5} />}
                               </div>
-                              <div className="flex flex-col gap-0.5">
-                                <p className={`zen-table-primary transition-all leading-none ${item.isRedeem ? 'text-zen-sand' : 'text-black'}`}>{item.name}</p>
-                                <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">{item.duration}m duration</span>
+                              <div className="flex flex-col gap-1">
+                                <p className={`font-serif text-lg leading-tight transition-all duration-500 ${item.isRedeem ? 'text-zen-sand font-bold' : 'text-zen-brown font-semibold'}`}>{item.name}</p>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">{item.duration}m duration</span>
+                                  {item.isRedeem && <span className="w-1 h-1 rounded-full bg-zen-sand/40" />}
+                                  {item.isRedeem && <span className="text-[9px] font-bold text-zen-sand uppercase tracking-widest animate-pulse">Privilege applied</span>}
+                                </div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-8 py-5 text-right">
-                             <div className={`transition-all ${item.isRedeem ? 'opacity-30 line-through grayscale' : 'opacity-100'}`}>
-                               <p className="text-[10px] font-bold text-black/30 mb-1">{settings?.general.currencySymbol || 'QR'}</p>
-                               <p className="font-serif text-lg font-bold">{item.price?.toLocaleString()}</p>
+                          <td className="px-8 py-6 text-right">
+                             <div className={`transition-all duration-500 ${item.isRedeem ? 'opacity-30 scale-95 origin-right line-through blur-[0.5px]' : 'opacity-100'}`}>
+                               <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">{settings?.general.currencySymbol || 'QR'}</p>
+                               <p className="font-serif text-2xl font-black text-zen-brown">{item.price?.toLocaleString()}</p>
                              </div>
                           </td>
-                          <td className="px-8 py-5 text-right">
-                            {item.isRedeem ? (
-                              <ZenBadge variant="leaf" className="uppercase tracking-[0.2em] text-[8px] py-1 px-3">Redeemed</ZenBadge>
-                            ) : (
-                              <ZenBadge variant="secondary" className="uppercase tracking-[0.2em] text-[8px] py-1 px-3 opacity-40">Standard Settlement</ZenBadge>
-                            )}
+                          <td className="px-8 py-6">
+                            <div className="flex justify-center">
+                              {item.isRedeem ? (
+                                <div className="px-4 py-1.5 rounded-full bg-zen-sand/10 border border-zen-sand/20 flex items-center gap-2">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-zen-sand animate-pulse" />
+                                  <span className="text-[9px] font-black text-zen-sand uppercase tracking-[0.2em]">Redemption</span>
+                                </div>
+                              ) : (
+                                <div className="px-4 py-1.5 rounded-full bg-zen-brown/[0.03] border border-zen-brown/10">
+                                  <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">Standard</span>
+                                </div>
+                              )}
+                            </div>
                           </td>
-                          <td className="px-8 py-5">
-                            <div className="flex items-center justify-center gap-2">
+                          <td className="px-10 py-6">
+                            <div className="flex items-center justify-center gap-3">
                               {activeMembership && activeMembership.totalSessions > 0 && (
-                                <ZenIconButton 
+                                <ZenIconButton
                                   onClick={() => toggleRedeem(item.uniqueId)}
-                                  icon={Zap}
+                                  icon={Sparkles}
                                   variant={item.isRedeem ? 'sand' : 'outline'}
-                                  className={item.isRedeem ? 'shadow-lg shadow-zen-sand/20' : ''}
+                                  className={`w-10 h-10 rounded-xl transition-all duration-500 ${item.isRedeem ? 'shadow-lg shadow-zen-sand/20' : 'hover:bg-zen-sand/5 hover:border-zen-sand/30 hover:text-zen-sand'}`}
                                 />
                               )}
-                              <ZenIconButton 
+                              <ZenIconButton
                                 onClick={() => handleRemoveItem(item.uniqueId)}
                                 icon={Trash2}
                                 variant="danger"
+                                className="w-10 h-10 rounded-xl opacity-20 hover:opacity-100 transition-opacity"
                               />
                             </div>
                           </td>
@@ -462,93 +515,122 @@ const Billing = () => {
                 </tbody>
               </table>
             </div>
+
+            {invoiceItems.length > 0 && (
+              <div className="p-8 bg-zen-brown/[0.01] border-t border-zen-brown/5 flex items-center justify-center">
+                <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.5em]">End of registry</p>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right Column: Settlement & Totals */}
-        <div className="xl:col-span-4 space-y-8">
-          
+        <div className="xl:col-span-4 space-y-6">
+
           {/* Summary Card */}
-          <div className="zen-pointed-surface bg-white border border-black/10 shadow-2xl p-8 relative group">
-            <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:rotate-12 group-hover:scale-125 transition-transform duration-1000">
-              <Receipt size={200} />
+          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/15 shadow-2xl p-10 relative overflow-hidden group">
+            <div className="absolute -top-10 -left-10 p-12 opacity-[0.02] group-hover:rotate-12 group-hover:scale-110 transition-all duration-1000 pointer-events-none">
+              <Receipt size={280} />
             </div>
 
-            <div className="relative z-10 space-y-8">
-              <div className="flex items-center justify-between">
+            <div className="relative z-10 space-y-10">
+              <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-serif text-2xl font-bold">Statement</h3>
-                  <p className="text-[10px] font-bold text-black/30 uppercase tracking-[0.4em] mt-1">Settlement Overview</p>
+                  <h3 className="font-serif text-3xl font-bold text-zen-brown">Statement</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-zen-gold" />
+                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.4em]">Digital Ledger v2.0</p>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-bold text-black/20 uppercase tracking-widest">Reference</p>
-                  <p className="font-serif text-base font-bold opacity-40">INV-{invoices.length + 1}</p>
+                  <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest">Protocol ID</p>
+                  <p className="font-serif text-base font-bold text-zen-brown/40">#{String(invoices.length + 1).padStart(4, '0')}</p>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex justify-between items-center px-2">
-                  <span className="text-[10px] font-bold text-black/30 uppercase tracking-widest">Base Exchange</span>
-                  <span className="font-serif text-lg font-bold">{settings?.general.currencySymbol || 'QR'} {subtotal.toLocaleString()}</span>
+                  <span className="text-[11px] font-bold text-zen-brown/30 uppercase tracking-widest">Base Exchange</span>
+                  <div className="flex items-baseline gap-1.5 text-zen-brown">
+                    <span className="text-xs font-bold opacity-30">{settings?.general.currencySymbol || 'QR'}</span>
+                    <span className="font-serif text-2xl font-black">{subtotal.toLocaleString()}</span>
+                  </div>
                 </div>
 
                 {isGstEnabled && (
-                  <div className="flex justify-between items-center px-2 py-3 bg-gray-50 rounded-2xl border border-black/5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 rounded-lg bg-white border border-black/5 flex items-center justify-center text-[8px] font-bold text-black/40">%</div>
-                      <span className="text-[10px] font-bold text-black/30 uppercase tracking-widest leading-none">Tax Protocol</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-24">
-                        <ZenDropdown 
-                          label=""
-                          hideLabel
-                          options={gstRates.map(r => ({ label: `${r.percentage}%`, value: r._id }))}
-                          value={selectedGSTRate?._id || ''}
-                          onChange={(val) => setSelectedGSTRate(gstRates.find(r => r._id === val))}
-                        />
+                  <div className="p-6 bg-zen-brown/[0.02] rounded-[1.8rem] border border-zen-brown/5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/5 flex items-center justify-center text-[10px] font-bold text-zen-gold shadow-sm">%</div>
+                        <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.2em]">Tax Protocol</span>
                       </div>
-                      <span className="font-serif text-base font-bold">+{gst.toFixed(2)}</span>
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest block mb-0.5">Applied</span>
+                        <span className="font-serif text-lg font-bold text-zen-brown">+{gst.toFixed(2)}</span>
+                      </div>
                     </div>
+                    <ZenDropdown
+                      label=""
+                      hideLabel
+                      options={gstRates.map(r => ({ label: `GST ${r.percentage}%`, value: r._id }))}
+                      value={selectedGSTRate?._id || ''}
+                      onChange={(val) => setSelectedGSTRate(gstRates.find(r => r._id === val))}
+                    />
                   </div>
                 )}
 
-                <div className="flex justify-between items-center px-2">
-                  <div className="flex items-center gap-4">
-                    <span className="text-[10px] font-bold text-black/30 uppercase tracking-widest">Adjustments</span>
-                    <div className="w-24">
-                      <ZenDropdown 
-                        label=""
-                        hideLabel
-                        options={[
-                          { label: 'Static', value: 'Fixed' },
-                          { label: 'Relational', value: 'Percentage' }
-                        ]}
-                        value={discountType}
-                        onChange={(val) => setDiscountType(val)}
-                      />
+                <div className="flex flex-col gap-4 px-2">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] font-bold text-zen-brown/30 uppercase tracking-widest">Adjustments</span>
+                      <div className="w-28">
+                        <ZenDropdown
+                          label=""
+                          hideLabel
+                          options={[
+                            { label: 'Fixed', value: 'Fixed' },
+                            { label: 'Relational', value: 'Percentage' }
+                          ]}
+                          value={discountType}
+                          onChange={(val) => setDiscountType(val)}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    {discountType === 'Percentage' && <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest shrink-0">-{discountAmount.toFixed(2)}</span>}
-                    <input 
-                      type="number"
-                      className="w-20 bg-transparent border-b border-black/10 focus:border-black text-right font-serif text-lg font-bold outline-none pb-1 transition-all"
-                      value={discount || ''}
-                      onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                    />
+                    <div className="text-right min-w-[100px]">
+                      {discountAmount > 0 && <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-1">-{discountAmount.toFixed(2)}</p>}
+                      <div className="relative group/adjust">
+                        <input
+                          type="number"
+                          placeholder="0.00"
+                          className="w-full bg-transparent border-b-2 border-zen-brown/10 focus:border-zen-gold text-right font-serif text-2xl font-black text-zen-brown outline-none pb-2 transition-all"
+                          value={discount || ''}
+                          onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="pt-8 border-t border-black/5 mt-8">
-                  <div className="flex items-center justify-between p-6 bg-black text-white rounded-[2rem] shadow-xl">
-                    <div>
-                      <h4 className="text-[9px] font-bold uppercase tracking-[0.4em] opacity-40 mb-1">Total Settlement</h4>
-                      <p className="text-[11px] font-bold text-zen-sand uppercase tracking-widest">Final Authorization</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold opacity-30 leading-none mb-1">{settings?.general.currencySymbol || 'QR'}</p>
-                      <p className="text-3xl font-serif font-bold tracking-tighter">{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <div className="pt-10 border-t border-zen-brown/5 mt-10">
+                  <div className="relative overflow-hidden p-8 bg-zen-brown text-white rounded-[2.5rem] shadow-2xl group/total">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl transition-transform duration-700 group-hover/total:scale-150" />
+
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div>
+                        <h4 className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/40 mb-1.5">Total Settlement</h4>
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-zen-gold animate-pulse" />
+                          <p className="text-[11px] font-bold text-zen-sand uppercase tracking-widest">Final Authorization</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-baseline justify-end gap-2">
+                          <p className="text-sm font-bold text-white/30 leading-none mb-1">{settings?.general.currencySymbol || 'QR'}</p>
+                          <p className="text-5xl font-serif font-black tracking-tighter text-white">
+                            {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -557,31 +639,35 @@ const Billing = () => {
           </div>
 
           {/* Payment Mode Selection */}
-          <div className="zen-pointed-surface bg-gray-50/50 border border-black/5 p-8 space-y-6">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-black/40">Engagement Logic</h3>
-            
-            <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white/40 backdrop-blur-md rounded-[2rem] border border-zen-brown/10 p-6 space-y-6 shadow-inner">
+            <div className="flex items-center gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-zen-gold" />
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.4em] text-zen-brown/30">Engagement Logic</h3>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { name: 'Cash', icon: Wallet },
-                { name: 'Card', icon: CreditCard },
-                { name: 'UPI', icon: Smartphone },
-                { name: 'Split', icon: Split }
+                { name: 'Cash', icon: Wallet, color: 'text-emerald-500' },
+                { name: 'Card', icon: CreditCard, color: 'text-sky-500' },
+                { name: 'UPI', icon: Smartphone, color: 'text-violet-500' },
+                { name: 'Split', icon: Split, color: 'text-zen-gold' }
               ].map((mode) => (
                 <button
                   key={mode.name}
                   onClick={() => setPaymentMode(mode.name)}
-                  className={`zen-pointed-surface group relative flex flex-col items-center justify-center gap-4 p-6 rounded-3xl border transition-all duration-500 ${paymentMode === mode.name
-                    ? 'bg-white border-zen-sand shadow-lg ring-1 ring-zen-sand/20' 
-                    : 'bg-transparent border-black/5 hover:border-black/20 text-black/30 hover:text-black/60'}`}
+                  className={`relative group flex flex-col items-center justify-center gap-4 p-5 rounded-3xl border transition-all duration-700 ${paymentMode === mode.name
+                    ? 'bg-white border-zen-gold shadow-xl ring-1 ring-zen-gold/10 scale-[1.02]'
+                    : 'bg-transparent border-zen-brown/5 hover:border-zen-brown/20 text-zen-brown/30 hover:text-zen-brown/60'}`}
                 >
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${paymentMode === mode.name ? 'bg-zen-sand text-white scale-110 shadow-md shadow-zen-sand/20' : 'bg-white border border-black/5 group-hover:scale-110'}`}>
-                    <mode.icon size={20} strokeWidth={1.5} />
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-700 ${paymentMode === mode.name ? 'bg-zen-gold text-white scale-110 shadow-lg shadow-zen-gold/20' : 'bg-white border border-zen-brown/10 group-hover:scale-110 shadow-sm'}`}>
+                    <mode.icon size={18} strokeWidth={1.5} />
                   </div>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest ${paymentMode === mode.name ? 'text-black' : 'text-inherit'}`}>{mode.name}</span>
+                  <span className={`text-[9px] font-bold uppercase tracking-[0.2em] transition-colors ${paymentMode === mode.name ? 'text-zen-brown' : 'text-inherit'}`}>{mode.name}</span>
+
                   {paymentMode === mode.name && (
-                    <motion.div 
-                      layoutId="active-dot"
-                      className="absolute top-4 right-4 w-2 h-2 rounded-full bg-zen-sand shadow-sm shadow-zen-sand/20"
+                    <motion.div
+                      layoutId="active-indicator"
+                      className="absolute top-4 right-4 w-1.5 h-1.5 rounded-full bg-zen-gold shadow-md shadow-zen-gold/50"
                     />
                   )}
                 </button>
@@ -590,55 +676,66 @@ const Billing = () => {
 
             <AnimatePresence mode="wait">
               {paymentMode === 'Split' && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-4 pt-4 overflow-hidden"
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-4 pt-4"
                 >
                   {payments.map((p, idx) => (
-                    <div key={p.mode} className="zen-pointed-surface flex items-center gap-4 p-4 bg-white rounded-2xl border border-black/5 shadow-sm">
-                      <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest w-12">{p.mode}</span>
-                      <div className="flex-1 relative">
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-[10px] font-bold opacity-20">{settings?.general.currencySymbol || 'QR'}</span>
-                        <input 
-                          type="number"
-                          className="w-full bg-transparent border-none text-right font-serif font-bold text-lg outline-none pr-2"
-                          value={p.amount || ''}
-                          onChange={(e) => {
-                            const newPayments = [...payments];
-                            newPayments[idx].amount = parseFloat(e.target.value) || 0;
-                            setPayments(newPayments);
-                          }}
-                        />
+                    <div key={p.mode} className="flex items-center gap-4 p-5 bg-white rounded-[1.8rem] border border-zen-brown/10 shadow-sm group/split">
+                      <div className="w-10 h-10 rounded-xl bg-zen-brown/[0.02] flex items-center justify-center text-[10px] font-black text-zen-brown/30 group-hover/split:text-zen-gold transition-colors">
+                        {p.mode[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-widest mb-0.5">{p.mode}</p>
+                        <div className="relative">
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 text-[10px] font-black text-zen-brown/20">{settings?.general.currencySymbol || 'QR'}</span>
+                          <input
+                            type="number"
+                            className="w-full bg-transparent border-none text-right font-serif font-black text-xl text-zen-brown outline-none pr-2"
+                            value={p.amount || ''}
+                            onChange={(e) => {
+                              const newPayments = [...payments];
+                              newPayments[idx].amount = parseFloat(e.target.value) || 0;
+                              setPayments(newPayments);
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   ))}
-                  <div className={`p-4 rounded-2xl border flex items-center justify-between ${Math.abs(payments.reduce((acc, p) => acc + p.amount, 0) - total) < 0.01 ? 'bg-zen-leaf/10 border-zen-leaf/20 text-zen-leaf' : 'bg-red-50 border-red-100 text-red-500'}`}>
-                    <div className="flex items-center gap-2">
-                       {Math.abs(payments.reduce((acc, p) => acc + p.amount, 0) - total) < 0.01 ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-                       <span className="text-[10px] font-bold uppercase tracking-widest">Balanced</span>
+                  <div className={`p-6 rounded-[1.8rem] border-2 flex items-center justify-between transition-colors duration-500 ${Math.abs(payments.reduce((acc, p) => acc + p.amount, 0) - total) < 0.01 ? 'bg-zen-leaf/5 border-zen-leaf/20 text-zen-leaf' : 'bg-rose-50 border-rose-100 text-rose-500'}`}>
+                    <div className="flex items-center gap-3">
+                       <div className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 ${Math.abs(payments.reduce((acc, p) => acc + p.amount, 0) - total) < 0.01 ? 'border-zen-leaf text-zen-leaf' : 'border-rose-300 text-rose-400'}`}>
+                         {Math.abs(payments.reduce((acc, p) => acc + p.amount, 0) - total) < 0.01 ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                       </div>
+                       <span className="text-[10px] font-black uppercase tracking-[0.2em]">Balance Status</span>
                     </div>
-                    <span className="font-serif font-bold">{payments.reduce((acc, p) => acc + p.amount, 0).toLocaleString()}</span>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-[10px] font-bold opacity-30">{settings?.general.currencySymbol || 'QR'}</span>
+                      <span className="font-serif text-xl font-black">{payments.reduce((acc, p) => acc + p.amount, 0).toLocaleString()}</span>
+                    </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <ZenButton 
-              className={`w-full py-6 rounded-3xl text-sm uppercase tracking-[0.3em] font-bold shadow-2xl transition-all duration-500 ${loading ? 'opacity-50' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+            <ZenButton
+              className={`w-full py-6 rounded-3xl text-[10px] uppercase tracking-[0.4em] font-black shadow-xl transition-all duration-700 relative overflow-hidden group/btn ${loading ? 'opacity-80' : 'hover:scale-[1.01] active:scale-[0.98]'}`}
               onClick={handleConfirmPayment}
               disabled={loading || !selectedClient || invoiceItems.length === 0}
             >
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
               {loading ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Synchronizing...
+                <div className="flex items-center gap-4">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="relative z-10">Synchronizing Settlement...</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
-                  Authorize Settlement
-                  <ArrowRight size={18} />
+                <div className="flex items-center gap-4">
+                  <span className="relative z-10">Authorize Terminal Protocol</span>
+                  <ArrowRight size={20} className="relative z-10 group-hover/btn:translate-x-2 transition-transform duration-500" />
                 </div>
               )}
             </ZenButton>

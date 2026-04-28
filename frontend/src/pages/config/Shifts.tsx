@@ -9,7 +9,7 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
 import { notify } from '../../components/shared/ZenNotification';
-import { ZenDropdown, ZenInput } from '../../components/zen/ZenInputs';
+import { ZenDropdown, ZenInput, ZenTimePicker } from '../../components/zen/ZenInputs';
 import { Modal } from '../../components/shared/Modal';
 import { useBranches } from '../../context/BranchContext';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
@@ -410,7 +410,7 @@ const Shifts = () => {
           )}
         </div>
       ) : (
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
            <table className="w-full text-center border-collapse min-w-[800px]">
               <thead>
                  <tr>
@@ -472,39 +472,23 @@ const Shifts = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        maxWidth="max-w-lg"
-        header={
-          <div className="flex items-start justify-between gap-6 px-6 sm:px-10 py-6 sm:py-8">
-            <div className="flex items-start gap-4 sm:gap-5 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-zen-brown text-white flex items-center justify-center shadow-sm shrink-0">
-                <Clock size={24} strokeWidth={1.75} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Shift record</p>
-                <h3 className="mt-1 text-xl sm:text-2xl font-semibold text-zen-brown truncate">
-                  {editingShift ? 'Edit shift' : 'New shift'}
-                </h3>
-                <p className="mt-2 text-sm text-zen-brown/60 max-w-2xl">
-                  Define the working window, duration, and status for a branch shift.
-                </p>
-              </div>
-            </div>
-            <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} size="md" />
-          </div>
-        }
+        maxWidth="max-w-4xl"
+        title={editingShift ? 'Edit shift' : 'New shift'}
+        subtitle="Define the working window, duration, and status for a branch shift."
+        headerIcon={Clock}
         footer={
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4">
-            <p className="text-xs text-zen-brown/40">
+          <div className="flex items-center justify-between gap-8 px-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/25 whitespace-nowrap">
               {editingShift
                 ? 'Changes update the shift schedule once saved.'
-                : 'New shift timings will be available for appointments immediately after creation.'}
+                : 'Available for appointments immediately after creation.'}
             </p>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex items-center gap-4 shrink-0">
               <ZenButton
                 type="button"
                 variant="secondary"
                 onClick={() => setIsModalOpen(false)}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto px-8"
               >
                 Cancel
               </ZenButton>
@@ -512,7 +496,7 @@ const Shifts = () => {
                 type="submit"
                 form="shift-modal-form"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto px-8 bg-zen-brown text-white shadow-xl shadow-zen-brown/10"
               >
                 {isSubmitting ? 'Saving...' : editingShift ? 'Save shift' : 'Create shift'}
               </ZenButton>
@@ -520,72 +504,68 @@ const Shifts = () => {
           </div>
         }
       >
-         <form id="shift-modal-form" onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-6 grid-cols-1">
-              <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
-                <div className="flex items-start justify-between gap-4 mb-6">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Shift details</p>
-                    <h4 className="mt-1 text-lg font-semibold text-zen-brown">Identity and status</h4>
-                  </div>
-                  <ZenBadge variant="secondary">
-                    {selectedBranch === 'all' ? 'All branches' : 'Current branch'}
-                  </ZenBadge>
+         <form id="shift-modal-form" onSubmit={handleSubmit} className="space-y-10 py-2">
+            {/* Identity Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 px-1">
+                <div className="w-8 h-8 rounded-lg bg-zen-brown/5 flex items-center justify-center text-zen-brown/40">
+                  <Shield size={16} />
                 </div>
-
-                <div className="space-y-5">
-                  <ZenInput
-                    label="Shift name"
-                    placeholder="e.g. Morning shift"
-                    icon={Shield}
-                    value={formData.name}
-                    onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                  <ZenDropdown
-                    label="Status"
-                    options={['Active', 'Inactive']}
-                    value={formData.status}
-                    onChange={(val) => setFormData({ ...formData, status: val })}
-                  />
-                  <div className="rounded-2xl border border-zen-brown/10 bg-zen-cream/20 px-4 py-4 text-sm text-zen-brown/60">
-                    This shift follows the current branch context selected in the CRM.
-                  </div>
+                <div>
+                  <h4 className="text-sm font-bold text-zen-brown uppercase tracking-widest">General Identity</h4>
+                  <p className="text-[10px] text-zen-brown/30 font-medium uppercase tracking-[0.2em] mt-0.5">Define shift name and current status</p>
                 </div>
               </div>
 
-              <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
-                <div className="mb-6">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Working hours</p>
-                  <h4 className="mt-1 text-lg font-semibold text-zen-brown">Time range and duration</h4>
-                  <p className="mt-2 text-sm text-zen-brown/55">
-                    Duration recalculates from the start and end times.
-                  </p>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-zen-cream/10 p-8 rounded-[2rem] border border-zen-brown/5">
+                <ZenInput
+                  label="Shift Name"
+                  placeholder="e.g. Morning Shift"
+                  value={formData.name}
+                  onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
+                />
+                <ZenDropdown
+                  label="Operational Status"
+                  options={['Active', 'Inactive']}
+                  value={formData.status}
+                  onChange={(val) => setFormData({ ...formData, status: val })}
+                />
+              </div>
+            </div>
 
-                <div className="grid gap-5 grid-cols-1">
-                  <ZenInput
-                    label="Start time"
-                    placeholder="09:00 AM"
-                    icon={Clock}
+            {/* Timing Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 px-1">
+                <div className="w-8 h-8 rounded-lg bg-zen-brown/5 flex items-center justify-center text-zen-brown/40">
+                  <Clock size={16} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-zen-brown uppercase tracking-widest">Time Schedule</h4>
+                  <p className="text-[10px] text-zen-brown/30 font-medium uppercase tracking-[0.2em] mt-0.5">Configure working hours and duration</p>
+                </div>
+              </div>
+
+              <div className="bg-zen-cream/10 p-10 rounded-[2.5rem] border border-zen-brown/5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                  <ZenTimePicker
+                    label="Start Time"
                     value={formData.startTime}
-                    onChange={(e: any) => setFormData({ ...formData, startTime: e.target.value })}
+                    variant="pill"
+                    onChange={(val: string) => setFormData({ ...formData, startTime: val })}
                   />
-                  <ZenInput
-                    label="End time"
-                    placeholder="06:00 PM"
-                    icon={Clock}
+                  <ZenTimePicker
+                    label="End Time"
                     value={formData.endTime}
-                    onChange={(e: any) => setFormData({ ...formData, endTime: e.target.value })}
+                    variant="pill"
+                    onChange={(val: string) => setFormData({ ...formData, endTime: val })}
                   />
-                </div>
-
-                <div className="mt-5">
                   <ZenInput
-                    label="Duration (hours)"
+                    label="Calculated Duration"
                     type="number"
                     icon={Zap}
+                    disabled
                     value={formData.durationHours}
-                    onChange={(e: any) => setFormData({ ...formData, durationHours: parseFloat(e.target.value) })}
+                    className="bg-zen-brown/[0.02]"
                   />
                 </div>
               </div>

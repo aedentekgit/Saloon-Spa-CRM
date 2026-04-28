@@ -270,17 +270,17 @@ const ApplyLeave = () => {
                           options={employees
                             .filter(e => {
                               // Filter by Existing Approved Leaves
-                              const hasApprovedLeave = requests.some(r => 
-                                 (r.user === e._id || (r as any).employeeId === e._id) && 
-                                 r.status === 'Approved' && 
+                              const hasApprovedLeave = requests.some(r =>
+                                 (r.user === e._id || (r as any).employeeId === e._id) &&
+                                 r.status === 'Approved' &&
                                  dayjs(formData.startDate).isBefore(dayjs(r.endDate).add(1, 'day')) &&
                                  dayjs(formData.endDate).isAfter(dayjs(r.startDate).subtract(1, 'day'))
                               );
-                              
+
                               if (hasApprovedLeave) return false;
 
                               // Filter by Existing Attendance Records (Present/Absent/etc)
-                              const hasAttendance = attendanceHistory.some(a => 
+                              const hasAttendance = attendanceHistory.some(a =>
                                  (a.user === e._id || (a as any).employeeId === e._id) &&
                                  dayjs(a.date).isAfter(dayjs(formData.startDate).subtract(1, 'day')) &&
                                  dayjs(a.date).isBefore(dayjs(formData.endDate).add(1, 'day'))
@@ -368,7 +368,7 @@ const ApplyLeave = () => {
                           placeholder="Why must you seek solace? Define the intent of this pause..."
                           value={formData.reason}
                           onChange={(e: any) => setFormData({ ...formData, reason: e.target.value })}
-                          className="!bg-white !border-zen-brown/10 !rounded-[2rem] !p-6 !h-[220px] text-lg sm:text-xl font-serif italic text-zen-brown placeholder:text-zen-brown/10 shadow-[0_20px_40px_-20px_rgba(83,67,55,0.08)] focus:!border-zen-sand transition-all"
+                          className="!bg-white !border-zen-brown/10 !rounded-[2rem] !p-6 !h-[220px] text-lg sm:text-xl font-serif italic text-zen-brown placeholder:text-zen-brown/10 shadow-none focus:!border-zen-sand transition-all"
                         />
                         <div className="absolute top-6 right-6 text-zen-brown/5 group-focus-within:text-zen-sand/20 transition-colors">
                           <Star size={40} strokeWidth={1} />

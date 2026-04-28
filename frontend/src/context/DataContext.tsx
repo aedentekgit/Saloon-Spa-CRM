@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  clients as initialClients, 
-  employees as initialEmployees, 
-  services as initialServices, 
-  appointments as initialAppointments, 
-  inventory as initialInventory, 
+import {
+  clients as initialClients,
+  employees as initialEmployees,
+  services as initialServices,
+  appointments as initialAppointments,
+  inventory as initialInventory,
   rooms as initialRooms,
   invoices as initialInvoices,
   expenses as initialExpenses
@@ -67,24 +67,28 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout, hasPermission } = useAuth();
-  const [clients, setClients] = useState<Client[]>(() => getCachedJson('zen_clients', initialClients));
-  const [employees, setEmployees] = useState<Employee[]>(() => getCachedJson('zen_employees', initialEmployees));
+  const isAdmin = user?.role === 'Admin';
+  const getInitialScopedRows = <T,>(key: string, fallback: T[]): T[] => (
+    isAdmin ? getCachedJson(key, fallback) : []
+  );
+  const [clients, setClients] = useState<Client[]>(() => getInitialScopedRows('zen_clients', initialClients));
+  const [employees, setEmployees] = useState<Employee[]>(() => getInitialScopedRows('zen_employees', initialEmployees));
   const [services, setServices] = useState<Service[]>(() => {
-    const cached = getCachedJson('zen_services', initialServices) as Service[];
+    const cached = getInitialScopedRows('zen_services', initialServices) as Service[];
     return cached.map((s: Service) => {
       const match = initialServices.find(is => is.name === s.name);
       return match ? { ...s, image: match.image } : s;
     });
   });
-  const [appointments, setAppointments] = useState<Appointment[]>(() => getCachedJson('zen_appointments', initialAppointments));
-  const [inventory, setInventory] = useState<InventoryItem[]>(() => getCachedJson('zen_inventory', initialInventory));
-  const [rooms, setRooms] = useState<Room[]>(() => getCachedJson('zen_rooms', initialRooms));
-  const [invoices, setInvoices] = useState<Invoice[]>(() => getCachedJson('zen_invoices', initialInvoices));
-  const [expenses, setExpenses] = useState<Expense[]>(() => getCachedJson('zen_expenses', initialExpenses));
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => getCachedJson('zen_attendance', []));
-  const [leaves, setLeaves] = useState<LeaveRequest[]>(() => getCachedJson('zen_leaves', []));
+  const [appointments, setAppointments] = useState<Appointment[]>(() => getInitialScopedRows('zen_appointments', initialAppointments));
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => getInitialScopedRows('zen_inventory', initialInventory));
+  const [rooms, setRooms] = useState<Room[]>(() => getInitialScopedRows('zen_rooms', initialRooms));
+  const [invoices, setInvoices] = useState<Invoice[]>(() => getInitialScopedRows('zen_invoices', initialInvoices));
+  const [expenses, setExpenses] = useState<Expense[]>(() => getInitialScopedRows('zen_expenses', initialExpenses));
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => getInitialScopedRows('zen_attendance', []));
+  const [leaves, setLeaves] = useState<LeaveRequest[]>(() => getInitialScopedRows('zen_leaves', []));
   const [roles, setRoles] = useState<Role[]>(() => getCachedJson('zen_roles', []));
-  const [branches, setBranches] = useState<Branch[]>(() => getCachedJson('zen_branches', []));
+  const [branches, setBranches] = useState<Branch[]>(() => getInitialScopedRows('zen_branches', []));
   const [loading, setLoading] = useState(() => {
     return !(
       clients.length ||
@@ -109,7 +113,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       return;
     }
-    
+
     try {
       const hasVisibleData = (
         clients.length ||
@@ -149,10 +153,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const canReadAttendance = hasPermission('attendance') || hasPermission('payroll');
       const canReadLeaves = hasPermission('leave') || hasPermission('payroll');
       const canReadRoles = hasPermission('roles');
-      const canReadBranches = hasPermission('branches') || hasPermission('settings');
-      
+      const canReadBranches = true;
+
       const [cliRes, empRes, serRes, invenRes, invoiceRes, appRes, expenseRes, attendanceRes, leavesRes, rolesRes, branchesRes] = await Promise.all([
-        requestIf(canReadClients, `${API_URL}/clients?limit=50`), 
+        requestIf(canReadClients, `${API_URL}/clients?limit=50`),
         requestIf(canReadEmployees, `${API_URL}/employees`),
         requestIf(canReadServices, `${API_URL}/services`),
         requestIf(canReadInventory, `${API_URL}/inventory?limit=50`),
@@ -166,7 +170,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ]);
 
       const responses = [cliRes, empRes, serRes, invenRes, invoiceRes, appRes, expenseRes, attendanceRes, leavesRes, rolesRes, branchesRes];
-      
+
       // If any core endpoint returns 401, it means the session is truly invalid/expired
       const hasAuthError = responses.some(res => res?.status === 401);
       if (hasAuthError) {
@@ -212,7 +216,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const branchesList = branchesData.data || branchesData;
       if (Array.isArray(branchesList)) setBranches(branchesList);
-      
+
     } catch (error) {
       console.error('Core Synchronization Failure:', error);
     } finally {
@@ -222,8 +226,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (user?.token) {
+      if (user.role !== 'Admin') {
+        setClients([]);
+        setEmployees([]);
+        setServices([]);
+        setAppointments([]);
+        setInventory([]);
+        setRooms([]);
+        setInvoices([]);
+        setExpenses([]);
+        setAttendance([]);
+        setLeaves([]);
+        setBranches([]);
+      }
       refreshData();
-      
+
       // Implement Polling for real-time updates without page refresh
       const interval = setInterval(() => {
         if (!shouldPollNow()) return;
@@ -232,7 +249,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return () => clearInterval(interval);
     }
-  }, [user?.token]);
+  }, [user?.token, user?.role, user?.branch]);
 
   // Persistence
   useEffect(() => setCachedJson('zen_clients', clients), [clients]);
@@ -337,8 +354,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <DataContext.Provider value={{ 
-      clients, employees, services, appointments, inventory, rooms, invoices, expenses, attendance, 
+    <DataContext.Provider value={{
+      clients, employees, services, appointments, inventory, rooms, invoices, expenses, attendance,
       leaves, roles, branches, refreshData, loading,
       addClient, updateClient, deleteClient,
       addAppointment, updateAppointment, deleteAppointment,

@@ -3,7 +3,7 @@ const User = require('../../models/core/User');
 const Notification = require('../../models/core/Notification');
 const crypto = require('crypto');
 const { paginateModelQuery } = require('../../utils/pagination');
-const { getBranchId, sameBranch } = require('../../utils/branch');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 const ANY_SPECIALIST = 'Any available specialist';
 
@@ -35,29 +35,25 @@ const getAppointments = async (req, res) => {
     let query = {};
     const userBranchId = getBranchId(req.user.branch);
     const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
-    
+
     // IDOR Prevention: Filter logically based on role and branch
     if (req.user.role === 'Admin') {
       if (requestedBranch) {
-        query.branch = requestedBranch;
-      }
-    } else if (req.user.role === 'Manager') {
-      // Manager sees their branch
-      if (userBranchId) {
-        if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
-          return res.status(403).json({ message: 'Access Denied: Cannot view appointments for another branch.' });
-        }
-        query.branch = userBranchId;
-      }
-    } else if (req.user.role === 'Employee') {
-      if (userBranchId) {
-        if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
-          return res.status(403).json({ message: 'Access Denied: Cannot view appointments for another branch.' });
-        }
-        query.branch = userBranchId;
+        query.branch = toObjectIdIfValid(requestedBranch);
       }
     } else if (req.user.role === 'Client') {
       query.clientId = req.user._id;
+      if (userBranchId) {
+        query.branch = toObjectIdIfValid(userBranchId);
+      }
+    } else {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view appointments for another branch.' });
+      }
+      query.branch = toObjectIdIfValid(userBranchId);
     }
 
     // Optional dynamic filters
@@ -88,7 +84,7 @@ const createAppointment = async (req, res) => {
     const isAdmin = req.user.role === 'Admin';
     const isClient = req.user.role === 'Client';
 
-    if (!isAdmin && !isClient && !sameBranch(appointmentBranchId, userBranchId)) {
+    if (!isAdmin && !sameBranch(appointmentBranchId, userBranchId)) {
       return res.status(403).json({ message: 'Access Denied: Cannot create appointments for another branch.' });
     }
 
@@ -98,7 +94,7 @@ const createAppointment = async (req, res) => {
 
     const appointmentData = {
       ...req.body,
-      branch: appointmentBranchId,
+      branch: toObjectIdIfValid(appointmentBranchId),
       user: req.user._id
     };
 
@@ -106,16 +102,50 @@ const createAppointment = async (req, res) => {
       return res.status(400).json({ message: 'Branch assignment required' });
     }
 
+    const Service = require('../../models/operations/Service');
+    const Employee = require('../../models/human-resources/Employee');
+    const Room = require('../../models/operations/Room');
+
+    if (appointmentData.serviceId) {
+      const targetService = await Service.findById(appointmentData.serviceId).select('branch name');
+      if (!targetService || !sameBranch(targetService.branch, appointmentData.branch)) {
+        return res.status(403).json({ message: 'Access Denied: Selected service belongs to another branch.' });
+      }
+      appointmentData.service = appointmentData.service || targetService.name;
+    }
+
+    if (appointmentData.employeeId) {
+      const targetEmployee = await Employee.findById(appointmentData.employeeId).select('branch name');
+      if (!targetEmployee || !sameBranch(targetEmployee.branch, appointmentData.branch)) {
+        return res.status(403).json({ message: 'Access Denied: Selected employee belongs to another branch.' });
+      }
+      appointmentData.employee = appointmentData.employee || targetEmployee.name;
+    }
+
+    if (appointmentData.roomId) {
+      const targetRoom = await Room.findById(appointmentData.roomId).select('branch name');
+      if (!targetRoom || !sameBranch(targetRoom.branch, appointmentData.branch)) {
+        return res.status(403).json({ message: 'Access Denied: Selected room belongs to another branch.' });
+      }
+      appointmentData.room = appointmentData.room || targetRoom.name;
+    }
+
       // --- CONFLICT VALIDATION (Staff + Room) ---
       const { date, time, employee, room } = appointmentData;
       if (date && time && employee) {
-        const Service = require('../../models/operations/Service');
-        const Room = require('../../models/operations/Room');
-        
-        const selectedService = await Service.findOne({ name: appointmentData.service });
+        const selectedService = await Service.findOne({
+          $or: [
+            { _id: appointmentData.serviceId || null },
+            { name: appointmentData.service }
+          ],
+          branch: toObjectIdIfValid(appointmentData.branch)
+        }).catch(() => null);
         const serviceDuration = selectedService?.duration || 60;
-        
-        const selectedRoom = room ? await Room.findOne({ name: room }) : null;
+
+        const selectedRoom = room ? await Room.findOne({
+          name: room,
+          branch: toObjectIdIfValid(appointmentData.branch)
+        }) : null;
         const roomCleaning = selectedRoom?.cleaningDuration || 0;
         const totalNewOccupancy = serviceDuration + roomCleaning;
 
@@ -132,10 +162,16 @@ const createAppointment = async (req, res) => {
         let occupiedRoomCount = 0;
 
         for (const apt of existingApts) {
-          const existingService = await Service.findOne({ name: apt.service });
+          const existingService = await Service.findOne({
+            name: apt.service,
+            branch: toObjectIdIfValid(appointmentData.branch)
+          });
           const existingDuration = existingService?.duration || 60;
-          
-          const aptRoom = apt.room ? await Room.findOne({ name: apt.room }) : null;
+
+          const aptRoom = apt.room ? await Room.findOne({
+            name: apt.room,
+            branch: toObjectIdIfValid(appointmentData.branch)
+          }) : null;
           const aptCleaning = aptRoom?.cleaningDuration || 0;
           const totalExistingOccupancy = existingDuration + aptCleaning;
 
@@ -149,7 +185,7 @@ const createAppointment = async (req, res) => {
             if (apt.employee === employee) {
               return res.status(409).json({ message: `${employee} is already booked at this time (including cleaning buffer).` });
             }
-            
+
             // Check Room Conflict (Specific Room)
             if (room && apt.room === room) {
               return res.status(409).json({ message: `Room "${room}" is occupied/cleaning during this period.` });
@@ -164,7 +200,7 @@ const createAppointment = async (req, res) => {
 
         // Branch-wide Room Capacity Check (for Guest/Unassigned Room bookings)
         if (!room) {
-          const allRoomsInBranch = await Room.find({ branch: appointmentData.branch });
+          const allRoomsInBranch = await Room.find({ branch: toObjectIdIfValid(appointmentData.branch) });
           const roomCapacity = allRoomsInBranch.length || 999;
           if (occupiedRoomCount >= roomCapacity) {
             return res.status(409).json({ message: `All rooms in this branch are occupied or cleaning during this period.` });
@@ -179,8 +215,20 @@ const createAppointment = async (req, res) => {
       appointmentData.client = req.user.name || appointmentData.client;
       appointmentData.clientEmail = req.user.email || appointmentData.clientEmail;
       appointmentData.clientPhone = req.user.phone || appointmentData.clientPhone;
+    } else if (appointmentData.clientId) {
+      const targetClient = await User.findById(appointmentData.clientId).select('_id role branch');
+      if (!targetClient || targetClient.role !== 'Client') {
+        return res.status(400).json({ message: 'Invalid client selection for appointment.' });
+      }
+      if (!sameBranch(targetClient.branch, appointmentData.branch)) {
+        return res.status(403).json({ message: 'Access Denied: Selected client belongs to another branch.' });
+      }
     } else if (!appointmentData.clientId && appointmentData.client) {
-      const foundClient = await User.findOne({ name: appointmentData.client, role: 'Client' });
+      const foundClient = await User.findOne({
+        name: appointmentData.client,
+        role: 'Client',
+        branch: toObjectIdIfValid(appointmentData.branch)
+      });
       if (foundClient) appointmentData.clientId = foundClient._id;
     }
 
@@ -226,7 +274,10 @@ const createAppointment = async (req, res) => {
     if (appointment.clientId) {
       const Membership = require('../../models/operations/Membership');
       const Service = require('../../models/operations/Service');
-      const serviceObj = await Service.findOne({ name: appointment.service });
+      const serviceObj = await Service.findOne({
+        name: appointment.service,
+        branch: toObjectIdIfValid(appointment.branch)
+      });
       const serviceId = appointment.serviceId || serviceObj?._id;
 
       if (serviceId) {
@@ -285,9 +336,14 @@ const updateAppointment = async (req, res) => {
     }
 
     // IDOR Check
-    const isOwner = appointment.clientId?.toString() === req.user._id.toString();
-    const isBranchStaff = sameBranch(appointment.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(appointment.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Appointment belongs to another branch.' });
+    }
+
+    const isOwner = appointment.clientId?.toString() === req.user._id.toString();
+    const isBranchStaff = req.user.role !== 'Client' && isBranchMatch;
     const isOwnerOnly = isOwner && !isBranchStaff && !isAdmin;
 
     if (!isAdmin && !isBranchStaff && !isOwner) {
@@ -313,7 +369,8 @@ const updateAppointment = async (req, res) => {
       'roomId',
       'bookingType',
       'status',
-      'cancellationReason'
+      'cancellationReason',
+      'addOns'
     ];
     const allowedForOwnerOnly = [
       'clientPhone',
@@ -356,10 +413,40 @@ const updateAppointment = async (req, res) => {
     const checkRoom = room || appointment.room;
     const checkBranch = getBranchId(updatePayload.branch || appointment.branch);
 
+    const Service = require('../../models/operations/Service');
+    const Employee = require('../../models/human-resources/Employee');
+    const Room = require('../../models/operations/Room');
+
+    if (updatePayload.serviceId) {
+      const targetService = await Service.findById(updatePayload.serviceId).select('branch name');
+      if (!targetService || !sameBranch(targetService.branch, checkBranch)) {
+        return res.status(403).json({ message: 'Access Denied: Selected service belongs to another branch.' });
+      }
+      if (!updatePayload.service) updatePayload.service = targetService.name;
+    }
+
+    if (updatePayload.employeeId) {
+      const targetEmployee = await Employee.findById(updatePayload.employeeId).select('branch name');
+      if (!targetEmployee || !sameBranch(targetEmployee.branch, checkBranch)) {
+        return res.status(403).json({ message: 'Access Denied: Selected employee belongs to another branch.' });
+      }
+      if (!updatePayload.employee) updatePayload.employee = targetEmployee.name;
+    }
+
+    if (updatePayload.roomId) {
+      const targetRoom = await Room.findById(updatePayload.roomId).select('branch name');
+      if (!targetRoom || !sameBranch(targetRoom.branch, checkBranch)) {
+        return res.status(403).json({ message: 'Access Denied: Selected room belongs to another branch.' });
+      }
+      if (!updatePayload.room) updatePayload.room = targetRoom.name;
+    }
+
     if (checkDate && checkTime && checkEmployee) {
-      const Service = require('../../models/operations/Service');
       const updatedService = updatePayload.service || appointment.service;
-      const selectedService = await Service.findOne({ name: updatedService });
+      const selectedService = await Service.findOne({
+        name: updatedService,
+        branch: toObjectIdIfValid(checkBranch)
+      });
       const serviceDuration = selectedService?.duration || 60;
 
       const existingApts = await Appointment.find({
@@ -373,7 +460,10 @@ const updateAppointment = async (req, res) => {
       const newEnd = newStart + serviceDuration;
 
       for (const apt of existingApts) {
-        const existingService = await Service.findOne({ name: apt.service });
+        const existingService = await Service.findOne({
+          name: apt.service,
+          branch: toObjectIdIfValid(checkBranch)
+        });
         const existingDuration = existingService?.duration || 60;
         const existingStart = parseTime(apt.date, apt.time);
         const existingEnd = existingStart + existingDuration;
@@ -446,9 +536,14 @@ const deleteAppointment = async (req, res) => {
     }
 
     // IDOR Check
-    const isOwner = appointment.clientId?.toString() === req.user._id.toString();
-    const isBranchStaff = sameBranch(appointment.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(appointment.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Appointment belongs to another branch.' });
+    }
+
+    const isOwner = appointment.clientId?.toString() === req.user._id.toString();
+    const isBranchStaff = req.user.role !== 'Client' && isBranchMatch;
 
     if (!isAdmin && !isBranchStaff && !isOwner) {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to delete this resource' });
@@ -473,9 +568,14 @@ const updateAppointmentStatus = async (req, res) => {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
-    const isOwner = appointment.clientId?.toString() === req.user._id.toString();
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(appointment.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(appointment.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Appointment belongs to another branch.' });
+    }
+
+    const isOwner = appointment.clientId?.toString() === req.user._id.toString();
+    const isBranchManager = req.user.role !== 'Client' && isBranchMatch;
 
     const allowedStatus = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
     if (!allowedStatus.includes(status)) {
@@ -497,7 +597,7 @@ const updateAppointmentStatus = async (req, res) => {
     // --- EMAIL NOTIFICATION ---
     try {
       const sendEmail = require('../../utils/sendEmail');
-      
+
       // Get recipient email (from clientId if available, else clientEmail)
       let recipientEmail = appointment.clientEmail;
       if (!recipientEmail && appointment.clientId) {
@@ -566,7 +666,7 @@ const getPublicAppointments = async (req, res) => {
     const appointments = await Appointment.find(query)
       .select('date time service employee room branch status')
       .populate('branch', 'name');
-    
+
     res.json(appointments);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -684,10 +784,10 @@ const createGuestAppointment = async (req, res) => {
       rest.employee = candidate.name;
       rest.employeeId = candidate._id;
     }
-    
+
     // 1. Create or find a client profile for the guest
     // This allows them to show up in the Billing dropdown and maintain history
-    let client = await User.findOne({ 
+    let client = await User.findOne({
       $or: [
         { email: email.toLowerCase() },
         { phone: phone }
@@ -764,7 +864,7 @@ const createGuestAppointment = async (req, res) => {
             title,
             body,
             tokens: allTokens,
-            data: { 
+            data: {
               appointmentId: appointment._id.toString(),
               clientId: client._id.toString()
             }

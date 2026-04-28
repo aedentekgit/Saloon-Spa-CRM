@@ -7,7 +7,7 @@ const {
   updateService,
   deleteService
 } = require('../../controllers/operations/serviceController');
-const { protect, manager } = require('../../middleware/authMiddleware');
+const { protect, requirePermission } = require('../../middleware/authMiddleware');
 
 const { upload } = require('../../middleware/uploadMiddleware');
 
@@ -15,11 +15,11 @@ router.route('/public')
   .get(getPublicServices);
 
 router.route('/')
-  .get(protect, getServices) // Public-ish or protected by protect depending on FE requirements.
-  .post(protect, manager, upload.single('serviceImage'), createService);
+  .get(protect, requirePermission('services', 'appointments', 'billing', 'book'), getServices)
+  .post(protect, requirePermission('services'), upload.single('serviceImage'), createService);
 
 router.route('/:id')
-  .put(protect, manager, upload.single('serviceImage'), updateService)
-  .delete(protect, manager, deleteService);
+  .put(protect, requirePermission('services'), upload.single('serviceImage'), updateService)
+  .delete(protect, requirePermission('services'), deleteService);
 
 module.exports = router;

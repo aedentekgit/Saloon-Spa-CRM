@@ -96,7 +96,7 @@ const OurTeam = () => {
       try {
         if (employees.length === 0) setLoading(true);
         setError('');
-        
+
         const [empRes, branchRes] = await Promise.all([
           fetch(`${API_URL}/employees/public`),
           fetch(`${API_URL}/branches/public`),
@@ -107,7 +107,7 @@ const OurTeam = () => {
         }
 
         const [empRaw, branchRaw] = await Promise.all([empRes.json(), branchRes.json()]);
-        
+
         const empData = Array.isArray(empRaw) ? empRaw : (empRaw?.data || []);
         const branchDataList = Array.isArray(branchRaw) ? branchRaw : (branchRaw?.data || []);
 
@@ -163,7 +163,7 @@ const OurTeam = () => {
       <header className="relative z-10 px-6 pt-12 md:pt-24 lg:pt-32 pb-32 lg:px-24 overflow-hidden">
         <div className="mx-auto max-w-[1400px]">
           <div className="grid lg:grid-cols-2 gap-20 items-center">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 1.1 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1.5 }}
@@ -192,7 +192,7 @@ const OurTeam = () => {
               <div className="absolute -top-10 -left-10 w-40 h-40 bg-zen-sand/10 rounded-full blur-3xl -z-10" />
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
@@ -203,7 +203,7 @@ const OurTeam = () => {
                   <Users size={12} className="text-zen-sand" />
                    The Zen Collective
                 </div>
-                
+
                 <h1 className="text-5xl md:text-6xl lg:text-[6.5rem] font-serif font-bold leading-[0.9] tracking-tight">
                   Masters of<br />
                   <span className="italic relative animate-text-shine">
@@ -218,7 +218,7 @@ const OurTeam = () => {
               </p>
 
               <div className="pt-6">
-                <Link 
+                <Link
                   to="/contact"
                   className="group inline-flex items-center gap-6 text-sm font-bold uppercase tracking-[0.3em] overflow-hidden"
                 >
@@ -286,8 +286,8 @@ const OurTeam = () => {
               </div>
               <h2 className="text-4xl font-bold text-zen-primary mb-4 font-accent">Equilibrium Interrupted</h2>
               <p className="text-zen-brown/60 mb-10 text-center max-w-sm italic">{error}</p>
-              <button 
-                onClick={() => window.location.reload()} 
+              <button
+                onClick={() => window.location.reload()}
                 className="px-12 py-4 bg-zen-primary text-white rounded-full text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-zen-sand transition-all shadow-2xl shadow-zen-primary/20"
               >
                 Reestablish Connection
@@ -314,7 +314,7 @@ const OurTeam = () => {
                       className="group relative flex flex-col"
                     >
                       {/* Boutique Image Container */}
-                      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[2.5rem] bg-zen-stone/5 border border-zen-stone/10 transition-all duration-700 group-hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)]">
+                      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[2.5rem] bg-zen-stone/5 border border-zen-stone/10 transition-all duration-700 group-hover:shadow-none">
                         <img
                           src={picUrl || fallbackPortrait}
                           alt={staff.name}
@@ -327,12 +327,12 @@ const OurTeam = () => {
                              }
                           }}
                         />
-                        
+
                         {/* Elegant Minimal Overlay */}
                         <div className="absolute inset-0 bg-gradient-to-t from-zen-brown/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                        
+
                         {/* Quick View Button */}
-                        <Link 
+                        <Link
                           to="/contact"
                           className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                         >
@@ -392,10 +392,10 @@ const OurTeam = () => {
              <div className="relative z-10">
                 <p className="text-[10px] font-bold uppercase tracking-[0.6em] text-white/40 mb-8">Personalized Sanctuary</p>
                 <h2 className="text-5xl md:text-7xl font-bold text-white mb-12 font-accent">Ready to <span className="italic text-zen-sand">Connect</span>?</h2>
-                
+
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                  <Link 
-                    to="/contact" 
+                  <Link
+                    to="/contact"
                     className="w-full sm:w-auto px-12 py-5 bg-white text-zen-primary rounded-full text-[11px] font-bold uppercase tracking-[0.3em] transition-all hover:bg-zen-sand hover:text-white"
                   >
                     Reserve Your Session

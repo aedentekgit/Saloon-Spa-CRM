@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { type UserRole, hasPermissionForRole } from '../config/accessControl';
 
 export type { UserRole };
@@ -10,14 +10,16 @@ interface User {
   name: string;
   token?: string;
   permissions?: string[];
-  branch?: string;
+  branch?: string | { _id?: string; name?: string };
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  validating: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
   hasPermission: (permId: string) => boolean;
 }
 
@@ -33,6 +35,12 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
+
+const getBranchId = (branch: User['branch']) => {
+  if (!branch) return '';
+  if (typeof branch === 'string') return branch;
+  return branch._id || '';
+};
 
 const parseResponseBody = async (response: Response) => {
   const text = await response.text();
@@ -62,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   });
   const [loading] = useState(false);
+  const [validating, setValidating] = useState(true);
 
   const hasPermission = (permId: string): boolean => {
     if (!user) return false;
@@ -87,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: data.role as UserRole,
           name: data.name,
           permissions: data.permissions,
-          branch: data.branch,
+          branch: getBranchId(data.branch),
           token: data.token
         };
         setUser(userData);
@@ -113,8 +122,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const updateUser = (userData: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, ...userData };
+      localStorage.setItem('zen_spa_user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Background Sync: Ensure role/name/branch are always fresh from DB on mount
+  useEffect(() => {
+    const syncProfile = async () => {
+      if (!user?.token) {
+        setValidating(false);
+        return;
+      }
+      try {
+        const response = await fetch(`${API_URL}/users/profile`, {
+          headers: { 'Authorization': `Bearer ${user.token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          // Force update to ensure role and branch are correct values
+          const updates: Partial<User> = {
+            role: data.role,
+            name: data.name,
+            permissions: data.permissions
+          };
+          const branchId = getBranchId(data.branch);
+          if (branchId || data.role === 'Admin') {
+            updates.branch = branchId;
+          }
+          updateUser(updates);
+          console.log('ZenSync: Identity and Branch validated');
+        } else if (response.status === 401) {
+          logout(); // Token expired or invalid
+        }
+      } catch (error) {
+        console.warn('ZenSync: Background validation failed');
+      } finally {
+        setValidating(false);
+      }
+    };
+
+    syncProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, hasPermission }}>
+    <AuthContext.Provider value={{ user, loading, validating, login, logout, updateUser, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

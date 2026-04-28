@@ -3,17 +3,7 @@ const Membership = require('../../models/operations/Membership');
 const User = require('../../models/core/User');
 const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { getPaginationOptions, buildPaginationMeta } = require('../../utils/pagination');
-const { getBranchId, sameBranch } = require('../../utils/branch');
-const mongoose = require('mongoose');
-
-const toObjectIdIfValid = (value) => {
-  if (!value) return value;
-  const id = getBranchId(value);
-  if (!id) return id;
-  if (id instanceof mongoose.Types.ObjectId) return id;
-  if (mongoose.Types.ObjectId.isValid(id)) return new mongoose.Types.ObjectId(id);
-  return id;
-};
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 const getUploadedDocumentPath = (req) => {
   const file = req.files?.document?.[0] || req.file;
@@ -30,7 +20,7 @@ exports.createMembershipPlan = async (req, res) => {
   try {
     const document = getUploadedDocumentPath(req);
     const planData = { ...req.body, document };
-    
+
     // Parse numeric fields and arrays if they come as strings (common with FormData)
     if (typeof planData.price === 'string') planData.price = Number(planData.price);
     if (typeof planData.durationDays === 'string') planData.durationDays = Number(planData.durationDays);
@@ -59,9 +49,31 @@ exports.createMembershipPlan = async (req, res) => {
 // @access  Private
 exports.getMembershipPlans = async (req, res) => {
   try {
+    const userBranchId = getBranchId(req.user.branch);
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
+    const filter = {};
+
+    if (req.user.role === 'Admin') {
+      if (requestedBranch) {
+        filter.branches = toObjectIdIfValid(requestedBranch);
+      }
+    } else {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view plans for another branch.' });
+      }
+      filter.$or = [
+        { branches: toObjectIdIfValid(userBranchId) },
+        { branches: { $size: 0 } },
+        { branches: { $exists: false } }
+      ];
+    }
+
     const { paginate, page, limit, skip } = getPaginationOptions(req);
-    const plansQuery = MembershipPlan.find({}).populate('applicableServices').sort({ createdAt: -1 });
-    const total = paginate ? await MembershipPlan.countDocuments({}) : null;
+    const plansQuery = MembershipPlan.find(filter).populate('applicableServices').sort({ createdAt: -1 });
+    const total = paginate ? await MembershipPlan.countDocuments(filter) : null;
     const plans = paginate ? await plansQuery.skip(skip).limit(limit) : await plansQuery;
     res.json(paginate ? { data: plans, pagination: buildPaginationMeta(total || 0, page, limit) } : plans);
   } catch (error) {
@@ -90,14 +102,14 @@ exports.updateMembershipPlan = async (req, res) => {
     if (!plan) return res.status(404).json({ message: 'Plan not found' });
 
     const updateData = { ...req.body };
-    
+
     // Handle Numeric and Boolean fields from FormData
     if (updateData.price !== undefined) updateData.price = Number(updateData.price);
     if (updateData.durationDays !== undefined) updateData.durationDays = Number(updateData.durationDays);
     if (updateData.maxSessions !== undefined) updateData.maxSessions = Number(updateData.maxSessions);
     if (updateData.isActive !== undefined) updateData.isActive = updateData.isActive === 'true' || updateData.isActive === true;
     if (updateData.isPopular !== undefined) updateData.isPopular = updateData.isPopular === 'true' || updateData.isPopular === true;
-    
+
     if (typeof updateData.applicableServices === 'string') {
        try { updateData.applicableServices = JSON.parse(updateData.applicableServices); } catch(e) {}
     }
@@ -117,7 +129,7 @@ exports.updateMembershipPlan = async (req, res) => {
     }
 
     const updatedPlan = await MembershipPlan.findByIdAndUpdate(req.params.id, updateData, { returnDocument: 'after' });
-    
+
     if ((uploadedDocument || req.body.removeDocument === 'true' || req.body.removeDocument === true) && previousDocument && previousDocument !== updatedPlan.document) {
       await deleteFile(previousDocument);
     }
@@ -147,7 +159,7 @@ exports.deleteMembershipPlan = async (req, res) => {
 exports.enrollClient = async (req, res) => {
   try {
     const { clientId, planId, branchId, startDate } = req.body;
-    
+
     // IDOR Check: Ensure Manager/Admin belongs to the branch
     const userBranchId = getBranchId(req.user.branch);
     const selectedBranch = getBranchId(branchId) || userBranchId;
@@ -155,9 +167,26 @@ exports.enrollClient = async (req, res) => {
       return res.status(403).json({ message: 'Access Denied: Cannot enroll client in another branch.' });
     }
 
+    if (!selectedBranch) {
+      return res.status(400).json({ message: 'Branch assignment required' });
+    }
+
     const plan = await MembershipPlan.findById(planId);
     if (!plan) {
       return res.status(404).json({ message: 'Plan not found' });
+    }
+
+    const planBranches = Array.isArray(plan.branches) ? plan.branches : [];
+    if (planBranches.length > 0 && !planBranches.some(branch => sameBranch(branch, selectedBranch))) {
+      return res.status(403).json({ message: 'Access Denied: Selected plan is not available for this branch.' });
+    }
+
+    const targetClient = await User.findById(clientId).select('_id role branch');
+    if (!targetClient || targetClient.role !== 'Client') {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+    if (!sameBranch(targetClient.branch, selectedBranch)) {
+      return res.status(403).json({ message: 'Access Denied: Selected client belongs to another branch.' });
     }
 
     const start = startDate ? new Date(startDate) : new Date();
@@ -167,7 +196,7 @@ exports.enrollClient = async (req, res) => {
     const membership = await Membership.create({
       client: clientId,
       plan: planId,
-      branch: selectedBranch,
+      branch: toObjectIdIfValid(selectedBranch),
       startDate: start,
       endDate: end,
       totalSessions: plan.maxSessions,
@@ -190,8 +219,8 @@ exports.getClientMemberships = async (req, res) => {
     // IDOR Check
     const isSelf = req.params.clientId === req.user._id.toString();
     const isAdmin = req.user.role === 'Admin';
-    const isManager = req.user.role === 'Manager';
-    
+    const isManager = !['Admin', 'Client', 'Employee'].includes(req.user.role);
+
     if (!isAdmin && !isManager && !isSelf) {
       return res.status(403).json({ message: 'Access Denied: You can only view your own memberships.' });
     }
@@ -237,10 +266,10 @@ exports.redeemMembershipSession = async (req, res) => {
     const membership = await Membership.findById(req.params.id).populate('plan');
 
     if (!membership) return res.status(404).json({ message: 'Membership not found' });
-    
+
     // IDOR Check
-    const isBranchStaff = sameBranch(membership.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isBranchStaff = req.user.role !== 'Client' && sameBranch(membership.branch, req.user.branch);
     if (!isAdmin && !isBranchStaff) {
       return res.status(403).json({ message: 'Access Denied: You cannot redeem sessions for this branch.' });
     }
@@ -283,6 +312,7 @@ exports.getAllMemberships = async (req, res) => {
     const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
     if (req.user.role === 'Client') {
       query.client = req.user._id;
+      if (userBranchId) query.branch = toObjectIdIfValid(userBranchId);
     } else if (req.user.role === 'Admin' && requestedBranch) {
       query.branch = toObjectIdIfValid(requestedBranch);
     } else if (req.user.role !== 'Admin' && userBranchId) {
@@ -331,7 +361,7 @@ exports.getMembershipStats = async (req, res) => {
 
     const totalActive = await Membership.countDocuments(matchQuery);
     const totalExpired = await Membership.countDocuments({ ...matchQuery, status: 'Expired' });
-    
+
     // Sum of all remaining sessions
     const sessionStats = await Membership.aggregate([
       { $match: matchQuery },
@@ -378,7 +408,7 @@ exports.deleteMembership = async (req, res) => {
     }
 
     // IDOR Check
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(membership.branch, req.user.branch);
+    const isBranchManager = req.user.role !== 'Client' && req.user.role !== 'Employee' && sameBranch(membership.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
     if (!isAdmin && !isBranchManager) {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to delete this membership.' });
@@ -404,7 +434,7 @@ exports.updateMembership = async (req, res) => {
     }
 
     // IDOR Check
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(membership.branch, req.user.branch);
+    const isBranchManager = req.user.role !== 'Client' && req.user.role !== 'Employee' && sameBranch(membership.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
     if (!isAdmin && !isBranchManager) {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to update this membership.' });

@@ -25,6 +25,7 @@ export type PermissionId =
   | 'branches'
   | 'room-categories'
   | 'service-categories'
+  | 'expense-categories'
   | 'admins'
   | 'roles'
   | 'settings';
@@ -53,6 +54,7 @@ export const PERMISSION_DEFINITIONS = [
   { id: 'branches', name: 'Branches' },
   { id: 'room-categories', name: 'Room Category' },
   { id: 'service-categories', name: 'Service Category' },
+  { id: 'expense-categories', name: 'Expense Category' },
   { id: 'admins', name: 'Admins' },
   { id: 'roles', name: 'Roles' },
   { id: 'settings', name: 'Settings' }
@@ -81,6 +83,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, PermissionId[]> = {
     'branches',
     'room-categories',
     'service-categories',
+    'expense-categories',
     'settings'
   ],
   Employee: ['dashboard', 'appointments', 'clients', 'services', 'attendance', 'leave'],
@@ -111,6 +114,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, PermissionId[]> = {
   '/branches': ['branches', 'settings'],
   '/room-categories': ['room-categories', 'settings'],
   '/service-categories': ['service-categories', 'settings'],
+  '/expense-categories': ['expense-categories', 'settings'],
   '/admins': ['admins', 'roles'],
   '/payroll': ['payroll', 'finance'],
   '/shifts': ['shifts', 'settings'],

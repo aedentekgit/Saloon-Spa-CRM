@@ -54,7 +54,7 @@ const Home = () => {
               <span className="w-8 h-[1px] bg-zen-brown/30" />
               Est. 2024 • {siteName}
             </div>
-            
+
             <h1 className="text-5xl md:text-6xl lg:text-[6.5rem] font-serif font-bold leading-[0.9] tracking-tight">
               The Art of<br />
               <span className="italic relative animate-text-shine">
@@ -65,13 +65,13 @@ const Home = () => {
             </h1>
 
             <p className="text-lg md:text-xl text-zen-brown/70 max-w-xl leading-relaxed font-sans mt-6">
-              Step into a realm where time slows and every breath is a ritual. 
-              We harmonize ancient wisdom with contemporary luxury to restore 
+              Step into a realm where time slows and every breath is a ritual.
+              We harmonize ancient wisdom with contemporary luxury to restore
               your soul&apos;s natural resonance.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-6 pt-6">
-              <Link 
+              <Link
                 to="/book"
                 className="group relative px-10 py-5 bg-zen-brown text-zen-cream rounded-full font-bold overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-sm text-center sm:text-left"
               >
@@ -82,7 +82,7 @@ const Home = () => {
                 <div className="absolute inset-0 bg-gradient-to-r from-zen-brown/80 to-zen-brown opacity-0 group-hover:opacity-100 transition-opacity" />
               </Link>
 
-              <Link 
+              <Link
                 to="/about"
                 className="px-10 py-5 border border-zen-brown/25 rounded-full font-bold hover:bg-zen-brown/5 transition-all text-zen-brown/80 text-center uppercase tracking-widest text-[11px]"
               >
@@ -108,31 +108,31 @@ const Home = () => {
 
           {/* Decorative Media Area */}
           <div className="relative animate-in fade-in zoom-in duration-1000 delay-300 mt-12 lg:mt-0 lg:pl-12">
-            <motion.div 
+            <motion.div
               initial={{ rotate: 0 }}
               animate={{ rotate: 2 }}
               transition={{ duration: 20, repeat: Infinity, repeatType: "reverse" }}
               className="aspect-square w-full rounded-[3rem] md:rounded-[5rem] overflow-hidden shadow-2xl relative z-0 group"
             >
-               <img 
-                 src={withBase('/images/hero_sanctuary.png')} 
-                 alt="Warm sanctuary interior with water and lantern light" 
+               <img
+                 src={withBase('/images/hero_sanctuary.png')}
+                 alt="Warm sanctuary interior with water and lantern light"
                  className="w-full h-full object-cover transition-all duration-1000 scale-110 group-hover:scale-100"
                />
                <div className="absolute inset-0 bg-gradient-to-t from-zen-brown/20 to-transparent" />
             </motion.div>
 
             {/* Premium Floating Glass Card */}
-            <motion.div 
+            <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.8, duration: 1 }}
               whileHover={{ y: -10, transition: { duration: 0.4 } }}
-              className="absolute -bottom-8 -left-8 lg:-left-16 p-8 lg:p-10 backdrop-blur-3xl bg-white/60 border border-white/80 rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(109,40,217,0.15)] max-w-[320px] lg:max-w-md hidden sm:block group/card overflow-hidden"
+              className="absolute -bottom-8 -left-8 lg:-left-16 p-8 lg:p-10 backdrop-blur-3xl bg-white/60 border border-white/80 rounded-[2.5rem] shadow-none max-w-[320px] lg:max-w-md hidden sm:block group/card overflow-hidden"
             >
               {/* Subtle accent glow */}
               <div className="absolute -top-10 -right-10 w-24 h-24 bg-zen-sand/10 rounded-full blur-2xl group-hover/card:scale-150 transition-transform duration-1000" />
-              
+
               <div className="relative z-10 flex items-start gap-5">
                 <div className="w-14 h-14 bg-zen-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-zen-primary/20 shrink-0">
                   <Waves size={26} strokeWidth={1.5} />
@@ -242,7 +242,7 @@ const Home = () => {
                  </div>
               </div>
            </div>
-           
+
            <div className="grid grid-cols-2 gap-4">
               <div className="aspect-[4/5] rounded-3xl overflow-hidden mt-12 shadow-sm">
                  <img src={restorativePairings[0].img} alt={restorativePairings[0].title} className="w-full h-full object-cover" loading="lazy" />

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Save, 
-  Upload, 
-  Bell, 
-  Palette, 
-  Map, 
-  MapPin, 
-  Mail, 
-  Phone, 
+import {
+  Save,
+  Upload,
+  Bell,
+  Palette,
+  Map,
+  MapPin,
+  Mail,
+  Phone,
   Clock,
   Zap,
   Sparkles,
@@ -201,12 +201,12 @@ const Settings = () => {
     try {
       if (!settings) return;
       const newState = !settings.billing?.gstEnabled;
-      const updatedSettings = { 
-        ...settings, 
-        billing: { ...settings.billing, gstEnabled: newState } 
+      const updatedSettings = {
+        ...settings,
+        billing: { ...settings.billing, gstEnabled: newState }
       };
       setSettings(updatedSettings);
-      
+
       const response = await fetch(`${API_URL}/settings`, {
         method: 'PUT',
         headers: {
@@ -230,10 +230,10 @@ const Settings = () => {
     try {
       const url = editingTaxRate ? `${API_URL}/gst/${editingTaxRate._id}` : `${API_URL}/gst`;
       const method = editingTaxRate ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user?.token}`
         },
@@ -270,7 +270,7 @@ const Settings = () => {
     try {
       const response = await fetch(`${API_URL}/gst/${rate._id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user?.token}`
         },
@@ -305,7 +305,7 @@ const Settings = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const data = await response.json();
-      
+
       // Ensure all top-level keys exist even if API returns sparse object
       const safeSettings = {
         ...data,
@@ -328,7 +328,7 @@ const Settings = () => {
         billing: data?.billing || { gstEnabled: false },
         maps: data?.maps || { googleMapsApiKey: '', enabled: false }
       };
-      
+
       setSettings(safeSettings);
     } catch (error) {
       notify('error', 'Sync Failure', 'Failed to synchronize system configuration.');
@@ -493,7 +493,7 @@ const Settings = () => {
   if (loading && (!settings || !settings.general.siteName)) {
     return (
       <div className="flex items-center justify-center min-h-[600px]">
-        <motion.div 
+        <motion.div
            animate={{ rotate: 360 }}
            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
            className="p-8 bg-zen-sand/5 rounded-[1.5rem] border border-zen-sand/10"
@@ -539,15 +539,15 @@ const Settings = () => {
                        key={item.id}
                        onClick={() => setActiveSection(item.id as SettingsSection)}
                        className={`flex items-center gap-2.5 sm:gap-3 px-4 sm:px-5 py-2.5 rounded-xl transition-all font-sans font-bold text-[11px] sm:text-[12px] group relative whitespace-nowrap border shrink-0 ${
-                         activeSection === item.id 
-                           ? 'bg-zen-brown text-white border-zen-brown shadow-sm' 
+                         activeSection === item.id
+                           ? 'bg-zen-brown text-white border-zen-brown shadow-sm'
                            : 'text-zen-brown/60 hover:bg-zen-cream/60 hover:text-zen-brown border-transparent'
                        } lg:w-full`}
                     >
                        <item.icon size={16} className={activeSection === item.id ? 'text-white' : 'text-zen-brown/30 group-hover:text-zen-brown/60'} />
                        <span>{item.name}</span>
                        {activeSection === item.id && (
-                          <motion.div 
+                          <motion.div
                              layoutId="sidebarActive"
                              className="hidden lg:block absolute right-3 w-1.5 h-1.5 rounded-full bg-white/50"
                           />
@@ -583,21 +583,21 @@ const Settings = () => {
 
                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                               <div className="lg:col-span-8 space-y-8">
-                                 <ZenInput 
+                                 <ZenInput
                                     label="Business Name"
                                     value={settings.general.siteName}
                                     onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, siteName: e.target.value}} : null)}
                                  />
-                                 
+
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <ZenInput 
+                                    <ZenInput
                                       label="Official Email"
                                       icon={Mail}
                                       value={settings.general.email}
                                       onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, email: e.target.value}} : null)}
                                     />
                                      <div className="relative">
-                                        <ZenInput 
+                                        <ZenInput
                                           label="Contact Number"
                                           icon={Phone}
                                           prefix={settings.general.dialingCode}
@@ -615,13 +615,13 @@ const Settings = () => {
                                  </div>
 
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <ZenInput 
+                                    <ZenInput
                                       label="Currency"
                                       placeholder="e.g. Qatari Riyal"
                                       value={settings.general.currency}
                                       onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, currency: e.target.value}} : null)}
                                     />
-                                    <ZenInput 
+                                    <ZenInput
                                       label="Currency Symbol"
                                       placeholder="e.g. QR"
                                       value={settings.general.currencySymbol}
@@ -638,9 +638,9 @@ const Settings = () => {
                                        const country = countries.find(c => c.name === val);
                                        if (country) {
                                           setSettings(prev => prev ? {
-                                             ...prev, 
+                                             ...prev,
                                              general: {
-                                                ...prev.general, 
+                                                ...prev.general,
                                                 country: country.name,
                                                 countryIso: country.iso,
                                                 dialingCode: country.code
@@ -650,7 +650,7 @@ const Settings = () => {
                                     }}
                                  />
 
-                                 <ZenTextarea 
+                                 <ZenTextarea
                                     label="Business Address"
                                     value={settings.general.address}
                                     onChange={(e: any) => setSettings(prev => prev ? {...prev, general: {...prev.general, address: e.target.value}} : null)}
@@ -666,10 +666,10 @@ const Settings = () => {
                                     <div className="relative group w-fit mx-auto mb-10 z-10">
                                        {(imagePreview || settings.general.logo) ? (
                                          <div className="relative p-3 bg-white zen-pointed-surface border border-zen-brown/15 shadow-sm">
-                                            <img 
-                                              src={imagePreview || getImageUrl(settings.general.logo)} 
-                                              alt="Logo" 
-                                              className="h-40 w-40 object-cover zen-pointed-surface shadow-sm" 
+                                            <img
+                                              src={imagePreview || getImageUrl(settings.general.logo)}
+                                              alt="Logo"
+                                              className="h-40 w-40 object-cover zen-pointed-surface shadow-sm"
                                             />
                                             <label htmlFor="logo-upload-final" className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 rounded-[1rem] flex items-center justify-center transition-all cursor-pointer backdrop-blur-md">
                                                <Camera className="text-white" size={32} />
@@ -692,7 +692,7 @@ const Settings = () => {
                                         setImagePreview(null);
                                       }
                                     }} />
-                                    
+
                                     {logoFile && (
                                        <ZenButton onClick={handleLogoUpload} className="w-full bg-zen-brown text-white hover:bg-zen-brown/90 py-5 rounded-[1.5rem] font-bold shadow-xl relative z-10">
                                           Synchronize Logo
@@ -704,7 +704,7 @@ const Settings = () => {
                            </div>
 
                            <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
-                              <ZenButton 
+                              <ZenButton
                                  onClick={() => handleSave('general')}
                                  disabled={saving}
                                  className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
@@ -718,15 +718,15 @@ const Settings = () => {
 
                   {activeSection === 'visuals' && (
                       <div className="max-w-5xl flex flex-col gap-6 font-sans">
-                        <section className="bg-white p-6 sm:p-10 lg:p-14 rounded-[1.5rem] sm:rounded-[2rem] border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative">
-                           
+                        <section className="bg-white p-6 sm:p-10 lg:p-14 rounded-[1.5rem] sm:rounded-[2rem] border border-gray-100 shadow-none relative">
+
                            <header className="flex flex-col sm:flex-row sm:items-center gap-5 mb-14">
                               <div className="w-14 h-14 rounded-full flex items-center justify-center text-zen-sand bg-zen-sand/10 shrink-0">
                                  <Palette size={24} strokeWidth={2} />
                               </div>
                               <div className="text-center sm:text-left"><h2 className="text-[22px] font-sans font-bold text-slate-900 tracking-tight">Appearance Settings</h2><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Calibrate brand visual identity.</p></div>
                            </header>
-                           
+
                            <div className="space-y-12 font-sans text-center sm:text-left">
                               {/* Color Profile Settings */}
                               <div>
@@ -737,15 +737,15 @@ const Settings = () => {
                                  </div>
                                  <div className="flex flex-wrap items-center gap-3">
                                     {[
-                                      '#1E293B', '#0F766E', '#15803D', '#84CC16', '#B45309', '#EA580C', 
+                                      '#1E293B', '#0F766E', '#15803D', '#84CC16', '#B45309', '#EA580C',
                                       '#BE123C', '#9333EA', '#7E22CE', '#1D4ED8', '#2563EB', '#0284C7', '#451A03'
                                     ].map(color => (
                                        <button
                                           key={color}
                                           onClick={() => setSettings(prev => prev ? {...prev, theme: {...prev.theme, primaryColor: color}} : null)}
                                           className={`relative w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-                                             settings.theme.primaryColor === color 
-                                                ? 'ring-[6px] ring-zen-sand/20 scale-[1.15] z-10' 
+                                             settings.theme.primaryColor === color
+                                                ? 'ring-[6px] ring-zen-sand/20 scale-[1.15] z-10'
                                                 : 'hover:scale-110'
                                           }`}
                                           style={{ backgroundColor: color }}
@@ -753,9 +753,9 @@ const Settings = () => {
                                           {settings.theme.primaryColor === color && <Check size={18} className="text-white" strokeWidth={3} />}
                                        </button>
                                     ))}
-                                    
+
                                     {/* Custom Color Upload Picker & Hex Input */}
-                                    <div className="flex items-center gap-2 bg-slate-50 border border-gray-200 rounded-full pr-4 p-1 ml-2 shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
+                                    <div className="flex items-center gap-2 bg-slate-50 border border-gray-200 rounded-full pr-4 p-1 ml-2 shadow-none">
                                        <div className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-500 transition-colors cursor-pointer overflow-hidden bg-white shadow-sm border border-gray-200">
                                           <Palette size={14} />
                                           <input
@@ -765,8 +765,8 @@ const Settings = () => {
                                              onChange={(e: any) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, primaryColor: e.target.value}} : null)}
                                           />
                                        </div>
-                                       <input 
-                                          type="text" 
+                                       <input
+                                          type="text"
                                           value={settings.theme.primaryColor || '#2D1622'}
                                           onChange={(e: any) => setSettings(prev => prev ? {...prev, theme: {...prev.theme, primaryColor: e.target.value}} : null)}
                                           className="bg-transparent border-none outline-none text-[11px] font-bold text-slate-700 w-16 uppercase focus:ring-0 placeholder:text-gray-300"
@@ -782,7 +782,7 @@ const Settings = () => {
                                      <Sparkles size={18} className="text-zen-sand" />
                                      <h3 className="text-[16px] font-bold text-slate-900">Typography Workshop</h3>
                                   </div>
-                                  
+
                                   <div className="space-y-6">
                                      <div className="bg-slate-50/50 rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-10 lg:p-12 border border-slate-100 shadow-sm overflow-hidden relative group/workshop">
                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
@@ -815,7 +815,7 @@ const Settings = () => {
                                                           <input type="file" className="hidden" accept=".zip,.ttf,.otf,.woff,.woff2" onChange={(e) => handleFontUpload(e, fontConfigMode)} />
                                                        </label>
                                                     </div>
-                                                    <ZenDropdown 
+                                                    <ZenDropdown
                                                        label="Select Font"
                                                        hideLabel
                                                        options={fontConfigMode === 'heading' ? ['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Poppins'] : ['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Montserrat']}
@@ -840,18 +840,18 @@ const Settings = () => {
                                            {/* Specimen Preview Section */}
                                            <div className="lg:col-span-7 flex flex-col justify-center space-y-8 sm:space-y-12 min-h-[auto] sm:min-h-[300px] mt-8 lg:mt-0">
                                              <div className="space-y-4">
-                                                <h1 
-                                                   className={`transition-all duration-700 text-4xl md:text-5xl lg:text-6xl tracking-tight leading-none break-words ${fontConfigMode === 'heading' ? 'text-slate-900 border-l-4 border-zen-sand pl-4 sm:pl-8' : 'text-slate-400 pl-4 sm:pl-8 opacity-40'}`} 
+                                                <h1
+                                                   className={`transition-all duration-700 text-4xl md:text-5xl lg:text-6xl tracking-tight leading-none break-words ${fontConfigMode === 'heading' ? 'text-slate-900 border-l-4 border-zen-sand pl-4 sm:pl-8' : 'text-slate-400 pl-4 sm:pl-8 opacity-40'}`}
                                                    style={{ fontFamily: settings.theme.headingFont.match(/uploads/i) ? 'CustomHeadingFont' : settings.theme.headingFont }}
                                                 >
                                                    Sanctuary Settings
                                                 </h1>
                                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] pl-8 sm:pl-12 opacity-30">Heading Specimen</p>
                                              </div>
- 
+
                                              <div className="space-y-4">
-                                                <div 
-                                                   className={`transition-all duration-700 space-y-2 lg:max-w-xl pl-4 sm:pl-8 ${fontConfigMode === 'body' ? 'border-l-4 border-zen-sand opacity-100' : 'opacity-30'}`} 
+                                                <div
+                                                   className={`transition-all duration-700 space-y-2 lg:max-w-xl pl-4 sm:pl-8 ${fontConfigMode === 'body' ? 'border-l-4 border-zen-sand opacity-100' : 'opacity-30'}`}
                                                    style={{ fontFamily: settings.theme.bodyFont.match(/uploads/i) ? 'CustomBodyFont' : settings.theme.bodyFont }}
                                                 >
                                                    <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed">
@@ -870,10 +870,10 @@ const Settings = () => {
                               </div>
                            </div>
                         </section>
-                        
+
                         <div className="flex justify-end pr-4">
-                           <button 
-                              onClick={() => handleSave('theme')} 
+                           <button
+                              onClick={() => handleSave('theme')}
                               disabled={saving}
                               style={{ backgroundColor: settings.theme.primaryColor || '#7E22CE' }}
                               className="hover:brightness-110 text-white px-10 py-4 rounded-[1.25rem] text-sm font-bold shadow-2xl transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
@@ -895,7 +895,7 @@ const Settings = () => {
                                </div>
                                <div className="flex bg-zen-cream/30 p-1.5 rounded-2xl border border-zen-brown/15">
                                   {['local', 'cloudinary'].map((prov) => (
-                                     <button 
+                                     <button
                                         key={prov}
                                         onClick={() => setSettings(prev => prev ? {...prev, upload: {...prev.upload, provider: prov as any}} : null)}
                                         className={`px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-500 ${settings.upload.provider === prov ? 'bg-white text-zen-brown shadow-lg' : 'text-zen-brown/40 hover:text-zen-brown'}`}
@@ -920,18 +920,18 @@ const Settings = () => {
                                ) : (
                                   <motion.div key="cloudinary" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-8">
                                      <div className="bg-zen-cream/10 p-6 sm:p-10 rounded-[1rem] border border-zen-brown/15 space-y-8">
-                                        <ZenInput 
-                                           label="Cloud Name" 
+                                        <ZenInput
+                                           label="Cloud Name"
                                            value={settings.upload.cloudinaryCloudName}
                                            onChange={(e: any) => setSettings(prev => prev ? {...prev, upload: {...prev.upload, cloudinaryCloudName: e.target.value}} : null)}
                                         />
-                                        <ZenInput 
-                                           label="API Key" 
+                                        <ZenInput
+                                           label="API Key"
                                            value={settings.upload.cloudinaryApiKey}
                                            onChange={(e: any) => setSettings(prev => prev ? {...prev, upload: {...prev.upload, cloudinaryApiKey: e.target.value}} : null)}
                                         />
-                                        <ZenInput 
-                                           label="API Secret" 
+                                        <ZenInput
+                                           label="API Secret"
                                            type="password"
                                            value={settings.upload.cloudinaryApiSecret}
                                            onChange={(e: any) => setSettings(prev => prev ? {...prev, upload: {...prev.upload, cloudinaryApiSecret: e.target.value}} : null)}
@@ -963,9 +963,9 @@ const Settings = () => {
                                     <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">MAPS ENGINE</p>
                                     <p className="text-sm font-serif font-bold text-zen-sand">{settings.maps.enabled ? 'Synchronized' : 'Offline'}</p>
                                  </div>
-                                 <button 
+                                 <button
                                     onClick={() => setSettings(prev => prev ? {...prev, maps: {...prev.maps, enabled: !prev.maps.enabled}} : null)}
-                                    className={`w-16 h-8 rounded-full flex items-center px-1 transition-all duration-500 ${settings.maps.enabled ? 'bg-zen-sand shadow-[0_0_20px_rgba(234,179,8,0.4)]' : 'bg-zen-brown/10'}`}
+                                    className={`w-16 h-8 rounded-full flex items-center px-1 transition-all duration-500 ${settings.maps.enabled ? 'bg-zen-sand shadow-none' : 'bg-zen-brown/10'}`}
                                  >
                                     <motion.div layout className="w-6 h-6 rounded-full bg-white shadow-sm" animate={{ x: settings.maps.enabled ? 32 : 0 }} />
                                   </button>
@@ -974,20 +974,20 @@ const Settings = () => {
 
                             <div className="space-y-8">
                                <div className="bg-zen-cream/10 p-6 sm:p-10 rounded-[1rem] border border-zen-brown/15 space-y-8">
-                                  <ZenInput 
-                                     label="Google Maps API Key" 
+                                  <ZenInput
+                                     label="Google Maps API Key"
                                      type="password"
                                      placeholder="Enter your Google Maps JavaScript API Key"
                                      value={settings.maps.googleMapsApiKey}
                                      onChange={(e: any) => setSettings(prev => prev ? {...prev, maps: {...prev.maps, googleMapsApiKey: e.target.value}} : null)}
                                   />
-                                  
+
                                    <div className="p-6 bg-white/50 rounded-xl border border-zen-brown/5 space-y-4">
                                       <div className="flex items-center justify-between">
                                          <h4 className="text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Required Capabilities</h4>
-                                         <a 
-                                            href="https://console.cloud.google.com/google/maps-apis/credentials" 
-                                            target="_blank" 
+                                         <a
+                                            href="https://console.cloud.google.com/google/maps-apis/credentials"
+                                            target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-[9px] font-bold text-zen-sand hover:underline flex items-center gap-1"
                                          >
@@ -1036,77 +1036,77 @@ const Settings = () => {
                                   <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">System Status</p>
                                   <p className="text-sm font-serif font-bold text-zen-sand">{settings.notifications.pushEnabled ? 'Active Relay' : 'Standby Mode'}</p>
                                </div>
-                               <button 
+                               <button
                                   onClick={() => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, pushEnabled: !prev.notifications.pushEnabled}} : null)}
-                                  className={`w-16 h-8 rounded-full flex items-center px-1 transition-all duration-500 ${settings.notifications.pushEnabled ? 'bg-zen-sand shadow-[0_0_20px_rgba(234,179,8,0.4)]' : 'bg-zen-brown/10'}`}
+                                  className={`w-16 h-8 rounded-full flex items-center px-1 transition-all duration-500 ${settings.notifications.pushEnabled ? 'bg-zen-sand shadow-none' : 'bg-zen-brown/10'}`}
                                >
                                   <motion.div layout className="w-6 h-6 rounded-full bg-white shadow-sm" animate={{ x: settings.notifications.pushEnabled ? 32 : 0 }} />
                                 </button>
                              </div>
                           </header>
- 
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 relative z-10">
-                             <ZenInput 
-                                label="FIREBASE PUBLIC VAPID KEY (KEY PAIR)" 
-                                value={settings.notifications.firebaseVapidKey || ''} 
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseVapidKey: e.target.value}} : null)} 
+                             <ZenInput
+                                label="FIREBASE PUBLIC VAPID KEY (KEY PAIR)"
+                                value={settings.notifications.firebaseVapidKey || ''}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseVapidKey: e.target.value}} : null)}
                              />
-                             <ZenInput 
-                                label="FIREBASE API KEY" 
-                                value={settings.notifications.firebaseApiKey || ''} 
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseApiKey: e.target.value}} : null)} 
+                             <ZenInput
+                                label="FIREBASE API KEY"
+                                value={settings.notifications.firebaseApiKey || ''}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseApiKey: e.target.value}} : null)}
                              />
-                             <ZenInput 
-                                label="FIREBASE AUTH DOMAIN" 
-                                value={settings.notifications.firebaseAuthDomain || ''} 
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseAuthDomain: e.target.value}} : null)} 
+                             <ZenInput
+                                label="FIREBASE AUTH DOMAIN"
+                                value={settings.notifications.firebaseAuthDomain || ''}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseAuthDomain: e.target.value}} : null)}
                              />
-                             <ZenInput 
-                                label="FIREBASE PROJECT ID" 
-                                value={settings.notifications.firebaseProjectId || ''} 
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseProjectId: e.target.value}} : null)} 
+                             <ZenInput
+                                label="FIREBASE PROJECT ID"
+                                value={settings.notifications.firebaseProjectId || ''}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseProjectId: e.target.value}} : null)}
                              />
-                             <ZenInput 
-                                label="FIREBASE STORAGE BUCKET" 
-                                value={settings.notifications.firebaseStorageBucket || ''} 
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseStorageBucket: e.target.value}} : null)} 
+                             <ZenInput
+                                label="FIREBASE STORAGE BUCKET"
+                                value={settings.notifications.firebaseStorageBucket || ''}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseStorageBucket: e.target.value}} : null)}
                              />
-                             <ZenInput 
-                                label="FIREBASE MESSAGE SENDER ID" 
-                                value={settings.notifications.firebaseMessagingSenderId || ''} 
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseMessagingSenderId: e.target.value}} : null)} 
+                             <ZenInput
+                                label="FIREBASE MESSAGE SENDER ID"
+                                value={settings.notifications.firebaseMessagingSenderId || ''}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseMessagingSenderId: e.target.value}} : null)}
                              />
-                             <ZenInput 
-                                label="FIREBASE APP ID" 
-                                value={settings.notifications.firebaseAppId || ''} 
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseAppId: e.target.value}} : null)} 
+                             <ZenInput
+                                label="FIREBASE APP ID"
+                                value={settings.notifications.firebaseAppId || ''}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseAppId: e.target.value}} : null)}
                              />
-                             <ZenInput 
-                                label="FIREBASE MEASUREMENT ID" 
-                                value={settings.notifications.firebaseMeasurementId || ''} 
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseMeasurementId: e.target.value}} : null)} 
+                             <ZenInput
+                                label="FIREBASE MEASUREMENT ID"
+                                value={settings.notifications.firebaseMeasurementId || ''}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseMeasurementId: e.target.value}} : null)}
                              />
-                             <ZenInput 
-                                label="FIREBASE SERVICE ACCOUNT ID (CLIENT EMAIL)" 
-                                value={settings.notifications.firebaseClientEmail || ''} 
-                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseClientEmail: e.target.value}} : null)} 
+                             <ZenInput
+                                label="FIREBASE SERVICE ACCOUNT ID (CLIENT EMAIL)"
+                                value={settings.notifications.firebaseClientEmail || ''}
+                                onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebaseClientEmail: e.target.value}} : null)}
                              />
                              <div className="md:col-span-2">
-                                <ZenTextarea 
-                                   label="FIREBASE PRIVATE KEY" 
+                                <ZenTextarea
+                                   label="FIREBASE PRIVATE KEY"
                                    placeholder="-----BEGIN PRIVATE KEY-----"
-                                   value={settings.notifications.firebasePrivateKey || ''} 
-                                   onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebasePrivateKey: e.target.value}} : null)} 
+                                   value={settings.notifications.firebasePrivateKey || ''}
+                                   onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, firebasePrivateKey: e.target.value}} : null)}
                                 />
                              </div>
-                             
+
                              <div className="space-y-4">
                                 <label className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.3em] ml-2 block">
                                    File (JSON) {settings.notifications.firebasePrivateKey ? '— ✓ Configured' : ''}
                                 </label>
                                 <div className="flex items-center gap-4 bg-zen-cream/30 p-2 rounded-2xl border border-zen-brown/10">
-                                   <input 
-                                      type="file" 
+                                   <input
+                                      type="file"
                                       accept=".json"
                                       onChange={async (e) => {
                                          const file = e.target.files?.[0];
@@ -1138,7 +1138,7 @@ const Settings = () => {
                                 </div>
                              </div>
                           </div>
- 
+
                           {/* Test Block */}
                           <div className="mt-12 p-8 bg-zen-cream/20 rounded-3xl border border-zen-brown/10 flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
                              <div className="flex items-center gap-6">
@@ -1150,24 +1150,24 @@ const Settings = () => {
                              </div>
                              <div className="flex items-center gap-4 w-full sm:w-auto">
                                 <div className="relative flex-1 sm:w-64">
-                                   <input 
-                                      type="text" 
-                                      placeholder="Target Device Token..." 
+                                   <input
+                                      type="text"
+                                      placeholder="Target Device Token..."
                                       className="bg-white border border-zen-brown/10 rounded-xl px-4 py-2.5 text-xs text-zen-brown focus:outline-none focus:ring-4 focus:ring-zen-sand/5 w-full transition-all pr-24"
                                       value={settings.notifications.fcmToken || ''}
                                       onChange={(e: any) => setSettings(prev => prev ? {...prev, notifications: {...prev.notifications, fcmToken: e.target.value}} : null)}
                                    />
-                                   <button 
+                                   <button
                                       onClick={async () => {
                                          const currentSettings = settings;
                                          if (!currentSettings) return;
-                                         
+
                                          try {
                                             if (!('Notification' in window)) {
                                                notify('error', 'Unsupported', 'Browser does not support notifications.');
                                                return;
                                             }
-                                            
+
                                             setSaving(true);
                                             // Dynamic import to avoid bundle overhead if not used
                                             const { initializeApp } = await import('firebase/app');
@@ -1199,8 +1199,8 @@ const Settings = () => {
                                                return;
                                             }
 
-                                            const token = await getToken(messaging, { 
-                                               vapidKey: currentSettings.notifications.firebaseVapidKey 
+                                            const token = await getToken(messaging, {
+                                               vapidKey: currentSettings.notifications.firebaseVapidKey
                                             });
 
                                             if (token) {
@@ -1226,12 +1226,12 @@ const Settings = () => {
                                       My Token
                                    </button>
                                 </div>
-                                <button 
+                                <button
                                    onClick={async () => {
                                       try {
                                          const res = await fetch(`${API_URL}/settings/test-notification`, {
                                             method: 'POST',
-                                            headers: { 
+                                            headers: {
                                                'Authorization': `Bearer ${user?.token}`,
                                                'Content-Type': 'application/json'
                                             },
@@ -1250,10 +1250,10 @@ const Settings = () => {
                                 </button>
                              </div>
                           </div>
- 
+
                           <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end relative z-10">
-                             <ZenButton 
-                                onClick={() => handleSave('notifications')} 
+                             <ZenButton
+                                onClick={() => handleSave('notifications')}
                                 disabled={saving}
                                 className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
                              >
@@ -1280,14 +1280,14 @@ const Settings = () => {
                            <div className="space-y-8">
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                                  <div className="md:col-span-3">
-                                    <ZenInput 
+                                    <ZenInput
                                        label="SMTP Host"
                                        placeholder="e.g. smtp.mailtrap.io"
                                        value={settings.smtp?.host || ''}
                                        onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: ''}), host: e.target.value}} : null)}
                                     />
                                  </div>
-                                 <ZenInput 
+                                 <ZenInput
                                     label="Port"
                                     type="number"
                                     placeholder="587"
@@ -1297,12 +1297,12 @@ const Settings = () => {
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                 <ZenInput 
+                                 <ZenInput
                                     label="SMTP Username"
                                     value={settings.smtp?.user || ''}
                                     onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: ''}), user: e.target.value}} : null)}
                                  />
-                                 <ZenInput 
+                                 <ZenInput
                                     label="SMTP Password"
                                     type="password"
                                     value={settings.smtp?.password || ''}
@@ -1311,13 +1311,13 @@ const Settings = () => {
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                 <ZenInput 
+                                 <ZenInput
                                     label="Default From Name"
                                     placeholder="SaloonSpaCRM"
                                     value={settings.smtp?.fromName || ''}
                                     onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '', encryption: 'tls'}), fromName: e.target.value}} : null)}
                                  />
-                                 <ZenInput 
+                                 <ZenInput
                                     label="Default From Email"
                                     placeholder="noreply@yourdomain.com"
                                     value={settings.smtp?.fromEmail || ''}
@@ -1334,7 +1334,7 @@ const Settings = () => {
                                  </div>
                                  <div className="flex bg-zen-cream/30 p-1.5 rounded-2xl border border-zen-brown/10 w-fit">
                                     {['ssl', 'tls', 'none'].map((enc) => (
-                                       <button 
+                                       <button
                                           key={enc}
                                           onClick={() => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '', encryption: 'tls'}), encryption: enc as any}} : null)}
                                           className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${settings.smtp?.encryption === enc ? 'bg-white text-zen-brown shadow-lg' : 'text-zen-brown/40 hover:text-zen-brown'}`}
@@ -1347,7 +1347,7 @@ const Settings = () => {
 
                               <div className="pt-8 border-t border-zen-brown/5 space-y-6">
                                  <div className="max-w-md">
-                                    <ZenInput 
+                                    <ZenInput
                                        label="Test Delivery Address"
                                        placeholder="Enter email to receive test message..."
                                        icon={Mail}
@@ -1360,7 +1360,7 @@ const Settings = () => {
                            </div>
 
                            <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex flex-col sm:flex-row justify-end gap-4">
-                              <ZenButton 
+                              <ZenButton
                                  variant="outline"
                                  onClick={handleTestSMTP}
                                  disabled={saving}
@@ -1368,7 +1368,7 @@ const Settings = () => {
                               >
                                  Test Gateway
                               </ZenButton>
-                              <ZenButton 
+                              <ZenButton
                                  onClick={() => handleSave('smtp' as any)}
                                  disabled={saving}
                                  className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
@@ -1397,7 +1397,7 @@ const Settings = () => {
 
                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                               <div className="space-y-8">
-                                 <ZenDropdown 
+                                 <ZenDropdown
                                     label="Provider Platform"
                                     options={['UltraMsg', 'Wati', 'Twilio']}
                                     value={settings.whatsapp.provider}
@@ -1405,7 +1405,7 @@ const Settings = () => {
                                     icon={Layout}
                                  />
 
-                                 <ZenInput 
+                                 <ZenInput
                                     label="Instance ID"
                                     placeholder="e.g. instance12345"
                                     value={settings.whatsapp.instanceId}
@@ -1413,7 +1413,7 @@ const Settings = () => {
                                     icon={Zap}
                                  />
 
-                                 <ZenInput 
+                                 <ZenInput
                                     label="Token / API Key"
                                     type="password"
                                     placeholder="Your private access token"
@@ -1427,7 +1427,7 @@ const Settings = () => {
                                        <span className="text-[11px] font-bold text-zen-brown uppercase tracking-widest">Enable Messaging Relay</span>
                                        <span className="text-[9px] font-medium text-zen-brown/40 mt-1 uppercase tracking-widest italic">Global activation for customer notifications</span>
                                     </div>
-                                    <button 
+                                    <button
                                        onClick={() => setSettings(prev => prev ? {...prev, whatsapp: {...prev.whatsapp, enabled: !prev.whatsapp.enabled}} : null)}
                                        className={`w-14 h-7 rounded-full transition-all duration-500 relative border ${settings.whatsapp.enabled ? 'bg-[#25D366] border-[#25D366]' : 'bg-stone-200 border-stone-300'}`}
                                     >
@@ -1447,7 +1447,7 @@ const Settings = () => {
                                  <div className="relative z-10">
                                     <h4 className="text-2xl font-serif font-bold mb-6 tracking-tight">Active Reach Protocol</h4>
                                     <p className="text-base text-stone-300 leading-relaxed mb-10 italic">"Ensure your WhatsApp Instance is paired with a physical device before enabling. This connection allows the CRM to broadcast directly through your primary business line."</p>
-                                    
+
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                                        <div className="p-6 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
                                           <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] text-zen-sand mb-2">
@@ -1483,12 +1483,12 @@ const Settings = () => {
                                   <CalendarIcon size={28} strokeWidth={1.5} />
                                </div>
                            </header>
-                           
+
                            <div className="space-y-6">
                              {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
                                <div key={day} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-[1.5rem] border border-zen-brown/10 bg-white/50 gap-4">
                                   <div className="flex items-center gap-4">
-                                     <button 
+                                     <button
                                         className={`w-12 h-6 rounded-full transition-colors flex items-center px-1 ${settings?.workingHours?.[day as keyof typeof settings.workingHours]?.isOpen ? 'bg-zen-sand' : 'bg-zen-brown/10'}`}
                                         onClick={() => setSettings(prev => prev ? { ...prev, workingHours: { ...prev.workingHours, [day]: { ...prev.workingHours?.[day as keyof typeof settings.workingHours]!, isOpen: !prev.workingHours?.[day as keyof typeof settings.workingHours]?.isOpen } } } : null)}
                                      >
@@ -1496,22 +1496,22 @@ const Settings = () => {
                                      </button>
                                      <span className="font-serif font-bold text-lg text-zen-brown capitalize">{day}</span>
                                   </div>
-                                  
+
                                   <div className={`flex flex-col sm:flex-row sm:items-center gap-4 transition-opacity ${!settings?.workingHours?.[day as keyof typeof settings.workingHours]?.isOpen ? 'opacity-40 pointer-events-none' : ''}`}>
                                     <div className="w-full sm:w-40 border border-zen-brown/10 p-2 rounded-[1rem] bg-white">
-                                       <input 
-                                          type="time" 
+                                       <input
+                                          type="time"
                                           className="w-full bg-transparent border-none outline-none font-bold text-zen-brown text-center uppercase tracking-widest text-xs h-[30px]"
-                                          value={settings?.workingHours?.[day as keyof typeof settings.workingHours]?.openTime || '09:00'} 
+                                          value={settings?.workingHours?.[day as keyof typeof settings.workingHours]?.openTime || '09:00'}
                                           onChange={(e: any) => setSettings(prev => prev ? { ...prev, workingHours: { ...prev.workingHours, [day]: { ...prev.workingHours?.[day as keyof typeof settings.workingHours]!, openTime: e.target.value } } } : null)}
                                        />
                                     </div>
                                     <span className="text-zen-brown/40 font-black tracking-[0.2em] text-[10px] uppercase text-center hidden sm:block">to</span>
                                     <div className="w-full sm:w-40 border border-zen-brown/10 p-2 rounded-[1rem] bg-white">
-                                       <input 
-                                          type="time" 
+                                       <input
+                                          type="time"
                                           className="w-full bg-transparent border-none outline-none font-bold text-zen-brown text-center uppercase tracking-widest text-xs h-[30px]"
-                                          value={settings?.workingHours?.[day as keyof typeof settings.workingHours]?.closeTime || '21:00'} 
+                                          value={settings?.workingHours?.[day as keyof typeof settings.workingHours]?.closeTime || '21:00'}
                                           onChange={(e: any) => setSettings(prev => prev ? { ...prev, workingHours: { ...prev.workingHours, [day]: { ...prev.workingHours?.[day as keyof typeof settings.workingHours]!, closeTime: e.target.value } } } : null)}
                                        />
                                     </div>
@@ -1521,7 +1521,7 @@ const Settings = () => {
                            </div>
 
                            <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
-                              <ZenButton 
+                              <ZenButton
                                  onClick={() => handleSave('workingHours')}
                                  disabled={saving}
                                  className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
@@ -1559,7 +1559,7 @@ const Settings = () => {
                                           <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Paid leaves per month</p>
                                        </div>
                                     </div>
-                                    <ZenInput 
+                                    <ZenInput
                                        label="Allowed Paid Leaves (Days)"
                                        type="number"
                                        value={settings.payroll.allowedPaidLeaves}
@@ -1580,7 +1580,7 @@ const Settings = () => {
                                           <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">Paid hours per month</p>
                                        </div>
                                     </div>
-                                    <ZenInput 
+                                    <ZenInput
                                        label="Allowed Paid Hours (Hours)"
                                        type="number"
                                        value={settings.payroll.allowedPaidHours}
@@ -1594,7 +1594,7 @@ const Settings = () => {
                            </div>
 
                            <footer className="mt-12 pt-10 border-t border-zen-brown/15 flex justify-end">
-                              <ZenButton 
+                              <ZenButton
                                  onClick={() => handleSave('payroll')}
                                  disabled={saving}
                                  className="px-12 py-5 rounded-[1.5rem] shadow-sm transition-all text-lg"
@@ -1619,7 +1619,7 @@ const Settings = () => {
                                   <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
                                      <div className="flex items-center justify-between sm:justify-start gap-4 px-5 py-2.5 bg-zen-cream/30 rounded-2xl border border-zen-brown/10 w-full sm:w-auto">
                                         <span className="text-[9px] font-black uppercase tracking-widest text-zen-brown/40">Master Switch</span>
-                                        <button 
+                                        <button
                                            onClick={handleToggleGST}
                                            className={`w-10 h-5 rounded-full transition-all duration-500 relative border ${settings?.billing?.gstEnabled ? "bg-emerald-500 border-emerald-600 shadow-sm shadow-emerald-500/20" : "bg-gray-100 border-gray-200"}`}
                                         >
@@ -1633,9 +1633,9 @@ const Settings = () => {
                                      </ZenButton>
                                   </div>
                                </header>
-    
+
                               <div className="px-4 sm:px-8 pb-12">
-                                 <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+                                 <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
                                     <div className="overflow-x-auto min-h-[300px] sm:min-h-[400px]">
                                        {taxLoading ? (
                                           <div className="p-20 text-center italic opacity-20">Syncing registry...</div>
@@ -1675,7 +1675,7 @@ const Settings = () => {
                                                       </td>
                                                       <td className="px-4 lg:px-6 py-4 lg:py-6">
                                                          <div className="flex justify-center">
-                                                            <button 
+                                                            <button
                                                                onClick={() => handleToggleTaxRate(rate)}
                                                                className={`w-11 h-5.5 rounded-full transition-all duration-500 relative border ${rate.isActive ? 'bg-emerald-500 border-emerald-600 shadow-sm shadow-emerald-500/20' : 'bg-gray-100 border-gray-200'}`}
                                                             >
@@ -1685,16 +1685,16 @@ const Settings = () => {
                                                       </td>
                                                       <td className="px-4 lg:px-6 py-4 lg:py-6">
                                                          <div className="flex items-center justify-center gap-2 lg:gap-3">
-                                                            <ZenIconButton 
-                                                               icon={Edit2} 
+                                                            <ZenIconButton
+                                                               icon={Edit2}
                                                                size="md"
-                                                               onClick={() => openTaxModal(rate)} 
+                                                               onClick={() => openTaxModal(rate)}
                                                             />
-                                                            <ZenIconButton 
-                                                               icon={Trash2} 
-                                                               variant="danger" 
+                                                            <ZenIconButton
+                                                               icon={Trash2}
+                                                               variant="danger"
                                                                size="md"
-                                                               onClick={() => setTaxConfirmState({ isOpen: true, id: rate._id })} 
+                                                               onClick={() => setTaxConfirmState({ isOpen: true, id: rate._id })}
                                                             />
                                                          </div>
                                                       </td>
@@ -1716,10 +1716,10 @@ const Settings = () => {
       </div>
 
       {/* Tax Management Modal */}
-      <Modal 
-        isOpen={isTaxModalOpen} 
-        onClose={() => setIsTaxModalOpen(false)} 
-        title={editingTaxRate ? "Edit Tax Rate" : "New Tax Rate"} 
+      <Modal
+        isOpen={isTaxModalOpen}
+        onClose={() => setIsTaxModalOpen(false)}
+        title={editingTaxRate ? "Edit Tax Rate" : "New Tax Rate"}
         subtitle="Calibrate your fiscal protocols"
         maxWidth="max-w-4xl"
         headerIcon={Percent}
@@ -1791,7 +1791,7 @@ const Settings = () => {
           </div>
       </Modal>
 
-      <ConfirmDialog 
+      <ConfirmDialog
         isOpen={taxConfirmState.isOpen}
         onClose={() => setTaxConfirmState({ isOpen: false, id: '' })}
         onConfirm={handleDeleteTaxRate}

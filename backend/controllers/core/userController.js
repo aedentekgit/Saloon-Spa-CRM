@@ -5,23 +5,45 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../../utils/sendEmail');
 const { getStoredFilePath } = require('../../middleware/uploadMiddleware');
+const { hasAssignedBranch } = require('../../utils/branch');
+const { DEFAULT_ROLE_PERMISSIONS } = require('../../utils/permissions');
 
 const getFrontendUrl = () => process.env.FRONTEND_URL || 'http://localhost:3000';
+
+const getEffectiveRole = (user, type) => {
+  let effectiveRole = user.role || type;
+  if (type === 'Employee') effectiveRole = 'Employee';
+  if (type === 'Client') effectiveRole = 'Client';
+  return effectiveRole;
+};
+
+const resolvePermissionsForRole = async (role) => {
+  const roleData = await Role.findOne({ name: role });
+  const isInactive = roleData && (roleData.status === 'Inactive' || roleData.isActive === false);
+
+  return {
+    roleData,
+    isActive: !isInactive,
+    permissions: role === 'Admin'
+      ? ['*']
+      : (roleData ? (roleData.permissions || []) : (DEFAULT_ROLE_PERMISSIONS[role] || []))
+  };
+};
 
 // Helper to find user across models
 const findUserByEmail = async (email) => {
   let user = await User.findOne({ email }).select('+password');
   let type = 'User';
-  
+
   if (user && user.role === 'Client') {
     type = 'Client';
   }
-  
+
   if (!user) {
     user = await Employee.findOne({ email }).select('+password');
     type = 'Employee';
   }
-  
+
   return { user, type };
 };
 
@@ -110,8 +132,8 @@ exports.loginUser = async (req, res) => {
     // Check if account is locked
     if (user.lockUntil && user.lockUntil > Date.now()) {
       const remainingMinutes = Math.ceil((user.lockUntil - Date.now()) / (60 * 1000));
-      return res.status(401).json({ 
-        message: `Account is temporarily locked. Try again in ${remainingMinutes} minutes.` 
+      return res.status(401).json({
+        message: `Account is temporarily locked. Try again in ${remainingMinutes} minutes.`
     });
     }
 
@@ -138,22 +160,17 @@ exports.loginUser = async (req, res) => {
        // Allow login for now to avoid locking out, but logic is there
     }
 
-    // Determine effective role
-    let effectiveRole = user.role || type;
-    if (type === 'Employee') effectiveRole = 'Employee';
-    if (type === 'Client') effectiveRole = 'Client';
+    const effectiveRole = getEffectiveRole(user, type);
+    user.role = effectiveRole;
 
-    const roleData = await Role.findOne({ name: effectiveRole });
-    
-    // Consistent with authMiddleware.js fallback
-    const DEFAULT_ROLE_PERMISSIONS = {
-      Admin: ['*'],
-      Manager: ['dashboard', 'clients', 'appointments', 'memberships', 'rooms', 'employees', 'attendance', 'shifts', 'payroll', 'leave', 'services', 'billing', 'finance', 'transactions', 'inventory', 'whatsapp', 'reports', 'branches', 'room-categories', 'service-categories', 'settings'],
-      Employee: ['dashboard', 'appointments', 'clients', 'services', 'attendance', 'leave'],
-      Client: ['dashboard', 'book', 'profile', 'history']
-    };
+    if (!hasAssignedBranch(user)) {
+      return res.status(403).json({ message: 'Access Denied: Branch assignment required for this role.' });
+    }
 
-    const permissions = roleData ? (roleData.permissions || []) : (DEFAULT_ROLE_PERMISSIONS[effectiveRole] || []);
+    const { isActive: roleIsActive, permissions } = await resolvePermissionsForRole(effectiveRole);
+    if (!roleIsActive && effectiveRole !== 'Admin') {
+      return res.status(403).json({ message: 'Role is inactive' });
+    }
 
     res.json({
       _id: user._id,
@@ -271,11 +288,15 @@ exports.getUserProfile = async (req, res) => {
     const { user, type } = await findUserByEmail(req.user.email);
 
     if (user) {
+      const effectiveRole = getEffectiveRole(user, type);
+      const { permissions } = await resolvePermissionsForRole(effectiveRole);
       res.json({
         _id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role || type,
+        role: effectiveRole,
+        permissions,
+        branch: user.branch,
         phone: user.phone,
         dob: user.dob,
         address: user.address,
@@ -389,7 +410,7 @@ exports.updateFcmToken = async (req, res) => {
       user.fcmTokens.push(token);
       await user.save();
     }
-    
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -1,7 +1,7 @@
 const Expense = require('../../models/finance/Expense');
 const Branch = require('../../models/operations/Branch');
 const { paginateModelQuery } = require('../../utils/pagination');
-const { getBranchId, sameBranch } = require('../../utils/branch');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -13,21 +13,18 @@ const getExpenses = async (req, res) => {
     let query = {};
     const userBranchId = getBranchId(req.user.branch);
     const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
-    
+
     // IDOR Prevention
     if (req.user.role === 'Admin') {
       // Global admin sees all, optional branch filtering
       if (requestedBranch) {
-        query.branch = requestedBranch;
-      }
-    } else if (req.user.role === 'Manager') {
-      // Manager sees their branch
-      if (userBranchId) {
-        query.branch = userBranchId;
+        query.branch = toObjectIdIfValid(requestedBranch);
       }
     } else {
-      // Employees only see their own recorded expenses
-      query.user = req.user._id;
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      query.branch = toObjectIdIfValid(userBranchId);
     }
 
     const { search, category, startDate, endDate } = req.query;
@@ -97,7 +94,7 @@ const createExpense = async (req, res) => {
       category,
       amount,
       date,
-      branch: requestedBranch
+      branch: toObjectIdIfValid(requestedBranch)
     });
 
     res.status(201).json(expense);
@@ -118,9 +115,14 @@ const deleteExpense = async (req, res) => {
     }
 
     // IDOR Check
-    const isOwner = expense.user?.toString() === req.user._id.toString();
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(expense.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(expense.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Expense belongs to another branch.' });
+    }
+
+    const isOwner = expense.user?.toString() === req.user._id.toString();
+    const isBranchManager = req.user.role !== 'Client' && isBranchMatch;
 
     if (!isAdmin && !isBranchManager && !isOwner) {
        return res.status(403).json({ message: 'Access Denied: You do not have permission to delete this expense record.' });
@@ -145,12 +147,21 @@ const updateExpense = async (req, res) => {
     }
 
     // IDOR Check
-    const isOwner = expense.user?.toString() === req.user._id.toString();
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(expense.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(expense.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Expense belongs to another branch.' });
+    }
+
+    const isOwner = expense.user?.toString() === req.user._id.toString();
+    const isBranchManager = req.user.role !== 'Client' && isBranchMatch;
 
     if (!isAdmin && !isBranchManager && !isOwner) {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to update this expense record.' });
+    }
+
+    if (req.user.role !== 'Admin' && req.body?.branch && !sameBranch(req.body.branch, expense.branch)) {
+      return res.status(403).json({ message: 'Access Denied: You cannot reassign expenses to another branch.' });
     }
 
     const { title, category, amount, date } = req.body || {};

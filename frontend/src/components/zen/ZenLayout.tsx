@@ -46,14 +46,14 @@ export const ZenPageLayout = ({
     searchMaxWidth = "lg:max-w-md"
   }: ZenLayoutProps & { searchMaxWidth?: string }) => {
     const { loading } = useData();
-  
+
     return (
       <div className="page-container min-h-screen p-3 sm:p-6 lg:p-10 pt-2 sm:pt-6 lg:pt-10 relative">
-        
+
         {/* Top Loading Progress Bar */}
         <AnimatePresence>
           {loading && (
-            <motion.div 
+            <motion.div
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: '100%', opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -62,25 +62,25 @@ export const ZenPageLayout = ({
             />
           )}
         </AnimatePresence>
-        
+
         {/* Spacer for removed title */}
         <div className="h-0" />
-        
+
         {topContent && (
           <div className="mb-6">
             {topContent}
           </div>
         )}
-        
+
         {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel) || searchActions || headerActions) && (
-          <div className="zen-pointed-surface border border-zen-stone bg-white shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-4 mb-4">
+          <div className="zen-pointed-surface border border-zen-stone bg-white shadow-none px-5 sm:px-6 py-4 mb-4">
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 sm:gap-5 lg:gap-8">
               {!hideSearch && (
                 <div className={`w-full ${searchMaxWidth} flex items-center gap-4`}>
                   <div className="relative group flex-1">
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder={`Search ${title?.toLowerCase() || 'records'}...`}
                       value={searchTerm}
                       onChange={(e) => onSearchChange(e.target.value)}
@@ -89,7 +89,7 @@ export const ZenPageLayout = ({
                   </div>
                 </div>
               )}
-  
+
               <div className="flex items-center justify-start lg:justify-end gap-3 sm:gap-5 lg:gap-8 lg:ml-auto shrink-0 flex-wrap">
               {searchActions && (
                 <div className="flex-shrink-0">
@@ -111,13 +111,13 @@ export const ZenPageLayout = ({
 
               {!hideViewToggle && onViewModeChange && (
                 <div className="flex items-center h-[52px] bg-zen-cream/50 p-1 rounded-[1.15rem] border border-zen-stone shadow-inner shrink-0 relative">
-                    <button 
+                    <button
                       onClick={() => onViewModeChange('grid')}
                       className={`h-full aspect-square px-4 flex items-center justify-center rounded-xl transition-all duration-500 relative z-10 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-md' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
                     >
                       <Grid size={18} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => onViewModeChange('table')}
                       className={`h-full aspect-square px-4 flex items-center justify-center rounded-xl transition-all duration-500 relative z-10 ${viewMode === 'table' ? 'bg-zen-brown text-white shadow-md' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
                     >
@@ -128,7 +128,7 @@ export const ZenPageLayout = ({
 
               {!hideAddButton && addButtonLabel && onAddClick && (
                 <div className="flex items-center flex-1 lg:flex-none">
-                  <button 
+                  <button
                     onClick={onAddClick}
                     className="w-full lg:w-auto shrink-0 h-[52px] rounded-[1.15rem] px-8 shadow-sm flex items-center justify-center gap-2 active:scale-95 group transition-all duration-700 bg-zen-brown text-white font-black text-[10px] uppercase tracking-[0.2em] relative overflow-hidden whitespace-nowrap"
                   >

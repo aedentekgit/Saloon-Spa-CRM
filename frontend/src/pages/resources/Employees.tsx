@@ -343,7 +343,7 @@ const Employees = () => {
       const data = await res.json();
       const attendanceList = Array.isArray(data) ? data : (data?.data || []);
       if (Array.isArray(attendanceList)) {
-        const history = attendanceList.filter((item: any) => item.user?._id === editingEmp._id || item.user === editingEmp._id);
+        const history = [...attendanceList];
         history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         setEmployeeAttendance(history);
       }
@@ -819,7 +819,7 @@ const Employees = () => {
             ))}
           </div>
         ) : (
-          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden table-container animate-in fade-in duration-700">
             <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
                <thead>
                   <tr>
@@ -923,9 +923,9 @@ const Employees = () => {
                   <img src={imagePreview || getImageUrl(editingEmp?.profilePic)} className="w-full h-full object-cover" />
                 ) : <UserCircle className="text-zen-brown/10" size={56} />}
               </div>
-              <input 
-                type="file" 
-                className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+              <input
+                type="file"
+                className="absolute inset-0 opacity-0 cursor-pointer z-10"
                 onChange={e => {
                   const file = e.target.files?.[0] || null;
                   setProfilePicFile(file);
@@ -936,7 +936,7 @@ const Employees = () => {
                   } else {
                     setImagePreview(null);
                   }
-                }} 
+                }}
               />
             </div>
 
@@ -973,7 +973,7 @@ const Employees = () => {
                      <ZenInput label="Phone Number" icon={Phone} prefix={settings?.general?.dialingCode} value={formData.phone} onChange={(e: any) => setFormData({...formData, phone: e.target.value})} />
                      <ZenInput label={`Password ${editingEmp ? '(Optional)' : ''}`} icon={Lock} type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} />
                      <ZenInput label="Confirm Password" icon={Lock} type="password" value={formData.confirmPassword} onChange={(e: any) => setFormData({...formData, confirmPassword: e.target.value})} />
-                     <ZenDropdown label="Branch" options={['None', ...(branches || []).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: (branches || []).find(b => b.name === val)?._id || ''})} variant="pill" />
+                     <ZenDropdown label="Branch" options={['None', ...(branches || []).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: (branches || []).find(b => b.name === val)?._id || ''})} variant="pill" disabled={user?.role !== 'Admin'} />
                      <ZenDropdown label="Employment Status" options={['Active', 'Inactive']} value={formData.status} onChange={(val) => setFormData({...formData, status: val as 'Active' | 'Inactive'})} variant="pill" />
                      <div className="md:col-span-2 xl:col-span-3">
                         <ZenDatePicker label="Start Date" value={formData.joiningDate} onChange={val => setFormData({...formData, joiningDate: val})} />
@@ -1017,7 +1017,7 @@ const Employees = () => {
                          icon={Clock}
                        />
                        {formData.shift && shifts.find(s => s.name === formData.shift) && (
-                         <motion.div 
+                         <motion.div
                            initial={{ opacity: 0, y: 10 }}
                            animate={{ opacity: 1, y: 0 }}
                            className="mt-2 p-4 bg-zen-gold/5 rounded-2xl border border-zen-gold/10 flex items-center justify-between"
@@ -1229,7 +1229,7 @@ const Employees = () => {
                           <span>Commission Breakdown</span>
                           <span className="text-zen-brown/20 italic font-serif normal-case tracking-normal">Breakdown per service</span>
                        </h5>
-                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
+                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-none overflow-hidden table-container animate-in fade-in duration-700">
                           <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
                              <thead>
                                 <tr>
@@ -1317,7 +1317,7 @@ const Employees = () => {
                                 {['S','M','T','W','T','F','S'].map((d, i) => (
                                    <div key={i} className="text-center py-2 text-[8px] md:text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">{d}</div>
                                 ))}
-                                
+
                                 {(() => {
                                    const startOfMonth = dayjs(historyMonth).startOf('month');
                                    const daysInMonth = startOfMonth.daysInMonth();
@@ -1333,22 +1333,22 @@ const Employees = () => {
                                       const dateStr = date.format('YYYY-MM-DD');
                                       const record = employeeAttendance.find(a => a.date === dateStr);
                                       const isToday = dayjs().isSame(date, 'day');
-                                      
+
                                       const anchorDate = dayjs(formData.joiningDate);
                                       const isJoined = date.isAfter(anchorDate, 'day') || date.isSame(anchorDate, 'day');
                                       const isInCycle = isJoined && (formData.shiftType === 'Month' || (formData.shiftType === 'Day' ? date.day() >= 1 && date.day() <= 5 : true));
 
                                       days.push(
-                                         <div 
-                                           key={d} 
+                                         <div
+                                           key={d}
                                            className={`h-24 md:h-28 p-2 md:p-3 rounded-[0.75rem] md:rounded-[1.5rem] border transition-all duration-500 relative group overflow-hidden ${
-                                             isToday 
-                                               ? 'bg-zen-gold/5 border-zen-gold/30 shadow-lg shadow-zen-gold/5' 
+                                             isToday
+                                               ? 'bg-zen-gold/5 border-zen-gold/30 shadow-lg shadow-zen-gold/5'
                                                : 'bg-white/40 border-zen-brown/5 hover:border-zen-gold/20 hover:bg-white hover:shadow-xl'
                                            }`}
                                          >
                                            <span className={`text-[10px] md:text-[11px] font-serif font-black ${isToday ? 'text-zen-gold' : 'text-zen-brown/30 group-hover:text-zen-brown'}`}>{d}</span>
-                                           
+
                                            {record ? (
                                              <div className="mt-1 md:mt-2 space-y-1 md:space-y-1.5">
                                                <div className="flex items-center gap-1 md:gap-1.5">
@@ -1357,7 +1357,7 @@ const Employees = () => {
                                                  }`} />
                                                  <span className="text-[7px] md:text-[9px] font-bold text-zen-brown uppercase tracking-widest leading-none truncate">{record.status}</span>
                                                </div>
-                                               
+
                                                <div className="flex flex-col gap-0.5 md:gap-1">
                                                  <div className="flex items-center gap-1 md:gap-1.5 text-[7px] md:text-[9px] font-medium text-zen-brown/50">
                                                    <Clock size={8} className="md:hidden text-zen-brown/20" />
@@ -1399,7 +1399,7 @@ const Employees = () => {
 
 
                     ) : (
-                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
+                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-none overflow-hidden table-container animate-in fade-in duration-700">
                           <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
                              <thead>
                                 <tr>

@@ -17,11 +17,11 @@ interface ModalProps {
   className?: string;
 }
 
-export const Modal: React.FC<ModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
   footer,
   header,
   maxWidth = 'max-w-lg',
@@ -58,14 +58,14 @@ export const Modal: React.FC<ModalProps> = ({
             onClick={onClose}
             className="absolute inset-0 bg-zen-brown/40 backdrop-blur-md"
           />
-          
+
           {/* Zen Terminal / Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 30, stiffness: 400 }}
-            className={`relative w-full ${maxWidth} bg-white/95 backdrop-blur-3xl rounded-[1.2rem] sm:rounded-[2rem] shadow-[0_30px_100px_-20px_rgba(74,55,40,0.3)] overflow-hidden border border-white flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] ${className}`}
+            className={`relative w-full ${maxWidth} bg-white/95 backdrop-blur-3xl rounded-[1.2rem] sm:rounded-[2rem] shadow-none overflow-hidden border border-white flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] ${className}`}
           >
             {/* Glossy Top Edge */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent z-[60]" />
@@ -89,7 +89,7 @@ export const Modal: React.FC<ModalProps> = ({
                       )}
                    </div>
                 </div>
-                <button 
+                <button
                    onClick={onClose}
                    className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/80 hover:bg-white rounded-full transition-all duration-700 text-zen-brown/35 hover:text-zen-brown group border border-zen-brown/10 shadow-sm"
                 >
@@ -98,7 +98,7 @@ export const Modal: React.FC<ModalProps> = ({
               </div>
             )}
 
-            <div className={`flex-1 overflow-y-auto custom-scrollbar relative z-10 ${header || !hideHeader ? 'py-4 sm:py-8 lg:py-12' : 'pt-4 sm:pt-8 lg:pt-12 pb-6 sm:pb-10 lg:pb-16'} px-4 sm:px-8 lg:px-14`}>
+            <div className={`flex-1 overflow-y-auto relative z-10 ${header || !hideHeader ? 'py-4 sm:py-8 lg:py-12' : 'pt-4 sm:pt-8 lg:pt-12 pb-6 sm:pb-10 lg:pb-16'} px-4 sm:px-8 lg:px-14 [scrollbar-width:thin!important] [scrollbar-color:theme(colors.zen-sand/30)_transparent!important]`}>
               {children}
             </div>
 
@@ -107,7 +107,7 @@ export const Modal: React.FC<ModalProps> = ({
                 {footer}
               </div>
             )}
-            
+
             {/* Ambient Background Glow */}
             <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-zen-sand/10 rounded-full blur-[120px] pointer-events-none opacity-50" />
             <div className="absolute -top-40 -left-40 w-80 h-80 bg-zen-leaf/5 rounded-full blur-[120px] pointer-events-none opacity-30" />

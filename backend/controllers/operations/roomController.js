@@ -2,7 +2,7 @@ const Room = require('../../models/operations/Room');
 const Branch = require('../../models/operations/Branch');
 const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
-const { getBranchId, sameBranch } = require('../../utils/branch');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -36,7 +36,7 @@ const getPublicRooms = async (req, res) => {
     const query = {};
     const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
     if (requestedBranch) {
-      query.branch = requestedBranch;
+      query.branch = toObjectIdIfValid(requestedBranch);
     }
 
     await applyRoomSearch(query, req.query.search);
@@ -64,13 +64,13 @@ const getRooms = async (req, res) => {
 
     if (req.user.role === 'Admin') {
       if (requestedBranch) {
-        query.branch = requestedBranch;
+        query.branch = toObjectIdIfValid(requestedBranch);
       }
     } else {
       if (!userBranchId) {
         return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
       }
-      query.branch = userBranchId;
+      query.branch = toObjectIdIfValid(userBranchId);
     }
 
     await applyRoomSearch(query, req.query.search);
@@ -94,6 +94,9 @@ const createRoom = async (req, res) => {
     // IDOR Check
     const userBranchId = getBranchId(req.user.branch);
     const selectedBranch = getBranchId(branch) || userBranchId;
+    if (!selectedBranch) {
+      return res.status(400).json({ message: 'Branch assignment required' });
+    }
     if (req.user.role !== 'Admin' && !sameBranch(selectedBranch, userBranchId)) {
        return res.status(403).json({ message: 'Access Denied: Cannot create rooms for another branch.' });
     }
@@ -114,7 +117,7 @@ const createRoom = async (req, res) => {
       type,
       status,
       timer,
-      branch: selectedBranch,
+      branch: toObjectIdIfValid(selectedBranch),
       image,
       isActive: isActive !== undefined ? isActive : true,
       cleaningDuration: cleaningDuration || 0
@@ -139,7 +142,7 @@ const updateRoom = async (req, res) => {
 
     // IDOR Check
     const isAdmin = req.user.role === 'Admin';
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(room.branch, req.user.branch);
+    const isBranchManager = req.user.role !== 'Client' && sameBranch(room.branch, req.user.branch);
     if (!isAdmin && !isBranchManager) {
       return res.status(403).json({ message: 'Access Denied: You cannot update rooms of other branches.' });
     }
@@ -151,8 +154,12 @@ const updateRoom = async (req, res) => {
     room.isActive = req.body.isActive !== undefined ? req.body.isActive : room.isActive;
     room.cleaningDuration = req.body.cleaningDuration !== undefined ? req.body.cleaningDuration : room.cleaningDuration;
 
+    if (!isAdmin && req.body.branch && !sameBranch(req.body.branch, room.branch)) {
+      return res.status(403).json({ message: 'Access Denied: You cannot reassign rooms to another branch.' });
+    }
+
     if (isAdmin && req.body.branch) {
-       room.branch = req.body.branch;
+       room.branch = toObjectIdIfValid(req.body.branch);
     }
 
     if (req.files && req.files.image) {
@@ -183,7 +190,7 @@ const deleteRoom = async (req, res) => {
 
     // IDOR Check
     const isAdmin = req.user.role === 'Admin';
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(room.branch, req.user.branch);
+    const isBranchManager = req.user.role !== 'Client' && sameBranch(room.branch, req.user.branch);
     if (!isAdmin && !isBranchManager) {
       return res.status(403).json({ message: 'Access Denied' });
     }

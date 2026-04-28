@@ -5,7 +5,7 @@ import { ZenDropdown } from '../zen/ZenInputs';
 import { ZenButton } from '../zen/ZenButtons';
 import { notify } from './ZenNotification';
 
-type ExportFormat = 'PDF' | 'Excel Sheet' | 'EXE Sheet';
+type ExportFormat = 'PDF' | 'Excel Sheet';
 
 export interface ExportColumn<T> {
   header: string;
@@ -23,7 +23,7 @@ interface ExportPopupProps<T> {
   className?: string;
 }
 
-const formatOptions: ExportFormat[] = ['PDF', 'Excel Sheet', 'EXE Sheet'];
+const formatOptions: ExportFormat[] = ['PDF', 'Excel Sheet'];
 
 const toText = (value: unknown) => {
   if (value === null || value === undefined) return '';
@@ -91,20 +91,14 @@ export const ExportPopup = <T extends object>({
     return [headerLine, ...lines].join('\n');
   };
 
-  const exportCsv = (exportRows: string[][]) => {
-    const csv = buildCsv(exportRows);
-    downloadBlob(
-      new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }),
-      stampedFileName('csv')
-    );
-  };
-
-  // Excel-compatible CSV (opens as table in Excel and Numbers)
   const exportExcel = (exportRows: string[][]) => {
-    const csv = buildCsv(exportRows);
+    const headers = columns.map(col => col.header).join('\t');
+    const lines = exportRows.map(row => row.join('\t')).join('\n');
+    const content = `\ufeff${headers}\n${lines}`;
+
     downloadBlob(
-      new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }),
-      stampedFileName('csv')
+      new Blob([content], { type: 'application/vnd.ms-excel' }),
+      stampedFileName('xls')
     );
   };
 
@@ -198,9 +192,6 @@ export const ExportPopup = <T extends object>({
       } else if (selectedFormat === 'Excel Sheet') {
         exportExcel(exportRows);
         notify('success', 'Downloaded', 'Excel sheet downloaded successfully.');
-      } else {
-        exportCsv(exportRows);
-        notify('success', 'Downloaded', 'EXE sheet downloaded successfully.');
       }
       setIsOpen(false);
     } catch (_err) {

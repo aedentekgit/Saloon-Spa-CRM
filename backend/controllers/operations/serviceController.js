@@ -1,7 +1,7 @@
 const Service = require('../../models/operations/Service');
 const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
-const { getBranchId, sameBranch } = require('../../utils/branch');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 // @desc    Get public services
 // @route   GET /api/services/public
@@ -35,13 +35,13 @@ const getServices = async (req, res) => {
 
     if (req.user.role === 'Admin') {
       if (requestedBranch) {
-        query.branch = requestedBranch;
+        query.branch = toObjectIdIfValid(requestedBranch);
       }
     } else {
       if (!userBranchId) {
         return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
       }
-      query.branch = userBranchId;
+      query.branch = toObjectIdIfValid(userBranchId);
     }
 
     const { data, pagination } = await paginateModelQuery(Service, query, req, {
@@ -59,7 +59,7 @@ const getServices = async (req, res) => {
 const createService = async (req, res) => {
   try {
     const { name, duration, price, branch, status, category, description, commissionType, commissionValue, inventoryUsage } = req.body;
-    
+
     // Parse inventoryUsage if it's a string
     let parsedInventoryUsage = [];
     if (inventoryUsage) {
@@ -69,13 +69,32 @@ const createService = async (req, res) => {
         console.error('Failed to parse inventoryUsage:', e);
       }
     }
-    
+
     // IDOR Check
     const userBranchId = getBranchId(req.user.branch);
     const selectedBranch = getBranchId(branch) || userBranchId;
+    if (!selectedBranch) {
+      if (req.file) await deleteFile(getStoredFilePath(req.file));
+      return res.status(400).json({ message: 'Branch assignment required' });
+    }
     if (req.user.role !== 'Admin' && !sameBranch(selectedBranch, userBranchId)) {
       if (req.file) await deleteFile(getStoredFilePath(req.file));
       return res.status(403).json({ message: 'Access Denied: Cannot create services for other branches.' });
+    }
+
+    const inventoryIds = parsedInventoryUsage
+      .map(item => getBranchId(item.inventoryItem))
+      .filter(Boolean);
+    if (inventoryIds.length > 0) {
+      const Inventory = require('../../models/inventory/Inventory');
+      const allowedCount = await Inventory.countDocuments({
+        _id: { $in: inventoryIds },
+        branch: toObjectIdIfValid(selectedBranch)
+      });
+      if (allowedCount !== inventoryIds.length) {
+        if (req.file) await deleteFile(getStoredFilePath(req.file));
+        return res.status(403).json({ message: 'Access Denied: Inventory usage must belong to the selected branch.' });
+      }
     }
 
     let image = req.body.image;
@@ -93,7 +112,7 @@ const createService = async (req, res) => {
       name,
       duration,
       price,
-      branch: selectedBranch || null,
+      branch: toObjectIdIfValid(selectedBranch),
       category,
       description,
       image,
@@ -124,8 +143,8 @@ const updateService = async (req, res) => {
 
     // IDOR Check
     const isAdmin = req.user.role === 'Admin';
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(service.branch, req.user.branch);
-    
+    const isBranchManager = req.user.role !== 'Client' && sameBranch(service.branch, req.user.branch);
+
     if (!isAdmin && !isBranchManager) {
       if (req.file) await deleteFile(getStoredFilePath(req.file));
       return res.status(403).json({ message: 'Access Denied: You cannot update services of other branches.' });
@@ -140,15 +159,35 @@ const updateService = async (req, res) => {
     service.commissionType = req.body.commissionType || service.commissionType;
     service.commissionValue = req.body.commissionValue !== undefined ? req.body.commissionValue : service.commissionValue;
 
+    if (!isAdmin && req.body.branch && !sameBranch(req.body.branch, service.branch)) {
+      if (req.file) await deleteFile(getStoredFilePath(req.file));
+      return res.status(403).json({ message: 'Access Denied: You cannot reassign services to another branch.' });
+    }
+
     if (isAdmin && req.body.branch) {
-       service.branch = req.body.branch;
+       service.branch = toObjectIdIfValid(req.body.branch);
     }
 
     if (req.body.inventoryUsage) {
       try {
-        service.inventoryUsage = typeof req.body.inventoryUsage === 'string' 
-          ? JSON.parse(req.body.inventoryUsage) 
+        const parsedUsage = typeof req.body.inventoryUsage === 'string'
+          ? JSON.parse(req.body.inventoryUsage)
           : req.body.inventoryUsage;
+        const inventoryIds = (Array.isArray(parsedUsage) ? parsedUsage : [])
+          .map(item => getBranchId(item.inventoryItem))
+          .filter(Boolean);
+        if (inventoryIds.length > 0) {
+          const Inventory = require('../../models/inventory/Inventory');
+          const allowedCount = await Inventory.countDocuments({
+            _id: { $in: inventoryIds },
+            branch: toObjectIdIfValid(service.branch)
+          });
+          if (allowedCount !== inventoryIds.length) {
+            if (req.file) await deleteFile(getStoredFilePath(req.file));
+            return res.status(403).json({ message: 'Access Denied: Inventory usage must belong to the service branch.' });
+          }
+        }
+        service.inventoryUsage = parsedUsage;
       } catch (e) {
         console.error('Failed to parse inventoryUsage during update:', e);
       }
@@ -182,7 +221,7 @@ const deleteService = async (req, res) => {
 
     // IDOR Check
     const isAdmin = req.user.role === 'Admin';
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(service.branch, req.user.branch);
+    const isBranchManager = req.user.role !== 'Client' && sameBranch(service.branch, req.user.branch);
 
     if (!isAdmin && !isBranchManager) {
       return res.status(403).json({ message: 'Access Denied' });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { 
+import {
   Clock, Zap, Wallet2,
   Download, Search
 } from 'lucide-react';
@@ -82,7 +82,7 @@ const Payroll = () => {
   const [payrollData, setPayrollData] = useState<PayrollRecord[]>(() => getCachedJson('zen_page_payroll_records', []));
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(dayjs().format('YYYY-MM'));
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationMeta | null>(() => getCachedJson<PaginationMeta | null>('zen_page_payroll_pagination', null));
   const [stats, setStats] = useState(() => getCachedJson('zen_page_payroll_stats', { total: 0, ot: 0, deductions: 0, hours: 0 }));
@@ -105,7 +105,7 @@ const Payroll = () => {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
       const result = await response.json();
-      
+
       if (result.data) {
         setPayrollData(result.data);
         setStats(result.stats || { total: 0, ot: 0, deductions: 0, hours: 0 });
@@ -295,7 +295,7 @@ const Payroll = () => {
       }
     >
       <div className="space-y-10 pb-20">
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700 mx-4 lg:mx-2">
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700 mx-4 lg:mx-2">
             <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
               <thead>
                 <tr>

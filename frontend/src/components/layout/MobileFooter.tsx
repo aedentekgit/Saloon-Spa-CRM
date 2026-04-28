@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Users, 
-  Sparkles, 
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  Sparkles,
   Menu,
   X,
   Crown,
@@ -91,22 +91,22 @@ const MobileFooter: React.FC = () => {
               onClick={() => setIsMoreOpen(false)}
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center p-2.5 rounded-2xl transition-all duration-500 gap-1.5 min-w-[64px] ${
-                  isActive 
-                    ? 'text-zen-sand bg-zen-sand/5' 
+                  isActive
+                    ? 'text-zen-sand bg-zen-sand/5'
                     : 'text-zen-brown/40 hover:text-zen-brown/60 active:scale-90'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <div className={`transition-all duration-500 ${isActive ? 'scale-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.3)]' : ''}`}>
+                  <div className={`transition-all duration-500 ${isActive ? 'scale-110 drop-shadow-none' : ''}`}>
                     <item.icon size={24} strokeWidth={isActive ? 2.5 : 2} />
                   </div>
                 </>
               )}
             </NavLink>
           ))}
-          
+
           <button
             onClick={() => setIsMoreOpen(!isMoreOpen)}
             className={`flex flex-col items-center justify-center p-2.5 rounded-2xl transition-all duration-500 gap-1.5 min-w-[64px] ${
@@ -135,14 +135,14 @@ const MobileFooter: React.FC = () => {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 bg-zen-cream z-[120] lg:hidden rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] max-h-[85vh] overflow-hidden flex flex-col border-t border-white"
+              className="fixed bottom-0 left-0 right-0 bg-zen-cream z-[120] lg:hidden rounded-t-[3rem] shadow-none max-h-[85vh] overflow-hidden flex flex-col border-t border-white"
             >
               <div className="p-5 border-b border-zen-brown/15 flex items-center justify-between shrink-0 bg-white/50">
                 <div>
                   <h3 className="text-xl font-serif font-bold text-zen-brown tracking-tight">All Sections</h3>
                   <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Explore all sectors</p>
                 </div>
-                <button 
+                <button
                   onClick={() => setIsMoreOpen(false)}
                   className="w-10 h-10 rounded-xl bg-white border border-zen-brown/25 flex items-center justify-center text-zen-brown/40 hover:text-zen-brown transition-all duration-500 shadow-sm"
                 >

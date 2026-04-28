@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import dayjs from 'dayjs';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { useAuth } from '../../context/AuthContext';
-import { 
+import {
   UserPlus, Mail, Edit2, Trash2, User,
   UserCircle, Lock, Eye, EyeOff, Sparkles, X, Calendar, Info,
   Shield, MapPin, Grid, List, Search
@@ -113,12 +113,13 @@ const Admins = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'Admin' as 'Admin' | 'Manager',
     status: 'Active' as 'Active' | 'Inactive'
   });
 
@@ -188,7 +189,7 @@ const Admins = () => {
     try {
       const response = await fetch(`${API_URL}/admins/${admin._id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${user?.token}`,
           'Content-Type': 'application/json'
         },
@@ -203,7 +204,53 @@ const Admins = () => {
     }
   };
 
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    if (!formData.name.trim()) {
+      errors.name = 'Identity Required';
+    } else {
+      const isDuplicate = admins.some(a =>
+        a.name.toLowerCase() === formData.name.trim().toLowerCase() &&
+        a._id !== editingAdmin?._id
+      );
+      if (isDuplicate) {
+        errors.name = 'Duplicate Identity';
+      }
+    }
+    if (!formData.email.trim()) {
+      errors.email = 'Email Hub Required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Invalid Ecosystem Address';
+    }
+
+    if (!editingAdmin) {
+      if (!formData.password) {
+        errors.password = 'Security Key Required';
+      } else if (formData.password.length < 6) {
+        errors.password = 'Key Too Fragile (min 6)';
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        errors.confirmPassword = 'Keys Do Not Match';
+      }
+    } else if (formData.password) {
+      if (formData.password.length < 6) {
+        errors.password = 'Key Too Fragile (min 6)';
+      }
+    }
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      notify('error', 'Validation Failure', 'Please verify the highlighted fields.');
+      return false;
+    }
+    return true;
+  };
+
   const handleOpenModal = (admin: Admin | null = null) => {
+    setFormErrors({});
     if (admin) {
       setEditingAdmin(admin);
       setFormData({
@@ -211,6 +258,7 @@ const Admins = () => {
         email: admin.email,
         password: '',
         confirmPassword: '',
+        role: (admin.role as 'Admin' | 'Manager') || 'Admin',
         status: admin.status || 'Active'
       });
     } else {
@@ -220,6 +268,7 @@ const Admins = () => {
         email: '',
         password: '',
         confirmPassword: '',
+        role: 'Admin',
         status: 'Active'
       });
     }
@@ -228,17 +277,15 @@ const Admins = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingAdmin && (!formData.password || formData.password !== formData.confirmPassword)) {
-      if (!formData.password) return notify('error', 'Validation', 'Security key is required');
-      return notify('error', 'Validation', 'Security keys do not match');
-    }
+
+    if (!validateForm()) return;
 
     try {
       const url = editingAdmin ? `${API_URL}/admins/${editingAdmin._id}` : `${API_URL}/admins`;
       const method = editingAdmin ? 'PUT' : 'POST';
       const response = await fetch(url, {
         method,
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${user?.token}`,
           'Content-Type': 'application/json'
         },
@@ -246,6 +293,7 @@ const Admins = () => {
           name: formData.name,
           email: formData.email,
           status: formData.status,
+          role: formData.role,
           ...(formData.password && { password: formData.password })
         })
       });
@@ -264,7 +312,7 @@ const Admins = () => {
 
   const handleDelete = async (id: string) => {
     if (id === user?._id) return notify('warning', 'Protection', 'Cannot remove your own account');
-    
+
     openConfirm(
       'Delete Administrator',
       'Delete this administrator? This will remove the administrator from the workspace ecosystem.',
@@ -405,7 +453,7 @@ const Admins = () => {
                    <div className="relative w-20 h-20 rounded-full overflow-hidden border-4 border-zen-cream bg-zen-cream flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700 shadow-xl text-zen-brown/10">
                       <UserCircle size={48} strokeWidth={1} />
                    </div>
-                   
+
                    <div className="min-w-0 flex-1">
                        <h3 className="text-2xl font-serif text-zen-brown tracking-tight truncate">{admin.name}</h3>
                        <div className="flex items-center gap-2 mt-2">
@@ -430,13 +478,20 @@ const Admins = () => {
 
               <div className="relative z-10 pt-6 border-t border-zen-brown/15">
                  <div className="flex items-center justify-between">
-                    <button 
+                    <button
                       onClick={() => toggleStatus(admin)}
-                      className={`flex items-center gap-3 px-4 py-2 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm ${admin.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20' : 'bg-red-50 text-red-400 border-red-100'}`}
+                      className={`flex items-center gap-2.5 px-5 py-2 rounded-full border transition-all duration-500 hover:scale-110 active:scale-95 shadow-sm ${
+                        admin.status === 'Active'
+                          ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/30 shadow-zen-leaf/5'
+                          : 'bg-rose-50 text-rose-500 border-rose-100'
+                      }`}
                     >
-                       <span className="text-[10px] font-bold uppercase tracking-widest leading-none">{admin.status === 'Inactive' ? 'Suspended' : 'Operational'}</span>
+                       <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${admin.status === 'Active' ? 'bg-zen-leaf' : 'bg-rose-500'}`} />
+                       <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">
+                          {admin.status === 'Inactive' ? 'Suspended' : 'Operational'}
+                       </span>
                     </button>
-                    
+
                     <div className="flex items-center gap-2 text-zen-brown/20 italic text-[10px] font-medium">
                        <Calendar size={14} strokeWidth={1.5} />
                        Created {new Date(admin.createdAt).toLocaleDateString()}
@@ -447,7 +502,7 @@ const Admins = () => {
           ))}
         </div>
       ) : (
-        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
+        <div className="w-full bg-white/80 backdrop-blur-xl rounded-[2rem] border border-zen-brown/15 shadow-none overflow-hidden table-container animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
               <tr>
@@ -494,11 +549,18 @@ const Admins = () => {
                   </td>
                   <td>
                     <div className="flex items-center justify-center">
-                       <button 
-                        onClick={() => toggleStatus(admin)}
-                         className={`border transition-all duration-300 hover:scale-110 active:scale-95 ${admin.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-sm' : 'bg-red-50 text-red-400 border-red-100'}`}
+                       <button
+                         onClick={() => toggleStatus(admin)}
+                         className={`flex items-center gap-2 px-5 py-2 rounded-full border transition-all duration-500 hover:scale-110 active:scale-95 shadow-sm ${
+                           admin.status === 'Active'
+                             ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/30 shadow-zen-leaf/5'
+                             : 'bg-rose-50 text-rose-500 border-rose-100'
+                         }`}
                        >
-                          {admin.status === 'Inactive' ? 'Suspended' : 'Operational'}
+                          <div className={`w-1 h-1 rounded-full ${admin.status === 'Active' ? 'bg-zen-leaf' : 'bg-rose-500'}`} />
+                          <span className="text-[10px] font-black uppercase tracking-[0.15em] leading-none">
+                            {admin.status === 'Inactive' ? 'Suspended' : 'Operational'}
+                          </span>
                        </button>
                     </div>
                   </td>
@@ -521,119 +583,166 @@ const Admins = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        maxWidth="max-w-3xl"
+        maxWidth="max-w-5xl"
         header={
-          <div className="flex items-start justify-between gap-6 px-6 sm:px-10 py-6 sm:py-8">
-            <div className="flex items-start gap-4 sm:gap-5 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-zen-brown text-white flex items-center justify-center shadow-sm shrink-0">
-                <UserCircle size={24} strokeWidth={1.75} />
+          <div className="flex items-center justify-between gap-6 px-10 py-8 border-b border-zen-brown/5 bg-zen-cream/10">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-zen-brown text-white flex items-center justify-center shadow-lg shadow-zen-brown/20 shrink-0">
+                <UserCircle size={28} strokeWidth={1.5} />
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Admin record</p>
-                <h3 className="mt-1 text-xl sm:text-2xl font-semibold text-zen-brown truncate">
-                  {editingAdmin ? 'Edit admin account' : 'New admin account'}
+              <div>
+                <h3 className="text-2xl font-serif font-black text-zen-brown tracking-tight">
+                  {editingAdmin ? 'Refine Administrator' : 'Establish Administrator'}
                 </h3>
-                <p className="mt-2 text-sm text-zen-brown/60 max-w-2xl">
-                  Set identity, login access, and operational status for this account.
-                </p>
+                <p className="text-xs font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-1">Registry Management System</p>
               </div>
             </div>
             <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} size="md" />
           </div>
         }
         footer={
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4">
-            <p className="text-xs text-zen-brown/40">
-              {editingAdmin
-                ? 'Changes take effect immediately after saving.'
-                : 'The account can be updated later from the admins table.'}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <ZenButton
+          <div className="flex items-center justify-between px-10 py-6 bg-white border-t border-zen-brown/5">
+            <div className="flex items-center gap-3 text-zen-brown/40 italic">
+              <Info size={14} />
+              <p className="text-[11px] font-medium tracking-wide">
+                {editingAdmin ? 'Modifications will be synchronized across the ecosystem.' : 'Access credentials will be issued upon creation.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
                 type="button"
-                variant="secondary"
                 onClick={() => setIsModalOpen(false)}
-                className="w-full sm:w-auto"
+                className="px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zen-brown/50 hover:text-zen-brown hover:bg-zen-cream/50 transition-all"
               >
                 Cancel
-              </ZenButton>
+              </button>
               <ZenButton
                 type="submit"
                 form="admin-modal-form"
-                className="w-full sm:w-auto"
+                className="px-10 py-3.5 shadow-xl shadow-zen-brown/10"
               >
-                {editingAdmin ? 'Save changes' : 'Create admin'}
+                {editingAdmin ? 'Sync Changes' : 'Confirm Access'}
               </ZenButton>
             </div>
           </div>
         }
       >
-        <form id="admin-modal-form" onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Identity</p>
-                  <h4 className="mt-1 text-lg font-semibold text-zen-brown">Account details</h4>
+        <form id="admin-modal-form" onSubmit={handleSubmit} className="px-2 py-4">
+          <div className="space-y-12">
+            {/* Identity Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+              <div className="lg:col-span-4">
+                <div className="sticky top-0">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-zen-sand/10 text-zen-sand flex items-center justify-center">
+                      <Shield size={16} />
+                    </div>
+                    <h4 className="text-lg font-serif font-black text-zen-brown">Identity Hub</h4>
+                  </div>
+                  <p className="text-sm text-zen-brown/50 leading-relaxed max-w-xs">
+                    Define the administrator's core identity, operational status, and hierarchical role within the workspace.
+                  </p>
+
+                  <div className="mt-6">
+                    <ZenBadge variant={formData.status === 'Active' ? 'leaf' : 'inactive'} className="px-4 py-1.5 text-[10px] tracking-[0.2em]">
+                      STATUS: {formData.status.toUpperCase()}
+                    </ZenBadge>
+                  </div>
                 </div>
-                <ZenBadge variant={formData.status === 'Active' ? 'leaf' : 'inactive'}>
-                  {formData.status}
-                </ZenBadge>
               </div>
 
-              <div className="space-y-5">
-                <ZenInput
-                  label="Full name"
-                  placeholder="e.g. Alexander Pierce"
-                  value={formData.name}
-                  onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
-                />
-                <ZenInput
-                  label="Email address"
-                  icon={Mail}
-                  type="email"
-                  value={formData.email}
-                  onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
-                />
-                <ZenDropdown
-                  label="Status"
-                  options={['Active', 'Inactive']}
-                  value={formData.status}
-                  onChange={(val) => setFormData({ ...formData, status: val as 'Active' | 'Inactive' })}
-                />
+              <div className="lg:col-span-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 bg-white/50 backdrop-blur-sm p-8 rounded-[2rem] border border-zen-brown/5 shadow-sm">
+                  <ZenInput
+                    label="Full name"
+                    placeholder="e.g. Alexander Pierce"
+                    value={formData.name}
+                    onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
+                    variant="professional"
+                    error={formErrors.name}
+                  />
+                  <ZenInput
+                    label="Email address"
+                    icon={Mail}
+                    type="email"
+                    value={formData.email}
+                    onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
+                    variant="professional"
+                    error={formErrors.email}
+                  />
+                  <ZenDropdown
+                    label="Active Status"
+                    options={['Active', 'Inactive']}
+                    value={formData.status}
+                    onChange={(val) => setFormData({ ...formData, status: val as 'Active' | 'Inactive' })}
+                    variant="pill"
+                    error={!!formErrors.status}
+                  />
+                  <ZenDropdown
+                    label="Role Access"
+                    options={['Admin', 'Manager']}
+                    value={formData.role}
+                    onChange={(val) => setFormData({ ...formData, role: val as 'Admin' | 'Manager' })}
+                    variant="pill"
+                    error={!!formErrors.role}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
-              <div className="mb-6">
-                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Access</p>
-                <h4 className="mt-1 text-lg font-semibold text-zen-brown">Security credentials</h4>
-                <p className="mt-2 text-sm text-zen-brown/55">
-                  {editingAdmin
-                    ? 'Leave the password blank to keep the current credential.'
-                    : 'Password is required when creating a new admin account.'}
-                </p>
+            <div className="h-px bg-gradient-to-r from-transparent via-zen-brown/10 to-transparent" />
+
+            {/* Security Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pb-6">
+              <div className="lg:col-span-4">
+                <div className="sticky top-0">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-zen-leaf/10 text-zen-leaf flex items-center justify-center">
+                      <Lock size={16} />
+                    </div>
+                    <h4 className="text-lg font-serif font-black text-zen-brown">Security Keys</h4>
+                  </div>
+                  <p className="text-sm text-zen-brown/50 leading-relaxed max-w-xs">
+                    Establish secure login credentials. For existing accounts, leave blank to maintain current security profile.
+                  </p>
+
+                  <div className="mt-6 flex items-center gap-2 text-zen-brown/30 bg-zen-cream/30 p-4 rounded-xl border border-zen-brown/5">
+                    <Info size={16} className="shrink-0" />
+                    <span className="text-[11px] font-medium leading-tight">Password strength must comply with organizational security protocols.</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid gap-5">
-                <ZenInput
-                  label={`Password${editingAdmin ? ' (optional)' : ''}`}
-                  icon={Lock}
-                  type="password"
-                  value={formData.password}
-                  onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
-                />
-                {!editingAdmin && (
+              <div className="lg:col-span-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 bg-white/50 backdrop-blur-sm p-8 rounded-[2rem] border border-zen-brown/5 shadow-sm">
                   <ZenInput
-                    label="Confirm password"
+                    label={`Security Key${editingAdmin ? ' (optional)' : ''}`}
                     icon={Lock}
                     type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e: any) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    value={formData.password}
+                    onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
+                    variant="professional"
+                    error={formErrors.password}
                   />
-                )}
-                <div className="rounded-2xl border border-zen-brown/10 bg-zen-cream/25 px-4 py-4 text-sm text-zen-brown/60">
-                  Admin accounts can manage scheduling, branch operations, and reporting based on assigned permissions.
+                  {!editingAdmin && (
+                    <ZenInput
+                      label="Verify Key"
+                      icon={Lock}
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e: any) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      variant="professional"
+                      error={formErrors.confirmPassword}
+                    />
+                  )}
+                  <div className="sm:col-span-2 mt-2">
+                    <div className="flex items-start gap-4 p-5 bg-zen-brown/[0.02] rounded-2xl border border-zen-brown/5">
+                      <Sparkles size={18} className="text-zen-sand mt-0.5 shrink-0" />
+                      <p className="text-xs text-zen-brown/60 leading-relaxed">
+                        Administrators hold significant authority. High-level accounts can manage operational scheduling, branch configurations, and financial reporting across the workspace ecosystem.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

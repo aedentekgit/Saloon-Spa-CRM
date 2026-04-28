@@ -7,16 +7,16 @@ import { notify } from '../../components/shared/ZenNotification';
 import { motion, AnimatePresence } from 'motion/react';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 
-const Navbar = ({ 
-  onMenuClick, 
-  isCollapsed, 
-  setIsCollapsed 
-}: { 
+const Navbar = ({
+  onMenuClick,
+  isCollapsed,
+  setIsCollapsed
+}: {
   onMenuClick: () => void,
   isCollapsed: boolean,
   setIsCollapsed: (v: boolean) => void
 }) => {
-  const { user, logout, hasPermission } = useAuth();
+  const { user, logout, hasPermission, validating } = useAuth();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -39,7 +39,7 @@ const Navbar = ({
   }, []);
 
   const [notifications, setNotifications] = useState<any[]>([]);
-  
+
   const fetchNotifications = async () => {
     try {
       const response = await fetch(`${API_URL}/notifications`, {
@@ -108,11 +108,11 @@ const Navbar = ({
   };
 
   return (
-    <header className="h-16 sm:h-[72px] bg-white/80 backdrop-blur-xl border-b border-zen-stone/40 flex items-center justify-between px-3 sm:px-6 lg:px-10 sticky top-0 z-40 shadow-[0_2px_15px_-10px_rgba(0,0,0,0.05)]">
-      
+    <header className="h-16 sm:h-[72px] bg-white/80 backdrop-blur-xl border-b border-zen-stone/40 flex items-center justify-between px-3 sm:px-6 lg:px-10 sticky top-0 z-40 shadow-none">
+
       {/* Left section: Breadcrumb & Title */}
       <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-        <button 
+        <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="hidden lg:flex text-zen-brown/40 hover:text-zen-brown transition-colors p-1 rounded-md hover:bg-zen-stone/30"
           aria-label="Toggle Menu"
@@ -123,7 +123,7 @@ const Navbar = ({
         <div className="h-5 w-px bg-zen-stone hidden sm:block"></div>
 
         <AnimatePresence mode="wait">
-          <motion.div 
+          <motion.div
             key={getPageTitle()}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -131,7 +131,7 @@ const Navbar = ({
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="hidden sm:flex items-center gap-3 min-w-0"
           >
-            <div className="w-1.5 h-5 bg-zen-sand rounded-sm opacity-90 shadow-[0_0_10px_rgba(139,92,246,0.3)]"></div>
+            <div className="w-1.5 h-5 bg-zen-sand rounded-sm opacity-90 shadow-none"></div>
             <span className="text-[15px] font-black tracking-[0.15em] text-zen-brown uppercase font-sans">
               {getPageTitle()}
             </span>
@@ -141,10 +141,10 @@ const Navbar = ({
 
       {/* Right section: Icons & Profile */}
       <div className="flex items-center gap-1.5 sm:gap-4">
-        
+
         {/* Helper Icons */}
         <div className="relative" ref={notifRef}>
-           <button 
+           <button
               onClick={() => setIsNotifOpen(!isNotifOpen)}
               className={`relative p-2 transition-all rounded-lg ${isNotifOpen ? 'bg-zen-cream text-zen-sand' : 'text-zen-brown/40 hover:text-zen-brown hover:bg-zen-stone/30'}`}
            >
@@ -165,7 +165,7 @@ const Navbar = ({
                  <div className="p-5 border-b border-zen-stone/20 flex items-center justify-between bg-gradient-to-r from-stone-50/50 to-white">
                      <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zen-brown/40">Communications</h4>
                      {notifications.length > 0 && (
-                        <button 
+                        <button
                            onClick={handleClearAll}
                            className="text-[10px] font-bold text-zen-sand hover:underline"
                         >
@@ -184,8 +184,8 @@ const Navbar = ({
                         </div>
                      ) : (
                         notifications.map((notif) => (
-                           <div 
-                              key={notif._id} 
+                           <div
+                              key={notif._id}
                               onClick={() => handleNotifClick(notif)}
                               className={`px-6 py-4 hover:bg-zen-cream/50 transition-colors cursor-pointer group ${!notif.isRead ? 'bg-zen-primary/[0.02]' : ''}`}
                            >
@@ -216,7 +216,7 @@ const Navbar = ({
 
         {/* Profile Dropdown */}
         <div className="relative" ref={dropdownRef}>
-          <div 
+          <div
             className="flex items-center gap-3 cursor-pointer group hover:bg-stone-50/80 p-1 rounded-2xl transition-all pr-4 border border-transparent hover:border-zen-stone/40"
             onClick={() => setIsOpen(!isOpen)}
           >
@@ -226,11 +226,19 @@ const Navbar = ({
               </div>
             </div>
             <div className="hidden md:flex flex-col">
-              <span className="text-[13px] font-black text-zen-brown tracking-tight leading-tight">
-                {user?.name || 'Admin User'}
+              <span className="text-[13px] font-black text-zen-brown tracking-tight leading-tight min-h-[1.25rem] flex items-center">
+                {validating ? (
+                  <div className="h-3 w-24 bg-zen-stone/20 animate-pulse rounded-full" />
+                ) : (
+                  user?.name || 'Admin User'
+                )}
               </span>
-              <span className="text-[9px] uppercase tracking-[0.2em] font-black text-zen-brown/30 mt-0.5">
-                {user?.role || 'ADMINISTRATOR'}
+              <span className="text-[9px] uppercase tracking-[0.2em] font-black text-zen-brown/30 mt-0.5 min-h-[0.75rem] flex items-center">
+                {validating ? (
+                  <div className="h-2 w-16 bg-zen-stone/10 animate-pulse rounded-full" />
+                ) : (
+                  user?.role || 'ADMINISTRATOR'
+                )}
               </span>
             </div>
           </div>
@@ -243,8 +251,8 @@ const Navbar = ({
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
                 className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-zen-stone/30 shadow-xl overflow-hidden py-2 z-50"
               >
-                <Link 
-                  to="/profile" 
+                <Link
+                  to="/profile"
                   onClick={() => setIsOpen(false)}
                   className="flex items-center gap-3 px-5 py-2.5 text-sm font-semibold text-zen-brown hover:bg-zen-cream transition-colors"
                 >
@@ -252,8 +260,8 @@ const Navbar = ({
                   My Profile
                 </Link>
                 {hasPermission('settings') && (
-                  <Link 
-                    to="/settings" 
+                  <Link
+                    to="/settings"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-5 py-2.5 text-sm font-semibold text-zen-brown hover:bg-zen-cream transition-colors"
                   >
@@ -262,7 +270,7 @@ const Navbar = ({
                   </Link>
                 )}
                 <div className="mx-5 my-1 border-t border-zen-stone/30" />
-                <button 
+                <button
                   onClick={() => {
                     setIsOpen(false);
                     logout();

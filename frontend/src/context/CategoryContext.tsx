@@ -6,7 +6,7 @@ import { getCachedJson, setCachedJson } from '../utils/localCache';
 interface Category {
   _id: string;
   name: string;
-  type: 'room' | 'inventory' | 'service';
+  type: 'room' | 'inventory' | 'service' | 'expense';
   description?: string;
   isActive: boolean;
 }
@@ -21,6 +21,7 @@ interface CategoryContextType {
   getRoomCategories: () => string[];
   getInventoryCategories: () => string[];
   getServiceCategories: () => string[];
+  getExpenseCategories: () => string[];
 }
 
 const CategoryContext = createContext<CategoryContextType | undefined>(undefined);
@@ -54,7 +55,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const response = await fetch(`${API_URL}/categories`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user?.token}`
         },
@@ -74,7 +75,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const response = await fetch(`${API_URL}/categories/${id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user?.token}`
         },
@@ -106,24 +107,27 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const getRoomCategories = () => 
+  const getRoomCategories = () =>
     categories.filter(c => c.type === 'room' && c.isActive !== false).map(c => c.name);
-    
-  const getInventoryCategories = () => 
+
+  const getInventoryCategories = () =>
     categories.filter(c => c.type === 'inventory' && c.isActive !== false).map(c => c.name);
 
-  const getServiceCategories = () => 
+  const getServiceCategories = () =>
     categories.filter(c => c.type === 'service' && c.isActive !== false).map(c => c.name);
+
+  const getExpenseCategories = () =>
+    categories.filter(c => c.type === 'expense' && c.isActive !== false).map(c => c.name);
 
   useEffect(() => {
     if (user) {
       fetchCategories();
-      
+
       const interval = setInterval(() => {
         if (!shouldPollNow()) return;
         fetchCategories(undefined, true);
       }, getPollIntervalMs(60000)); // default 60s
-      
+
       return () => clearInterval(interval);
     }
   }, [user]);
@@ -133,16 +137,17 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [categories]);
 
   return (
-    <CategoryContext.Provider value={{ 
-      categories, 
-      loading, 
-      fetchCategories, 
-      createCategory, 
-      updateCategory, 
+    <CategoryContext.Provider value={{
+      categories,
+      loading,
+      fetchCategories,
+      createCategory,
+      updateCategory,
       deleteCategory,
       getRoomCategories,
       getInventoryCategories,
-      getServiceCategories
+      getServiceCategories,
+      getExpenseCategories
     }}>
       {children}
     </CategoryContext.Provider>

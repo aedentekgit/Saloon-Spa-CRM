@@ -6,7 +6,7 @@ import {
   LogOut, ChevronRight, Settings2, ShieldCheck,
   MapPin, Award, Layers, CreditCard, Percent,
   Fingerprint, Timer, Shapes, Key, UserRound, Sparkles, Scissors, Clock, ArrowDownRight,
-  History
+  History, Tag
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
@@ -22,12 +22,12 @@ const Sidebar = ({
   setIsCollapsed: (v: boolean) => void;
   onClose?: () => void
 }) => {
-  const { user, logout, hasPermission } = useAuth();
+  const { user, logout, hasPermission, validating } = useAuth();
   const { settings } = useSettings();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
 
-  const logoUrl = settings?.general?.logo 
+  const logoUrl = settings?.general?.logo
     ? getImageUrl(settings.general.logo)
     : null;
 
@@ -94,6 +94,7 @@ const Sidebar = ({
         { name: 'Branches', icon: MapPin, path: '/branches', permission: ['branches', 'settings'] },
         { name: 'Room Category', icon: Layers, path: '/room-categories', permission: ['room-categories', 'settings'] },
         { name: 'Service Category', icon: Shapes, path: '/service-categories', permission: ['service-categories', 'settings'] },
+        { name: 'Expense Category', icon: Tag, path: '/expense-categories', permission: ['expense-categories', 'settings', 'finance'] },
         { name: 'Admins', icon: ShieldCheck, path: '/admins', permission: ['admins', 'roles'] },
         { name: 'Roles', icon: Key, path: '/roles', permission: 'roles' },
         { name: 'Settings', icon: Settings2, path: '/settings', permission: 'settings' },
@@ -115,7 +116,7 @@ const Sidebar = ({
       : hasPermission(permission)
   );
 
-  const filteredGroups = user?.role === 'Client' 
+  const filteredGroups = user?.role === 'Client'
     ? [{ label: 'Sanctuary', items: clientMenu.filter(item => canAccessItem(item.permission)) }]
     : menuGroups
         .map(group => ({
@@ -147,7 +148,7 @@ const Sidebar = ({
       {({ isActive }) => (
         <>
           <div className={`flex items-center justify-center shrink-0`}>
-            <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} className={isActive ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]' : ''} />
+            <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} className={isActive ? 'drop-shadow-none' : ''} />
           </div>
           {(!isCollapsed || isMobile) && (
             <span className={`ml-2.5 text-[12px] font-semibold tracking-wide flex-1 truncate ${isActive ? 'text-white' : 'text-zen-brown/60 group-hover:text-zen-brown'}`}>
@@ -160,43 +161,46 @@ const Sidebar = ({
   );
 
   return (
-    <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] ${isCollapsed ? 'lg:w-[68px] w-[min(84vw,16rem)]' : 'lg:w-[210px] w-[min(88vw,17rem)]'}`}>
-      
+    <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-none ${isCollapsed ? 'lg:w-[68px] w-[min(84vw,16rem)]' : 'lg:w-[210px] w-[min(88vw,17rem)]'}`}>
+
       {/* Top Logo Section — Professional Classic Branding */}
-      <div 
-        className={`flex items-center justify-center border-b border-zen-stone/40 bg-gradient-to-b from-white to-stone-50/20 relative overflow-hidden transition-all duration-500 ${isCollapsed ? 'h-14 sm:h-16' : 'h-20 sm:h-24'}`}
+      <div
+        className={`flex items-center justify-center relative overflow-hidden transition-all duration-500 ${isCollapsed ? 'h-14 sm:h-16' : 'h-20 sm:h-24'}`}
       >
-        <div className={`relative transition-all duration-700 ${isCollapsed ? 'scale-90' : 'scale-100'}`}>
+        {/* Glassy Layer Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-zen-sand/[0.08] via-transparent to-zen-sand/[0.05] backdrop-blur-xl z-0" />
+
+        {/* Subtle decorative glow */}
+        <div className="absolute -top-10 -left-10 w-32 h-32 bg-zen-sand/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className={`relative z-10 transition-all duration-700 ${isCollapsed ? 'scale-90' : 'scale-100'}`}>
           {logoUrl ? (
             <div className={`
-              relative p-1 bg-white classic-shine-effect
-              ${isCollapsed ? 'w-10 h-10 sm:w-12 sm:h-12 rounded-[1rem] sm:rounded-[1.2rem] border-[2px] sm:border-[3px]' : 'w-14 h-14 sm:w-16 sm:h-16 rounded-[1.2rem] sm:rounded-[2rem] border-[4px] sm:border-[5px]'}
-              border-white transition-all duration-500
-              shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_0_20px_rgba(197,163,88,0.05)]
-              hover:shadow-[0_25px_50px_-12px_rgba(197,163,88,0.2)] hover:scale-105 transition-all duration-700 cursor-pointer
+              relative p-1 bg-white/80 backdrop-blur-sm classic-shine-effect
+              ${isCollapsed ? 'w-10 h-10 sm:w-12 sm:h-12 rounded-[1rem] sm:rounded-[1.2rem] border-[2px]' : 'w-14 h-14 sm:w-16 sm:h-16 rounded-[1.2rem] sm:rounded-[2rem] border-[3px]'}
+              border-white/60 transition-all duration-500
+              shadow-none
+              hover:shadow-none hover:scale-105 cursor-pointer
             `}>
                <img
                  src={logoUrl}
                  alt="Logo"
                  className="w-full h-full object-contain rounded-[inherit] brightness-[1.02]"
                />
-               {/* Classic Inner Frame */}
-               <div className="absolute inset-0 border border-black/[0.03] pointer-events-none rounded-[inherit]" />
             </div>
           ) : (
             <div className={`
-              ${isCollapsed ? 'w-10 h-10 rounded-lg' : 'w-16 h-16 rounded-xl'} 
-              professional-frame classic-shine-effect bg-zen-cream border border-zen-stone/40 flex items-center justify-center 
-              shadow-[0_8px_25px_-10px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,1)]
+              ${isCollapsed ? 'w-10 h-10 rounded-lg' : 'w-16 h-16 rounded-xl'}
+              professional-frame classic-shine-effect bg-white/60 backdrop-blur-md border border-white/40 flex items-center justify-center
+              shadow-none
             `}>
               <Sparkles className="text-zen-sand" size={isCollapsed ? 18 : 24} />
             </div>
           )}
         </div>
 
-        {/* Decorative architectural line */}
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-white/80" />
-        <div className="absolute top-[1px] left-0 w-full h-[1px] bg-zen-sand/5" />
+        {/* Bottom decorative line with subtle glow */}
+        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-zen-sand/20 to-transparent" />
       </div>
 
       {/* Navigation Menu */}
@@ -220,31 +224,35 @@ const Sidebar = ({
         ))}
       </nav>
 
-      <div className="p-3 border-t border-zen-stone/30 relative group cursor-pointer" onClick={() => setShowLogoutConfirm(true)}>
-         <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-red-50 transition-colors">
-            <div className="flex items-center gap-2.5">
-               <div className="relative w-8 h-8 rounded-md bg-zen-cream text-zen-brown flex items-center justify-center shrink-0 border border-zen-stone/50">
-                  <UserRound size={15} />
-                  <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
-               </div>
-                   {(!isCollapsed || isMobile) && (
-                      <div className="flex flex-col">
-                         <span className="text-[13px] font-bold text-zen-brown truncate max-w-[100px]">{user?.name || 'Admin'}</span>
-                         <span className="text-[9px] font-bold uppercase tracking-wider text-zen-brown/40 group-hover:text-red-500 transition-colors">Logout Account</span>
-                      </div>
-                   )}
-                </div>
-                {(!isCollapsed || isMobile) && (
-                   <LogOut size={16} className="text-zen-brown/40 group-hover:text-red-500 transition-colors shrink-0" />
+      <div className="p-3 relative group overflow-hidden mt-auto" onClick={() => setShowLogoutConfirm(true)}>
+        {/* Glassy Background */}
+        <div className="absolute inset-0 bg-gradient-to-t from-zen-sand/[0.05] to-transparent backdrop-blur-md z-0" />
+
+        {/* Top border line */}
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-zen-sand/10 to-transparent" />
+
+        <div className="relative z-10 flex items-center justify-between p-1.5 rounded-xl hover:bg-white/40 transition-all duration-500 cursor-pointer border border-transparent hover:border-white/60">
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-9 h-9 rounded-xl bg-white shadow-sm text-zen-brown flex items-center justify-center shrink-0 border border-zen-stone/50 overflow-hidden group-hover:scale-105 transition-all">
+              <UserRound size={16} className="text-zen-sand" />
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
+            </div>
+            {(!isCollapsed || isMobile) && (
+              <div className="flex flex-col min-w-0">
+                {validating ? (
+                   <div className="h-3 w-20 bg-zen-stone/20 animate-pulse rounded-full my-1" />
+                ) : (
+                   <span className="text-[12px] font-bold text-zen-brown truncate">{user?.name || 'Sanctuary User'}</span>
                 )}
-             </div>
-             {isCollapsed && !isMobile && (
-                <div className="absolute inset-0 bg-red-50/0 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                   <LogOut size={18} className="text-red-500 hidden group-hover:block z-10" />
-                   <div className="absolute bg-white/80 inset-2 backdrop-blur-sm z-0 hidden group-hover:block rounded-md"></div>
-                </div>
-             )}
+                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-zen-brown/30 group-hover:text-red-500 transition-colors">Session Profile</span>
+              </div>
+            )}
           </div>
+          {(!isCollapsed || isMobile) && (
+            <LogOut size={14} className="text-zen-brown/30 group-hover:text-red-500 transition-all shrink-0 hover:scale-110" />
+          )}
+        </div>
+      </div>
 
       <ConfirmDialog
         isOpen={showLogoutConfirm}

@@ -4,7 +4,7 @@ const Employee = require('../../models/human-resources/Employee');
 const Service = require('../../models/operations/Service');
 const Branch = require('../../models/operations/Branch');
 const { paginateModelQuery } = require('../../utils/pagination');
-const { getBranchId, sameBranch } = require('../../utils/branch');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -16,15 +16,11 @@ const getInvoices = async (req, res) => {
     let query = {};
     const userBranchId = getBranchId(req.user.branch);
     const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
-    
+
     // IDOR Prevention
     if (req.user.role === 'Admin') {
       if (requestedBranch) {
-        query.branch = requestedBranch;
-      }
-    } else if (req.user.role === 'Manager' || req.user.role === 'Employee') {
-      if (userBranchId) {
-        query.branch = userBranchId;
+        query.branch = toObjectIdIfValid(requestedBranch);
       }
     } else if (req.user.role === 'Client') {
       // Clients only see their own invoices
@@ -32,6 +28,17 @@ const getInvoices = async (req, res) => {
         { user: req.user._id },
         { clientId: req.user._id }
       ];
+      if (userBranchId) {
+        query.branch = toObjectIdIfValid(userBranchId);
+      }
+    } else {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view invoices for another branch.' });
+      }
+      query.branch = toObjectIdIfValid(userBranchId);
     }
 
     const { search, paymentMode, startDate, endDate } = req.query;
@@ -99,19 +106,19 @@ const getInvoices = async (req, res) => {
 // @route   POST /api/invoices
 // @access  Private
 const createInvoice = async (req, res) => {
-  const { 
+  const {
     invoiceNumber,
     clientId,
-    clientName, 
-    items, 
-    subtotal, 
-    gst, 
-    discount, 
-    total, 
-    paymentMode, 
+    clientName,
+    items,
+    subtotal,
+    gst,
+    discount,
+    total,
+    paymentMode,
     payments,
     date,
-    branch 
+    branch
   } = req.body;
 
   try {
@@ -146,11 +153,11 @@ const createInvoice = async (req, res) => {
     // Generate Invoice Number (Prefix + 0001 format)
     const branchDoc = await Branch.findById(requestedBranch);
     if (!branchDoc) return res.status(400).json({ message: 'Invalid branch' });
-    
+
     const prefix = branchDoc.name.substring(0, 2).toUpperCase();
     const lastInvoice = await Invoice.findOne({ branch: requestedBranch, invoiceNumber: new RegExp(`^${prefix}`) })
       .sort({ createdAt: -1 });
-    
+
     let nextInvoiceNumber;
     if (lastInvoice && lastInvoice.invoiceNumber) {
       const lastIdMatch = lastInvoice.invoiceNumber.match(/\d+/);
@@ -162,6 +169,34 @@ const createInvoice = async (req, res) => {
       }
     } else {
       nextInvoiceNumber = `${prefix}0001`;
+    }
+
+    if (items && Array.isArray(items)) {
+      const Inventory = require('../../models/inventory/Inventory');
+      for (const item of items) {
+        if (item.specialist) {
+          const employee = await Employee.findById(item.specialist).select('branch');
+          if (!employee || !sameBranch(employee.branch, requestedBranch)) {
+            return res.status(403).json({ message: 'Access Denied: Selected specialist belongs to another branch.' });
+          }
+        }
+
+        const service = await Service.findOne({
+          name: item.name,
+          branch: toObjectIdIfValid(requestedBranch)
+        }).populate('inventoryUsage.inventoryItem');
+
+        if (service?.inventoryUsage?.length) {
+          for (const usage of service.inventoryUsage) {
+            const inventoryItemId = usage.inventoryItem?._id || usage.inventoryItem;
+            if (!inventoryItemId) continue;
+            const inventoryItem = await Inventory.findById(inventoryItemId).select('branch');
+            if (!inventoryItem || !sameBranch(inventoryItem.branch, requestedBranch)) {
+              return res.status(403).json({ message: 'Access Denied: Service inventory belongs to another branch.' });
+            }
+          }
+        }
+      }
     }
 
     const invoice = await Invoice.create({
@@ -177,22 +212,25 @@ const createInvoice = async (req, res) => {
       paymentMode,
       payments,
       date,
-      branch: requestedBranch
+      branch: toObjectIdIfValid(requestedBranch)
     });
-    
+
     // Auto-update Employee Earnings and Inventory Stock
     if (items && Array.isArray(items)) {
       const Inventory = require('../../models/inventory/Inventory');
       for (const item of items) {
-        const service = await Service.findOne({ name: item.name }).populate('inventoryUsage.inventoryItem');
-        
+        const service = await Service.findOne({
+          name: item.name,
+          branch: toObjectIdIfValid(requestedBranch)
+        }).populate('inventoryUsage.inventoryItem');
+
         // 1. Commission Logic
         if (item.specialist) {
            const employee = await Employee.findById(item.specialist);
            if (employee) {
               let commission = 0;
               const itemTotal = item.price * (item.quantity || 1);
-              
+
               if (item.commission) {
                  commission = item.commission;
               } else if (service) {
@@ -202,7 +240,7 @@ const createInvoice = async (req, res) => {
                     commission = service.commissionValue || 0;
                  }
               }
-              
+
               employee.earnings = (employee.earnings || 0) + commission;
               await employee.save();
            }
@@ -213,8 +251,9 @@ const createInvoice = async (req, res) => {
            for (const usage of service.inventoryUsage) {
               const consumptionQty = (usage.quantity || 0) * (item.quantity || 1);
               if (consumptionQty > 0) {
+                 const inventoryItemId = usage.inventoryItem._id || usage.inventoryItem;
                  await Inventory.findByIdAndUpdate(
-                    usage.inventoryItem._id || usage.inventoryItem,
+                    inventoryItemId,
                     { $inc: { stock: -consumptionQty } }
                  );
               }
@@ -235,15 +274,20 @@ const createInvoice = async (req, res) => {
 const getInvoiceById = async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id);
-    
+
     if (!invoice) {
        return res.status(404).json({ message: 'Invoice not found' });
     }
 
     // IDOR Check
-    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
-    const isBranchStaff = sameBranch(invoice.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(invoice.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Invoice belongs to another branch.' });
+    }
+
+    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
+    const isBranchStaff = req.user.role !== 'Client' && isBranchMatch;
 
     if (!isAdmin && !isBranchStaff && !isOwner) {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to view this invoice' });
@@ -267,12 +311,21 @@ const updateInvoice = async (req, res) => {
     }
 
     // IDOR Check
-    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
-    const isBranchStaff = sameBranch(invoice.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(invoice.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Invoice belongs to another branch.' });
+    }
+
+    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
+    const isBranchStaff = req.user.role !== 'Client' && isBranchMatch;
 
     if (!isAdmin && !isBranchStaff && !isOwner) {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to update this invoice' });
+    }
+
+    if (req.user.role !== 'Admin' && req.body?.branch && !sameBranch(req.body.branch, invoice.branch)) {
+      return res.status(403).json({ message: 'Access Denied: You cannot reassign invoices to another branch.' });
     }
 
     const { paymentMode, date, clientName } = req.body || {};
@@ -300,9 +353,14 @@ const deleteInvoice = async (req, res) => {
     }
 
     // IDOR Check
-    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(invoice.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(invoice.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Invoice belongs to another branch.' });
+    }
+
+    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
+    const isBranchManager = req.user.role !== 'Client' && isBranchMatch;
 
     if (!isAdmin && !isBranchManager && !isOwner) {
        return res.status(403).json({ message: 'Access Denied: You do not have permission to delete this invoice record.' });

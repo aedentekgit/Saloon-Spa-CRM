@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  createMembershipPlan, 
-  getMembershipPlans, 
-  updateMembershipPlan, 
+const {
+  createMembershipPlan,
+  getMembershipPlans,
+  updateMembershipPlan,
   deleteMembershipPlan,
   enrollClient,
   getClientMemberships,
@@ -14,7 +14,7 @@ const {
   updateMembership,
   getActiveMembershipPlansPublic
 } = require('../../controllers/operations/membershipController');
-const { protect, admin, manager, requirePermission } = require('../../middleware/authMiddleware');
+const { protect, admin, requirePermission } = require('../../middleware/authMiddleware');
 const { upload } = require('../../middleware/uploadMiddleware');
 
 router.get('/active', getActiveMembershipPlansPublic);
@@ -31,7 +31,7 @@ router.post('/enroll', protect, requirePermission('memberships', 'billing'), upl
 router.get('/client/all', protect, requirePermission('memberships', 'billing', 'history'), getAllMemberships);
 router.get('/client/:clientId', protect, requirePermission('memberships', 'billing', 'history'), getClientMemberships);
 router.post('/:id/redeem', protect, requirePermission('memberships', 'billing'), redeemMembershipSession);
-router.get('/stats', protect, requirePermission('memberships', 'billing'), manager, getMembershipStats);
+router.get('/stats', protect, requirePermission('memberships', 'billing'), getMembershipStats);
 router.delete('/:id', protect, admin, deleteMembership);
 router.put('/:id', protect, admin, upload.fields([{ name: 'image', maxCount: 1 }]), updateMembership);
 

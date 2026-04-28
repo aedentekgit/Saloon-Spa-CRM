@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  Plus, Edit2, Trash2, Tag, 
+import {
+  Plus, Edit2, Trash2, Tag,
   DoorOpen, Sparkles, Package, X, Search
 } from 'lucide-react';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
@@ -12,12 +12,12 @@ import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { useCategories } from '../../context/CategoryContext';
 
 const Categories = () => {
-  const { 
-    categories, 
-    loading, 
-    createCategory, 
-    updateCategory, 
-    deleteCategory 
+  const {
+    categories,
+    loading,
+    createCategory,
+    updateCategory,
+    deleteCategory
   } = useCategories();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,7 +89,7 @@ const Categories = () => {
     }
   };
 
-  const filteredCategories = categories.filter(c => 
+  const filteredCategories = categories.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -111,7 +111,7 @@ const Categories = () => {
           </div>
         ) : (
 
-          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden table-container animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
               <tr>

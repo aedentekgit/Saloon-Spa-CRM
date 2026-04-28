@@ -2,35 +2,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/core/User');
 const Employee = require('../models/human-resources/Employee');
 const Role = require('../models/human-resources/Role');
-
-const DEFAULT_ROLE_PERMISSIONS = {
-  Admin: ['*'],
-  Manager: [
-    'dashboard',
-    'clients',
-    'appointments',
-    'memberships',
-    'rooms',
-    'employees',
-    'attendance',
-    'shifts',
-    'payroll',
-    'leave',
-    'services',
-    'billing',
-    'finance',
-    'transactions',
-    'inventory',
-    'whatsapp',
-    'reports',
-    'branches',
-    'room-categories',
-    'service-categories',
-    'settings'
-  ],
-  Employee: ['dashboard', 'appointments', 'clients', 'services', 'attendance', 'leave'],
-  Client: ['dashboard', 'book', 'profile', 'history']
-};
+const { hasAssignedBranch } = require('../utils/branch');
+const { DEFAULT_ROLE_PERMISSIONS } = require('../utils/permissions');
 
 const resolveRoleAccess = async (roleName) => {
   const role = String(roleName || '').trim();
@@ -46,7 +19,7 @@ const resolveRoleAccess = async (roleName) => {
   const isInactive = roleData.status === 'Inactive' || roleData.isActive === false;
   return {
     isActive: !isInactive,
-    permissions: Array.isArray(roleData.permissions) ? roleData.permissions : []
+    permissions: role === 'Admin' ? ['*'] : (Array.isArray(roleData.permissions) ? roleData.permissions : [])
   };
 };
 
@@ -77,7 +50,7 @@ const protect = async (req, res, next) => {
 
       // Get user from the token, populate branch for filtering
       req.user = await User.findById(decoded.id).select('-password').populate('branch');
-      
+
       if (!req.user) {
         req.user = await Employee.findById(decoded.id).select('-password');
         if (req.user) req.user.role = 'Employee'; // Set role for middleware
@@ -96,6 +69,10 @@ const protect = async (req, res, next) => {
 
       if (!roleAccess.isActive && req.user.role !== 'Admin') {
         return res.status(403).json({ message: 'Role is inactive' });
+      }
+
+      if (!hasAssignedBranch(req.user)) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required for this role.' });
       }
 
       // Check if email is verified (skip for Employees as they are often added by admin)

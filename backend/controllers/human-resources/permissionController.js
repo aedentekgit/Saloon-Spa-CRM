@@ -1,6 +1,7 @@
 const Permission = require('../../models/human-resources/Permission');
 const Employee = require('../../models/human-resources/Employee');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 // @desc    Get all permissions
 // @route   GET /api/permissions
@@ -8,8 +9,22 @@ const { paginateModelQuery } = require('../../utils/pagination');
 const getPermissions = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
+    const userBranchId = getBranchId(req.user.branch);
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
+
+    if (req.user.role === 'Admin') {
+      if (requestedBranch) query.branch = toObjectIdIfValid(requestedBranch);
+    } else if (req.user.role === 'Employee' || req.user.role === 'Client') {
       query.user = req.user._id;
+      if (userBranchId) query.branch = toObjectIdIfValid(userBranchId);
+    } else {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view permissions for another branch.' });
+      }
+      query.branch = toObjectIdIfValid(userBranchId);
     }
 
     const { data, pagination } = await paginateModelQuery(Permission, query, req, {
@@ -39,7 +54,7 @@ const createPermission = async (req, res) => {
       date,
       startTime,
       endTime,
-      branch: employee.branch
+      branch: employee.branch || getBranchId(req.user.branch)
     });
 
     res.status(201).json(permission);
@@ -59,7 +74,9 @@ const updatePermissionStatus = async (req, res) => {
     if (!permission) return res.status(404).json({ message: 'Permission request not found' });
 
     // Authorization Check
-    if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
+    const isAdmin = req.user.role === 'Admin';
+    const isBranchManager = !['Employee', 'Client'].includes(req.user.role) && sameBranch(permission.branch, req.user.branch);
+    if (!isAdmin && !isBranchManager) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 

@@ -2,6 +2,7 @@ const Attendance = require('../../models/human-resources/Attendance');
 const Employee = require('../../models/human-resources/Employee');
 const Leave = require('../../models/human-resources/Leave');
 const Shift = require('../../models/human-resources/Shift');
+const User = require('../../models/core/User');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
 const { autoMarkAbsent } = require('../../jobs/autoAbsent');
@@ -29,11 +30,11 @@ const timeToMinutes = (timeStr) => {
     const parts = timeStr.trim().split(/\s+/);
     const timePart = parts[0];
     const modifier = parts[1] ? parts[1].toUpperCase() : '';
-    
+
     let [hours, minutes] = timePart.split(':');
     hours = parseInt(hours);
     minutes = parseInt(minutes);
-    
+
     if (hours === 12) {
       hours = modifier === 'AM' ? 0 : 12;
     } else if (modifier === 'PM') {
@@ -72,14 +73,18 @@ const getAttendance = async (req, res) => {
     }
     const userBranchId = getBranchId(req.user.branch);
 
-    if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
-      // Employee: only own records
+    if (req.user.role === 'Employee' || req.user.role === 'Client') {
       query.user = req.user._id;
     } else {
-      // Admin/Manager: filter by branch if provided, or default for Manager
       let branchToFilter = branch;
-      
-      if (req.user.role === 'Manager' && userBranchId) {
+
+      if (req.user.role !== 'Admin') {
+        if (!userBranchId) {
+          return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+        }
+        if (branch && branch !== 'all' && !sameBranch(branch, userBranchId)) {
+          return res.status(403).json({ message: 'Access Denied: Cannot view attendance for another branch.' });
+        }
         branchToFilter = userBranchId;
       }
 
@@ -96,7 +101,6 @@ const getAttendance = async (req, res) => {
       }
     }
 
-    console.log('[Attendance] Querying with:', JSON.stringify(query, null, 2));
     const { data, pagination } = await paginateModelQuery(Attendance, query, req, {
       sort: { createdAt: -1 }
     });
@@ -111,7 +115,7 @@ const getAttendance = async (req, res) => {
 // @access  Private
 const checkIn = async (req, res) => {
   const { date, time, latitude, longitude } = req.body;
-  
+
   try {
     const employee = await Employee.findOne({ email: req.user.email }).populate('branch');
     if (!employee) return res.status(404).json({ message: 'Employee profile not found' });
@@ -122,10 +126,10 @@ const checkIn = async (req, res) => {
       if (shiftDoc) {
         const shiftStartMins = timeToMinutes(shiftDoc.startTime);
         const currentMins = timeToMinutes(time);
-        
+
         if (currentMins < (shiftStartMins - 5)) {
-          return res.status(400).json({ 
-            message: `Too Early: Check-in for ${employee.shift} (${shiftDoc.startTime}) only starts at ${minutesToTime(shiftStartMins - 5)}.` 
+          return res.status(400).json({
+            message: `Too Early: Check-in for ${employee.shift} (${shiftDoc.startTime}) only starts at ${minutesToTime(shiftStartMins - 5)}.`
           });
         }
       }
@@ -142,7 +146,7 @@ const checkIn = async (req, res) => {
       const { lat, lng, radius, allowedIPs } = employee.branch;
       const hasGeofence = !!(lat && lng && radius > 0);
       const hasIPRestriction = !!(allowedIPs && allowedIPs.length > 0);
-      
+
       let geofenceMatch = true;
       let ipMatch = true;
 
@@ -158,11 +162,11 @@ const checkIn = async (req, res) => {
       if (hasIPRestriction) {
         const staffIP = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         const cleanIP = staffIP.includes('::ffff:') ? staffIP.split('::ffff:')[1] : staffIP;
-        
+
         console.log('--- CHECK-IN IP DEBUG ---');
         console.log('Detected IP:', cleanIP);
         console.log('Allowed IPs:', allowedIPs);
-        
+
         ipMatch = allowedIPs.some(ip => ip === cleanIP || cleanIP.includes(ip));
       }
 
@@ -216,11 +220,11 @@ const checkOut = async (req, res) => {
     }
 
     record.checkOut = time;
-    
+
     // Calculate duration and earnings
     const start = timeToMinutes(record.checkIn);
     const end = timeToMinutes(time);
-    
+
     if (end > start) {
       const duration = end - start;
       record.duration = duration;
@@ -228,7 +232,7 @@ const checkOut = async (req, res) => {
         const shiftMinutes = (employee.payroll.shiftHours || 8) * 60;
         const otMinutes = Math.max(0, duration - shiftMinutes);
         record.overtimeMinutes = otMinutes;
-        
+
         let dailyEarnings = 0;
         const { type, baseAmount, otRate } = employee.payroll;
         if (type === 'Monthly') {
@@ -272,30 +276,32 @@ const markAttendance = async (req, res) => {
     const userBranchId = getBranchId(req.user.branch);
 
     // If targetUserId is provided and requester is Admin/Manager, use that ID
-    const userId = (targetUserId && (req.user.role === 'Admin' || req.user.role === 'Manager')) 
-      ? targetUserId 
+    const canManageBranchStaff = req.user.role === 'Admin' || !['Employee', 'Client'].includes(req.user.role);
+    const userId = (targetUserId && canManageBranchStaff)
+      ? targetUserId
       : req.user._id;
 
     let employee;
-    if (targetUserId && (req.user.role === 'Admin' || req.user.role === 'Manager')) {
+    if (targetUserId && canManageBranchStaff) {
       employee = await Employee.findById(targetUserId).populate('branch');
-      // IDOR Check: Manager can only mark attendance for their eigene employees
-      if (req.user.role === 'Manager' && !sameBranch(employee?.branch, userBranchId)) {
+      if (!employee) return res.status(404).json({ message: 'Employee profile not found' });
+      // IDOR Check: Branch-scoped roles can only mark attendance for their own branch.
+      if (req.user.role !== 'Admin' && !sameBranch(employee?.branch, userBranchId)) {
          return res.status(403).json({ message: 'Access Denied: You cannot manage attendance for other branches.' });
       }
     } else {
       employee = await Employee.findOne({ email: req.user.email }).populate('branch');
     }
-    
-    const isManualAdminEntry = (req.user.role === 'Admin' || req.user.role === 'Manager') && targetUserId;
-    
+
+    const isManualAdminEntry = canManageBranchStaff && targetUserId;
+
     if (!isManualAdminEntry && employee && employee.branch) {
        const branch = employee.branch;
        const { lat, lng, radius, allowedIPs } = branch;
-       
+
        const hasGeofence = !!(lat && lng && radius > 0);
        const hasIPRestriction = !!(allowedIPs && allowedIPs.length > 0);
-       
+
        let geofenceMatch = true;
        let ipMatch = true;
 
@@ -313,12 +319,12 @@ const markAttendance = async (req, res) => {
        if (hasIPRestriction) {
           const staffIP = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
           const cleanIP = staffIP.includes('::ffff:') ? staffIP.split('::ffff:')[1] : staffIP;
-          
+
           // Debug Log: Check your terminal/console to see this!
           console.log('--- ATTENDANCE IP DEBUG ---');
           console.log('Detected IP:', cleanIP);
           console.log('Allowed IPs:', allowedIPs);
-          
+
           ipMatch = allowedIPs.some(ip => ip === cleanIP || cleanIP.includes(ip));
        }
 
@@ -333,7 +339,7 @@ const markAttendance = async (req, res) => {
           return res.status(403).json({ message: 'Network Restriction: Please connect to the sanctuary Wi-Fi.' });
        }
     }
-    
+
     // Conflict Check: Prevent marking Present/Absent if on Approved Leave
     const conflictLeave = await Leave.findOne({
       user: userId,
@@ -345,7 +351,7 @@ const markAttendance = async (req, res) => {
     if (conflictLeave && (status === 'Present' || status === 'Absent')) {
        return res.status(400).json({ message: `Override Blocked: Staff is on approved ${conflictLeave.type} for this date.` });
     }
-    
+
     let record = await Attendance.findOne({ user: userId, date: date });
 
     if (!record) {
@@ -392,7 +398,7 @@ const markAttendance = async (req, res) => {
         }
       }
     }
-    
+
     await record.save();
     res.status(201).json(record);
   } catch (error) {
@@ -407,7 +413,7 @@ const deleteAttendance = async (req, res) => {
 
     // IDOR Check
     const employee = await Employee.findById(record.user).populate('branch');
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(employee?.branch, req.user.branch);
+    const isBranchManager = req.user.role !== 'Client' && req.user.role !== 'Employee' && sameBranch(employee?.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchManager) {
@@ -435,7 +441,7 @@ const updateAttendance = async (req, res) => {
 
     // IDOR Check
     const employee = await Employee.findById(record.user).populate('branch');
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(employee?.branch, req.user.branch);
+    const isBranchManager = req.user.role !== 'Client' && req.user.role !== 'Employee' && sameBranch(employee?.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchManager) {

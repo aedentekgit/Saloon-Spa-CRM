@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Shield, Trash2, Plus, Edit, Lock, Key, 
-  CheckCircle2, Circle, Search, Grid, List, Zap, Sparkles, X
+import React, { useState, useMemo } from 'react';
+import {
+  Shield, Trash2, Edit, Lock, Key,
+  CheckCircle2, Circle, Grid, Zap, X, Info
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
@@ -280,7 +280,7 @@ const Roles = () => {
       onAddClick={() => handleOpenModal()}
       hideBranchSelector
       searchActions={
-        <ExportPopup<Role>
+        <ExportPopup
           data={filteredRoles}
           columns={roleExportColumns}
           fileName="roles"
@@ -309,9 +309,9 @@ const Roles = () => {
           {paginatedRoles.map(role => (
             <div key={role._id} className={`group relative bg-white rounded-[2rem] p-6 lg:p-8 shadow-sm border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden ${role.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
-              
 
-              
+
+
                <div className="relative z-10">
                  <div className="flex items-start justify-between mb-8">
                  <div>
@@ -323,37 +323,46 @@ const Roles = () => {
                  </div>
                     <div className="flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
                        <ZenIconButton icon={Edit} onClick={() => handleOpenModal(role)} />
-                       {!['Admin', 'Client'].includes(role.name) && (
-                         <ZenIconButton 
-                           icon={Trash2} 
-                           variant="danger" 
-                           onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} 
+                       {!['Admin', 'Manager', 'Client'].includes(role.name) && (
+                         <ZenIconButton
+                           icon={Trash2}
+                           variant="danger"
+                           onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }}
                          />
                        )}
                     </div>
                  </div>
               </div>
 
-              <div className="flex-1 relative z-10">
-                 <div className="flex items-center justify-between mb-6">
-                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest ">Page access ({role.permissions.length})</p>
-                    <Key size={14} className="text-zen-sand opacity-30" />
-                 </div>
-                 <div className="flex flex-wrap gap-2">
-                   {role.permissions.slice(0, 6).map(perm => (
-                     <ZenBadge key={perm} variant="sand" className="px-3 py-1.5 bg-zen-cream/30 border-none text-[9px]">{ALL_PAGES.find(p => p.id === perm)?.name || perm}</ZenBadge>
-                   ))}
-                   {role.permissions.length > 6 && (
-                     <span className="px-3 py-1.5 bg-zen-brown/5 text-zen-brown/30 text-[9px] font-bold rounded-lg border border-zen-brown/15">
-                       + {role.permissions.length - 6} more
-                     </span>
-                   )}
-                 </div>
-              </div>
-              
+               <div className="flex-1 relative z-10">
+                  <div className="flex items-center justify-between mb-6">
+                     <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest ">
+                       {role.name === 'Admin' ? 'System Access' : `Page access (${role.permissions.length})`}
+                     </p>
+                     <Key size={14} className="text-zen-sand opacity-30" />
+                  </div>
+                  {role.name === 'Admin' ? (
+                    <div className="flex items-center gap-3 py-2">
+                       <Shield size={16} className="text-zen-sand animate-pulse" />
+                       <span className="text-sm font-serif italic text-zen-sand font-semibold">Full System Access Enabled</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {role.permissions.slice(0, 6).map(perm => (
+                        <ZenBadge key={perm} variant="sand" className="px-3 py-1.5 bg-zen-cream/30 border-none text-[9px]">{ALL_PAGES.find(p => p.id === perm)?.name || perm}</ZenBadge>
+                      ))}
+                      {role.permissions.length > 6 && (
+                        <span className="px-3 py-1.5 bg-zen-brown/5 text-zen-brown/30 text-[9px] font-bold rounded-lg border border-zen-brown/15">
+                          + {role.permissions.length - 6} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+               </div>
+
                <div className="relative z-10 mt-8 pt-6 border-t border-zen-brown/15">
                   <div className="flex items-center justify-between">
-                     <button 
+                     <button
                        onClick={() => toggleStatus(role)}
                        className={`flex items-center gap-2 px-6 py-2 rounded-full border transition-all duration-500 hover:scale-105 active:scale-95 shadow-sm ${role.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20' : 'bg-red-50 text-red-400 border-red-100'}`}
                      >
@@ -368,7 +377,7 @@ const Roles = () => {
           ))}
         </div>
       ) : (
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
               <tr>
@@ -406,18 +415,24 @@ const Roles = () => {
                   </td>
                   <td>
                     <div className="flex items-center justify-center gap-3">
-                      <ZenBadge variant="sand" className="bg-zen-cream/30 border-none">{role.permissions.length} Pages</ZenBadge>
-                      <div className="flex -space-x-2">
-                        {role.permissions.slice(0, 3).map((p, i) => (
-                           <div key={i} className="w-6 h-6 rounded-full bg-white border border-zen-brown/15 flex items-center justify-center shadow-sm" title={ALL_PAGES.find(pg => pg.id === p)?.name}>
-                              <Lock size={10} className="text-zen-brown/20" />
-                           </div>
-                        ))}
-                      </div>
+                      {role.name === 'Admin' ? (
+                        <ZenBadge variant="leaf" className="bg-emerald-500/10 border-none text-emerald-600">Full Access</ZenBadge>
+                      ) : (
+                        <>
+                          <ZenBadge variant="sand" className="bg-zen-cream/30 border-none">{role.permissions.length} Pages</ZenBadge>
+                          <div className="flex -space-x-2">
+                            {role.permissions.slice(0, 3).map((p, i) => (
+                               <div key={i} className="w-6 h-6 rounded-full bg-white border border-zen-brown/15 flex items-center justify-center shadow-sm" title={ALL_PAGES.find(pg => pg.id === p)?.name}>
+                                  <Lock size={10} className="text-zen-brown/20" />
+                               </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </td>
                   <td>
-                    <button 
+                    <button
                       onClick={() => toggleStatus(role)}
                       className={`px-6 py-2 rounded-full border transition-all duration-500 hover:scale-105 active:scale-95 shadow-sm whitespace-nowrap ${role.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20' : 'bg-red-50 text-red-400 border-red-100'}`}
                     >
@@ -427,7 +442,7 @@ const Roles = () => {
                   <td>
                     <div className="flex items-center justify-center gap-2 transition-all duration-500">
                        <ZenIconButton icon={Edit} onClick={() => handleOpenModal(role)} />
-                       {!['Admin', 'Client'].includes(role.name) && (
+                       {!['Admin', 'Manager', 'Client'].includes(role.name) && (
                          <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} />
                        )}
                     </div>
@@ -439,178 +454,220 @@ const Roles = () => {
         </div>
       )}
 
-      
+
 
       <ZenPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        maxWidth="max-w-4xl"
-        title={editingRole ? 'Edit Role' : 'New Role'}
-        subtitle="Configure access and account status"
-        headerIcon={Shield}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        maxWidth="max-w-6xl"
+        header={
+          <div className="flex items-center justify-between gap-6 px-10 py-8 border-b border-zen-brown/5 bg-zen-cream/10">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-zen-brown text-white flex items-center justify-center shadow-lg shadow-zen-brown/20 shrink-0">
+                <Shield size={28} strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="text-2xl font-serif font-black text-zen-brown tracking-tight">
+                  {editingRole ? 'Refine Access Role' : 'Establish Access Role'}
+                </h3>
+                <p className="text-xs font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-1">Permission Management System</p>
+              </div>
+            </div>
+            <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} size="md" />
+          </div>
+        }
         footer={
-          <div className="flex w-full gap-4 sm:gap-6">
-            <ZenButton 
-              type="button"
-              variant="secondary"
-              className="flex-1 rounded-[2rem] py-5"
-              onClick={() => setIsModalOpen(false)}
-            >
-              Cancel
-            </ZenButton>
-            <ZenButton 
-              type="submit"
-              form="role-modal-form"
-              className="flex-[2] rounded-[2rem] py-5 shadow-sm shadow-zen-brown/20"
-            >
-              {editingRole ? 'Save Role' : 'Create Role'}
-            </ZenButton>
+          <div className="flex items-center justify-between px-10 py-6 bg-white border-t border-zen-brown/5">
+            <div className="flex items-center gap-3 text-zen-brown/40 italic">
+              <Info size={14} />
+              <p className="text-[11px] font-medium tracking-wide">
+                {editingRole ? 'Changes to core roles may affect multiple users immediately.' : 'New roles can be assigned to administrators from the registry.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zen-brown/50 hover:text-zen-brown hover:bg-zen-cream/50 transition-all"
+              >
+                Cancel
+              </button>
+              <ZenButton
+                type="submit"
+                form="role-modal-form"
+                className="px-10 py-3.5 shadow-xl shadow-zen-brown/10"
+              >
+                {editingRole ? 'Synchronize Role' : 'Establish Role'}
+              </ZenButton>
+            </div>
           </div>
         }
       >
-        <form id="role-modal-form" onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid gap-8 xl:grid-cols-[0.82fr_1.18fr]">
-            <div className="rounded-[1.75rem] border border-zen-brown/10 bg-gradient-to-b from-zen-cream/60 to-white p-6 sm:p-8 space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-zen-brown/10 bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-zen-brown/55">
-                <Shield size={12} />
-                Role overview
-              </div>
+        <form id="role-modal-form" onSubmit={handleSubmit} className="px-2 py-4">
+          <div className="space-y-12">
+            {/* Identity Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+              <div className="lg:col-span-4">
+                <div className="sticky top-0">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-zen-sand/10 text-zen-sand flex items-center justify-center">
+                      <Zap size={16} />
+                    </div>
+                    <h4 className="text-lg font-serif font-black text-zen-brown">Profile Definition</h4>
+                  </div>
+                  <p className="text-sm text-zen-brown/50 leading-relaxed max-w-xs">
+                    Define the role's primary identity and its operational status within the system hierarchy.
+                  </p>
 
-              <div className="space-y-3">
-                <h3 className="text-2xl font-serif font-bold text-zen-brown">
-                  {editingRole ? 'Editing access profile' : 'Creating access profile'}
-                </h3>
-                <p className="text-sm leading-relaxed text-zen-brown/60">
-                  Configure a role name, account status, and only the modules this team member should
-                  access.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-[1.25rem] border border-white/70 bg-white/90 p-4 shadow-sm">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/35">
-                    Selected
-                  </p>
-                  <p className="mt-2 text-3xl font-serif font-bold text-zen-brown">
-                    {formData.permissions.length.toString().padStart(2, '0')}
-                  </p>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.3em] text-zen-brown/25">
-                    permissions
-                  </p>
-                </div>
-                <div className="rounded-[1.25rem] border border-white/70 bg-white/90 p-4 shadow-sm">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/35">
-                    Status
-                  </p>
-                  <p className="mt-2 text-lg font-medium text-zen-brown">{formData.status}</p>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.3em] text-zen-brown/25">
-                    account state
-                  </p>
+                  <div className="mt-8 grid grid-cols-2 gap-4">
+                    <div className="bg-zen-cream/30 p-4 rounded-2xl border border-zen-brown/5">
+                      <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest">Active State</p>
+                      <p className="mt-1 text-sm font-bold text-zen-brown">{formData.status}</p>
+                    </div>
+                    <div className="bg-zen-cream/30 p-4 rounded-2xl border border-zen-brown/5">
+                      <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest">Visibility</p>
+                      <p className="mt-1 text-sm font-bold text-zen-brown">{CORE_ROLES.includes(formData.name) ? 'Core' : 'Custom'}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-[1.5rem] border border-white/70 bg-white/90 p-4 shadow-sm">
-                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/35">
-                  Notes
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-zen-brown/60">
-                  Core system roles such as Admin, Manager, Employee, and Client are protected. Custom
-                  roles can be tailored for branch operations.
-                </p>
+              <div className="lg:col-span-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 bg-white p-8 rounded-[2rem] border border-zen-brown/5 shadow-sm">
+                  <ZenInput
+                    label="Role Name"
+                    required
+                    disabled={!!editingRole && ['Admin', 'Manager', 'Employee', 'Client'].includes(editingRole.name)}
+                    value={formData.name}
+                    onChange={(e: any) => setFormData({...formData, name: e.target.value})}
+                    placeholder="e.g. Front desk manager"
+                    variant="professional"
+                  />
+                  <ZenDropdown
+                    label="System Status"
+                    options={['Active', 'Inactive']}
+                    value={formData.status}
+                    onChange={(val) => setFormData({...formData, status: val as 'Active' | 'Inactive'})}
+                    variant="pill"
+                  />
+                  <div className="sm:col-span-2">
+                    <div className="flex items-start gap-4 p-5 bg-zen-brown/[0.02] rounded-2xl border border-zen-brown/5">
+                      <Info size={18} className="text-zen-sand mt-0.5 shrink-0" />
+                      <p className="text-xs text-zen-brown/60 leading-relaxed">
+                        Core system roles such as Admin, Manager, Employee, and Client are protected. Custom roles can be tailored for specific branch operations or departmental access.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="rounded-[1.75rem] border border-zen-brown/10 bg-white/90 p-6 sm:p-8 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 animate-in fade-in duration-500">
-                <ZenInput 
-                  label="Role Name"
-                  required
-                  disabled={!!editingRole && ['Admin', 'Manager', 'Employee', 'Client'].includes(editingRole.name)}
-                  value={formData.name}
-                  onChange={(e: any) => setFormData({...formData, name: e.target.value})}
-                  placeholder="e.g. Front desk manager"
-                />
-                <ZenDropdown 
-                  label="Status"
-                  options={['Active', 'Inactive']}
-                  value={formData.status}
-                  onChange={(val) => setFormData({...formData, status: val as 'Active' | 'Inactive'})}
-                />
-              </div>
+            <div className="h-px bg-gradient-to-r from-transparent via-zen-brown/10 to-transparent" />
 
-              <div className="flex flex-col gap-4 rounded-[1.5rem] border border-zen-brown/10 bg-zen-cream/45 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <h3 className="text-lg font-serif font-bold text-zen-brown tracking-tight">
-                    Module permissions
-                  </h3>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-[.3em] text-zen-brown/20">
-                    Choose the pages this role can open
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={toggleAllPermissions}
-                    className="inline-flex items-center gap-3 rounded-full border border-zen-brown/15 bg-white px-4 py-2.5 text-zen-brown transition-all duration-300 hover:border-zen-primary/30 hover:bg-zen-primary/5 active:scale-95"
-                  >
-                    <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all duration-300 ${formData.permissions.length === ALL_PAGES.length ? 'border-zen-primary bg-zen-primary text-white' : 'border-zen-primary/30 text-zen-primary'}`}>
-                      {formData.permissions.length === ALL_PAGES.length ? (
-                        <CheckCircle2 size={12} />
-                      ) : (
-                        <Circle size={10} strokeWidth={1.5} />
-                      )}
+            {/* Permissions Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pb-6">
+              <div className="lg:col-span-4">
+                <div className="sticky top-0">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-zen-purple/10 text-zen-purple flex items-center justify-center">
+                      <Grid size={16} />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
-                      {formData.permissions.length === ALL_PAGES.length ? 'Clear all' : 'Select all'}
-                    </span>
-                  </button>
-                  <ZenBadge variant="leaf" className="px-4 py-1.5 shadow-sm shadow-zen-leaf/10">
-                    {formData.permissions.length} selected
-                  </ZenBadge>
+                    <h4 className="text-lg font-serif font-black text-zen-brown">Module Matrix</h4>
+                  </div>
+                  <p className="text-sm text-zen-brown/50 leading-relaxed max-w-xs">
+                    Configure granular access by selecting the modules and pages this role is authorized to interact with.
+                  </p>
+
+                  <div className="mt-8 space-y-4">
+                    <div className="bg-zen-purple/5 p-5 rounded-2xl border border-zen-purple/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black text-zen-purple/40 uppercase tracking-widest">Authorization Scope</span>
+                        <ZenBadge variant="leaf" className="px-3 py-1">{formData.permissions.length}</ZenBadge>
+                      </div>
+                      <p className="text-xs text-zen-brown/60">Modules currently included in this role profile.</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={toggleAllPermissions}
+                      className="w-full flex items-center justify-between gap-3 rounded-2xl border border-zen-brown/10 bg-white px-5 py-4 text-zen-brown transition-all duration-300 hover:border-zen-sand/40 hover:bg-zen-cream/30 active:scale-[0.98]"
+                    >
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                        {formData.permissions.length === ALL_PAGES.length ? 'Revoke All Access' : 'Grant Full Access'}
+                      </span>
+                      <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all duration-300 ${formData.permissions.length === ALL_PAGES.length ? 'border-zen-sand bg-zen-sand text-white' : 'border-zen-brown/20 text-zen-brown/20'}`}>
+                        {formData.permissions.length === ALL_PAGES.length ? (
+                          <CheckCircle2 size={12} />
+                        ) : (
+                          <Circle size={10} strokeWidth={1.5} />
+                        )}
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="max-h-[46vh] overflow-y-auto pr-1 custom-scrollbar">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {ALL_PAGES.map((page) => {
-                    const isActive = formData.permissions.includes(page.id);
-                    return (
-                      <button
-                        type="button"
-                        key={page.id}
-                        onClick={() => togglePermission(page.id)}
-                        className={`group flex items-center gap-4 rounded-[1.35rem] border px-4 py-4 text-left transition-all duration-300 ${
-                          isActive
-                            ? 'border-zen-primary/25 bg-zen-primary/5 text-zen-brown shadow-sm'
-                            : 'border-zen-brown/10 bg-white text-zen-brown/65 hover:border-zen-primary/25 hover:bg-zen-cream/60'
-                        }`}
-                      >
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border transition-all duration-300 ${
-                          isActive ? 'border-zen-primary/20 bg-zen-primary text-white' : 'border-zen-brown/10 bg-zen-cream text-zen-brown/25'
-                        } ${editingRole?.name === 'Client' && ['dashboard', 'book', 'profile', 'history'].includes(page.id) ? 'ring-2 ring-zen-sand ring-offset-2' : ''}`}>
-                          {editingRole?.name === 'Client' && ['dashboard', 'book', 'profile', 'history'].includes(page.id) ? (
-                            <Lock size={17} />
-                          ) : (
-                            isActive ? <CheckCircle2 size={17} /> : <Circle size={17} strokeWidth={1.5} />
-                          )}
-                        </div>
+              <div className="lg:col-span-8">
+                <div className="bg-white p-8 rounded-[2rem] border border-zen-brown/5 shadow-sm">
+                  {editingRole?.name === 'Admin' ? (
+                    <div className="py-16 flex flex-col items-center justify-center text-center space-y-4 bg-zen-sand/5 rounded-[2rem] border border-zen-sand/10">
+                      <div className="w-20 h-20 rounded-full bg-zen-sand/10 flex items-center justify-center text-zen-sand animate-pulse">
+                        <Shield size={40} />
+                      </div>
+                      <div className="max-w-md px-8">
+                        <h4 className="text-xl font-serif font-black text-zen-brown">Universal Authority</h4>
+                        <p className="mt-2 text-sm text-zen-brown/50 leading-relaxed">
+                          The Administrative role possesses immutable, full-spectrum access to all system modules to ensure continuity of operations.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      {ALL_PAGES.map((page) => {
+                        const isActive = formData.permissions.includes(page.id);
+                        const isMandatory = editingRole?.name === 'Client' && ['dashboard', 'book', 'profile', 'history'].includes(page.id);
 
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold tracking-tight text-zen-brown">
-                            {page.name}
-                          </p>
-                          <p className={`mt-1 text-[9px] font-bold uppercase tracking-[0.28em] ${
-                            isActive ? 'text-zen-primary/55' : 'text-zen-brown/25'
-                          }`}>
-                            {isActive ? 'Included in role' : 'Available module'}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
+                        return (
+                          <button
+                            type="button"
+                            key={page.id}
+                            onClick={() => togglePermission(page.id)}
+                            className={`group flex items-center gap-4 rounded-[1.5rem] border p-4 text-left transition-all duration-500 ${
+                              isActive
+                                ? 'border-zen-sand/20 bg-zen-sand/[0.03] text-zen-brown shadow-sm'
+                                : 'border-zen-brown/5 bg-zen-cream/[0.15] text-zen-brown/40 hover:border-zen-sand/20 hover:bg-zen-cream/40'
+                            }`}
+                          >
+                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition-all duration-500 ${
+                              isActive
+                                ? 'border-zen-sand/20 bg-zen-sand text-white shadow-lg shadow-zen-sand/20'
+                                : 'border-zen-brown/10 bg-white text-zen-brown/20'
+                            }`}>
+                              {isMandatory ? (
+                                <Lock size={18} strokeWidth={2} />
+                              ) : (
+                                isActive ? <CheckCircle2 size={18} strokeWidth={2.5} /> : <Circle size={18} strokeWidth={1.5} />
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-bold tracking-tight text-zen-brown">
+                                {page.name}
+                              </p>
+                              <p className={`mt-1 text-[9px] font-bold uppercase tracking-[0.25em] ${
+                                isActive ? 'text-zen-sand/60' : 'text-zen-brown/20'
+                              }`}>
+                                {isMandatory ? 'Mandatory Access' : isActive ? 'Granted Module' : 'Restricted Module'}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

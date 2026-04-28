@@ -24,6 +24,7 @@ import { notify } from '../../components/shared/ZenNotification';
 import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { useCategories } from '../../context/CategoryContext';
 
 interface BranchRef {
   _id?: string;
@@ -48,7 +49,7 @@ interface Expense {
   updatedAt?: string;
 }
 
-const CATEGORIES = ['All', 'Inventory', 'Utilities', 'Staff', 'Marketing', 'Rent', 'Misc'] as const;
+
 
 const getExpenseBranchId = (expense: Expense) => {
   if (!expense.branch) return '';
@@ -86,7 +87,11 @@ const formatExportDateTime = (value?: string) => {
 const Expenses = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const { selectedBranch } = useBranches();
+  const { branches, selectedBranch } = useBranches();
+  const { getExpenseCategories } = useCategories();
+
+  const dynamicCategories = useMemo(() => ['All', ...getExpenseCategories()], [getExpenseCategories]);
+  const activeCategories = useMemo(() => getExpenseCategories(), [getExpenseCategories]);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
   const PAGE_LIMIT = 12;
@@ -94,7 +99,7 @@ const Expenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>(() => getCachedJson('zen_page_expenses_list', []));
   const [loading, setLoading] = useState(() => getCachedJson<Expense[]>('zen_page_expenses_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('All');
+  const [category, setCategory] = useState<string>('All');
   const [dateRange, setDateRange] = useState<any>('All');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -107,36 +112,37 @@ const Expenses = () => {
 
   const [formData, setFormData] = useState({
     title: '',
-    category: 'Inventory',
+    category: '',
     amount: 0,
-    date: dayjs().format('YYYY-MM-DD')
+    date: dayjs().format('YYYY-MM-DD'),
+    branch: selectedBranch !== 'all' ? selectedBranch : ''
   });
 
   const dateWindow = useMemo(() => {
     if (!dateRange || dateRange === 'All') return { startDate: '', endDate: '' };
-    
+
     const now = dayjs();
     if (typeof dateRange === 'string') {
       if (dateRange === 'Today') return { startDate: now.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
       if (dateRange === 'Week') return { startDate: now.subtract(7, 'day').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
       if (dateRange === 'Month') return { startDate: now.subtract(1, 'month').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
-      
+
       if (dateRange.length === 7) { // YYYY-MM
         const m = dayjs(dateRange + '-01');
         return { startDate: m.startOf('month').format('YYYY-MM-DD'), endDate: m.endOf('month').format('YYYY-MM-DD') };
       }
-      
+
       if (dateRange.length === 10) { // YYYY-MM-DD
         return { startDate: dateRange, endDate: dateRange };
       }
-      
+
       return { startDate: '', endDate: '' };
     }
 
     if (dateRange.from || dateRange.to) {
-      return { 
-        startDate: dateRange.from || dateRange.to || '', 
-        endDate: dateRange.to || dateRange.from || '' 
+      return {
+        startDate: dateRange.from || dateRange.to || '',
+        endDate: dateRange.to || dateRange.from || ''
       };
     }
 
@@ -273,9 +279,10 @@ const Expenses = () => {
     setEditingExpense(null);
     setFormData({
       title: '',
-      category: 'Inventory',
+      category: '',
       amount: 0,
-      date: dayjs().format('YYYY-MM-DD')
+      date: dayjs().format('YYYY-MM-DD'),
+      branch: selectedBranch !== 'all' ? selectedBranch : ''
     });
     setIsModalOpen(true);
   };
@@ -284,9 +291,10 @@ const Expenses = () => {
     setEditingExpense(exp);
     setFormData({
       title: exp.title || '',
-      category: exp.category || 'Inventory',
+      category: exp.category || '',
       amount: Number(exp.amount) || 0,
-      date: exp.date ? dayjs(exp.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD')
+      date: exp.date ? dayjs(exp.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+      branch: getExpenseBranchId(exp) || (selectedBranch !== 'all' ? selectedBranch : '')
     });
     setIsModalOpen(true);
   };
@@ -299,8 +307,16 @@ const Expenses = () => {
       notify('error', 'Missing Title', 'Please provide an expense title.');
       return;
     }
+    if (!formData.category) {
+      notify('error', 'Category Required', 'Please select an expense category.');
+      return;
+    }
     if (!Number.isFinite(Number(formData.amount)) || Number(formData.amount) <= 0) {
       notify('error', 'Invalid Amount', 'Amount must be greater than zero.');
+      return;
+    }
+    if (!formData.branch) {
+      notify('error', 'Branch Required', 'Please assign this expense to a branch.');
       return;
     }
 
@@ -403,7 +419,7 @@ const Expenses = () => {
         </div>
 
         {/* Global Filter Bar (match /clients, /finance visual language) */}
-        <div className="zen-pointed-surface border border-zen-stone bg-white shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-4">
+        <div className="zen-pointed-surface border border-zen-stone bg-white shadow-none px-5 sm:px-6 py-4">
           <div className="flex flex-col xl:flex-row xl:items-end gap-5 xl:gap-8">
             <div className="flex-1 w-full flex flex-col gap-2.5">
               <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Registry Search</label>
@@ -427,7 +443,7 @@ const Expenses = () => {
                 label="Category"
                 value={category}
                 onChange={(v: any) => setCategory(v)}
-                options={[...CATEGORIES]}
+                options={dynamicCategories}
                 className="w-full sm:min-w-[220px]"
                 hideLabel
               />
@@ -476,7 +492,7 @@ const Expenses = () => {
           </div>
         </div>
 
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
               <tr>
@@ -588,9 +604,10 @@ const Expenses = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <ZenDropdown
               label="Category"
+              options={activeCategories}
               value={formData.category}
-              onChange={(v: any) => setFormData(prev => ({ ...prev, category: v }))}
-              options={['Inventory', 'Utilities', 'Staff', 'Marketing', 'Rent', 'Misc']}
+              onChange={(val) => setFormData({ ...formData, category: val })}
+              placeholder="Select Category"
             />
             <ZenInput
               label="Amount"
@@ -606,11 +623,27 @@ const Expenses = () => {
             value={formData.date}
             onChange={(e: any) => setFormData(prev => ({ ...prev, date: e.target.value }))}
           />
-          <div className="pt-2">
-            <ZenButton type="submit" className="w-full py-5 rounded-[1.5rem]" disabled={isSubmitting}>
-              {editingExpense ? 'Update Expense' : 'Create Expense'}
-            </ZenButton>
+
+          <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Location Assignment</p>
+                <h4 className="mt-1 text-lg font-semibold text-zen-brown">Assign to Branch</h4>
+              </div>
+            </div>
+            <ZenDropdown
+              label="Branch"
+              hideLabel
+              value={branches.find(b => b._id === formData.branch)?.name || ''}
+              onChange={(name: string) => {
+                const b = branches.find(branch => branch.name === name);
+                if (b) setFormData(prev => ({ ...prev, branch: b._id }));
+              }}
+              options={branches.map(b => b.name)}
+              disabled={user?.role !== 'Admin'}
+            />
           </div>
+
         </form>
       </Modal>
 

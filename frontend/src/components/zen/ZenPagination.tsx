@@ -50,7 +50,7 @@ export const ZenPagination: React.FC<ZenPaginationProps> = ({ currentPage, total
   return (
     <nav
       aria-label="Pagination"
-      className="w-full mt-10 lg:mt-12 rounded-[1.5rem] border border-zen-brown/10 bg-white/90 backdrop-blur-xl px-4 sm:px-6 py-4 shadow-[0_20px_60px_-35px_rgba(74,55,40,0.45)]"
+      className="w-full mt-10 lg:mt-12 rounded-[1.5rem] border border-zen-brown/10 bg-white/90 backdrop-blur-xl px-4 sm:px-6 py-4 shadow-none"
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3 sm:gap-4">
@@ -99,7 +99,7 @@ export const ZenPagination: React.FC<ZenPaginationProps> = ({ currentPage, total
                   aria-current={isActive ? 'page' : undefined}
                   className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl border px-3 text-sm font-bold transition-all duration-300 active:scale-95 ${
                     isActive
-                      ? 'border-zen-brown bg-zen-brown text-white shadow-[0_12px_24px_-16px_rgba(74,55,40,0.7)]'
+                      ? 'border-zen-brown bg-zen-brown text-white shadow-none'
                       : 'border-zen-brown/10 bg-white text-zen-brown/60 hover:border-zen-brown/20 hover:bg-zen-cream/50 hover:text-zen-brown'
                   }`}
                 >

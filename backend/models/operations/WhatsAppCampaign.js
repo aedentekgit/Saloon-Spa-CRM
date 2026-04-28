@@ -30,9 +30,15 @@ const whatsAppCampaignSchema = mongoose.Schema({
   date: {
     type: String,
     required: true
+  },
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Branch'
   }
 }, {
   timestamps: true
 });
+
+whatsAppCampaignSchema.index({ branch: 1, createdAt: -1 });
 
 module.exports = mongoose.model('WhatsAppCampaign', whatsAppCampaignSchema);

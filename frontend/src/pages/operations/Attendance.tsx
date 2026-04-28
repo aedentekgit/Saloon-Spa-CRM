@@ -62,29 +62,29 @@ const Attendance = () => {
 
   const dateWindow = useMemo(() => {
     if (!dateRange || dateRange === 'All') return { startDate: '', endDate: '' };
-    
+
     const now = dayjs();
     if (typeof dateRange === 'string') {
       if (dateRange === 'Today') return { startDate: now.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
       if (dateRange === 'Week') return { startDate: now.subtract(7, 'day').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
       if (dateRange === 'Month') return { startDate: now.subtract(1, 'month').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
-      
+
       if (dateRange.length === 7) { // YYYY-MM
         const m = dayjs(dateRange + '-01');
         return { startDate: m.startOf('month').format('YYYY-MM-DD'), endDate: m.endOf('month').format('YYYY-MM-DD') };
       }
-      
+
       if (dateRange.length === 10) { // YYYY-MM-DD
         return { startDate: dateRange, endDate: dateRange };
       }
-      
+
       return { startDate: '', endDate: '' };
     }
 
     if (dateRange.from || dateRange.to) {
-      return { 
-        startDate: dateRange.from || dateRange.to || '', 
-        endDate: dateRange.to || dateRange.from || '' 
+      return {
+        startDate: dateRange.from || dateRange.to || '',
+        endDate: dateRange.to || dateRange.from || ''
       };
     }
 
@@ -334,7 +334,7 @@ const Attendance = () => {
           </div>
         ) : (
           <>
-            <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700 mx-4 lg:mx-2">
+            <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700 mx-4 lg:mx-2">
                <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
                  <thead>
                    <tr>

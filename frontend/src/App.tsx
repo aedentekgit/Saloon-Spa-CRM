@@ -47,6 +47,7 @@ const Branches = React.lazy(() => import('./pages/config/Branches'));
 const Admins = React.lazy(() => import('./pages/config/Admins'));
 const RoomCategories = React.lazy(() => import('./pages/config/RoomCategories'));
 const ServiceCategories = React.lazy(() => import('./pages/config/ServiceCategories'));
+const ExpenseCategories = React.lazy(() => import('./pages/config/ExpenseCategories'));
 const Payroll = React.lazy(() => import('./pages/operations/Payroll'));
 const Shifts = React.lazy(() => import('./pages/config/Shifts'));
 const Transactions = React.lazy(() => import('./pages/operations/Transactions'));
@@ -72,7 +73,7 @@ import { getRoutePermissions, isAuthenticatedOnlyRoute } from './config/accessCo
 const Layout = () => {
   const { user, loading: authLoading } = useAuth();
   // We don't block the globally on dataLoading anymore as each page handles its own data
-  const { loading: dataLoading } = useData(); 
+  const { loading: dataLoading } = useData();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isCollapsed, setIsCollapsed] = React.useState(() => {
@@ -101,15 +102,15 @@ const Layout = () => {
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         ${isCollapsed ? 'lg:w-[68px] w-[min(84vw,16rem)]' : 'lg:w-[210px] w-[min(88vw,17rem)]'}
       `}>
-        <Sidebar 
-          isCollapsed={isCollapsed} 
-          setIsCollapsed={toggleSidebar} 
-          onClose={() => setIsMobileMenuOpen(false)} 
+        <Sidebar
+          isCollapsed={isCollapsed}
+          setIsCollapsed={toggleSidebar}
+          onClose={() => setIsMobileMenuOpen(false)}
         />
       </div>
 
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-[90] lg:hidden backdrop-blur-sm transition-opacity"
           onClick={() => setIsMobileMenuOpen(false)}
         />
@@ -117,8 +118,8 @@ const Layout = () => {
 
       <div className="flex-1 flex flex-col min-w-0 relative bg-zen-cream">
         <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scrollbar-hide rounded-none scroll-smooth relative pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
-          <Navbar 
-            onMenuClick={() => setIsMobileMenuOpen(true)} 
+          <Navbar
+            onMenuClick={() => setIsMobileMenuOpen(true)}
             isCollapsed={isCollapsed}
             setIsCollapsed={toggleSidebar}
           />
@@ -138,7 +139,7 @@ const Layout = () => {
           </AnimatePresence>
         </main>
       </div>
-      
+
       <MobileFooter />
     </div>
   );
@@ -199,7 +200,7 @@ const AppRoutes = () => {
         <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
         <Route path="/book" element={<PublicLayout><BookAppointment /></PublicLayout>} />
         <Route path="/membership-tiers" element={<PublicLayout><MembershipTiers /></PublicLayout>} />
-        
+
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -229,6 +230,7 @@ const AppRoutes = () => {
           <Route path="/branches" element={guarded(<Branches />)} />
           <Route path="/room-categories" element={guarded(<RoomCategories />)} />
           <Route path="/service-categories" element={guarded(<ServiceCategories />)} />
+          <Route path="/expense-categories" element={guarded(<ExpenseCategories />)} />
           <Route path="/admins" element={guarded(<Admins />)} />
           <Route path="/payroll" element={guarded(<Payroll />)} />
           <Route path="/shifts" element={guarded(<Shifts />)} />

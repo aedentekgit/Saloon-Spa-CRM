@@ -1,12 +1,30 @@
 const WhatsAppCampaign = require('../../models/operations/WhatsAppCampaign');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 // @desc    Get all campaigns
 // @route   GET /api/whatsapp
 // @access  Private
 const getCampaigns = async (req, res) => {
   try {
-    const { data, pagination } = await paginateModelQuery(WhatsAppCampaign, {}, req, {
+    const userBranchId = getBranchId(req.user.branch);
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
+    const query = {};
+
+    if (req.user.role === 'Admin') {
+      if (requestedBranch) query.branch = toObjectIdIfValid(requestedBranch);
+    } else {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view campaigns for another branch.' });
+      }
+      query.branch = toObjectIdIfValid(userBranchId);
+    }
+
+    const { data, pagination } = await paginateModelQuery(WhatsAppCampaign, query, req, {
+      populate: 'branch',
       sort: { createdAt: -1 }
     });
     res.json(pagination ? { data, pagination } : data);
@@ -19,15 +37,24 @@ const getCampaigns = async (req, res) => {
 // @route   POST /api/whatsapp
 // @access  Private
 const createCampaign = async (req, res) => {
-  const { templateName, audience, message } = req.body;
+  const { templateName, audience, message, branch } = req.body;
 
   try {
     const User = require('../../models/core/User');
     const sendWhatsApp = require('../../utils/sendWhatsApp');
     const Notification = require('../../models/core/Notification');
+    const userBranchId = getBranchId(req.user.branch);
+    const requestedBranch = getBranchId(branch) || userBranchId;
+
+    if (req.user.role !== 'Admin' && !sameBranch(requestedBranch, userBranchId)) {
+      return res.status(403).json({ message: 'Access Denied: Cannot create campaigns for another branch.' });
+    }
 
     // 1. Fetch target audience
     let query = { role: 'Client', status: 'Active' };
+    if (requestedBranch) {
+      query.branch = toObjectIdIfValid(requestedBranch);
+    }
     if (audience === 'Active Only') query.status = 'Active';
     // Add more audience logic here as needed
 
@@ -45,7 +72,8 @@ const createCampaign = async (req, res) => {
       message,
       sentCount: recipients.length,
       status: 'Sending',
-      date: new Date()
+      date: new Date(),
+      branch: requestedBranch ? toObjectIdIfValid(requestedBranch) : undefined
     });
 
     // 3. Dispatch messages asynchronously (Non-blocking response)
@@ -57,7 +85,7 @@ const createCampaign = async (req, res) => {
 
         // Personalize message
         const personalized = message.replace(/\[Name\]/g, client.name || 'Valued Guest');
-        
+
         const result = await sendWhatsApp(client.phone, personalized);
         if (result.success) successCount++;
       }

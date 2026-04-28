@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  Plus, Edit2, Trash2, MapPin, Mail, Phone, X, 
+import {
+  Plus, Edit2, Trash2, MapPin, Mail, Phone, X,
   Search, Building2, Globe, Activity, Camera, Grid, List, Sparkles, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -157,8 +157,8 @@ const Branches = () => {
     if (branch) {
       setEditingBranch(branch);
       const dialingCode = settings?.general.dialingCode || '+974';
-      const cleanPhone = branch.contactNumber.startsWith(dialingCode) 
-        ? branch.contactNumber.slice(dialingCode.length) 
+      const cleanPhone = branch.contactNumber.startsWith(dialingCode)
+        ? branch.contactNumber.slice(dialingCode.length)
         : branch.contactNumber;
 
       setFormData({
@@ -198,7 +198,7 @@ const Branches = () => {
     try {
       const url = editingBranch ? `${API_URL}/branches/${editingBranch._id}` : `${API_URL}/branches`;
       const method = editingBranch ? 'PUT' : 'POST';
-      
+
       const data = new FormData();
       const dialingCode = settings?.general.dialingCode || '+974';
       const fullPhone = `${dialingCode}${formData.contactNumber}`;
@@ -212,7 +212,7 @@ const Branches = () => {
       data.append('lng', formData.lng.toString());
       data.append('restrictionMode', formData.restrictionMode);
       data.append('radius', formData.radius.toString());
-      
+
       if (formData.restrictionMode === 'geofence') {
         data.append('allowedIPs', JSON.stringify([]));
       } else if (formData.restrictionMode === 'ip') {
@@ -226,8 +226,8 @@ const Branches = () => {
 
       const response = await fetch(url, {
         method,
-        headers: { 
-          'Authorization': `Bearer ${user?.token}` 
+        headers: {
+          'Authorization': `Bearer ${user?.token}`
         },
         body: data
       });
@@ -279,7 +279,7 @@ const Branches = () => {
 
       const response = await fetch(`${API_URL}/branches/${branch._id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${user?.token}`
         },
         body: data
@@ -409,7 +409,7 @@ const Branches = () => {
                           </div>
                        )}
                     </div>
-                    
+
                     <div className="min-w-0 flex-1">
                         <h3 className="text-xl lg:text-2xl font-serif text-zen-brown tracking-tight truncate">{branch.name}</h3>
                         <div className="flex items-center gap-2 mt-1 lg:mt-2">
@@ -441,7 +441,7 @@ const Branches = () => {
 
                 <div className="relative z-10 pt-4 border-t border-zen-brown/15">
                        <div className="flex items-center gap-2">
-                          <button 
+                          <button
                             onClick={() => toggleBranchStatus(branch)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm ${branch.isActive ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20' : 'bg-red-50 text-red-500 border-red-100'}`}
                           >
@@ -455,7 +455,7 @@ const Branches = () => {
           ))}
         </div>
       ) : (
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
                <thead>
                   <tr>
@@ -504,7 +504,7 @@ const Branches = () => {
                       </td>
                       <td>
                          <div className="flex justify-center">
-                            <button 
+                            <button
                               onClick={() => toggleBranchStatus(branch)}
                               className="group/status transition-transform active:scale-95"
                             >
@@ -710,8 +710,8 @@ const Branches = () => {
                   type="button"
                   onClick={() => setFormData({ ...formData, restrictionMode: mode.id as any })}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
-                    formData.restrictionMode === mode.id 
-                      ? 'bg-zen-brown text-white shadow-md' 
+                    formData.restrictionMode === mode.id
+                      ? 'bg-zen-brown text-white shadow-md'
                       : 'text-zen-brown/40 hover:bg-white'
                   }`}
                 >
@@ -732,9 +732,9 @@ const Branches = () => {
                   />
 
                   {formData.restrictionMode === 'geofence' && (
-                    <motion.div 
+                    <motion.div
                       key="geofence-info"
-                      initial={{ opacity: 0, x: -10 }} 
+                      initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
                     >
@@ -745,9 +745,9 @@ const Branches = () => {
                   )}
 
                   {formData.restrictionMode === 'ip' && (
-                    <motion.div 
+                    <motion.div
                       key="ip-input"
-                      initial={{ opacity: 0, x: -10 }} 
+                      initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
                     >
@@ -765,9 +765,9 @@ const Branches = () => {
                   )}
 
                   {formData.restrictionMode === 'none' && (
-                    <motion.div 
+                    <motion.div
                       key="none-input"
-                      initial={{ opacity: 0 }} 
+                      initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       className="p-8 rounded-3xl bg-zen-sand/5 border border-zen-sand/20 text-center"
@@ -777,7 +777,7 @@ const Branches = () => {
                       </div>
                       <h5 className="text-sm font-serif font-bold text-zen-brown mb-2">Unrestricted Access Mode</h5>
                       <p className="text-[10px] text-zen-brown/50 leading-relaxed uppercase tracking-widest">
-                        Employees will be able to clock in from any location and any network. 
+                        Employees will be able to clock in from any location and any network.
                         Security geofencing and IP validation are currently disabled.
                       </p>
                     </motion.div>
@@ -786,7 +786,7 @@ const Branches = () => {
 
                 <div className="h-[300px] lg:h-full min-h-[300px]">
                   <div className="h-full">
-                    <ZenMap 
+                    <ZenMap
                       center={{ lat: formData.lat, lng: formData.lng }}
                       radius={formData.radius}
                       onLocationSelect={(lat, lng) => setFormData({ ...formData, lat, lng })}

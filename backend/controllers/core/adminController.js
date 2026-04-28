@@ -1,5 +1,6 @@
 const User = require('../../models/core/User');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, toObjectIdIfValid } = require('../../utils/branch');
 
 // @desc    Get all admins
 // @route   GET /api/admins
@@ -24,20 +25,26 @@ exports.getAdmins = async (req, res) => {
 exports.createAdmin = async (req, res) => {
   try {
     const { name, email, password, status, role, branch } = req.body;
-    
+    const assignedRole = role || 'Admin';
+    const assignedBranch = getBranchId(branch);
+
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
+    }
+
+    if (assignedRole !== 'Admin' && !assignedBranch) {
+      return res.status(400).json({ message: 'Branch assignment is required for non-admin users.' });
     }
 
     const admin = await User.create({
       name,
       email,
       password,
-      role: role || 'Admin',
+      role: assignedRole,
       status: status || 'Active',
-      isActive: status === 'Active',
-      branch: branch || undefined
+      isActive: (status || 'Active') === 'Active',
+      branch: assignedBranch ? toObjectIdIfValid(assignedBranch) : undefined
     });
 
     res.status(201).json(admin);
@@ -53,12 +60,18 @@ exports.updateAdmin = async (req, res) => {
   try {
     const admin = await User.findById(req.params.id);
 
-    if (admin && admin.role === 'Admin') {
-      const { name, email, status, password, branch } = req.body;
+    if (admin && (admin.role === 'Admin' || admin.role === 'Manager')) {
+      const { name, email, status, password, role, branch } = req.body;
 
       admin.name = name || admin.name;
       admin.email = email || admin.email;
-      if (branch !== undefined) admin.branch = branch || undefined;
+      if (role) admin.role = role;
+      const nextRole = role || admin.role;
+      const nextBranch = branch !== undefined ? getBranchId(branch) : getBranchId(admin.branch);
+      if (nextRole !== 'Admin' && !nextBranch) {
+        return res.status(400).json({ message: 'Branch assignment is required for non-admin users.' });
+      }
+      if (branch !== undefined) admin.branch = nextBranch ? toObjectIdIfValid(nextBranch) : undefined;
       if (status) {
         admin.status = status;
         admin.isActive = status === 'Active';
@@ -84,12 +97,12 @@ exports.updateAdmin = async (req, res) => {
 exports.deleteAdmin = async (req, res) => {
   try {
     const admin = await User.findById(req.params.id);
-    if (admin && admin.role === 'Admin') {
+    if (admin && (admin.role === 'Admin' || admin.role === 'Manager')) {
       // Prevent deleting self
       if (admin._id.toString() === req.user._id.toString()) {
         return res.status(400).json({ message: 'Cannot delete yourself' });
       }
-      
+
       await admin.deleteOne();
       res.json({ message: 'Admin removed' });
     } else {

@@ -5,7 +5,7 @@ const Invoice = require('../../models/finance/Invoice');
 const path = require('path');
 const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { getPaginationOptions, buildPaginationMeta } = require('../../utils/pagination');
-const { getBranchId, sameBranch } = require('../../utils/branch');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 const normalizeName = (value = '') => String(value).trim().toLowerCase();
 const toNumber = (value) => {
@@ -21,30 +21,36 @@ exports.getClients = async (req, res) => {
   try {
     let query = {};
     const userBranchId = getBranchId(req.user.branch);
-    
+
     const { paginate, page, limit, skip } = getPaginationOptions(req);
-    
+
     // Unified query: filter by role: 'Client'
     query.role = 'Client';
     const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
 
     if (req.user.role === 'Admin') {
       if (requestedBranch) {
-        query.branch = requestedBranch;
+        query.branch = toObjectIdIfValid(requestedBranch);
       }
-    } else if (req.user.role === 'Manager' || req.user.role === 'Employee') {
+    } else if (req.user.role === 'Client') {
+      query._id = req.user._id;
+      if (userBranchId) {
+        query.branch = toObjectIdIfValid(userBranchId);
+      }
+    } else {
       if (!userBranchId) {
         return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
       }
-      query.branch = userBranchId;
-    } else if (req.user.role === 'Client') {
-      query._id = req.user._id;
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view clients from another branch.' });
+      }
+      query.branch = toObjectIdIfValid(userBranchId);
     }
-    
+
     const clientsQuery = User.find(query).sort({ createdAt: -1 }).lean();
     const total = paginate ? await User.countDocuments(query) : null;
     const clients = paginate ? await clientsQuery.skip(skip).limit(limit) : await clientsQuery;
-    
+
     // Lightweight mode for simple lists (e.g. dropdowns)
     if (req.query.strict === 'true' || req.query.lightweight === 'true') {
       return res.json(paginate ? {
@@ -52,11 +58,15 @@ exports.getClients = async (req, res) => {
         pagination: buildPaginationMeta(total || 0, page, limit)
       } : clients);
     }
-    
+
     // Fetch all memberships for these clients
     const clientIds = clients.map(c => c._id);
-    const memberships = await Membership.find({ 
-      client: { $in: clientIds }
+    const relatedBranchId = query.branch || (req.user.role !== 'Admin' ? toObjectIdIfValid(userBranchId) : null);
+    const relatedBranchFilter = relatedBranchId ? { branch: relatedBranchId } : {};
+
+    const memberships = await Membership.find({
+      client: { $in: clientIds },
+      ...relatedBranchFilter
     })
     .populate({
       path: 'plan',
@@ -68,9 +78,10 @@ exports.getClients = async (req, res) => {
     .lean();
 
     const clientNames = clients.map(c => c.name).filter(Boolean);
-    
+
     // Fetch all appointments for these clients, including name-only legacy rows.
     const appointments = await Appointment.find({
+      ...relatedBranchFilter,
       $or: [
         { clientId: { $in: clientIds } },
         { clientId: { $exists: false }, client: { $in: clientNames } },
@@ -79,6 +90,7 @@ exports.getClients = async (req, res) => {
     }).populate('branch').sort({ date: -1, time: -1 }).lean();
 
     const invoices = await Invoice.find({
+      ...relatedBranchFilter,
       $or: [
         { clientId: { $in: clientIds } },
         { clientId: { $exists: false }, clientName: { $in: clientNames } },
@@ -121,7 +133,7 @@ exports.getClients = async (req, res) => {
       const derivedSpending =
         (spendingByClientId.get(clientId) || 0) +
         (spendingByClientName.get(normalizeName(client.name)) || 0);
-      
+
       return {
         ...client,
         visits: clientAppointments.filter(isCountedVisit).length,
@@ -157,7 +169,7 @@ exports.createClient = async (req, res) => {
     const userBranchId = getBranchId(req.user.branch);
     const isAdmin = req.user.role === 'Admin';
     const requestedBranch = getBranchId(branch);
-    const assignedBranch = isAdmin ? (requestedBranch || undefined) : userBranchId;
+    const assignedBranch = isAdmin ? (toObjectIdIfValid(requestedBranch) || undefined) : toObjectIdIfValid(userBranchId);
 
     if (!isAdmin && !assignedBranch) {
       return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
@@ -166,7 +178,7 @@ exports.createClient = async (req, res) => {
     if (!isAdmin && requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
       return res.status(403).json({ message: 'Access Denied: Cannot create clients for another branch.' });
     }
-    
+
     let profilePic = '';
     if (req.files && req.files.profilePic) {
       const file = req.files.profilePic[0];
@@ -176,7 +188,7 @@ exports.createClient = async (req, res) => {
     // Generate Client ID (CL0001 format)
     const lastClient = await User.findOne({ role: 'Client', clientId: { $exists: true } })
       .sort({ clientId: -1 });
-    
+
     let nextClientId = 'CL0001';
     if (lastClient && lastClient.clientId) {
       const lastIdMatch = lastClient.clientId.match(/\d+/);
@@ -221,7 +233,7 @@ exports.updateClient = async (req, res) => {
     const isAdmin = req.user.role === 'Admin';
     const isSelf = client._id.toString() === req.user._id.toString();
     const userBranchId = getBranchId(req.user.branch);
-    const isBranchStaff = (req.user.role === 'Manager' || req.user.role === 'Employee') && sameBranch(client.branch, userBranchId);
+    const isBranchStaff = req.user.role !== 'Client' && sameBranch(client.branch, userBranchId);
 
     if (!isAdmin && !isBranchStaff && !isSelf) {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to update this client.' });
@@ -275,7 +287,7 @@ exports.updateClient = async (req, res) => {
 exports.deleteClient = async (req, res) => {
   try {
     const client = await User.findById(req.params.id);
-    
+
     if (!client || client.role !== 'Client') {
       return res.status(404).json({ message: 'Client not found' });
     }
@@ -289,7 +301,7 @@ exports.deleteClient = async (req, res) => {
     if (client.profilePic) {
       await deleteFile(client.profilePic);
     }
-    
+
     await client.deleteOne();
     res.json({ message: 'Client removed' });
   } catch (error) {

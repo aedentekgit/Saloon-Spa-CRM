@@ -1,7 +1,7 @@
 const Shift = require('../../models/human-resources/Shift');
 const Branch = require('../../models/operations/Branch');
 const { paginateModelQuery } = require('../../utils/pagination');
-const { getBranchId } = require('../../utils/branch');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -49,7 +49,7 @@ const getShifts = async (req, res) => {
     const { branch } = req.query;
     let query = {};
     const userBranchId = getBranchId(req.user?.branch);
-    
+
     if (!req.user) {
       query.status = 'Active';
       if (branch && branch !== 'all') {
@@ -57,10 +57,13 @@ const getShifts = async (req, res) => {
       }
     } else if (req.user.role === 'Admin') {
       if (branch && branch !== 'all') {
-        query.branch = getBranchId(branch);
+        query.branch = toObjectIdIfValid(branch);
       }
     } else if (userBranchId) {
-      query.branch = userBranchId;
+      if (branch && branch !== 'all' && !sameBranch(branch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view shifts for another branch.' });
+      }
+      query.branch = toObjectIdIfValid(userBranchId);
     } else {
       return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
     }

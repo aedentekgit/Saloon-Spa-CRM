@@ -7,18 +7,18 @@ const {
   updateRoom,
   deleteRoom
 } = require('../../controllers/operations/roomController');
-const { protect, manager } = require('../../middleware/authMiddleware');
+const { protect, requirePermission } = require('../../middleware/authMiddleware');
 const { upload } = require('../../middleware/uploadMiddleware');
 
 router.route('/public')
   .get(getPublicRooms);
 
 router.route('/')
-  .get(protect, getRooms)
-  .post(protect, manager, upload.fields([{ name: 'image', maxCount: 1 }]), createRoom);
+  .get(protect, requirePermission('rooms', 'appointments', 'book'), getRooms)
+  .post(protect, requirePermission('rooms'), upload.fields([{ name: 'image', maxCount: 1 }]), createRoom);
 
 router.route('/:id')
-  .put(protect, manager, upload.fields([{ name: 'image', maxCount: 1 }]), updateRoom)
-  .delete(protect, manager, deleteRoom);
+  .put(protect, requirePermission('rooms'), upload.fields([{ name: 'image', maxCount: 1 }]), updateRoom)
+  .delete(protect, requirePermission('rooms'), deleteRoom);
 
 module.exports = router;

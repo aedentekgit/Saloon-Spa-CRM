@@ -1,7 +1,7 @@
 const Employee = require('../../models/human-resources/Employee');
 const Attendance = require('../../models/human-resources/Attendance');
 const Settings = require('../../models/core/Settings');
-const { getBranchId } = require('../../utils/branch');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 const { getPaginationOptions, buildPaginationMeta } = require('../../utils/pagination');
 
 const toText = (value) => {
@@ -77,10 +77,16 @@ exports.generatePayroll = async (req, res) => {
 
     if (req.user.role === 'Admin') {
       if (requestedBranch) {
-        query.branch = requestedBranch;
+        query.branch = toObjectIdIfValid(requestedBranch);
       }
-    } else if (userBranchId) {
-      query.branch = userBranchId;
+    } else {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view payroll for another branch.' });
+      }
+      query.branch = toObjectIdIfValid(userBranchId);
     }
 
     const employees = await Employee.find(query).populate('branch');
@@ -90,7 +96,7 @@ exports.generatePayroll = async (req, res) => {
 
     const payrollRecords = employees.map(emp => {
       const empAtt = attendance.filter(a => a.user.toString() === emp._id.toString());
-      
+
       let otPay = 0;
       let basePay = 0;
       let basePayBeforeDeduction = 0;
@@ -98,13 +104,13 @@ exports.generatePayroll = async (req, res) => {
       let paidLeavePay = 0;
       let totalHours = 0;
       let otMin = 0;
-      let leavesCount = 0; 
+      let leavesCount = 0;
       let presentCount = 0;
       let halfDayCount = 0;
       let absentCount = 0;
       let onLeaveCount = 0;
       let completedCheckouts = 0;
-      
+
       empAtt.forEach(a => {
         totalHours += (a.duration || 0) / 60;
         otMin += (a.overtimeMinutes || 0);
@@ -122,7 +128,7 @@ exports.generatePayroll = async (req, res) => {
             if (a.status === 'On Leave') onLeaveCount += 1;
             leavesCount += (emp.payroll?.type === 'Hourly' ? (emp.payroll?.shiftHours || 8) : 1);
         }
-        
+
         if (emp.payroll?.type === 'Monthly') {
             otPay += ((a.overtimeMinutes || 0) / 60) * (emp.payroll?.otRate || 0);
         } else {
@@ -210,7 +216,7 @@ exports.generatePayroll = async (req, res) => {
 
     // Pagination
     const { paginate, page, limit, skip } = getPaginationOptions(req);
-    
+
     if (paginate) {
       const paginatedData = payrollRecords.slice(skip, skip + limit);
       return res.json({

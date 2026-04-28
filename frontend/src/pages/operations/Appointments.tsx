@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
-import { 
+import {
   Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Calendar, ChevronDown,
-  Sparkles, User as UserIcon, Search, MapPin, Check, X as CloseIcon, UserCheck, History
+  Sparkles, User as UserIcon, Search, MapPin, Check, X as CloseIcon, UserCheck, History,
+  AlertTriangle, Slash
 } from 'lucide-react';
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
@@ -11,7 +12,7 @@ import { notify } from '../../components/shared/ZenNotification';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
 import { ZenButton, ZenBadge, ZenIconButton } from '../../components/zen/ZenButtons';
-import { ZenAutocomplete, ZenDatePicker, ZenDropdown, useFloatingAnchor } from '../../components/zen/ZenInputs';
+import { ZenAutocomplete, ZenDatePicker, ZenDropdown, ZenTextarea, useFloatingAnchor } from '../../components/zen/ZenInputs';
 import { useBranches } from '../../context/BranchContext';
 import { useSettings, SettingsData } from '../../context/SettingsContext';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
@@ -51,6 +52,7 @@ interface Appointment {
   cancellationReason?: string;
   createdAt?: string;
   updatedAt?: string;
+  addOns?: any[];
 }
 
 const getEntityId = (value: any) => {
@@ -61,7 +63,7 @@ const getEntityId = (value: any) => {
 };
 
 // ── Rich Staff Dropdown ─────────────────────────────────────────────────────
-const StaffDropdown = ({ staffOptions, rawStaff, rawShifts, value, onChange }: any) => {
+const StaffDropdown = ({ staffOptions, rawStaff, rawShifts, value, onChange, error }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -87,19 +89,28 @@ const StaffDropdown = ({ staffOptions, rawStaff, rawShifts, value, onChange }: a
       <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">Staff member</label>
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-1 pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between cursor-pointer group-hover:border-zen-brown/40 transition-all"
+        className={`w-full px-1 pb-3 bg-transparent border-b-[2px] flex items-center justify-between cursor-pointer transition-all ${
+          error ? 'border-rose-400' : 'border-zen-brown/15 group-hover:border-zen-gold/40'
+        }`}
       >
         <div className="flex flex-col min-w-0">
-          <span className={`font-serif text-lg truncate ${value && value !== 'None' ? 'text-zen-brown' : 'text-zen-brown/20'}`}>
-            {value && value !== 'None' ? value : 'Select specialist'}
-          </span>
+          <div className="flex items-center gap-2">
+            {error && (
+              <div className="w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
+                <span className="text-[8px] font-bold">!</span>
+              </div>
+            )}
+            <span className={`font-serif text-lg truncate ${value && value !== 'None' ? (error ? 'text-rose-600 font-bold' : 'text-zen-brown') : 'text-zen-brown/20'}`}>
+              {value && value !== 'None' ? value : 'Select specialist'}
+            </span>
+          </div>
           {selectedShift && (
-            <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest -mt-0.5">
+            <span className={`text-[9px] font-bold uppercase tracking-widest -mt-0.5 ${error ? 'text-rose-400/60' : 'text-zen-brown/30'}`}>
               {selectedMember?.designation || 'Specialist'} · {selectedShift.startTime}–{selectedShift.endTime}
             </span>
           )}
         </div>
-        <ChevronDown size={18} className={`text-zen-brown/20 flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={18} className={`flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-zen-gold' : (error ? 'text-rose-400' : 'text-zen-brown/20')}`} />
       </div>
 
       {isOpen && createPortal(
@@ -170,10 +181,9 @@ const Appointments = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_appointment_view') as 'grid' | 'table') || 'grid';
   });
-  
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [aptToCancel, setAptToCancel] = useState<string | null>(null);
-  const [cancelReason, setCancelReason] = useState('');
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<any>({});
   const [statusLoading, setStatusLoading] = useState<string | null>(null);
 
   const PAGE_LIMIT = 12;
@@ -196,7 +206,9 @@ const Appointments = () => {
     bookingType: 'Normal',
     date: dayjs().format('YYYY-MM-DD'),
     branch: (user as any)?.branch?._id || (user as any)?.branch || '',
-    status: 'Confirmed'
+    status: 'Confirmed',
+    cancellationReason: '',
+    addOns: [] as any[]
   });
 
   const activeMemberships = useMemo(() => {
@@ -208,15 +220,15 @@ const Appointments = () => {
   const serviceOptions = useMemo(() => {
     // If a membership is selected, show EXACTLY its covered services
     if (formData.membershipId) {
-      const selectedMembership = activeMemberships.find((m: any) => 
+      const selectedMembership = activeMemberships.find((m: any) =>
         (m._id || m).toString() === formData.membershipId.toString()
       );
-      
+
       const apps = selectedMembership?.plan?.applicableServices || [];
       if (apps.length > 0) {
         // Extract IDs regardless of whether apps is populated or just an array of IDs
         const appIds = apps.map((s: any) => (s._id || s).toString());
-        
+
         // Find matching services from rawServices to get their names
         const matched = rawServices.filter(s => appIds.includes(s._id.toString()));
         if (matched.length > 0) {
@@ -353,7 +365,7 @@ const Appointments = () => {
     try {
       const authHeader = { 'Authorization': `Bearer ${user?.token}` };
       const appointmentRowsPromise = fetchAppointmentsForCurrentRange(authHeader);
-      
+
       const [appointmentRows, clientRes, serviceRes, staffRes, shiftRes, roomRes, presenceRes] = await Promise.all([
         appointmentRowsPromise,
         fetch(`${API_URL}/clients`, { headers: authHeader }),
@@ -392,12 +404,12 @@ const Appointments = () => {
 
   useEffect(() => {
     fetchAllData();
-    
+
     const interval = setInterval(() => {
       if (!shouldPollNow()) return;
       fetchAllData(true);
     }, getPollIntervalMs(30000));
-    
+
     return () => clearInterval(interval);
   }, [user?.token, selectedBranch, selectedDate, viewType]);
 
@@ -415,7 +427,8 @@ const Appointments = () => {
   };
 
   const appointmentMatchesViewer = (apt: Appointment) => {
-    if (user?.role === 'Admin' || user?.role === 'Manager') return true;
+    const role = user?.role?.toLowerCase();
+    if (role === 'admin' || role === 'manager') return true;
     if (user?.role === 'Employee') return apt.employee === user.name || apt.employeeId?.name === user.name;
     if (user?.role === 'Client') {
       return apt.client === user.name || apt.clientId?.name === user.name || getEntityId(apt.clientId) === user._id;
@@ -484,38 +497,47 @@ const Appointments = () => {
   }, [branches]);
 
   const staffOptions = useMemo(() => {
-    const today = dayjs().format('YYYY-MM-DD');
-    const now = dayjs();
+    const isToday = formData.date === dayjs().format('YYYY-MM-DD');
+    const isAdmin = ['admin', 'manager'].includes(user?.role?.toLowerCase() || '');
 
     return ['None', ...rawStaff.filter(e => {
+      // 1. Branch Match
       const matchesBranch = !formData.branch || e.branch === formData.branch || e.branch?._id === formData.branch;
       if (!matchesBranch) return false;
 
-      // Filter: Shift Over / Sign-off / Logout (Only if booking for today)
-      if (formData.date === today) {
-        // 1. Shift Over check
-        if (e.shift) {
-          const shiftDetail = rawShifts.find(s => s.name === e.shift);
-          if (shiftDetail && shiftDetail.endTime) {
-            const shiftEnd = dayjs(`${today} ${shiftDetail.endTime}`, 'YYYY-MM-DD hh:mm A');
-            if (now.isAfter(shiftEnd.add(15, 'minute'))) return false; // 15min grace period
-          }
-        }
+      // 2. Admin Override: Admins see everyone in the branch
+      if (isAdmin) return true;
 
-        // 2. Attendance / Sign-off check
-        const record = rawAttendance.find(r => r.date === today && (r.user === e._id || r.employeeName === e.name));
-        if (record) {
-          // If they have checked out (even if manually entered), they are off duty
-          if (record.checkOut && record.checkOut !== '--') return false;
-        } else {
-          // Optional: If they haven't clocked in yet, they might not be available
-          // But we'll allow it unless the user specifically wants to hide non-clocked specialists
+      // 3. Availability Check (Only for Today's bookings)
+      if (isToday) {
+        // Attendance Check: If they signed off, they are gone
+        const record = rawAttendance.find(r => r.date === formData.date && (r.user === e._id || r.employeeName === e.name));
+        if (record && record.checkOut && record.checkOut !== '--') return false;
+
+        // Shift Check: If we have a specific appointment time, check if they are working THEN
+        if (e.shift && formData.time) {
+          const shiftDetail = rawShifts.find(s => s.name === e.shift);
+          if (shiftDetail?.startTime && shiftDetail?.endTime) {
+             const aptTime = parseTime(formData.time, formData.date);
+             let shiftStart = parseTime(shiftDetail.startTime, formData.date);
+             let shiftEnd = parseTime(shiftDetail.endTime, formData.date);
+
+             if (aptTime && shiftStart && shiftEnd) {
+                // Handle night shifts (e.g. 10 PM to 4 AM)
+                if (shiftEnd.isBefore(shiftStart)) shiftEnd = shiftEnd.add(1, 'day');
+
+                // Buffer of 15 mins
+                if (aptTime.isBefore(shiftStart.subtract(15, 'minute')) || aptTime.isAfter(shiftEnd.add(15, 'minute'))) {
+                  return false;
+                }
+             }
+          }
         }
       }
 
       return true;
     }).map(e => e.name)];
-  }, [rawStaff, formData.branch, formData.date, rawAttendance, rawShifts]);
+  }, [rawStaff, formData.branch, formData.date, formData.time, rawAttendance, rawShifts, user?.role]);
 
   const roomOptions = useMemo(() => {
     return ['None', ...rawRooms.filter(r => {
@@ -526,39 +548,6 @@ const Appointments = () => {
 
   const availableSlots = useMemo(() => {
     if (!formData.date || !formData.employee || formData.employee === 'None') return [];
-    
-    const employee = rawStaff.find(e => e.name === formData.employee);
-    if (!employee || !employee.shift) return [];
-    
-    const shift = rawShifts.find(s => s.name === employee.shift);
-    if (!shift || !shift.startTime || !shift.endTime) return [];
-    
-    let start = parseTime(shift.startTime, formData.date) || dayjs(`${formData.date} 09:00`, 'YYYY-MM-DD HH:mm');
-    let end = parseTime(shift.endTime, formData.date) || dayjs(`${formData.date} 21:00`, 'YYYY-MM-DD HH:mm');
-    
-    if (end.isBefore(start)) end = end.add(1, 'day');
-
-    // Business Hours Constraint Logic
-    const dayName = dayjs(formData.date).format('dddd').toLowerCase() as keyof NonNullable<SettingsData['workingHours']>;
-    const dayHours = settings?.workingHours?.[dayName];
-    
-    if (dayHours && !dayHours.isOpen) {
-       return [];
-    }
-
-    const shopOpenTimeStr = dayHours?.openTime || '09:00';
-    const shopCloseTimeStr = dayHours?.closeTime || '21:00';
-
-    let shopStart = parseTime(shopOpenTimeStr, formData.date) || dayjs(`${formData.date} 09:00`, 'YYYY-MM-DD HH:mm');
-    let shopEnd = parseTime(shopCloseTimeStr, formData.date) || dayjs(`${formData.date} 21:00`, 'YYYY-MM-DD HH:mm');
-    
-    if (shopEnd.isBefore(shopStart)) shopEnd = shopEnd.add(1, 'day');
-
-    // Intersect shift bounds with shop operational bounds
-    if (start.isBefore(shopStart)) start = shopStart;
-    if (end.isAfter(shopEnd)) end = shopEnd;
-
-    if (!end.isAfter(start)) return [];
 
     const selectedService = rawServices.find(s => s.name === formData.service);
     const serviceDuration = selectedService?.duration || 60;
@@ -567,78 +556,115 @@ const Appointments = () => {
     const roomCleaningDuration = selectedRoom?.cleaningDuration || 0;
     const totalRoomOccupancy = serviceDuration + roomCleaningDuration;
 
-    const slots = [];
-    let current = start;
-    
-    const employeeApts = dayAppointments.filter(a => {
-      const empName = (a.employee as any)?.name || a.employee;
-      return empName === formData.employee;
-    });
-    
+    // Business hours
+    const dayName = dayjs(formData.date).format('dddd').toLowerCase() as keyof NonNullable<SettingsData['workingHours']>;
+    const dayHours = settings?.workingHours?.[dayName];
+    if (dayHours && !dayHours.isOpen) return [];
+
+    const shopOpenTimeStr = dayHours?.openTime || '09:00';
+    const shopCloseTimeStr = dayHours?.closeTime || '21:00';
+    let shopStart = parseTime(shopOpenTimeStr, formData.date) || dayjs(`${formData.date} 09:00`, 'YYYY-MM-DD HH:mm');
+    let shopEnd = parseTime(shopCloseTimeStr, formData.date) || dayjs(`${formData.date} 21:00`, 'YYYY-MM-DD HH:mm');
+    if (shopEnd.isBefore(shopStart)) shopEnd = shopEnd.add(1, 'day');
+
+    const now = dayjs();
+    const isToday = dayjs(formData.date).isSame(now, 'day');
+
     const roomApts = dayAppointments.filter(a => {
       const rName = (a.room as any)?.name || a.room;
       return rName === formData.room;
     });
 
-    const now = dayjs();
-    const isToday = dayjs(formData.date).isSame(now, 'day');
+    const buildSlotsForEmployee = (emp: any) => {
+      if (!emp?.shift) return [];
+      const shift = rawShifts.find(s => s.name === emp.shift);
+      if (!shift?.startTime || !shift?.endTime) return [];
 
-    while (current.isBefore(end)) {
-      const slotEnd = current.add(serviceDuration, 'minute');
-      const roomOccupancyEnd = current.add(totalRoomOccupancy, 'minute');
-      
-      // Removed the break to ensure slots generate up until close time.
-      // Check Past Time
-      const isPastTime = isToday && current.isBefore(now);
+      let start = parseTime(shift.startTime, formData.date) || dayjs(`${formData.date} 09:00`, 'YYYY-MM-DD HH:mm');
+      let end = parseTime(shift.endTime, formData.date) || dayjs(`${formData.date} 21:00`, 'YYYY-MM-DD HH:mm');
+      if (end.isBefore(start)) end = end.add(1, 'day');
 
-      // Check Therapist Availability
-      const isTherapistBooked = employeeApts.some(apt => {
-        if (editingApt && apt._id === editingApt._id) return false;
-        const aptStart = parseTime(apt.time, formData.date);
-        if (!aptStart) return false;
-        const aptServiceName = (apt.service as any)?.name || apt.service;
-        const aptService = rawServices.find(s => s.name === aptServiceName);
-        const aptDuration = aptService?.duration || 60;
-        
-        // Use the room's cleaning duration for the specialist too, as they are usually tied to the room prep
-        const aptRoomName = (apt.room as any)?.name || apt.room;
-        const aptRoom = rawRooms.find(r => r.name === aptRoomName);
-        const aptCleaning = aptRoom?.cleaningDuration || 0;
-        const aptTotalOccupancy = aptDuration + aptCleaning;
-        
-        const aptEnd = aptStart.add(aptTotalOccupancy, 'minute');
-        return (current.isBefore(aptEnd) && slotEnd.isAfter(aptStart));
+      if (start.isBefore(shopStart)) start = shopStart;
+      if (end.isAfter(shopEnd)) end = shopEnd;
+      if (!end.isAfter(start)) return [];
+
+      const employeeApts = dayAppointments.filter(a => {
+        const empName = (a.employee as any)?.name || a.employee;
+        return empName === emp.name;
       });
 
-      // Check Room Availability
-      const isRoomBooked = roomApts.some(apt => {
-        if (editingApt && apt._id === editingApt._id) return false;
-        const aptStart = parseTime(apt.time, formData.date);
-        if (!aptStart) return false;
-        const aptServiceName = (apt.service as any)?.name || apt.service;
-        const aptService = rawServices.find(s => s.name === aptServiceName);
-        const aptDuration = aptService?.duration || 60;
-        
-        const aptRoomName = (apt.room as any)?.name || apt.room;
-        const aptRoom = rawRooms.find(r => r.name === aptRoomName);
-        const aptRoomCleaning = aptRoom?.cleaningDuration || 0;
-        const aptTotalOccupancy = aptDuration + aptRoomCleaning;
-        
-        const aptEnd = aptStart.add(aptTotalOccupancy, 'minute');
-        return (current.isBefore(aptEnd) && roomOccupancyEnd.isAfter(aptStart));
-      });
-      
-      slots.push({
-        time: current.format('HH:mm'),
-        display: current.format('hh:mm A'),
-        isBooked: isTherapistBooked || isRoomBooked || isPastTime
-      });
-      
-      current = current.add(30, 'minute');
+      const slots: { time: string; display: string; isBooked: boolean }[] = [];
+      let current = start;
+
+      while (current.isBefore(end)) {
+        const slotEnd = current.add(serviceDuration, 'minute');
+        const roomOccupancyEnd = current.add(totalRoomOccupancy, 'minute');
+        const isPastTime = isToday && current.isBefore(now);
+
+        const isTherapistBooked = employeeApts.some(apt => {
+          if (editingApt && apt._id === editingApt._id) return false;
+          const aptStart = parseTime(apt.time, formData.date);
+          if (!aptStart) return false;
+          const aptServiceName = (apt.service as any)?.name || apt.service;
+          const aptService = rawServices.find(s => s.name === aptServiceName);
+          const aptDuration = aptService?.duration || 60;
+          const aptRoomName = (apt.room as any)?.name || apt.room;
+          const aptRoom = rawRooms.find(r => r.name === aptRoomName);
+          const aptCleaning = aptRoom?.cleaningDuration || 0;
+          const aptEnd = aptStart.add(aptDuration + aptCleaning, 'minute');
+          return current.isBefore(aptEnd) && slotEnd.isAfter(aptStart);
+        });
+
+        const isRoomBooked = formData.room && formData.room !== 'None' ? roomApts.some(apt => {
+          if (editingApt && apt._id === editingApt._id) return false;
+          const aptStart = parseTime(apt.time, formData.date);
+          if (!aptStart) return false;
+          const aptServiceName = (apt.service as any)?.name || apt.service;
+          const aptService = rawServices.find(s => s.name === aptServiceName);
+          const aptDuration = aptService?.duration || 60;
+          const aptRoomName = (apt.room as any)?.name || apt.room;
+          const aptRoom = rawRooms.find(r => r.name === aptRoomName);
+          const aptRoomCleaning = aptRoom?.cleaningDuration || 0;
+          const aptEnd = aptStart.add(aptDuration + aptRoomCleaning, 'minute');
+          return current.isBefore(aptEnd) && roomOccupancyEnd.isAfter(aptStart);
+        }) : false;
+
+        slots.push({
+          time: current.format('HH:mm'),
+          display: current.format('hh:mm A'),
+          isBooked: isTherapistBooked || !!isRoomBooked || isPastTime
+        });
+        current = current.add(30, 'minute');
+      }
+      return slots;
+    };
+
+    // Known specific employee
+    const specificEmployee = rawStaff.find(e => e.name === formData.employee);
+    if (specificEmployee) {
+      return buildSlotsForEmployee(specificEmployee);
     }
-    
-    return slots;
-  }, [formData.date, formData.employee, formData.service, formData.room, rawStaff, rawShifts, dayAppointments, rawServices, rawRooms, editingApt, settings]);
+
+    // "Any available specialist" or unrecognised value (e.g. saved from client booking form):
+    // merge slots across all branch staff — a slot is free if at least one specialist is free
+    const branchStaff = rawStaff.filter(e =>
+      !formData.branch || e.branch === formData.branch || e.branch?._id === formData.branch
+    );
+    if (branchStaff.length === 0) return [];
+
+    const merged = new Map<string, { time: string; display: string; isBooked: boolean }>();
+    branchStaff.forEach(emp => {
+      buildSlotsForEmployee(emp).forEach(slot => {
+        const existing = merged.get(slot.time);
+        if (!existing) {
+          merged.set(slot.time, { ...slot });
+        } else {
+          existing.isBooked = existing.isBooked && slot.isBooked;
+        }
+      });
+    });
+    return Array.from(merged.values()).sort((a, b) => a.time.localeCompare(b.time));
+  }, [formData.date, formData.employee, formData.service, formData.room, formData.branch, rawStaff, rawShifts, dayAppointments, rawServices, rawRooms, editingApt, settings]);
 
   const handleOpenModal = (apt: Appointment | null = null) => {
     if (apt) {
@@ -653,7 +679,9 @@ const Appointments = () => {
         membershipId: '',
         bookingType: 'Normal',
         branch: (apt.branch as any)?._id || apt.branch || '',
-        status: apt.status || 'Confirmed'
+        status: apt.status || 'Confirmed',
+        cancellationReason: apt.cancellationReason || '',
+        addOns: apt.addOns || []
       });
     } else {
       setEditingApt(null);
@@ -667,22 +695,40 @@ const Appointments = () => {
         bookingType: 'Normal',
         date: selectedDate.format('YYYY-MM-DD'),
         branch: (user as any)?.branch?._id || (user as any)?.branch || '',
-        status: 'Confirmed'
+        status: 'Confirmed',
+        cancellationReason: '',
+        addOns: []
       });
     }
     setIsModalOpen(true);
+    setFormErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation
+    const errors: any = {};
+    if (!formData.service || formData.service === 'None') errors.service = true;
+    if (!formData.employee || formData.employee === 'None') errors.employee = true;
+    if (!formData.room || formData.room === 'None') errors.room = true;
+    if (!formData.time) errors.time = true;
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      notify('error', 'Validation Failed', 'Please select a valid service, specialist, room and time slot.');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const url = editingApt ? `${API_URL}/appointments/${editingApt._id}` : `${API_URL}/appointments`;
       const method = editingApt ? 'PUT' : 'POST';
       const response = await fetch(url, {
         method,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}` 
+          'Authorization': `Bearer ${user?.token}`
         },
         body: JSON.stringify(formData)
       });
@@ -697,6 +743,8 @@ const Appointments = () => {
       }
     } catch (error) {
       notify('error', 'Error', 'Connection failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -714,35 +762,6 @@ const Appointments = () => {
       }
     } catch (error) {
       notify('error', 'Error', 'Action failed');
-    }
-  };
-
-  const handleUpdateStatus = async (id: string, newStatus: string, reason?: string) => {
-    try {
-      setStatusLoading(id);
-      const response = await fetch(`${API_URL}/appointments/${id}/status`, {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}` 
-        },
-        body: JSON.stringify({ status: newStatus, cancellationReason: reason })
-      });
-
-      if (response.ok) {
-        notify('success', 'Status Synchronized', `Ritual is now ${newStatus}`);
-        setIsCancelModalOpen(false);
-        setCancelReason('');
-        setAptToCancel(null);
-        await fetchAppointments(true);
-      } else {
-        const error = await response.json();
-        notify('error', 'Update Failed', error.message || 'Action failed');
-      }
-    } catch (error) {
-      notify('error', 'Error', 'Connection synchronized incorrectly');
-    } finally {
-      setStatusLoading(null);
     }
   };
 
@@ -789,7 +808,7 @@ const Appointments = () => {
   const appointmentExportColumns = useMemo<ExportColumn<Appointment>[]>(
     () => [
       { header: 'Appointment ID', accessor: (apt) => apt._id },
-      { header: 'Period', accessor: () => `${viewType}: ${appointmentRangeLabel}` },
+      { header: 'Period', accessor: (apt) => `${viewType}: ${appointmentRangeLabel}` },
       { header: 'Date', accessor: (apt) => dayjs(apt.date).format('DD MMM YYYY') },
       { header: 'Day', accessor: (apt) => dayjs(apt.date).format('dddd') },
       { header: 'Start Time', accessor: (apt) => apt.time || '-' },
@@ -819,7 +838,8 @@ const Appointments = () => {
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
-      addButtonLabel={user?.role === 'Client' ? "Book Ritual" : "New Appointment"}
+      hideAddButton={!['admin', 'manager'].includes(user?.role?.toLowerCase() || '')}
+      addButtonLabel="New Appointment"
       addButtonIcon={<Plus size={18} />}
       onAddClick={() => handleOpenModal()}
       searchActions={
@@ -838,7 +858,7 @@ const Appointments = () => {
         <div className="flex flex-col lg:flex-row gap-10 h-full overflow-hidden">
           <div className="flex-1 flex flex-col min-h-0 space-y-8">
            {/* Calendar Controls - Now visible in both Grid and Table view */}
-            <div className="bg-white px-5 sm:px-6 py-5 rounded-[2.25rem] border border-zen-stone shadow-[0_16px_40px_rgba(0,0,0,0.04)] flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
+            <div className="bg-white px-5 sm:px-6 py-5 rounded-[2.25rem] border border-zen-stone shadow-none flex flex-col xl:flex-row items-center justify-between gap-4 sm:gap-6 animate-in slide-in-from-top duration-700">
                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full xl:w-auto">
                   <div className="flex items-center gap-2 sm:gap-3 bg-gray-50/50 p-1.5 sm:p-2 rounded-[1.25rem] w-full xl:w-auto justify-between sm:justify-start">
                      <ZenIconButton icon={ChevronLeft} onClick={handlePrev} className="!w-9 !h-9 sm:!w-10 sm:!h-10" />
@@ -848,7 +868,7 @@ const Appointments = () => {
                </div>
                <div className="flex bg-gray-50/50 rounded-[1.25rem] p-1.5 w-full xl:w-auto border border-gray-100">
                   {(['Day', 'Week', 'Month'] as const).map(type => (
-                     <button 
+                     <button
                        key={type}
                        onClick={() => setViewType(type)}
                        className={`flex-1 xl:flex-none px-4 sm:px-8 py-2.5 sm:py-3 transition-all duration-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-[1rem] ${
@@ -865,7 +885,7 @@ const Appointments = () => {
              <>
 
                {/* Calendar View Area */}
-               <div className="bg-white rounded-[2.5rem] border border-zen-stone shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden min-h-[420px] sm:min-h-[500px]">
+               <div className="bg-white rounded-[2.5rem] border border-zen-stone shadow-none overflow-hidden min-h-[420px] sm:min-h-[500px]">
                   {loading ? (
                      <div className="flex flex-col items-center justify-center h-[420px] sm:h-[500px]">
                         <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
@@ -894,8 +914,8 @@ const Appointments = () => {
                                     const isToday = dayjs().isSame(startOfMonth.date(d), 'day');
 
                                     days.push(
-                                       <div 
-                                         key={d} 
+                                       <div
+                                         key={d}
                                          className={`relative min-h-[60px] sm:min-h-[100px] p-2 sm:p-4 rounded-xl sm:rounded-[1.5rem] transition-all duration-500 cursor-pointer group hover:bg-white hover:shadow-sm hover:-translate-y-1 ${isToday ? 'bg-zen-brown text-white shadow-xl' : 'bg-white/60 border border-zen-brown/15'}`}
                                          onClick={() => {
                                             setSelectedDate(startOfMonth.date(d));
@@ -929,9 +949,9 @@ const Appointments = () => {
                   ) : (
                      <div className="p-4 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 animate-in fade-in zoom-in duration-1000 pb-20 sm:pb-8">
                          {visibleAppointments.map((apt) => (
-                            <div key={apt._id} className="group relative bg-white border border-gray-100 p-6 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] transition-all duration-500 hover:border-zen-sand/30 hover:shadow-lg hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
+                            <div key={apt._id} className="group relative bg-white border border-gray-100 p-6 sm:p-8 rounded-3xl shadow-none transition-all duration-500 hover:border-zen-sand/30 hover:shadow-lg hover:-translate-y-2 flex flex-col justify-between overflow-hidden h-full min-h-[180px] sm:min-h-[220px]">
                                <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
-                               
+
                                <div className="relative z-10">
                                    <div className="flex items-center justify-between mb-4 sm:mb-6 gap-4">
                                      <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
@@ -969,11 +989,12 @@ const Appointments = () => {
                                   <div className="relative z-10 pt-4 mt-auto border-t border-zen-brown/15 flex items-center justify-between">
                                   <div className="flex items-center gap-2">
                                       <p className="text-[8px] font-bold text-zen-brown/10 uppercase tracking-[0.3em]">ID: {apt._id.slice(-6).toUpperCase()}</p>
-                                      <ZenBadge 
+                                      <ZenBadge
                                         className="!text-[7px] !py-0.5 !px-2 uppercase tracking-widest"
                                         variant={
-                                          apt.status === 'Confirmed' ? 'leaf' : 
-                                          apt.status === 'Pending' ? 'sand' : 
+                                          apt.status === 'Confirmed' ? 'leaf' :
+                                          apt.status === 'Completed' ? 'leaf' :
+                                          apt.status === 'Pending' ? 'sand' :
                                           apt.status === 'Cancelled' ? 'danger' : 'secondary'
                                         }
                                       >
@@ -998,7 +1019,7 @@ const Appointments = () => {
              </>
            ) : (
              /* Table View Area */
-             <div className="bg-white rounded-[2.5rem] border border-zen-stone shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col flex-1 min-h-0">
+             <div className="bg-white rounded-[2.5rem] border border-zen-stone shadow-none overflow-hidden flex flex-col flex-1 min-h-0">
                 <div className="flex items-center justify-between gap-4 px-8 py-6 border-b border-zen-brown/5">
                   <div className="space-y-1">
                     <h3 className="text-xl font-bold text-gray-900 tracking-tight">Appointment Registry</h3>
@@ -1006,7 +1027,7 @@ const Appointments = () => {
                   </div>
                   <ZenBadge variant="leaf" className="px-5">{filteredAppointments.length} Records</ZenBadge>
                 </div>
-                
+
                 <div className="flex-1 overflow-auto custom-scrollbar">
                   <table className="w-full text-left border-collapse">
                     <thead className="sticky top-0 z-20 bg-gray-50/80 backdrop-blur-md text-[10px] font-black uppercase tracking-[0.25em] text-zen-brown/40 border-b border-zen-brown/5">
@@ -1056,11 +1077,11 @@ const Appointments = () => {
                              </td>
                              <td className="px-8 py-6">
                                <div className="flex justify-center">
-                                 <ZenBadge 
+                                 <ZenBadge
                                    variant={
                                      apt.status === 'Confirmed' ? 'leaf' :
-                                     apt.status === 'Completed' ? 'sand' :
-                                     apt.status === 'Pending' ? 'sand' : 
+                                     apt.status === 'Completed' ? 'leaf' :
+                                     apt.status === 'Pending' ? 'sand' :
                                      apt.status === 'Cancelled' ? 'danger' : 'secondary'
                                    }
                                  >
@@ -1097,7 +1118,7 @@ const Appointments = () => {
 
         {/* Sidebar */}
         <div className="w-full lg:w-96 space-y-6 sm:space-y-10 overflow-y-auto h-full pr-2 custom-scrollbar">
-           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:border-zen-sand/30 transition-all duration-300">
+           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200/60 shadow-none hover:-translate-y-1 hover:border-zen-sand/30 transition-all duration-300">
               <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 tracking-tight">Daily Insight</h3>
               <div className="space-y-6 sm:space-y-8">
                   <div className="bg-gray-50/50 p-6 sm:p-8 rounded-2xl border border-gray-100 group transition-all duration-500">
@@ -1108,7 +1129,7 @@ const Appointments = () => {
               </div>
            </div>
 
-           <div style={{ backgroundColor: 'var(--zen-primary, #332766)' }} className="p-8 rounded-3xl text-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
+           <div style={{ backgroundColor: 'var(--zen-primary, #332766)' }} className="p-8 rounded-3xl text-white shadow-none relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
               <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-125 transition-transform duration-1000">
                  <Sparkles size={150} />
               </div>
@@ -1176,9 +1197,10 @@ const Appointments = () => {
               <ZenButton
                 type="submit"
                 form="appointment-modal-form"
+                disabled={isSubmitting}
                 className="w-full sm:w-auto"
               >
-                {editingApt ? 'Save appointment' : 'Confirm appointment'}
+                {isSubmitting ? 'Processing...' : (editingApt ? 'Save appointment' : 'Confirm appointment')}
               </ZenButton>
             </div>
           </div>
@@ -1216,40 +1238,29 @@ const Appointments = () => {
                   value={formData.date}
                   onChange={val => setFormData({ ...formData, date: val })}
                 />
-                {user?.role === 'Client' ? (
-                  <div className="rounded-2xl border border-dashed border-zen-brown/15 bg-zen-cream/20 p-5 flex flex-col justify-center">
-                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mb-1">Ritual for</p>
-                    <p className="text-sm font-semibold text-zen-brown">{user.name}</p>
-                  </div>
-                ) : (
-                  <ZenAutocomplete
-                    label="Client"
-                    placeholder="Search by name or email"
-                    options={clientSearchOptions}
-                    subtextKey="email"
-                    value={formData.client}
-                    onChange={(val: any) => setFormData({ ...formData, client: val, membershipId: '', bookingType: 'Normal' })}
-                    icon={Search}
-                    allowCustom={true}
-                  />
-                )}
-                {formData.client && activeMemberships.length > 0 ? (
-                  <ZenDropdown
-                    label="Booking type"
-                    options={['Normal', 'Membership']}
-                    value={formData.bookingType || 'Normal'}
-                    onChange={val => setFormData({ ...formData, bookingType: val, membershipId: val === 'Normal' ? '' : formData.membershipId, service: val === 'Normal' ? '' : formData.service })}
-                  />
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-zen-brown/15 bg-zen-cream/20 p-5 flex flex-col justify-center">
-                    <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mb-1">Booking type</p>
-                    <p className="text-sm font-semibold text-zen-brown">Select a client to continue</p>
-                  </div>
-                )}
+                <div className="lg:col-span-2">
+                  {user?.role === 'Client' ? (
+                    <div className="rounded-2xl border border-dashed border-zen-brown/15 bg-zen-cream/20 p-5 flex flex-col justify-center">
+                      <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mb-1">Ritual for</p>
+                      <p className="text-sm font-semibold text-zen-brown">{user.name}</p>
+                    </div>
+                  ) : (
+                    <ZenAutocomplete
+                      label="Client"
+                      placeholder="Search by name or email"
+                      options={clientSearchOptions}
+                      subtextKey="email"
+                      value={formData.client}
+                      onChange={(val: any) => setFormData({ ...formData, client: val, membershipId: '', bookingType: 'Normal' })}
+                      icon={Search}
+                      allowCustom={true}
+                    />
+                  )}
+                </div>
               </div>
             </div>
 
-            {formData.client && formData.bookingType === 'Membership' && (
+            {formData.client && activeMemberships.length > 0 && (
               <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
                 <div className="flex items-start justify-between gap-4 mb-6">
                   <div>
@@ -1268,7 +1279,7 @@ const Appointments = () => {
                     value={activeMemberships.find((m: any) => (m._id || m).toString() === formData.membershipId?.toString())?.plan?.name || 'None'}
                     onChange={val => {
                       const m = activeMemberships.find((m: any) => m.plan?.name === val);
-                      setFormData({ ...formData, membershipId: m?._id || '', service: '' });
+                      setFormData({ ...formData, membershipId: m?._id || '', service: '', bookingType: m ? 'Membership' : 'Normal' });
                     }}
                   />
                 ) : (
@@ -1283,27 +1294,116 @@ const Appointments = () => {
             <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
               <div className="mb-6">
                 <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Service assignment</p>
-                <h4 className="mt-1 text-lg font-semibold text-zen-brown">Select service, specialist &amp; room</h4>
+                <h4 className="mt-1 text-lg font-semibold text-zen-brown">Select specialist &amp; room</h4>
               </div>
-              <div className="grid gap-5 sm:grid-cols-3">
-                <ZenDropdown label="Service" options={serviceOptions} value={formData.service || 'None'} onChange={val => setFormData({ ...formData, service: val })} />
-
+              <div className="grid gap-5 sm:grid-cols-2">
                 {/* Rich specialist dropdown */}
                 <StaffDropdown
                   staffOptions={staffOptions}
                   rawStaff={rawStaff}
                   rawShifts={rawShifts}
                   value={formData.employee}
-                  onChange={val => setFormData({ ...formData, employee: val, time: '' })}
+                  onChange={val => {
+                    setFormData({ ...formData, employee: val, time: '' });
+                    setFormErrors({ ...formErrors, employee: false });
+                  }}
+                  error={formErrors.employee}
                 />
 
-                <ZenDropdown label="Room" options={roomOptions} value={formData.room || 'None'} onChange={val => setFormData({ ...formData, room: val })} />
+                <ZenDropdown
+                  label="Room"
+                  options={roomOptions}
+                  value={formData.room || 'None'}
+                  onChange={val => {
+                    setFormData({ ...formData, room: val });
+                    setFormErrors({ ...formErrors, room: false });
+                  }}
+                  error={formErrors.room}
+                />
               </div>
               {formData.room && formData.room !== 'None' && (
                 <p className="mt-3 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">
                   Cleaning buffer: {rawRooms.find(r => r.name === formData.room)?.cleaningDuration || 0} min
                 </p>
               )}
+            </div>
+
+            {/* ── Add-on Services ────────────────────────────────────────── */}
+            <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Complementary Rituals</p>
+                  <h4 className="mt-1 text-lg font-semibold text-zen-brown">Add-on services</h4>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.2em]">
+                    {(formData.service && formData.service !== 'None' ? 1 : 0) + (formData.addOns?.length || 0)} Total
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Primary Service Selection */}
+                <div className="pb-6 border-b border-zen-brown/5">
+                  <ZenDropdown
+                    label="Primary Service Ritual"
+                    options={serviceOptions}
+                    value={formData.service || 'None'}
+                    onChange={val => {
+                      setFormData({ ...formData, service: val });
+                      setFormErrors({ ...formErrors, service: false });
+                    }}
+                    error={formErrors.service}
+                    icon={Sparkles}
+                  />
+                </div>
+                {formData.addOns && formData.addOns.length > 0 && (
+                  <div className="grid gap-3">
+                    {formData.addOns.map((addon, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-zen-cream/10 border border-zen-brown/5 group hover:border-zen-brown/20 transition-all">
+                        <div className="flex items-center gap-4">
+                          <div className="w-8 h-8 rounded-lg bg-zen-brown/5 flex items-center justify-center text-zen-brown/40">
+                            <Sparkles size={14} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-zen-brown">{addon.service}</p>
+                            <p className="text-[10px] text-zen-brown/40 font-medium">{addon.duration} min • {addon.price} QR</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, addOns: prev.addOns.filter((_, i) => i !== idx) }))}
+                          className="p-2 text-zen-brown/20 hover:text-rose-500 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <ZenDropdown
+                    label="Add more service"
+                    options={serviceOptions.filter(opt => opt !== 'None' && opt !== formData.service && !(formData.addOns || []).some(a => a.service === opt))}
+                    value="Select service to add"
+                    onChange={val => {
+                      const s = rawServices.find(s => s.name === val);
+                      if (s) {
+                        setFormData(prev => ({
+                          ...prev,
+                          addOns: [...(prev.addOns || []), {
+                            serviceId: s._id,
+                            service: s.name,
+                            price: s.price,
+                            duration: s.duration
+                          }]
+                        }));
+                      }
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* ── Available Windows ─────────────────────────────────────── */}
@@ -1364,14 +1464,19 @@ const Appointments = () => {
                 </div>
               )}
             </div>
-            {editingApt && (user?.role === 'Admin' || user?.role === 'Manager') && (
+            {editingApt && ['admin', 'manager'].includes(user?.role?.toLowerCase() || '') && (
               <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
                 <div className="flex items-start justify-between gap-4 mb-8">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Administrative protocol</p>
                     <h4 className="mt-1 text-lg font-semibold text-zen-brown">Ritual status & lifecycle</h4>
                   </div>
-                  <ZenBadge variant={formData.status === 'Confirmed' ? 'leaf' : formData.status === 'Pending' ? 'sand' : formData.status === 'Cancelled' ? 'danger' : 'secondary'}>
+                  <ZenBadge variant={
+                     formData.status === 'Confirmed' ? 'leaf' :
+                     formData.status === 'Completed' ? 'leaf' :
+                     formData.status === 'Pending' ? 'sand' :
+                     formData.status === 'Cancelled' ? 'danger' : 'secondary'
+                   }>
                     {formData.status}
                   </ZenBadge>
                 </div>
@@ -1380,6 +1485,7 @@ const Appointments = () => {
                   {[
                     { id: 'Pending', label: 'Pending Approval', sub: 'Awaiting review', icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', active: 'bg-amber-100 border-amber-300 ring-2 ring-amber-500/20' },
                     { id: 'Confirmed', label: 'Approve Ritual', sub: 'Confirmed & active', icon: Check, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', active: 'bg-emerald-100 border-emerald-300 ring-2 ring-emerald-500/20' },
+                    { id: 'Completed', label: 'Service Completed', sub: 'Session finished', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', active: 'bg-indigo-100 border-indigo-300 ring-2 ring-indigo-500/20' },
                     { id: 'Cancelled', label: 'Cancel Session', sub: 'Voided record', icon: CloseIcon, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', active: 'bg-rose-100 border-rose-300 ring-2 ring-rose-500/20' }
                    ].map((s) => {
                     const Icon = s.icon;
@@ -1387,14 +1493,7 @@ const Appointments = () => {
                       <button
                         key={s.id}
                         type="button"
-                        onClick={() => {
-                          if (s.id === 'Cancelled' && editingApt) {
-                            setAptToCancel(editingApt._id);
-                            setIsCancelModalOpen(true);
-                          } else {
-                            setFormData({ ...formData, status: s.id });
-                          }
-                        }}
+                        onClick={() => setFormData({ ...formData, status: s.id })}
                         className={`flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 text-left ${
                           formData.status === s.id ? s.active : `${s.bg} ${s.border} hover:scale-[1.02]`
                         }`}
@@ -1410,6 +1509,27 @@ const Appointments = () => {
                     );
                   })}
                 </div>
+
+                {(formData.status === 'Cancelled' || formData.status === 'Pending') && (
+                  <div className="mt-8 pt-8 border-t border-zen-brown/5 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                        <AlertTriangle size={16} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zen-brown/40">Required Justification</p>
+                        <p className="text-xs font-medium text-zen-brown">Please provide a reason for this status change</p>
+                      </div>
+                    </div>
+                    <ZenTextarea
+                      label={formData.status === 'Cancelled' ? "Reason for Cancellation" : "Pending Justification"}
+                      placeholder={formData.status === 'Cancelled' ? "e.g., Client requested change, Schedule conflict..." : "e.g., Awaiting payment confirmation, Staff availability check..."}
+                      value={formData.cancellationReason}
+                      onChange={(e: any) => setFormData({ ...formData, cancellationReason: e.target.value })}
+                      className="!mt-0"
+                    />
+                  </div>
+                )}
               </div>
             )}
          </form>
@@ -1424,35 +1544,6 @@ const Appointments = () => {
         confirmText="Archive"
         cancelText="Preserve"
       />
-
-      <Modal
-        isOpen={isCancelModalOpen}
-        onClose={() => setIsCancelModalOpen(false)}
-        header={
-          <div className="px-8 py-6">
-            <h3 className="text-xl font-bold text-gray-900">Cancellation Protocol</h3>
-            <p className="text-xs text-gray-400 mt-1 uppercase tracking-widest">Provide a reason for cancelling this ritual</p>
-          </div>
-        }
-        footer={
-           <div className="flex justify-end gap-3">
-              <ZenButton variant="secondary" onClick={() => setIsCancelModalOpen(false)}>Back</ZenButton>
-              <ZenButton variant="primary" onClick={() => aptToCancel && handleUpdateStatus(aptToCancel, 'Cancelled', cancelReason)} disabled={!cancelReason || statusLoading === aptToCancel}>
-                 {statusLoading === aptToCancel ? 'Processing...' : 'Confirm Cancellation'}
-              </ZenButton>
-           </div>
-        }
-      >
-         <div className="p-2">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Reason for Cancellation</label>
-            <textarea
-               className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm font-medium focus:ring-1 focus:ring-zen-sand outline-none transition-all min-h-[120px]"
-               placeholder="Why is this appointment being cancelled? (e.g., Client request, Schedule conflict...)"
-               value={cancelReason}
-               onChange={(e) => setCancelReason(e.target.value)}
-            />
-         </div>
-      </Modal>
     </ZenPageLayout>
   );
 };

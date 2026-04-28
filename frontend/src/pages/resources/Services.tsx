@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
-import { 
-  Plus, Edit2, Trash2, Clock, Coins, Sparkles, X, 
+import {
+  Plus, Edit2, Trash2, Clock, Coins, Sparkles, X,
   Upload, Camera, Search, User, Info, FileText, MapPin, Zap,
   Grid, List
 } from 'lucide-react';
@@ -59,7 +59,7 @@ const Services = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  
+
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_services_view') as 'grid' | 'table') || 'grid';
   });
@@ -306,9 +306,27 @@ const Services = () => {
     inventoryUsage: [] as any[]
   });
 
+  const [formErrors, setFormErrors] = useState<{[key: string]: boolean}>({});
+
+  const validateForm = () => {
+    const errors: {[key: string]: boolean} = {};
+    if (!formData.name) errors.name = true;
+    if (!formData.price || formData.price <= 0) errors.price = true;
+    if (!formData.duration || formData.duration <= 0) errors.duration = true;
+    if (!formData.branch) errors.branch = true;
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      notify('error', 'Validation Error', 'Please complete all required fields correctly.');
+      return false;
+    }
+    return true;
+  };
+
   const handleOpenModal = (service: Service | null = null) => {
     setImageFile(null);
     setImagePreview(null);
+    setFormErrors({});
     if (service) {
       setEditingService(service);
       setFormData({
@@ -350,31 +368,33 @@ const Services = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
     try {
       const url = editingService ? `${API_URL}/services/${editingService._id}` : `${API_URL}/services`;
       const method = editingService ? 'PUT' : 'POST';
-      
+
       const data = new FormData();
       data.append('name', formData.name);
       data.append('duration', (formData.duration ?? 0).toString());
       data.append('price', (formData.price ?? 0).toString());
       data.append('image', formData.image);
       data.append('category', formData.category);
-      data.append('description', formData.description);
-      data.append('branch', formData.branch);
-      data.append('status', formData.status);
-      data.append('commissionType', formData.commissionType);
-      data.append('commissionValue', formData.commissionValue.toString());
-      data.append('inventoryUsage', JSON.stringify(formData.inventoryUsage));
-      
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key === 'inventoryUsage') {
+          data.append(key, JSON.stringify(value));
+        } else if (key !== 'image') {
+          data.append(key, String(value));
+        }
+      });
+
       if (imageFile) {
         data.append('serviceImage', imageFile);
       }
 
       const response = await fetch(url, {
         method,
-        headers: { 
-          'Authorization': `Bearer ${user?.token}` 
+        headers: {
+          'Authorization': `Bearer ${user?.token}`
         },
         body: data
       });
@@ -417,7 +437,7 @@ const Services = () => {
       const newStatus = service.status === 'Active' ? 'Inactive' : 'Active';
       const response = await fetch(`${API_URL}/services/${service._id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${user?.token}`,
           'Content-Type': 'application/json'
         },
@@ -480,16 +500,16 @@ const Services = () => {
               const branchName = service.branch?.name || 'Main Registry';
 
               return (
-                <div 
-                  key={service._id} 
+                <div
+                  key={service._id}
                   className="group relative bg-white rounded-2xl shadow-sm border border-zen-stone overflow-hidden flex flex-col transition-all duration-700 zen-card-hover professional-frame"
                   style={{ animationDelay: `${i * 50}ms` }}
                 >
                   {/* Visual Frame */}
                   <div className="aspect-[16/10] relative overflow-hidden bg-zen-cream/50">
                     {imgUrl ? (
-                      <img 
-                        src={imgUrl} 
+                      <img
+                        src={imgUrl}
                         alt={service.name}
                         className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                       />
@@ -506,7 +526,7 @@ const Services = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="p-6 flex flex-col flex-1">
                     <div className="mb-4">
                        <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">{service.category || 'General Service'}</span>
@@ -523,15 +543,15 @@ const Services = () => {
                           </div>
                           <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'} className="text-[8px] font-bold uppercase py-1">{branchName}</ZenBadge>
                        </div>
-                       
+
                        <div className="flex items-center justify-between gap-2 pt-4 border-t border-black/[0.03]">
                           <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'} className="text-[8px] font-black uppercase tracking-widest px-3">{service.status}</ZenBadge>
                           {user?.role !== 'Client' && (
                              <div className="flex items-center gap-2">
-                                <ZenIconButton 
-                                   icon={Zap} 
-                                   variant={service.status === 'Active' ? 'leaf' : 'sand'} 
-                                   onClick={() => toggleStatus(service)} 
+                                <ZenIconButton
+                                   icon={Zap}
+                                   variant={service.status === 'Active' ? 'leaf' : 'sand'}
+                                   onClick={() => toggleStatus(service)}
                                 />
                                 <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} />
                                 <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} />
@@ -545,7 +565,7 @@ const Services = () => {
             })}
           </div>
         ) : (
-          <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+          <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
             <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
               <thead>
                 <tr>
@@ -605,10 +625,10 @@ const Services = () => {
                       </td>
                         <td>
                           <div className="flex items-center justify-center gap-2">
-                            <ZenIconButton 
-                              icon={Zap} 
-                              variant={service.status === 'Active' ? 'leaf' : 'sand'} 
-                              onClick={() => toggleStatus(service)} 
+                            <ZenIconButton
+                              icon={Zap}
+                              variant={service.status === 'Active' ? 'leaf' : 'sand'}
+                              onClick={() => toggleStatus(service)}
                             />
                             <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} />
                             <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} />
@@ -626,9 +646,9 @@ const Services = () => {
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         maxWidth="max-w-4xl"
         title={editingService ? "Edit Service" : "New Service"}
         subtitle="Create and update service definitions"
@@ -656,8 +676,8 @@ const Services = () => {
                 type="button"
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center gap-2 px-6 py-3 rounded-t-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 whitespace-nowrap border-b-2 ${
-                  activeTab === tab.id 
-                    ? 'bg-zen-brown/5 text-zen-brown border-zen-brown' 
+                  activeTab === tab.id
+                    ? 'bg-zen-brown/5 text-zen-brown border-zen-brown'
                     : 'bg-transparent text-zen-brown/30 border-transparent hover:text-zen-brown/60 hover:bg-zen-cream/30'
                 }`}
               >
@@ -669,7 +689,7 @@ const Services = () => {
 
         <form id="serviceForm" onSubmit={handleSubmit} className="space-y-12">
            {activeTab === 'basic' && (
-             <motion.div 
+             <motion.div
                initial={{ opacity: 0, y: 10 }}
                animate={{ opacity: 1, y: 0 }}
                className="space-y-12"
@@ -678,23 +698,23 @@ const Services = () => {
                    <div className="relative w-24 sm:w-40 h-24 sm:h-40 group cursor-pointer shrink-0">
                       <div className="w-full h-full zen-pointed-surface ring-4 ring-zen-sand/20 ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-xl relative">
                          {(imagePreview || (editingService && editingService.image)) ? (
-                           <img 
-                             src={imagePreview || getImageUrl(editingService?.image)} 
-                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                           <img
+                             src={imagePreview || getImageUrl(editingService?.image)}
+                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                            />
                          ) : (
                            <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif text-4xl sm:text-6xl uppercase tracking-tighter profile-pic-placeholder">
                              {formData.name.charAt(0) || <Sparkles size={48} strokeWidth={0.5} />}
                            </div>
                          )}
-                         
+
                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                            <Camera className="text-white" size={32} />
                          </div>
                       </div>
-                      <input 
-                        type="file" 
-                        className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                      <input
+                        type="file"
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
                         onChange={e => {
                           const file = e.target.files?.[0] || null;
                           setImageFile(file);
@@ -705,7 +725,7 @@ const Services = () => {
                           } else {
                             setImagePreview(null);
                           }
-                        }} 
+                        }}
                       />
                       <div className="absolute bottom-1 right-1 p-3 bg-zen-brown text-white rounded-full shadow-lg scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={16} /></div>
                    </div>
@@ -717,51 +737,56 @@ const Services = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 sm:gap-x-16 gap-y-10 sm:gap-y-14 animate-in fade-in duration-500">
-                   <ZenInput 
-                     label={`Price (${settings?.general?.currencySymbol || 'QR'})`} 
-                     icon={Coins} 
+                   <ZenInput
+                     label={`Price (${settings?.general?.currencySymbol || 'QR'})`}
+                     icon={Coins}
                      type="number"
                      placeholder="0.00"
-                     value={formData.price} 
-                     onChange={(e: any) => setFormData({...formData, price: parseInt(e.target.value) || 0})} 
+                     value={formData.price}
+                     onChange={(e: any) => setFormData({...formData, price: parseFloat(e.target.value)})}
+                     error={formErrors.price}
                    />
-                   <ZenInput 
-                     label="Duration (Minutes)" 
-                     icon={Clock} 
+                   <ZenInput
+                     label="Duration (Minutes)"
+                     icon={Clock}
                      type="number"
                      placeholder="60"
-                     value={formData.duration} 
-                     onChange={(e: any) => setFormData({...formData, duration: parseInt(e.target.value) || 0})} 
-                   />
-                   
-                   <ZenDropdown 
-                      label="Primary Branch" 
-                      options={['None', ...(branches || []).map(b => b.name)]} 
-                      value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} 
-                      onChange={(val) => {
-                        const branch = (branches || []).find(b => b.name === val);
-                        setFormData({...formData, branch: branch ? branch._id : ''});
-                      }} 
+                     value={formData.duration}
+                     onChange={(e: any) => setFormData({...formData, duration: parseInt(e.target.value)})}
+                     error={formErrors.duration}
                    />
 
-                   <ZenDropdown 
-                      label="Service Category" 
-                      options={['None', ...serviceCategories]} 
-                      value={formData.category} 
-                      onChange={(val: any) => setFormData({...formData, category: val})} 
+                   <ZenDropdown
+                      label="Primary Branch"
+                      options={(branches || []).map(b => b.name)}
+                      error={!!formErrors.branch}
+                      value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'}
+	                      onChange={(val) => {
+	                        const branch = (branches || []).find(b => b.name === val);
+	                        setFormData({...formData, branch: branch ? branch._id : ''});
+	                      }}
+                        disabled={user?.role !== 'Admin'}
+	                   />
+
+                   <ZenDropdown
+                      label="Service Category"
+                      options={['None', ...serviceCategories]}
+                      error={!!formErrors.category}
+                      value={formData.category}
+                      onChange={(val: any) => setFormData({...formData, category: val})}
                    />
-                   
-                   <ZenDropdown 
+
+                   <ZenDropdown
                       label="Availability Status"
                       options={['Active', 'Inactive']}
                       value={formData.status}
                       onChange={(val: any) => setFormData({...formData, status: val})}
                    />
-                   
+
                    <div className="md:col-span-2">
-                      <ZenTextarea 
-                        label="Service Description" 
-                        placeholder="Provide a detailed description of the service, including benefits and protocols..." 
+                      <ZenTextarea
+                        label="Service Description"
+                        placeholder="Provide a detailed description of the service, including benefits and protocols..."
                         value={formData.description}
                         onChange={(e: any) => setFormData({...formData, description: e.target.value})}
                       />
@@ -771,7 +796,7 @@ const Services = () => {
            )}
 
            {activeTab === 'inventory' && (
-             <motion.div 
+             <motion.div
                initial={{ opacity: 0, y: 10 }}
                animate={{ opacity: 1, y: 0 }}
                className="space-y-8"
@@ -782,9 +807,9 @@ const Services = () => {
                          <Grid size={16} className="text-zen-sand" />
                          <p className="text-[11px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">Inventory Consumption</p>
                       </div>
-                      <ZenButton 
-                        type="button" 
-                        variant="secondary" 
+                      <ZenButton
+                        type="button"
+                        variant="secondary"
                         className="scale-90 text-[10px] py-2"
                         onClick={() => {
                           setFormData({
@@ -808,15 +833,15 @@ const Services = () => {
                        {formData.inventoryUsage.map((usage: any, index: number) => (
                          <div key={index} className="flex flex-col md:flex-row gap-4 items-end bg-white/50 p-6 rounded-2xl border border-zen-brown/5 shadow-sm group hover:border-zen-sand/30 transition-all duration-500">
                             <div className="flex-1 w-full">
-                               <ZenDropdown 
-                                 label="Product" 
+                               <ZenDropdown
+                                 label="Product"
                                  options={['Select Product', ...inventoryList.map(i => i.name)]}
                                  value={inventoryList.find(i => i._id === usage.inventoryItem)?.name || 'Select Product'}
                                  onChange={(val) => {
                                    const product = inventoryList.find(i => i.name === val);
                                    const newList = [...formData.inventoryUsage];
-                                   newList[index] = { 
-                                     ...newList[index], 
+                                   newList[index] = {
+                                     ...newList[index],
                                      inventoryItem: product?._id || '',
                                      unit: product?.unit || 'ml'
                                    };
@@ -825,8 +850,8 @@ const Services = () => {
                                />
                             </div>
                             <div className="w-full md:w-32">
-                               <ZenInput 
-                                 label="Qty" 
+                               <ZenInput
+                                 label="Qty"
                                  type="number"
                                  value={usage.quantity}
                                  onChange={(e: any) => {
@@ -837,7 +862,7 @@ const Services = () => {
                                />
                             </div>
                             <div className="w-full md:w-32">
-                               <ZenDropdown 
+                               <ZenDropdown
                                  label="Unit"
                                  options={['ml', 'gm', 'L', 'kg', 'Nos', 'Pack', 'Bottle']}
                                  value={usage.unit}
@@ -848,10 +873,10 @@ const Services = () => {
                                  }}
                                />
                             </div>
-                            <ZenIconButton 
+                            <ZenIconButton
                               type="button"
-                              icon={Trash2} 
-                              variant="danger" 
+                              icon={Trash2}
+                              variant="danger"
                               className="mb-1 opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => {
                                 const newList = formData.inventoryUsage.filter((_, i) => i !== index);
@@ -867,7 +892,7 @@ const Services = () => {
            )}
 
            {activeTab === 'commission' && (
-             <motion.div 
+             <motion.div
                initial={{ opacity: 0, y: 10 }}
                animate={{ opacity: 1, y: 0 }}
                className="space-y-8"
@@ -879,19 +904,19 @@ const Services = () => {
                       </p>
                       <ZenBadge variant="sand" className="scale-90 opacity-40">Staff Rewards</ZenBadge>
                    </div>
-                   <ZenDropdown 
-                      label="Commission Type" 
-                      options={['Percentage', 'Fixed']} 
-                      value={formData.commissionType} 
-                      onChange={(val: any) => setFormData({...formData, commissionType: val})} 
+                   <ZenDropdown
+                      label="Commission Type"
+                      options={['Percentage', 'Fixed']}
+                      value={formData.commissionType}
+                      onChange={(val: any) => setFormData({...formData, commissionType: val})}
                    />
-                   <ZenInput 
-                      label={formData.commissionType === 'Percentage' ? "Commission Value (%)" : `Commission Value (${settings?.general?.currencySymbol || 'QR'})`} 
-                      icon={Sparkles} 
+                   <ZenInput
+                      label={formData.commissionType === 'Percentage' ? "Commission Value (%)" : `Commission Value (${settings?.general?.currencySymbol || 'QR'})`}
+                      icon={Sparkles}
                       type="number"
                       placeholder="e.g. 10"
-                      value={formData.commissionValue} 
-                      onChange={(e: any) => setFormData({...formData, commissionValue: parseInt(e.target.value) || 0})} 
+                      value={formData.commissionValue}
+                      onChange={(e: any) => setFormData({...formData, commissionValue: parseInt(e.target.value) || 0})}
                    />
                 </div>
              </motion.div>

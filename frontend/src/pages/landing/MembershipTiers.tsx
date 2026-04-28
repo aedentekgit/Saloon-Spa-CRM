@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Sparkles, Check, Gem, ShieldCheck, 
+import {
+  Sparkles, Check, Gem, ShieldCheck,
   Crown, Star, ArrowRight, Zap, Info,
   MapPin, Clock, Fingerprint, X, LayoutGrid
 } from 'lucide-react';
@@ -101,7 +101,7 @@ const MembershipTiers = () => {
         {/* Header Section */}
         <header className="relative z-10 pt-0 pb-20 lg:pb-32 mb-12">
           <div className="grid lg:grid-cols-12 gap-12 items-center">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 1 }}
@@ -132,7 +132,7 @@ const MembershipTiers = () => {
               </div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1.2, ease: "easeOut" }}
@@ -140,23 +140,23 @@ const MembershipTiers = () => {
             >
               {/* Primary Image Frame */}
               <div className="relative aspect-[16/10] w-full rounded-[3rem] overflow-hidden shadow-2xl z-10 border-[8px] border-white/50 backdrop-blur-sm">
-                <img 
-                  src={withBase('/images/lux_spa_hero.png')} 
-                  alt="Membership Tiers" 
+                <img
+                  src={withBase('/images/lux_spa_hero.png')}
+                  alt="Membership Tiers"
                   className="w-full h-full object-cover"
                   onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1540555700478-4be289a5090a?auto=format&fit=crop&q=80'; }}
                 />
               </div>
 
               {/* Secondary Floating Overlap Element */}
-              <motion.div 
+              <motion.div
                 animate={{ y: [0, -20, 0] }}
                 transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute -bottom-12 -right-6 w-48 h-64 hidden xl:block z-20 rounded-[2rem] overflow-hidden border-[6px] border-white shadow-2xl shadow-zen-brown/20"
               >
-                <img 
-                  src={withBase('/images/aromatherapy_massage.png')} 
-                  alt="Detail" 
+                <img
+                  src={withBase('/images/aromatherapy_massage.png')}
+                  alt="Detail"
                   className="w-full h-full object-cover"
                 />
               </motion.div>
@@ -179,18 +179,18 @@ const MembershipTiers = () => {
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.15 + 0.3, duration: 0.8 }}
-                className={`group relative bg-white/40 backdrop-blur-3xl rounded-[3.5rem] border transition-all duration-1000 hover:shadow-[0_40px_80px_-20px_rgba(43,36,64,0.15)] hover:-translate-y-4 flex flex-col overflow-hidden ${
-                  isPopular 
-                    ? 'border-zen-sand/30 shadow-xl shadow-zen-sand/5' 
+                className={`group relative bg-white/40 backdrop-blur-3xl rounded-[3.5rem] border transition-all duration-1000 hover:shadow-none hover:-translate-y-4 flex flex-col overflow-hidden ${
+                  isPopular
+                    ? 'border-zen-sand/30 shadow-xl shadow-zen-sand/5'
                     : 'border-white/60 shadow-lg shadow-black/5'
                 }`}
               >
                 {/* Visual Header with Image Support */}
                 <div className="h-[280px] w-full relative overflow-hidden">
                   {plan.document ? (
-                    <img 
-                      src={getImageUrl(plan.document)} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s] ease-out" 
+                    <img
+                      src={getImageUrl(plan.document)}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s] ease-out"
                       alt={plan.name}
                     />
                   ) : (
@@ -199,10 +199,10 @@ const MembershipTiers = () => {
                        <PlanIcon size={120} strokeWidth={0.5} className="text-zen-brown/5 scale-150 group-hover:rotate-12 transition-transform duration-1000" />
                     </div>
                   )}
-                  
+
                   {/* Overlay for readability */}
                   <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
-                  
+
                   {/* Tier Badge */}
                   <div className="absolute top-8 left-8 flex items-center gap-3">
                      <div className="w-12 h-12 rounded-2xl bg-white/90 backdrop-blur-md shadow-xl flex items-center justify-center text-zen-sand">
@@ -246,11 +246,11 @@ const MembershipTiers = () => {
                      </ul>
                   </div>
 
-                     <button 
+                     <button
                         onClick={() => setSelectedPlan(plan)}
                         className={`w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transition-all duration-700 flex items-center justify-center gap-3 relative overflow-hidden ${
-                          isPopular 
-                           ? 'bg-zen-brown text-white hover:bg-zen-sand shadow-2xl shadow-zen-brown/20 active:scale-95' 
+                          isPopular
+                           ? 'bg-zen-brown text-white hover:bg-zen-sand shadow-2xl shadow-zen-brown/20 active:scale-95'
                            : 'bg-zen-cream text-zen-brown border border-zen-brown/5 hover:bg-zen-brown hover:text-white hover:shadow-2xl hover:shadow-zen-brown/10 active:scale-95'
                         }`}
                      >
@@ -270,7 +270,7 @@ const MembershipTiers = () => {
         </div>
 
         {/* Custom Consultation Section */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
@@ -293,7 +293,7 @@ const MembershipTiers = () => {
                      Tailored to your <br /> lifestyle rhythm.
                   </h2>
                </div>
-               
+
                <p className="text-white/50 font-serif italic text-lg leading-relaxed max-w-lg mx-auto lg:mx-0">
                   Our Wellness Concierge is available to design a membership structure that aligns perfectly with your schedule and specific therapeutic needs.
                </p>
@@ -308,11 +308,11 @@ const MembershipTiers = () => {
                   </div>
                </div>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 relative">
               {/* Floating Decorative Elements */}
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 blur-3xl rounded-full" />
-              
+
               {[
                 { icon: ShieldCheck, title: "Vault Privacy", desc: "Highest discretion protocols" },
                 { icon: MapPin, title: "Multi-Sanctuary", desc: "Access across all branches" },
@@ -350,14 +350,14 @@ const MembershipTiers = () => {
       <AnimatePresence>
         {selectedPlan && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedPlan(null)}
               className="absolute inset-0 bg-zen-brown/80 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -366,10 +366,10 @@ const MembershipTiers = () => {
               {/* Modal Header/Image */}
               <div className="h-72 relative overflow-hidden group/modal-img">
                 {(selectedPlan.document || (selectedPlan as any).image) ? (
-                  <img 
-                    src={getImageUrl(selectedPlan.document || (selectedPlan as any).image)} 
-                    className="w-full h-full object-cover group-hover/modal-img:scale-105 transition-transform duration-[3s]" 
-                    alt={selectedPlan.name} 
+                  <img
+                    src={getImageUrl(selectedPlan.document || (selectedPlan as any).image)}
+                    className="w-full h-full object-cover group-hover/modal-img:scale-105 transition-transform duration-[3s]"
+                    alt={selectedPlan.name}
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.display = 'none';
                       const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -377,15 +377,15 @@ const MembershipTiers = () => {
                     }}
                   />
                 ) : null}
-                
+
                 <div className={`absolute inset-0 bg-gradient-to-br ${selectedPlan.color || 'from-zen-sand/30 via-zen-sand/10 to-white'} flex items-center justify-center`} style={{ display: (selectedPlan.document || (selectedPlan as any).image) ? 'none' : 'flex' }}>
                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle, #2b2440 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
                    {React.createElement(ICON_MAP[selectedPlan.icon] || Sparkles, { size: 140, strokeWidth: 0.5, className: "text-zen-brown/10 animate-pulse" })}
                 </div>
 
                 <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
-                
-                <button 
+
+                <button
                   onClick={() => setSelectedPlan(null)}
                   className="absolute top-8 right-8 w-12 h-12 rounded-full bg-white/90 backdrop-blur-xl flex items-center justify-center text-zen-brown hover:bg-white transition-all shadow-2xl z-20 active:scale-90"
                 >
@@ -449,7 +449,7 @@ const MembershipTiers = () => {
                 <div className="bg-zen-brown p-10 rounded-[3rem] space-y-6 text-center relative overflow-hidden shadow-2xl shadow-zen-brown/40 group/join">
                   {/* Subtle pattern overlay */}
                   <div className="absolute inset-0 opacity-[0.03] rotate-12 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-                  
+
                   <div className="w-16 h-16 rounded-3xl bg-white/10 backdrop-blur-xl mx-auto flex items-center justify-center text-zen-sand group-hover/join:rotate-12 transition-transform duration-700">
                     <MapPin size={32} strokeWidth={1} />
                   </div>
@@ -459,7 +459,7 @@ const MembershipTiers = () => {
                       To preserve our standards of bespoke care, registrations are finalized at our physical locations. Visit your nearest sanctuary today.
                     </p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setSelectedPlan(null)}
                     className="w-full py-5 bg-white text-zen-brown rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-zen-sand hover:text-white transition-all shadow-xl active:scale-95 relative z-10"
                   >
@@ -477,4 +477,3 @@ const MembershipTiers = () => {
 };
 
 export default MembershipTiers;
-

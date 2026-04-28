@@ -24,12 +24,18 @@ interface BranchContextType {
 const BranchContext = createContext<BranchContextType | undefined>(undefined);
 
 export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, hasPermission } = useAuth();
-  const [branches, setBranches] = useState<Branch[]>(() => getCachedJson('zen_branch_context_list', []));
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
+  const userBranchId = typeof user?.branch === 'string' ? user.branch : user?.branch?._id || '';
+  const scopeBranches = (list: Branch[]) => {
+    if (isAdmin) return list;
+    return userBranchId ? list.filter(branch => branch._id === userBranchId) : [];
+  };
+  const [branches, setBranches] = useState<Branch[]>(() => scopeBranches(getCachedJson('zen_branch_context_list', [])));
   const [selectedBranch, setSelectedBranchState] = useState<string>(() => {
     const saved = localStorage.getItem('zen_selected_branch');
-    if (user && user.role !== 'Admin' && user.branch) return user.branch;
-    return saved || 'all';
+    if (user && !isAdmin && userBranchId) return userBranchId;
+    return isAdmin ? (saved || 'all') : '';
   });
   const [loading, setLoading] = useState(() => getCachedJson<Branch[]>('zen_branch_context_list', []).length === 0);
 
@@ -42,13 +48,24 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     try {
       if (!silent && branches.length === 0) setLoading(true);
-      const endpoint = hasPermission('branches') || hasPermission('settings') ? 'branches' : 'branches/public';
-      const response = await fetch(`${API_URL}/${endpoint}`, {
+      const response = await fetch(`${API_URL}/branches`, {
         headers: { 'Authorization': `Bearer ${user.token}` }
       });
+      if (!response.ok) {
+        if (response.status === 403 && !isAdmin) {
+          setBranches([]);
+          if (userBranchId) setSelectedBranchState(userBranchId);
+        }
+        return;
+      }
       const data = await response.json();
       const branchList = Array.isArray(data) ? data : (data?.data || []);
-      setBranches(Array.isArray(branchList) ? branchList : []);
+      const scoped = Array.isArray(branchList) ? scopeBranches(branchList) : [];
+      setBranches(scoped);
+      if (!isAdmin && userBranchId) {
+        setSelectedBranchState(userBranchId);
+        localStorage.setItem('zen_selected_branch', userBranchId);
+      }
     } catch (error) {
       console.error('Failed to fetch branches:', error);
     } finally {
@@ -57,8 +74,12 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   useEffect(() => {
-    if (user && user.role !== 'Admin' && user.branch) {
-      setSelectedBranchState(user.branch);
+    if (user && !isAdmin && userBranchId) {
+      setSelectedBranchState(userBranchId);
+      localStorage.setItem('zen_selected_branch', userBranchId);
+      setBranches(prev => scopeBranches(prev));
+    } else if (isAdmin && !selectedBranch) {
+      setSelectedBranchState(localStorage.getItem('zen_selected_branch') || 'all');
     }
     fetchBranches();
 
@@ -68,7 +89,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, getPollIntervalMs(60000)); // default 60s
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user?.token, user?.role, userBranchId, selectedBranch]);
 
   useEffect(() => {
     setCachedJson('zen_branch_context_list', branches);
@@ -76,27 +97,35 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Validation: If selected branch is not 'all' and not found in branches, reset to 'all'
   useEffect(() => {
-    if (branches.length > 0 && selectedBranch !== 'all') {
+    if (!isAdmin && userBranchId && selectedBranch !== userBranchId) {
+      setSelectedBranchState(userBranchId);
+      localStorage.setItem('zen_selected_branch', userBranchId);
+      return;
+    }
+
+    if (isAdmin && branches.length > 0 && selectedBranch !== 'all') {
       const exists = branches.some(b => b._id === selectedBranch);
-      if (!exists && user?.role === 'Admin') {
+      if (!exists) {
         setSelectedBranchState('all');
         localStorage.setItem('zen_selected_branch', 'all');
       }
     }
-  }, [branches, selectedBranch, user]);
+  }, [branches, selectedBranch, isAdmin, userBranchId]);
 
   const setSelectedBranch = (id: string) => {
-    setSelectedBranchState(id);
-    localStorage.setItem('zen_selected_branch', id);
+    const next = isAdmin ? id : userBranchId;
+    if (!next) return;
+    setSelectedBranchState(next);
+    localStorage.setItem('zen_selected_branch', next);
   };
 
   return (
-    <BranchContext.Provider value={{ 
-      branches, 
-      selectedBranch, 
-      setSelectedBranch, 
-      loading, 
-      refreshBranches: fetchBranches 
+    <BranchContext.Provider value={{
+      branches,
+      selectedBranch,
+      setSelectedBranch,
+      loading,
+      refreshBranches: fetchBranches
     }}>
       {children}
     </BranchContext.Provider>

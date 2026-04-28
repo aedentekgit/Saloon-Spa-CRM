@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  Plus, Edit2, Trash2, Camera, X, 
+import {
+  Plus, Edit2, Trash2, Camera, X,
   Sparkles, Building2, Zap, DoorOpen, Clock, Grid, List, Search,
   Calendar, History, User, UserCheck, ShieldCheck, CheckCircle2, AlertCircle, MapPin
 } from 'lucide-react';
@@ -231,10 +231,10 @@ const Rooms = () => {
       setEditingRoom(null);
       setActiveTab('profile');
       setRoomAppointments([]);
-      setFormData({ 
-        name: '', 
-        type: 'None', 
-        status: 'Free', 
+      setFormData({
+        name: '',
+        type: 'None',
+        status: 'Free',
         branch: selectedBranch === 'all' ? '' : selectedBranch,
         isActive: true,
         cleaningDuration: 15
@@ -250,7 +250,7 @@ const Rooms = () => {
     try {
       const url = editingRoom ? `${API_URL}/rooms/${editingRoom._id}` : `${API_URL}/rooms`;
       const method = editingRoom ? 'PUT' : 'POST';
-      
+
       const data = new FormData();
       data.append('name', formData.name);
       data.append('type', formData.type);
@@ -262,8 +262,8 @@ const Rooms = () => {
 
       const response = await fetch(url, {
         method,
-        headers: { 
-          'Authorization': `Bearer ${user?.token}` 
+        headers: {
+          'Authorization': `Bearer ${user?.token}`
         },
         body: data
       });
@@ -306,7 +306,7 @@ const Rooms = () => {
     try {
       const response = await fetch(`${API_URL}/rooms/${room._id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${user?.token}`,
           'Content-Type': 'application/json'
         },
@@ -439,16 +439,16 @@ const Rooms = () => {
               {filteredRooms.map((room, i) => {
                 const roomImage = getDisplayImage(room);
                 return (
-                  <div 
-                    key={room._id} 
+                  <div
+                    key={room._id}
                     className="group relative bg-white/80 backdrop-blur-xl rounded-[1rem] sm:rounded-[1.5rem] shadow-sm border border-white overflow-hidden flex flex-col transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8 cursor-pointer"
                     style={{ animationDelay: `${i * 50}ms` }}
                     onClick={() => handleOpenModal(room)}
                   >
                     <div className="aspect-[16/9] sm:aspect-[4/3] relative overflow-hidden">
-                      <img 
-                        src={roomImage.src} 
-                        alt={room.name} 
+                      <img
+                        src={roomImage.src}
+                        alt={room.name}
                         className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.2] group-hover:grayscale-0"
                         style={{ objectPosition: roomImage.objectPosition }}
                       />
@@ -478,10 +478,10 @@ const Rooms = () => {
                           {room.status}
                         </ZenBadge>
                         <div className="flex items-center gap-2 sm:gap-3">
-                          <ZenIconButton 
-                            icon={Sparkles} 
-                            variant={room.isActive ? 'leaf' : 'sand'} 
-                            onClick={(e) => { e.stopPropagation(); toggleIsActive(room); }} 
+                          <ZenIconButton
+                            icon={Sparkles}
+                            variant={room.isActive ? 'leaf' : 'sand'}
+                            onClick={(e) => { e.stopPropagation(); toggleIsActive(room); }}
                             className={room.isActive ? 'text-zen-leaf' : 'text-zen-sand'}
                             size="sm"
                           />
@@ -495,7 +495,7 @@ const Rooms = () => {
               })}
             </div>
           ) : (
-            <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+            <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
               <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
                 <thead>
                   <tr>
@@ -569,9 +569,9 @@ const Rooms = () => {
           </div>
         </div>
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         maxWidth="max-w-4xl"
         header={
           <div className="flex items-start justify-between gap-6 px-10 py-8">
@@ -669,14 +669,14 @@ const Rooms = () => {
                         const min = (i % 2) * 30;
                         const slotTime = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
                         const displayTime = dayjs().hour(hour).minute(min).format('hh:mm A');
-                        
+
                         const slotStart = parseTime(slotTime, registryDate);
                         const slotEnd = slotStart?.add(30, 'minute');
 
                         const apt = roomAppointments.find(a => {
                           const aptDate = dayjs(a.date).format('YYYY-MM-DD');
                           if (aptDate !== registryDate) return false;
-                          
+
                           const aptStart = parseTime(a.time, registryDate);
                           if (!aptStart) return false;
 
@@ -698,7 +698,7 @@ const Rooms = () => {
                             <div className="flex-1 flex items-center justify-between min-w-0">
                               {apt ? (
                                 isPrimarySlot ? (
-                                  <div 
+                                  <div
                                     className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity group/booking min-w-0"
                                     onClick={() => navigate('/appointments')}
                                   >
@@ -750,9 +750,9 @@ const Rooms = () => {
                     <div className="relative w-24 sm:w-40 h-24 sm:h-40 group cursor-pointer shrink-0">
                       <div className="w-full h-full zen-pointed-surface ring-4 ring-zen-sand/20 ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-xl relative">
                         {(imagePreview || previewRoomImage) ? (
-                          <img 
-                            src={imagePreview || previewRoomImage?.src} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                          <img
+                            src={imagePreview || previewRoomImage?.src}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                             style={imagePreview ? undefined : { objectPosition: previewRoomImage?.objectPosition }}
                           />
                         ) : (
@@ -762,9 +762,9 @@ const Rooms = () => {
                         )}
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Camera className="text-white" size={32} /></div>
                       </div>
-                      <input 
-                        type="file" 
-                        className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                      <input
+                        type="file"
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
                         onChange={e => {
                           const file = e.target.files?.[0] || null;
                           setRoomImageFile(file);
@@ -775,7 +775,7 @@ const Rooms = () => {
                           } else {
                             setImagePreview(null);
                           }
-                        }} 
+                        }}
                       />
                       <div className="absolute bottom-1 right-1 p-3 bg-zen-brown text-white rounded-full shadow-lg scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={16} /></div>
                     </div>
@@ -787,7 +787,7 @@ const Rooms = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 sm:gap-x-16 gap-y-10 sm:gap-y-14">
                     <ZenDropdown label="Room Category" options={['None', ...roomCategories]} value={formData.type} onChange={(val: any) => setFormData({...formData, type: val})} />
-                    <ZenDropdown label="Assigned Branch" options={['None', ...(branches || []).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => {
+                    <ZenDropdown label="Assigned Branch" options={['None', ...(branches || []).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} disabled={user?.role !== 'Admin'} onChange={(val) => {
                       const branch = (branches || []).find(b => b.name === val);
                       setFormData({...formData, branch: branch ? branch._id : ''});
                     }} />

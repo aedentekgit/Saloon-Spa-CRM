@@ -76,7 +76,7 @@ app.use(cors({
     'http://localhost:5173'
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -112,7 +112,7 @@ app.use(helmet({
 
 // Rate Limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
+  windowMs: 15 * 60 * 1000,
   max: isDev ? 100000 : 1000, // Very lenient in dev
   message: { success: false, message: 'Too many requests from this IP, please try again after 15 minutes' }
 });
@@ -186,6 +186,7 @@ app.use('/api/leaves', leaveRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/expenses', expenseRoutes);
+app.use('/api/expense-categories', require('./routes/finance/expenseCategoryRoutes'));
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/whatsapp', whatsAppRoutes);
 app.use('/api/branches', branchRoutes);

@@ -5,7 +5,7 @@ const Employee = require('../../models/human-resources/Employee');
 const Attendance = require('../../models/human-resources/Attendance');
 const Appointment = require('../../models/operations/Appointment');
 const Inventory = require('../../models/inventory/Inventory');
-const { getBranchId } = require('../../utils/branch');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 const parseTimeToMinutes = (time = '') => {
   const match = String(time).trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
@@ -41,13 +41,14 @@ exports.getDashboardStats = async (req, res) => {
     // Branching logic for Role-specific dynamism
     if (req.user.role === 'Client') {
       const myAppointments = await Appointment.find({
-        clientId: req.user._id
+        clientId: req.user._id,
+        ...(userBranchId ? { branch: toObjectIdIfValid(userBranchId) } : {})
       }).sort({ date: -1 }).lean();
       const totalVisits = myAppointments.filter(a => a.status === 'Completed').length;
       const upcomingApt = myAppointments
         .filter(a => ['Pending', 'Confirmed'].includes(a.status) && a.date >= todayStr)
         .sort(compareAppointments)[0];
-      
+
       return res.json({
         role: 'Client',
         loyalty: {
@@ -64,11 +65,12 @@ exports.getDashboardStats = async (req, res) => {
 
     if (req.user.role === 'Employee') {
       const myAppointments = await Appointment.find({
-        employeeId: req.user._id
+        employeeId: req.user._id,
+        ...(userBranchId ? { branch: toObjectIdIfValid(userBranchId) } : {})
       }).populate('clientId').sort({ date: -1 }).lean();
       const completed = myAppointments.filter(a => a.status === 'Completed').length;
       const todayApts = myAppointments.filter(a => a.date === todayStr).length;
-      
+
       // Calculate earnings (simplified)
       const estimatedEarnings = completed * 50; // Mock unit rate per service
 
@@ -90,9 +92,15 @@ exports.getDashboardStats = async (req, res) => {
     // Default Admin/Manager Logic
     let matchQuery = {};
     if (req.user.role === 'Admin' && requestedBranch) {
-      matchQuery.branch = requestedBranch;
-    } else if (req.user.role !== 'Admin' && userBranchId) {
-      matchQuery.branch = userBranchId;
+      matchQuery.branch = toObjectIdIfValid(requestedBranch);
+    } else if (req.user.role !== 'Admin') {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view dashboard stats for another branch.' });
+      }
+      matchQuery.branch = toObjectIdIfValid(userBranchId);
     }
 
     // ... (rest of the Admin/Manager logic remains same but ensuring it's robust)
@@ -135,10 +143,10 @@ exports.getDashboardStats = async (req, res) => {
     } else {
       attendanceToday = await Attendance.countDocuments({ date: todayStr, status: 'Present' });
     }
-    
-    const activeAppointments = await Appointment.countDocuments({ 
-      ...matchQuery, 
-      status: { $in: ['Pending', 'Confirmed'] }, 
+
+    const activeAppointments = await Appointment.countDocuments({
+      ...matchQuery,
+      status: { $in: ['Pending', 'Confirmed'] },
       date: todayStr
     });
 
@@ -146,21 +154,21 @@ exports.getDashboardStats = async (req, res) => {
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
+
     const revenueTrend = await Invoice.aggregate([
       { $match: { ...matchQuery, createdAt: { $gte: sevenDaysAgo } } },
-      { $group: { 
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, 
-          total: { $sum: '$total' } 
+      { $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          total: { $sum: '$total' }
       }},
       { $sort: { _id: 1 } }
     ]);
 
     const expenseTrend = await Expense.aggregate([
       { $match: { ...matchQuery, createdAt: { $gte: sevenDaysAgo } } },
-      { $group: { 
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, 
-          total: { $sum: '$amount' } 
+      { $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          total: { $sum: '$amount' }
       }},
       { $sort: { _id: 1 } }
     ]);

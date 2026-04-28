@@ -464,7 +464,7 @@ const Memberships = () => {
 
     const getStatusColor = (status: string) => {
        switch (status) {
-          case 'Active': return 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-[0_0_15px_rgba(74,103,32,0.1)]';
+          case 'Active': return 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-none';
           case 'Expired': return 'bg-zen-brown/10 text-zen-brown/40 border-zen-brown/25';
           default: return 'bg-gray-100 text-gray-400 border-gray-200';
        }
@@ -911,7 +911,7 @@ title="Membership Management"
                      ))}
                   </div>
                   ) : (
-                    <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden table-container animate-in fade-in slide-in-from-bottom-4 duration-700">
                        <div className="table-container">
                           <table className="w-full min-w-[760px] lg:min-w-[900px]">
                           <thead>
@@ -1001,7 +1001,7 @@ title="Membership Management"
 
 
                     {viewMode === 'table' ? (
-                       <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container">
+                       <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden table-container">
                           <div className="table-container">
                           <table className="w-full min-w-[760px] lg:min-w-[1000px]">
                              <thead>
@@ -1367,11 +1367,12 @@ title="Membership Management"
                   label="Assign Branch"
                   options={(branches || []).map(b => b.name)}
                   value={(branches || []).find(b => b._id === enrollData.branchId)?.name || ''}
-                  onChange={val => {
-                     const branch = (branches || []).find(b => b.name === val);
-                     if (branch) setEnrollData({...enrollData, branchId: branch._id});
-                  }}
-               />
+	                  onChange={val => {
+	                     const branch = (branches || []).find(b => b.name === val);
+	                     if (branch) setEnrollData({...enrollData, branchId: branch._id});
+	                  }}
+                    disabled={user?.role !== 'Admin'}
+	               />
             </div>
 
             <ZenDatePicker label="Start Date" value={enrollData.startDate} onChange={val => setEnrollData({...enrollData, startDate: val})} />

@@ -1,7 +1,7 @@
 const Inventory = require('../../models/inventory/Inventory');
 const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
-const { getBranchId, sameBranch } = require('../../utils/branch');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 // @desc    Get all inventory items
 // @route   GET /api/inventory
@@ -16,13 +16,13 @@ const getInventory = async (req, res) => {
     // Managers/Staff can only see their own branch
     if (req.user.role === 'Admin') {
       if (branch && branch !== 'all') {
-        query.branch = branch;
+        query.branch = toObjectIdIfValid(branch);
       }
     } else {
       if (userBranchId) {
-        query.branch = userBranchId;
+        query.branch = toObjectIdIfValid(userBranchId);
       } else {
-        query.branch = null; 
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
       }
     }
 
@@ -44,8 +44,8 @@ const getInventory = async (req, res) => {
     const lowStockItems = await Inventory.countDocuments({ ...query, $expr: { $lte: ['$stock', '$lowStock'] } });
     const categories = await Inventory.distinct('category', query);
 
-    res.json(pagination ? { 
-      data, 
+    res.json(pagination ? {
+      data,
       pagination,
       metrics: {
         totalItems,
@@ -64,9 +64,12 @@ const getInventory = async (req, res) => {
 const createInventoryItem = async (req, res) => {
   const { name, category, stock, lowStock, vendor, branch, unit } = req.body;
   const userBranchId = getBranchId(req.user.branch);
-  
+
   // IDOR Check
   const assignedBranch = getBranchId(branch) || userBranchId;
+  if (!assignedBranch) {
+    return res.status(400).json({ message: 'Branch assignment required' });
+  }
   if (req.user.role !== 'Admin' && !sameBranch(assignedBranch, userBranchId)) {
     return res.status(403).json({ message: 'Access Denied: Cannot create inventory for another branch.' });
   }
@@ -85,7 +88,7 @@ const createInventoryItem = async (req, res) => {
       lowStock,
       vendor,
       unit,
-      branch: assignedBranch || null,
+      branch: toObjectIdIfValid(assignedBranch),
       image
     });
 
@@ -107,7 +110,7 @@ const updateInventoryItem = async (req, res) => {
     }
 
     // IDOR Check
-    const isBranchStaff = sameBranch(item.branch, req.user.branch);
+    const isBranchStaff = req.user.role !== 'Client' && sameBranch(item.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchStaff) {
@@ -120,9 +123,13 @@ const updateInventoryItem = async (req, res) => {
     item.lowStock = req.body.lowStock !== undefined ? req.body.lowStock : item.lowStock;
     item.vendor = req.body.vendor || item.vendor;
     item.unit = req.body.unit || item.unit;
-    
+
+    if (!isAdmin && req.body.branch && !sameBranch(req.body.branch, item.branch)) {
+      return res.status(403).json({ message: 'Access Denied: You cannot reassign inventory to another branch.' });
+    }
+
     if (isAdmin && req.body.branch) {
-      item.branch = req.body.branch;
+      item.branch = toObjectIdIfValid(req.body.branch);
     }
 
     if (req.file) {
@@ -151,7 +158,7 @@ const deleteInventoryItem = async (req, res) => {
     }
 
     // IDOR Check
-    const isBranchStaff = sameBranch(item.branch, req.user.branch);
+    const isBranchStaff = req.user.role !== 'Client' && sameBranch(item.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
 
     if (!isAdmin && !isBranchStaff) {

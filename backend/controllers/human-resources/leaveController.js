@@ -2,7 +2,7 @@ const Leave = require('../../models/human-resources/Leave');
 const Employee = require('../../models/human-resources/Employee');
 const Branch = require('../../models/operations/Branch');
 const { paginateModelQuery } = require('../../utils/pagination');
-const { getBranchId, sameBranch } = require('../../utils/branch');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -58,14 +58,19 @@ const getLeaves = async (req, res) => {
 
     if (req.user.role === 'Admin') {
       if (requestedBranch) {
-        query.branch = requestedBranch;
+        query.branch = toObjectIdIfValid(requestedBranch);
       }
-    } else if (req.user.role !== 'Manager') {
-      // Employee: own requests only
+    } else if (req.user.role === 'Employee' || req.user.role === 'Client') {
       query.user = req.user._id;
-    } else if (req.user.role === 'Manager' && userBranchId) {
-      // Manager: only leaves from their branch
-      query.branch = userBranchId;
+      if (userBranchId) query.branch = toObjectIdIfValid(userBranchId);
+    } else {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view leave requests for another branch.' });
+      }
+      query.branch = toObjectIdIfValid(userBranchId);
     }
 
     await applyLeaveSearch(query, req.query.search);
@@ -91,7 +96,8 @@ const createLeave = async (req, res) => {
     let leaveBranch = getBranchId(req.user.branch) || undefined;
     let leaveEmployeeName = employeeName || req.user.name;
 
-    if (req.user.role === 'Admin' || req.user.role === 'Manager') {
+    const canCreateForStaff = req.user.role === 'Admin' || !['Employee', 'Client'].includes(req.user.role);
+    if (canCreateForStaff) {
       if (!employeeName) {
         return res.status(400).json({ message: 'Employee selection is required' });
       }
@@ -107,7 +113,7 @@ const createLeave = async (req, res) => {
         return res.status(400).json({ message: 'Selected employee is not active' });
       }
 
-      if (req.user.role === 'Manager' && !sameBranch(targetEmployee.branch, req.user.branch)) {
+      if (req.user.role !== 'Admin' && !sameBranch(targetEmployee.branch, req.user.branch)) {
         return res.status(403).json({ message: 'Access Denied: You can only create leave requests for your own branch.' });
       }
 
@@ -158,8 +164,12 @@ const updateLeaveStatus = async (req, res) => {
     }
 
     // IDOR Check
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(leave.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(leave.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Leave request belongs to another branch.' });
+    }
+    const isBranchManager = req.user.role !== 'Client' && req.user.role !== 'Employee' && isBranchMatch;
 
     if (!isAdmin && !isBranchManager) {
       return res.status(403).json({ message: 'Access Denied: You cannot moderate leave requests from other branches.' });
@@ -185,9 +195,13 @@ const deleteLeave = async (req, res) => {
     }
 
     // IDOR Check: Only the owner (Employee) or their Manager/Admin can delete
-    const isOwner = leave.user?.toString() === req.user._id.toString();
-    const isBranchManager = req.user.role === 'Manager' && sameBranch(leave.branch, req.user.branch);
     const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(leave.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Leave request belongs to another branch.' });
+    }
+    const isOwner = leave.user?.toString() === req.user._id.toString();
+    const isBranchManager = req.user.role !== 'Client' && req.user.role !== 'Employee' && isBranchMatch;
 
     if (!isAdmin && !isBranchManager && !isOwner) {
        return res.status(403).json({ message: 'Access Denied: You do not have permission to remove this leave request.' });

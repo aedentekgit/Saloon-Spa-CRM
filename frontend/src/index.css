@@ -5,7 +5,7 @@
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", serif;
   --font-accent: "Italiana", serif;
-  
+
   /* Purple-lilac dashboard palette */
   --color-zen-cream: var(--zen-cream, #F7F8FC);
   --color-zen-brown: var(--zen-brown, #2B2440);
@@ -17,7 +17,7 @@
   --color-zen-contrast: #FFFFFF;
 
 
-  
+
   /* Extended Lavender Palette */
   --color-lavender-50: #F5F3FF;
   --color-lavender-100: #EDE9FE;
@@ -30,13 +30,13 @@
   --color-lavender-800: #5B21B6;
   --color-lavender-900: #4C1D95;
 
-  /* Global container shadow profile (Professional Depth) */
-  --shadow-sm: 0 10px 20px -15px rgba(43, 36, 64, 0.15), 0 2px 5px -2px rgba(43, 36, 64, 0.05);
-  --shadow: 0 20px 40px -20px rgba(43, 36, 64, 0.20), 0 5px 15px -5px rgba(43, 36, 64, 0.10);
-  --shadow-md: 0 30px 60px -25px rgba(43, 36, 64, 0.25), 0 10px 20px -10px rgba(43, 36, 64, 0.12);
-  --shadow-lg: 0 40px 80px -30px rgba(43, 36, 64, 0.30), 0 15px 30px -15px rgba(43, 36, 64, 0.15);
-  --shadow-xl: 0 50px 100px -35px rgba(43, 36, 64, 0.35), 0 20px 40px -20px rgba(43, 36, 64, 0.18);
-  --shadow-2xl: 0 60px 120px -40px rgba(43, 36, 64, 0.40), 0 25px 50px -25px rgba(43, 36, 64, 0.20);
+  /* Global container shadow profile (Removed) */
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  --shadow-2xl: none;
 }
 
 @layer base {
@@ -75,8 +75,8 @@
   }
   /* Remove Autofill Background */
   input:-webkit-autofill,
-  input:-webkit-autofill:hover, 
-  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
   input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 1000px white inset !important;
     -webkit-text-fill-color: #000000 !important;
@@ -103,7 +103,7 @@
   .glass {
     @apply bg-white/40 backdrop-blur-md border border-white/20;
   }
-  
+
   .glass-dark {
     @apply bg-zen-brown/5 backdrop-blur-md border border-zen-brown/10;
   }
@@ -111,7 +111,7 @@
   .text-glow {
     text-shadow: 0 0 15px rgba(var(--zen-primary-rgb, 139, 92, 246), 0.4);
   }
-  
+
   .perspective-1000 {
     perspective: 1000px;
   }
@@ -155,7 +155,7 @@
     @apply p-4 sm:p-6 lg:p-8;
   }
 
-  .custom-scrollbar, 
+  .custom-scrollbar,
   .overflow-x-auto,
   .table-container {
     -ms-overflow-style: none !important;
@@ -173,9 +173,7 @@
   .professional-frame, .zen-pointed-surface {
     @apply relative overflow-hidden bg-white border border-zen-stone;
     border-radius: 3rem 1rem 3rem 1rem;
-    box-shadow: 
-      0 20px 40px -20px rgba(0, 0, 0, 0.08),
-      inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    box-shadow: none;
     transition: all 0.5s ease;
   }
 
@@ -186,10 +184,7 @@
 
   .classic-stylish-card {
     @apply relative bg-white border border-zen-stone;
-    box-shadow: 
-      0 10px 30px -15px rgba(0, 0, 0, 0.05),
-      0 4px 6px -2px rgba(0, 0, 0, 0.02),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    box-shadow: none;
   }
 
   .classic-stylish-card::before {
@@ -199,15 +194,11 @@
 
   .zen-card-hover {
     @apply relative border border-zen-stone/80 bg-white transition-all duration-500 hover:border-zen-gold/40 hover:-translate-y-1 cursor-pointer rounded-[2rem];
-    box-shadow: 
-      0 20px 25px -5px rgba(0, 0, 0, 0.05),
-      0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    box-shadow: none;
   }
 
   .zen-card-hover:hover {
-    box-shadow: 
-      0 30px 50px -12px rgba(0, 0, 0, 0.08),
-      0 10px 20px -5px rgba(197, 163, 88, 0.1);
+    box-shadow: none;
   }
 
   /* Metrics Grid - Proper Responsive Handling */
@@ -299,7 +290,7 @@
 }
 
 .zen-soft-glow {
-  box-shadow: 0 0 20px -5px rgba(var(--zen-sand-rgb, 139, 92, 246), 0.2);
+  box-shadow: none;
 }
 
 .animate-text-shine {
@@ -478,4 +469,15 @@
 
 .pac-icon {
   margin-right: 10px !important;
+}
+
+/* Remove spinners from all number inputs globally */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }

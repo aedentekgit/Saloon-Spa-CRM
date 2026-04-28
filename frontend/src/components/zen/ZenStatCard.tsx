@@ -13,29 +13,29 @@ export interface ZenStatCardProps {
   delay?: number;
 }
 
-export const ZenStatCard: React.FC<ZenStatCardProps> = ({ 
-  label, 
-  value, 
-  icon: Icon, 
-  trend, 
-  color = 'text-blue-500', 
-  bg = 'bg-blue-500/10', 
-  glow = 'bg-blue-500/20', 
-  delay = 0 
+export const ZenStatCard: React.FC<ZenStatCardProps> = ({
+  label,
+  value,
+  icon: Icon,
+  trend,
+  color = 'text-blue-500',
+  bg = 'bg-blue-500/10',
+  glow = 'bg-blue-500/20',
+  delay = 0
 }) => {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full sm:w-[280px] lg:w-full shrink-0 bg-white p-5 sm:p-7 rounded-[1.5rem] border border-zen-stone shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative group transition-all duration-700 hover:shadow-[0_20px_50px_-15px_rgba(43,36,64,0.1)] hover:border-zen-sand/30 overflow-hidden"
+      className="w-full sm:w-[280px] lg:w-full shrink-0 bg-white p-5 sm:p-7 rounded-[1.5rem] border border-zen-stone shadow-none relative group transition-all duration-700 hover:shadow-none hover:border-zen-sand/30 overflow-hidden"
     >
       {/* Premium Grainy Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-zen-cream/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-      
+
       {/* Decorative 'Spark' background element */}
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-zen-gold/5 rounded-full blur-3xl group-hover:bg-zen-gold/10 transition-colors duration-1000" />
-      
+
       <div className="relative z-10 flex flex-col gap-4 sm:gap-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1.5 min-w-0 flex-1">
@@ -68,10 +68,10 @@ export const ZenStatCard: React.FC<ZenStatCardProps> = ({
                <span className="text-[9px] text-zen-gold/60 font-black uppercase tracking-widest">Premium Data</span>
             </div>
           )}
-          
+
           {/* Accent progress bar */}
           <div className="flex-1 ml-4 h-1 bg-zen-brown/5 rounded-full overflow-hidden">
-             <motion.div 
+             <motion.div
                initial={{ width: 0 }}
                animate={{ width: '40%' }}
                transition={{ duration: 1.5, delay: delay + 0.5 }}
@@ -80,7 +80,7 @@ export const ZenStatCard: React.FC<ZenStatCardProps> = ({
           </div>
         </div>
       </div>
-      
+
       {/* Sleek bottom border highlight */}
       <div className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-1000 ${color.replace('text-', 'bg-')} opacity-30`} />
     </motion.div>

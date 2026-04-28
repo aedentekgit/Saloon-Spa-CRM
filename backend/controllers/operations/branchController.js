@@ -1,6 +1,7 @@
 const Branch = require('../../models/operations/Branch');
 const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { paginateModelQuery } = require('../../utils/pagination');
+const { getUserBranchId, toObjectIdIfValid } = require('../../utils/branch');
 
 
 // @desc    Get public branches
@@ -29,8 +30,13 @@ const getPublicBranches = async (req, res) => {
 const getBranches = async (req, res) => {
   try {
     const isAdmin = req.user?.role === 'Admin';
-    const filter = isAdmin ? {} : { isActive: true };
+    const userBranchId = getUserBranchId(req.user);
+    const filter = isAdmin ? {} : { _id: toObjectIdIfValid(userBranchId) };
     const select = isAdmin ? undefined : 'name logo isActive contactNumber address lat lng radius restrictionMode';
+
+    if (!isAdmin && !userBranchId) {
+      return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+    }
 
     const { data, pagination } = await paginateModelQuery(Branch, filter, req, { select });
     res.json(pagination ? { data, pagination } : data);

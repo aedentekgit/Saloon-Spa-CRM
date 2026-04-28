@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import { 
-  Receipt, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Filter, 
-  Search, 
+import {
+  Receipt,
+  ArrowUpRight,
+  ArrowDownRight,
+  Filter,
+  Search,
   MoreVertical,
   Calendar as CalendarIcon,
   CreditCard,
@@ -136,29 +136,29 @@ const formatExportDateTime = (value?: string) => {
 
 const buildDateWindow = (dateRange: any) => {
   if (!dateRange || dateRange === 'All') return { startDate: '', endDate: '' };
-  
+
   const now = dayjs();
   if (typeof dateRange === 'string') {
     if (dateRange === 'Today') return { startDate: now.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
     if (dateRange === 'Week') return { startDate: now.subtract(7, 'day').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
     if (dateRange === 'Month') return { startDate: now.subtract(1, 'month').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
-    
+
     if (dateRange.length === 7) { // YYYY-MM
       const m = dayjs(dateRange + '-01');
       return { startDate: m.startOf('month').format('YYYY-MM-DD'), endDate: m.endOf('month').format('YYYY-MM-DD') };
     }
-    
+
     if (dateRange.length === 10) { // YYYY-MM-DD
       return { startDate: dateRange, endDate: dateRange };
     }
-    
+
     return { startDate: '', endDate: '' };
   }
 
   if (dateRange.from || dateRange.to) {
-    return { 
-      startDate: dateRange.from || dateRange.to || '', 
-      endDate: dateRange.to || dateRange.from || '' 
+    return {
+      startDate: dateRange.from || dateRange.to || '',
+      endDate: dateRange.to || dateRange.from || ''
     };
   }
 
@@ -353,8 +353,15 @@ const Transactions = () => {
     transactions.forEach((transaction) => {
       if (transaction.branch) names.add(transaction.branch);
     });
-    return ['All', ...Array.from(names).sort((a, b) => a.localeCompare(b))];
-  }, [branches, transactions]);
+    const sorted = Array.from(names).sort((a, b) => a.localeCompare(b));
+    return user?.role === 'Admin' ? ['All', ...sorted] : sorted;
+  }, [branches, transactions, user?.role]);
+
+  useEffect(() => {
+    if (user?.role !== 'Admin' && branchOptions.length > 0 && branchFilter !== branchOptions[0]) {
+      setBranchFilter(branchOptions[0]);
+    }
+  }, [branchOptions, branchFilter, user?.role]);
 
   const selectedBranchId = useMemo(() => {
     if (branchFilter === 'All') return '';
@@ -378,7 +385,7 @@ const Transactions = () => {
           ? fetch(`${API_URL}/expenses`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
           : Promise.resolve(null)
       ]);
-      
+
       const invData = await invRes.json();
       const expData = expRes ? await expRes.json() : [];
       const invoicesList = Array.isArray(invData) ? invData : (invData?.data || []);
@@ -548,7 +555,7 @@ const Transactions = () => {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
-      
+
       if (response.ok) {
         notify('success', 'Registry Purged', 'Transaction has been successfully removed from logs.');
         fetchData();
@@ -583,13 +590,13 @@ const Transactions = () => {
             };
       const response = await fetch(`${API_URL}/${endpoint}/${selectedTransaction.id}`, {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${user?.token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
-      
+
       if (response.ok) {
         notify('success', 'Registry Updated', 'Transaction details have been harmonized.');
         fetchData();
@@ -624,41 +631,37 @@ const Transactions = () => {
       title={user?.role === 'Client' ? "My History" : "Transaction Registry"}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
+      searchMaxWidth="lg:max-w-xs"
       hideAddButton
       hideViewToggle
       searchActions={
-        <>
-          <div className="flex items-center shrink-0 h-[52px]">
-            <ZenDropdown
-              label="Status"
-              value={statusFilter}
-              onChange={(value: any) => setStatusFilter(value)}
-              options={['All', 'Completed', 'Pending', 'Failed']}
-              className="w-[180px]"
-              hideLabel
-            />
-          </div>
-          <div className="flex items-center shrink-0 h-[52px]">
-            <ZenMasterCalendar
-              label="Date Range"
-              value={dateRange}
-              onChange={(value: any) => setDateRange(value)}
-              selectionType="range"
-              variant="pill"
-              className="w-[200px]"
-              hideLabel
-            />
-          </div>
-          <div className="flex items-center shrink-0 h-[52px]">
-            <ZenDropdown
-              label="Branch"
-              value={branchFilter}
-              onChange={(value: any) => setBranchFilter(value)}
-              options={branchOptions}
-              className="w-[180px]"
-              hideLabel
-            />
-          </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <ZenDropdown
+            label="Status"
+            value={statusFilter}
+            onChange={(value: any) => setStatusFilter(value)}
+            options={['All', 'Completed', 'Pending', 'Failed']}
+            className="w-[150px]"
+            hideLabel
+          />
+          <ZenMasterCalendar
+            label="Date Range"
+            value={dateRange}
+            onChange={(value: any) => setDateRange(value)}
+            selectionType="range"
+            variant="pill"
+            className="w-[180px]"
+            hideLabel
+          />
+          <ZenDropdown
+            label="Branch"
+            value={branchFilter}
+            onChange={(value: any) => setBranchFilter(value)}
+            options={branchOptions}
+            className="w-[150px]"
+            hideLabel
+            disabled={user?.role !== 'Admin'}
+          />
           <ExportPopup<Transaction>
             data={filteredTransactions}
             columns={transactionExportColumns}
@@ -668,7 +671,7 @@ const Transactions = () => {
             description="Choose format and export the complete transaction sheet with source, branch, invoice, expense, payment, amount, and audit values."
             resolveData={fetchAllTransactionsForExport}
           />
-        </>
+        </div>
       }
       topContent={
         user?.role !== 'Client' ? (
@@ -690,7 +693,7 @@ const Transactions = () => {
 
 
         {/* Immersive Transaction Table */}
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[1000px]">
             <thead>
               <tr>
@@ -793,10 +796,10 @@ const Transactions = () => {
             </div>
 
         {/* Pagination Service */}
-        <ZenPagination 
-          currentPage={page} 
-          totalPages={totalPages} 
-          onPageChange={setPage} 
+        <ZenPagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
         />
 
         {/* Update Protocol Modal */}
@@ -808,17 +811,17 @@ const Transactions = () => {
           headerIcon={Receipt}
           footer={
             <div className="flex gap-6">
-              <ZenButton 
-                variant="secondary" 
-                className="flex-1 text-[10px] tracking-[0.2em] font-black" 
+              <ZenButton
+                variant="secondary"
+                className="flex-1 text-[10px] tracking-[0.2em] font-black"
                 onClick={() => setIsEditModalOpen(false)}
                 type="button"
               >
                 CANCEL
               </ZenButton>
-              <ZenButton 
-                variant="primary" 
-                className="flex-[2] bg-zen-sand hover:bg-zen-sand/90 shadow-lg shadow-zen-sand/20 flex items-center justify-center gap-3 text-[10px] tracking-[0.2em] font-black" 
+              <ZenButton
+                variant="primary"
+                className="flex-[2] bg-zen-sand hover:bg-zen-sand/90 shadow-lg shadow-zen-sand/20 flex items-center justify-center gap-3 text-[10px] tracking-[0.2em] font-black"
                 type="submit"
                 form="update-transaction-form"
                 disabled={isSubmitting}
@@ -851,7 +854,7 @@ const Transactions = () => {
                 </>
               ) : (
                 <>
-                  <ZenInput 
+                  <ZenInput
                     label="Expense Title"
                     value={selectedTransaction.title}
                     onChange={(e) => setSelectedTransaction({...selectedTransaction, title: e.target.value})}
@@ -870,7 +873,7 @@ const Transactions = () => {
                       onChange={(val: string) => setSelectedTransaction({ ...selectedTransaction, date: val })}
                     />
                   </div>
-                  <ZenInput 
+                  <ZenInput
                     label="Amount"
                     type="number"
                     value={selectedTransaction.amount}

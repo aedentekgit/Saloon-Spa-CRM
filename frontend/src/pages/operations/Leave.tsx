@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { 
-  CalendarDays, CheckCircle2, XCircle, Plus, Trash2, Calendar, 
-  ArrowRight, Tag 
+import {
+  CalendarDays, CheckCircle2, XCircle, Plus, Trash2, Calendar,
+  ArrowRight, Tag
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
@@ -93,29 +93,29 @@ const Leave = () => {
 
   const dateWindow = useMemo(() => {
     if (!dateRange || dateRange === 'All') return { startDate: '', endDate: '' };
-    
+
     const now = dayjs();
     if (typeof dateRange === 'string') {
       if (dateRange === 'Today') return { startDate: now.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
       if (dateRange === 'Week') return { startDate: now.subtract(7, 'day').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
       if (dateRange === 'Month') return { startDate: now.subtract(1, 'month').format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
-      
+
       if (dateRange.length === 7) { // YYYY-MM
         const m = dayjs(dateRange + '-01');
         return { startDate: m.startOf('month').format('YYYY-MM-DD'), endDate: m.endOf('month').format('YYYY-MM-DD') };
       }
-      
+
       if (dateRange.length === 10) { // YYYY-MM-DD
         return { startDate: dateRange, endDate: dateRange };
       }
-      
+
       return { startDate: '', endDate: '' };
     }
 
     if (dateRange.from || dateRange.to) {
-      return { 
-        startDate: dateRange.from || dateRange.to || '', 
-        endDate: dateRange.to || dateRange.from || '' 
+      return {
+        startDate: dateRange.from || dateRange.to || '',
+        endDate: dateRange.to || dateRange.from || ''
       };
     }
 
@@ -248,7 +248,7 @@ const Leave = () => {
     try {
       const response = await fetch(`${API_URL}/leaves/${id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user?.token}`
         },
@@ -337,7 +337,7 @@ const Leave = () => {
                         <div className="h-full bg-zen-sand w-[60%] rounded-full transition-all duration-1000" />
                      </div>
                   </div>
-                  
+
                   <div className="group p-5 bg-zen-leaf/5 rounded-2xl border border-zen-leaf/10 hover:bg-white transition-all duration-500">
                      <div className="flex justify-between items-center mb-1">
                         <span className="text-[9px] font-bold text-zen-leaf/40 uppercase tracking-[0.2em]">Wellness Buffer</span>
@@ -371,7 +371,7 @@ const Leave = () => {
          </div>
 
          <div className="lg:col-span-3">
-            <div className="table-container w-full bg-white rounded-[2rem] border border-zen-brown/10 shadow-[0_20px_50px_rgba(0,0,0,0.03)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-1000 h-fit">
+            <div className="table-container w-full bg-white rounded-[2rem] border border-zen-brown/10 shadow-none overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-1000 h-fit">
                   <div className="hidden sm:block">
                   <table className="w-full text-center border-collapse">
                      <thead>
@@ -443,7 +443,7 @@ const Leave = () => {
                               <td>
                                  <div className="flex justify-center">
                                     <ZenBadge variant={
-                                       req.status === 'Approved' ? 'leaf' : 
+                                       req.status === 'Approved' ? 'leaf' :
                                        req.status === 'Rejected' ? 'danger' : 'sand'
                                     } className="scale-90 font-black uppercase tracking-[0.2em] px-5 py-2 rounded-full">
                                        {req.status}
@@ -454,22 +454,22 @@ const Leave = () => {
                                  <div className="flex items-center justify-center gap-2">
                                     {(req.status === 'Pending' && (user?.role === 'Admin' || user?.role === 'Manager')) && (
                                        <>
-                                          <ZenIconButton 
-                                            icon={CheckCircle2} 
+                                          <ZenIconButton
+                                            icon={CheckCircle2}
                                             variant="leaf"
                                             onClick={() => handleStatusChange(req._id, 'Approved')}
                                           />
-                                          <ZenIconButton 
-                                            icon={XCircle} 
-                                            variant="danger" 
+                                          <ZenIconButton
+                                            icon={XCircle}
+                                            variant="danger"
                                             onClick={() => handleStatusChange(req._id, 'Rejected')}
                                           />
                                        </>
                                     )}
                                     {((user?.role === 'Admin' || user?.role === 'Manager') || (req.user === user?._id && req.status === 'Pending')) && (
-                                       <ZenIconButton 
-                                         icon={Trash2} 
-                                         variant="danger" 
+                                       <ZenIconButton
+                                         icon={Trash2}
+                                         variant="danger"
                                          onClick={() => { setRequestToDelete(req._id); setIsConfirmOpen(true); }}
                                        />
                                     )}
@@ -512,7 +512,7 @@ const Leave = () => {
                               {req.status}
                            </ZenBadge>
                         </div>
-                        
+
                         <div className="p-5 bg-zen-cream/20 rounded-[1.5rem] border border-zen-brown/5 relative">
                            <div className="flex justify-between items-center mb-3">
                               <span className="text-[9px] font-black text-zen-brown/40 uppercase tracking-[.2em]">{req.type}</span>
@@ -555,4 +555,3 @@ const Leave = () => {
 };
 
 export default Leave;
-

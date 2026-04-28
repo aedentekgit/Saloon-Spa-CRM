@@ -48,10 +48,10 @@ const About = () => {
           </div>
 
           <div className="relative group">
-            <div className="aspect-[4/5] lg:aspect-square rounded-[3rem] lg:rounded-[5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(74,55,40,0.15)] relative z-10 border-[12px] border-white">
-              <img 
-                src={withBase('/about_hero_zen_1776541173591.png')} 
-                alt="Zen Sanctuary" 
+            <div className="aspect-[4/5] lg:aspect-square rounded-[3rem] lg:rounded-[5rem] overflow-hidden shadow-none relative z-10 border-[12px] border-white">
+              <img
+                src={withBase('/about_hero_zen_1776541173591.png')}
+                alt="Zen Sanctuary"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]"
               />
             </div>
@@ -85,19 +85,19 @@ const About = () => {
           {/* Pillar Cards - Refined Minimalist Design */}
           <div className="grid lg:grid-cols-3 gap-1px bg-zen-brown/10 border border-zen-brown/10 rounded-[3rem] overflow-hidden shadow-2xl shadow-zen-brown/5">
             {[
-              { 
-                icon: History, 
-                title: 'Ancestral Healing', 
+              {
+                icon: History,
+                title: 'Ancestral Healing',
                 desc: 'Preserving the sanctity of traditional ayurvedic and herbal practices, sourcing rare botanicals from sustainable mountain gardens.'
               },
-              { 
-                icon: Sparkles, 
-                title: 'Modern Luxury', 
+              {
+                icon: Sparkles,
+                title: 'Modern Luxury',
                 desc: 'Acoustically tuned sanctuaries equipped with ambient light cycles to match your circadian rhythm for ultimate restoration.'
               },
-              { 
-                icon: Heart, 
-                title: 'Radical Empathy', 
+              {
+                icon: Heart,
+                title: 'Radical Empathy',
                 desc: 'Anticipatory service rooted in the art of silence. We aim to understand your needs before they are ever voiced.'
               }
             ].map((pillar, idx) => (
@@ -121,10 +121,10 @@ const About = () => {
           {/* Founder Quote - Editorial Layout */}
           <div className="mt-40 grid lg:grid-cols-2 gap-24 items-center">
             <div className="relative group overflow-hidden rounded-[4rem] aspect-[4/5] shadow-2xl">
-              <img 
-                src={withBase('/about_founder_portrait_1776541198229.png')} 
-                alt="Elena Vora" 
-                className="w-full h-full object-cover group-hover:scale-105 transition-all duration-1000" 
+              <img
+                src={withBase('/about_founder_portrait_1776541198229.png')}
+                alt="Elena Vora"
+                className="w-full h-full object-cover group-hover:scale-105 transition-all duration-1000"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-zen-brown/40 to-transparent opacity-60" />
               <div className="absolute bottom-12 left-12">

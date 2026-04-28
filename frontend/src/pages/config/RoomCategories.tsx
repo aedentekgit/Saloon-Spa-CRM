@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Plus, Edit2, Trash2, DoorOpen, Sparkles, 
+import {
+  Plus, Edit2, Trash2, DoorOpen, Sparkles,
   X, Search, Grid, List, AlertCircle, Zap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -47,12 +47,12 @@ const categoryMatchesSearch = (category: RoomCategory, searchTerm: string) => {
 
 const RoomCategories = () => {
   const { user } = useAuth();
-  const { 
-    categories, 
-    loading, 
-    createCategory, 
-    updateCategory, 
-    deleteCategory 
+  const {
+    categories,
+    loading,
+    createCategory,
+    updateCategory,
+    deleteCategory
   } = useCategories();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -132,7 +132,7 @@ const RoomCategories = () => {
   };
 
   const filteredCategories = useMemo<RoomCategory[]>(() => {
-    return (categories as RoomCategory[]).filter(c => 
+    return (categories as RoomCategory[]).filter(c =>
       c.type === 'room' && categoryMatchesSearch(c, searchTerm)
     );
   }, [categories, searchTerm]);
@@ -240,12 +240,12 @@ const RoomCategories = () => {
                           {cat.name.charAt(0)}
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all duration-500">
-                      <ZenIconButton 
-                        icon={Sparkles} 
-                        variant={cat.isActive ? 'leaf' : 'inactive'} 
-                        onClick={() => toggleStatus(cat)} 
+                      <ZenIconButton
+                        icon={Sparkles}
+                        variant={cat.isActive ? 'leaf' : 'inactive'}
+                        onClick={() => toggleStatus(cat)}
                         className={cat.isActive ? 'text-zen-leaf' : 'text-slate-400'}
                       />
                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(cat)} />
@@ -275,7 +275,7 @@ const RoomCategories = () => {
           )}
         </div>
       ) : (
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-in fade-in duration-700">
+        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
               <tr>
@@ -307,7 +307,7 @@ const RoomCategories = () => {
                   </td>
                   <td>
                      <div className="flex justify-center">
-                        <button 
+                        <button
                           onClick={() => toggleStatus(cat)}
                           className="group/status transition-transform active:scale-95"
                         >
