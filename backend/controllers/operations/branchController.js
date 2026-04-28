@@ -14,7 +14,7 @@ const getPublicBranches = async (req, res) => {
       req,
       {
         // Deliberately exclude security-sensitive fields (e.g., allowedIPs).
-        select: 'name logo isActive contactNumber address lat lng radius'
+        select: 'name logo isActive contactNumber address lat lng radius restrictionMode'
       }
     );
     res.json(pagination ? { data, pagination } : data);
@@ -30,7 +30,7 @@ const getBranches = async (req, res) => {
   try {
     const isAdmin = req.user?.role === 'Admin';
     const filter = isAdmin ? {} : { isActive: true };
-    const select = isAdmin ? undefined : 'name logo isActive contactNumber address lat lng radius';
+    const select = isAdmin ? undefined : 'name logo isActive contactNumber address lat lng radius restrictionMode';
 
     const { data, pagination } = await paginateModelQuery(Branch, filter, req, { select });
     res.json(pagination ? { data, pagination } : data);
@@ -66,6 +66,7 @@ const createBranch = async (req, res) => {
       lat: req.body.lat,
       lng: req.body.lng,
       radius: req.body.radius,
+      restrictionMode: req.body.restrictionMode || 'geofence',
       allowedIPs: req.body.allowedIPs ? (typeof req.body.allowedIPs === 'string' ? JSON.parse(req.body.allowedIPs) : req.body.allowedIPs) : []
     });
 
@@ -91,6 +92,7 @@ const updateBranch = async (req, res) => {
       branch.lat = req.body.lat !== undefined ? req.body.lat : branch.lat;
       branch.lng = req.body.lng !== undefined ? req.body.lng : branch.lng;
       branch.radius = req.body.radius !== undefined ? req.body.radius : branch.radius;
+      branch.restrictionMode = req.body.restrictionMode || branch.restrictionMode;
       if (req.body.allowedIPs) {
          branch.allowedIPs = typeof req.body.allowedIPs === 'string' ? JSON.parse(req.body.allowedIPs) : req.body.allowedIPs;
       }

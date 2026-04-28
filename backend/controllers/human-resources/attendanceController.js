@@ -1,8 +1,10 @@
 const Attendance = require('../../models/human-resources/Attendance');
 const Employee = require('../../models/human-resources/Employee');
 const Leave = require('../../models/human-resources/Leave');
+const Shift = require('../../models/human-resources/Shift');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch } = require('../../utils/branch');
+const { autoMarkAbsent } = require('../../jobs/autoAbsent');
 
 // Haversine formula to calculate distance between two coordinates in meters
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -52,8 +54,22 @@ const getAttendance = async (req, res) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { branch } = req.query;
+    const { branch, startDate, endDate, user: userId, employeeName } = req.query;
     let query = {};
+
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = startDate;
+      if (endDate) query.date.$lte = endDate;
+    }
+
+    if (userId) {
+      query.user = userId;
+    }
+
+    if (employeeName) {
+      query.employeeName = { $regex: new RegExp(`^${employeeName}$`, 'i') };
+    }
     const userBranchId = getBranchId(req.user.branch);
 
     if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
@@ -68,12 +84,19 @@ const getAttendance = async (req, res) => {
       }
 
       if (branchToFilter && branchToFilter !== 'all') {
-        const branchEmployees = await Employee.find({ branch: branchToFilter }).select('_id');
-        const userIds = branchEmployees.map(emp => emp._id);
+        const [branchEmployees, branchUsers] = await Promise.all([
+          Employee.find({ branch: branchToFilter }).select('_id'),
+          User.find({ branch: branchToFilter }).select('_id')
+        ]);
+        const userIds = [
+          ...branchEmployees.map(emp => emp._id),
+          ...branchUsers.map(user => user._id)
+        ];
         query.user = { $in: userIds };
       }
     }
 
+    console.log('[Attendance] Querying with:', JSON.stringify(query, null, 2));
     const { data, pagination } = await paginateModelQuery(Attendance, query, req, {
       sort: { createdAt: -1 }
     });
@@ -83,9 +106,165 @@ const getAttendance = async (req, res) => {
   }
 };
 
-// @desc    Mark attendance (Check-in/Check-out with Payroll Logic)
-// @route   POST /api/attendance
+// @desc    Check-in (Staff Portal)
+// @route   POST /api/attendance/check-in
 // @access  Private
+const checkIn = async (req, res) => {
+  const { date, time, latitude, longitude } = req.body;
+  
+  try {
+    const employee = await Employee.findOne({ email: req.user.email }).populate('branch');
+    if (!employee) return res.status(404).json({ message: 'Employee profile not found' });
+
+    // 1. Shift Rule: Cannot check in before [Shift Start - 5 mins]
+    if (employee.shift) {
+      const shiftDoc = await Shift.findOne({ name: employee.shift });
+      if (shiftDoc) {
+        const shiftStartMins = timeToMinutes(shiftDoc.startTime);
+        const currentMins = timeToMinutes(time);
+        
+        if (currentMins < (shiftStartMins - 5)) {
+          return res.status(400).json({ 
+            message: `Too Early: Check-in for ${employee.shift} (${shiftDoc.startTime}) only starts at ${minutesToTime(shiftStartMins - 5)}.` 
+          });
+        }
+      }
+    }
+
+    // 2. Duplicate Check: No multiple check-ins
+    let record = await Attendance.findOne({ user: req.user._id, date: date });
+    if (record && record.checkIn !== '--') {
+      return res.status(400).json({ message: 'Already checked in for today' });
+    }
+
+    // 3. Geofence/IP Restriction
+    if (employee.branch) {
+      const { lat, lng, radius, allowedIPs } = employee.branch;
+      const hasGeofence = !!(lat && lng && radius > 0);
+      const hasIPRestriction = !!(allowedIPs && allowedIPs.length > 0);
+      
+      let geofenceMatch = true;
+      let ipMatch = true;
+
+      if (hasGeofence) {
+        if (!latitude || !longitude) {
+          geofenceMatch = false;
+        } else {
+          const distance = calculateDistance(lat, lng, latitude, longitude);
+          geofenceMatch = (distance <= radius);
+        }
+      }
+
+      if (hasIPRestriction) {
+        const staffIP = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const cleanIP = staffIP.includes('::ffff:') ? staffIP.split('::ffff:')[1] : staffIP;
+        
+        console.log('--- CHECK-IN IP DEBUG ---');
+        console.log('Detected IP:', cleanIP);
+        console.log('Allowed IPs:', allowedIPs);
+        
+        ipMatch = allowedIPs.some(ip => ip === cleanIP || cleanIP.includes(ip));
+      }
+
+      if (hasGeofence && hasIPRestriction) {
+        if (!geofenceMatch && !ipMatch) return res.status(403).json({ message: 'Presence Denied: Outside boundaries and unauthorized network.' });
+      } else if (hasGeofence && !geofenceMatch) {
+        return res.status(403).json({ message: 'Presence Out of Bounds: Please ensure you are at the sanctuary.' });
+      } else if (hasIPRestriction && !ipMatch) {
+        return res.status(403).json({ message: 'Network Restriction: Please connect to the sanctuary Wi-Fi.' });
+      }
+    }
+
+    // 4. Create/Update Record
+    if (!record) {
+      record = await Attendance.create({
+        user: req.user._id,
+        employeeName: employee.name,
+        date,
+        checkIn: time,
+        shift: employee.shift || 'None',
+        status: 'Present'
+      });
+    } else {
+      record.checkIn = time;
+      record.status = 'Present';
+      await record.save();
+    }
+
+    res.status(201).json(record);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// @desc    Check-out (Staff Portal)
+// @route   POST /api/attendance/check-out
+// @access  Private
+const checkOut = async (req, res) => {
+  const { date, time } = req.body;
+
+  try {
+    const employee = await Employee.findOne({ email: req.user.email }).populate('branch');
+    let record = await Attendance.findOne({ user: req.user._id, date: date });
+
+    if (!record || record.checkIn === '--') {
+      return res.status(400).json({ message: 'No check-in record found for today' });
+    }
+
+    if (record.checkOut !== '--') {
+      return res.status(400).json({ message: 'Already checked out for today' });
+    }
+
+    record.checkOut = time;
+    
+    // Calculate duration and earnings
+    const start = timeToMinutes(record.checkIn);
+    const end = timeToMinutes(time);
+    
+    if (end > start) {
+      const duration = end - start;
+      record.duration = duration;
+      if (employee && employee.payroll) {
+        const shiftMinutes = (employee.payroll.shiftHours || 8) * 60;
+        const otMinutes = Math.max(0, duration - shiftMinutes);
+        record.overtimeMinutes = otMinutes;
+        
+        let dailyEarnings = 0;
+        const { type, baseAmount, otRate } = employee.payroll;
+        if (type === 'Monthly') {
+          const dailyBase = (employee.salary || 0) / 30;
+          const otPay = (otMinutes / 60) * (otRate || 0);
+          dailyEarnings = dailyBase + otPay;
+        } else {
+          const regularMinutes = Math.min(duration, shiftMinutes);
+          const regularPay = (regularMinutes / 60) * (baseAmount || 0);
+          const otPay = (otMinutes / 60) * (otRate || 0);
+          dailyEarnings = regularPay + otPay;
+        }
+        record.dailyEarnings = Math.round(dailyEarnings);
+        employee.earnings = (employee.earnings || 0) + record.dailyEarnings;
+        await employee.save();
+      }
+    }
+
+    await record.save();
+    res.json(record);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Helper to convert minutes back to time string
+const minutesToTime = (totalMinutes) => {
+  let hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const modifier = hours >= 12 ? 'PM' : 'AM';
+  if (hours > 12) hours -= 12;
+  if (hours === 0) hours = 12;
+  return `${hours}:${minutes.toString().padStart(2, '0')} ${modifier}`;
+};
+
+// @desc    Mark attendance (Admin Manual Entry)
 const markAttendance = async (req, res) => {
   const { date, checkIn, checkOut, status, employeeName, shift, targetUserId } = req.body;
 
@@ -114,25 +293,44 @@ const markAttendance = async (req, res) => {
        const branch = employee.branch;
        const { lat, lng, radius, allowedIPs } = branch;
        
-       if (lat && lng && radius > 0) {
+       const hasGeofence = !!(lat && lng && radius > 0);
+       const hasIPRestriction = !!(allowedIPs && allowedIPs.length > 0);
+       
+       let geofenceMatch = true;
+       let ipMatch = true;
+
+       if (hasGeofence) {
           const staffLat = req.body.latitude;
           const staffLng = req.body.longitude;
           if (!staffLat || !staffLng) {
-             return res.status(403).json({ message: 'Spatial Access Required' });
-          }
-          const distance = calculateDistance(lat, lng, staffLat, staffLng);
-          if (distance > radius) {
-             return res.status(403).json({ message: 'Presence Out of Bounds' });
+             geofenceMatch = false;
+          } else {
+             const distance = calculateDistance(lat, lng, staffLat, staffLng);
+             geofenceMatch = (distance <= radius);
           }
        }
-       
-       if (allowedIPs && allowedIPs.length > 0) {
+
+       if (hasIPRestriction) {
           const staffIP = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
           const cleanIP = staffIP.includes('::ffff:') ? staffIP.split('::ffff:')[1] : staffIP;
-          const isWhitelisted = allowedIPs.some(ip => ip === cleanIP || cleanIP.includes(ip));
-          if (!isWhitelisted) {
-             return res.status(403).json({ message: `Network Restriction` });
+          
+          // Debug Log: Check your terminal/console to see this!
+          console.log('--- ATTENDANCE IP DEBUG ---');
+          console.log('Detected IP:', cleanIP);
+          console.log('Allowed IPs:', allowedIPs);
+          
+          ipMatch = allowedIPs.some(ip => ip === cleanIP || cleanIP.includes(ip));
+       }
+
+       // OR Logic: If both are set, pass if either matches. If only one is set, it must match.
+       if (hasGeofence && hasIPRestriction) {
+          if (!geofenceMatch && !ipMatch) {
+             return res.status(403).json({ message: 'Presence Denied: Outside sanctuary boundaries and unauthorized network.' });
           }
+       } else if (hasGeofence && !geofenceMatch) {
+          return res.status(403).json({ message: 'Presence Out of Bounds: Please ensure you are at the sanctuary or enable GPS.' });
+       } else if (hasIPRestriction && !ipMatch) {
+          return res.status(403).json({ message: 'Network Restriction: Please connect to the sanctuary Wi-Fi.' });
        }
     }
     
@@ -286,9 +484,28 @@ const updateAttendance = async (req, res) => {
   }
 };
 
+// @desc    Admin: backfill absent records for all past dates
+// @route   POST /api/attendance/backfill
+// @access  Admin only
+const backfillAbsent = async (req, res) => {
+  if (req.user.role !== 'Admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+  try {
+    const lookbackDays = parseInt(req.query.days) || 365;
+    const totalMarked = await /** @type {Promise<number>} */ (autoMarkAbsent(lookbackDays));
+    res.json({ message: `Backfill complete. ${totalMarked} absent records created.`, totalMarked });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getAttendance,
   markAttendance,
   deleteAttendance,
-  updateAttendance
+  updateAttendance,
+  checkIn,
+  checkOut,
+  backfillAbsent
 };

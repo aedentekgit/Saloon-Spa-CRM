@@ -116,6 +116,10 @@ interface SettingsData {
       closeTime: string;
     }
   };
+  maps: {
+    googleMapsApiKey: string;
+    enabled: boolean;
+  };
 }
 
 interface GSTRate {
@@ -125,7 +129,7 @@ interface GSTRate {
   isActive: boolean;
 }
 
-type SettingsSection = 'foundations' | 'hours' | 'storage' | 'visuals' | 'alerts' | 'smtp' | 'whatsapp' | 'payroll' | 'tax' | 'appearance';
+type SettingsSection = 'foundations' | 'hours' | 'storage' | 'visuals' | 'alerts' | 'smtp' | 'whatsapp' | 'payroll' | 'tax' | 'appearance' | 'maps';
 
 const Settings = () => {
   const { user } = useAuth();
@@ -146,7 +150,8 @@ const Settings = () => {
       saturday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
       sunday: { isOpen: true, openTime: '09:00', closeTime: '21:00' }
     },
-    billing: { gstEnabled: false }
+    billing: { gstEnabled: false },
+    maps: { googleMapsApiKey: '', enabled: false }
   };
 
   const [loading, setLoading] = useState(true);
@@ -156,6 +161,7 @@ const Settings = () => {
     return cached && cached.general ? cached : defaultSettings;
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection>('foundations');
 
   // Tax Section States
@@ -319,7 +325,8 @@ const Settings = () => {
           saturday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
           sunday: { isOpen: true, openTime: '09:00', closeTime: '21:00' }
         },
-        billing: data?.billing || { gstEnabled: false }
+        billing: data?.billing || { gstEnabled: false },
+        maps: data?.maps || { googleMapsApiKey: '', enabled: false }
       };
       
       setSettings(safeSettings);
@@ -329,13 +336,6 @@ const Settings = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (settings.theme?.primaryColor) {
-      document.documentElement.style.setProperty('--zen-sand', settings.theme.primaryColor);
-      document.documentElement.style.setProperty('--zen-primary', settings.theme.primaryColor);
-    }
-  }, [settings.theme?.primaryColor]);
 
   useEffect(() => {
     if (settings) setCachedJson('zen_settings_page', settings);
@@ -419,6 +419,7 @@ const Settings = () => {
         setSettings(prev => prev ? { ...prev, general: { ...prev.general, logo: data.logoUrl } } : null);
         notify('success', 'Identity Updated', 'Business branding logo has been updated.');
         setLogoFile(null);
+        setImagePreview(null);
         await refreshSettings();
       } else {
         notify('error', 'Upload Error', data.message || 'Failed to update branding asset.');
@@ -512,6 +513,7 @@ const Settings = () => {
     { id: 'whatsapp', name: 'WhatsApp Gateway', icon: MessageSquare, sub: 'Customer Messaging' },
     { id: 'alerts', name: 'Notification', icon: Bell, sub: 'System Alerts' },
     { id: 'storage', name: 'Storage', icon: Cloud, sub: 'File Management' },
+    { id: 'maps', name: 'Maps', icon: MapPin, sub: 'Google Integration' },
     { id: 'visuals', name: 'Appearance', icon: Palette, sub: 'Interface Styling' },
   ];
 
@@ -662,10 +664,10 @@ const Settings = () => {
                                     </div>
                                     <h4 className="text-xl font-serif font-bold mb-10 relative z-10 text-zen-brown">Brand Logo</h4>
                                     <div className="relative group w-fit mx-auto mb-10 z-10">
-                                       {(logoFile || settings.general.logo) ? (
+                                       {(imagePreview || settings.general.logo) ? (
                                          <div className="relative p-3 bg-white zen-pointed-surface border border-zen-brown/15 shadow-sm">
                                             <img 
-                                              src={logoFile ? URL.createObjectURL(logoFile) : getImageUrl(settings.general.logo)} 
+                                              src={imagePreview || getImageUrl(settings.general.logo)} 
                                               alt="Logo" 
                                               className="h-40 w-40 object-cover zen-pointed-surface shadow-sm" 
                                             />
@@ -679,7 +681,17 @@ const Settings = () => {
                                          </label>
                                        )}
                                     </div>
-                                    <input type="file" id="logo-upload-final" className="hidden" accept="image/*" onChange={e => setLogoFile(e.target.files?.[0] || null)} />
+                                    <input type="file" id="logo-upload-final" className="hidden" accept="image/*" onChange={e => {
+                                      const file = e.target.files?.[0] || null;
+                                      setLogoFile(file);
+                                      if (file) {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => setImagePreview(reader.result as string);
+                                        reader.readAsDataURL(file);
+                                      } else {
+                                        setImagePreview(null);
+                                      }
+                                    }} />
                                     
                                     {logoFile && (
                                        <ZenButton onClick={handleLogoUpload} className="w-full bg-zen-brown text-white hover:bg-zen-brown/90 py-5 rounded-[1.5rem] font-bold shadow-xl relative z-10">
@@ -873,70 +885,144 @@ const Settings = () => {
                      </div>
                   )}
 
-                  {activeSection === 'storage' && (
-                     <div className="max-w-4xl">
-                        <section className="bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
-                           <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
-                              <div>
-                                 <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Storage Provider</h3>
-                                 <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Configure automated file hosting.</p>
-                              </div>
-                              <div className="flex bg-zen-cream/30 p-1.5 rounded-2xl border border-zen-brown/15">
-                                 {['local', 'cloudinary'].map((prov) => (
-                                    <button 
-                                       key={prov}
-                                       onClick={() => setSettings(prev => prev ? {...prev, upload: {...prev.upload, provider: prov as any}} : null)}
-                                       className={`px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-500 ${settings.upload.provider === prov ? 'bg-white text-zen-brown shadow-lg' : 'text-zen-brown/40 hover:text-zen-brown'}`}
-                                    >
-                                       {prov === 'local' ? 'VPS' : 'Cloud'}
-                                    </button>
-                                 ))}
-                              </div>
-                           </header>
+                   {activeSection === 'storage' && (
+                      <div className="max-w-4xl">
+                         <section className="bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                            <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                               <div>
+                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Storage Provider</h3>
+                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Configure automated file hosting.</p>
+                               </div>
+                               <div className="flex bg-zen-cream/30 p-1.5 rounded-2xl border border-zen-brown/15">
+                                  {['local', 'cloudinary'].map((prov) => (
+                                     <button 
+                                        key={prov}
+                                        onClick={() => setSettings(prev => prev ? {...prev, upload: {...prev.upload, provider: prov as any}} : null)}
+                                        className={`px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-500 ${settings.upload.provider === prov ? 'bg-white text-zen-brown shadow-lg' : 'text-zen-brown/40 hover:text-zen-brown'}`}
+                                     >
+                                        {prov === 'local' ? 'VPS' : 'Cloud'}
+                                     </button>
+                                  ))}
+                               </div>
+                            </header>
 
-                           <AnimatePresence mode="wait">
-                              {settings.upload.provider === 'local' ? (
-                                 <motion.div key="local" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="p-6 sm:p-10 bg-zen-cream/10 rounded-[1rem] border border-zen-brown/15 flex flex-col sm:flex-row items-center gap-8 group text-center sm:text-left">
-                                    <div className="w-20 h-20 rounded-[1rem] bg-white flex items-center justify-center text-zen-sand shadow-sm group-hover:scale-110 transition-transform duration-700">
-                                       <HardDrive size={36} strokeWidth={1} />
-                                    </div>
-                                    <div>
-                                       <h4 className="text-2xl font-serif font-bold text-zen-brown">Local Filesystem</h4>
-                                       <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mt-1">Documents are stored in your private workspace.</p>
-                                    </div>
-                                 </motion.div>
-                              ) : (
-                                 <motion.div key="cloudinary" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-8">
-                                    <div className="bg-zen-cream/10 p-6 sm:p-10 rounded-[1rem] border border-zen-brown/15 space-y-8">
-                                       <ZenInput 
-                                          label="Cloud Name" 
-                                          value={settings.upload.cloudinaryCloudName}
-                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, upload: {...prev.upload, cloudinaryCloudName: e.target.value}} : null)}
-                                       />
-                                       <ZenInput 
-                                          label="API Key" 
-                                          value={settings.upload.cloudinaryApiKey}
-                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, upload: {...prev.upload, cloudinaryApiKey: e.target.value}} : null)}
-                                       />
-                                       <ZenInput 
-                                          label="API Secret" 
-                                          type="password"
-                                          value={settings.upload.cloudinaryApiSecret}
-                                          onChange={(e: any) => setSettings(prev => prev ? {...prev, upload: {...prev.upload, cloudinaryApiSecret: e.target.value}} : null)}
-                                       />
-                                    </div>
-                                 </motion.div>
-                              )}
-                           </AnimatePresence>
+                            <AnimatePresence mode="wait">
+                               {settings.upload.provider === 'local' ? (
+                                  <motion.div key="local" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="p-6 sm:p-10 bg-zen-cream/10 rounded-[1rem] border border-zen-brown/15 flex flex-col sm:flex-row items-center gap-8 group text-center sm:text-left">
+                                     <div className="w-20 h-20 rounded-[1rem] bg-white flex items-center justify-center text-zen-sand shadow-sm group-hover:scale-110 transition-transform duration-700">
+                                        <HardDrive size={36} strokeWidth={1} />
+                                     </div>
+                                     <div>
+                                        <h4 className="text-2xl font-serif font-bold text-zen-brown">Local Filesystem</h4>
+                                        <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mt-1">Documents are stored in your private workspace.</p>
+                                     </div>
+                                  </motion.div>
+                               ) : (
+                                  <motion.div key="cloudinary" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-8">
+                                     <div className="bg-zen-cream/10 p-6 sm:p-10 rounded-[1rem] border border-zen-brown/15 space-y-8">
+                                        <ZenInput 
+                                           label="Cloud Name" 
+                                           value={settings.upload.cloudinaryCloudName}
+                                           onChange={(e: any) => setSettings(prev => prev ? {...prev, upload: {...prev.upload, cloudinaryCloudName: e.target.value}} : null)}
+                                        />
+                                        <ZenInput 
+                                           label="API Key" 
+                                           value={settings.upload.cloudinaryApiKey}
+                                           onChange={(e: any) => setSettings(prev => prev ? {...prev, upload: {...prev.upload, cloudinaryApiKey: e.target.value}} : null)}
+                                        />
+                                        <ZenInput 
+                                           label="API Secret" 
+                                           type="password"
+                                           value={settings.upload.cloudinaryApiSecret}
+                                           onChange={(e: any) => setSettings(prev => prev ? {...prev, upload: {...prev.upload, cloudinaryApiSecret: e.target.value}} : null)}
+                                        />
+                                     </div>
+                                  </motion.div>
+                               )}
+                            </AnimatePresence>
 
-                           <div className="mt-12">
-                              <ZenButton onClick={() => handleSave('upload')} className="w-full py-5 rounded-[1.5rem] text-lg shadow-sm">
-                                 Update Storage Gateway
-                              </ZenButton>
-                           </div>
-                        </section>
-                     </div>
-                  )}
+                            <div className="mt-12">
+                               <ZenButton onClick={() => handleSave('upload')} className="w-full py-5 rounded-[1.5rem] text-lg shadow-sm">
+                                  Update Storage Gateway
+                               </ZenButton>
+                            </div>
+                         </section>
+                      </div>
+                   )}
+
+                   {activeSection === 'maps' && (
+                      <div className="max-w-4xl">
+                         <section className="bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">
+                            <header className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                               <div>
+                                  <h3 className="text-3xl font-serif font-bold text-zen-brown tracking-tight">Map Intelligence</h3>
+                                  <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-2">Configure Google Maps API for branch geofencing.</p>
+                               </div>
+                               <div className="flex items-center gap-6 p-4 bg-zen-cream/30 rounded-3xl border border-zen-brown/10 backdrop-blur-md">
+                                 <div className="flex flex-col items-end">
+                                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">MAPS ENGINE</p>
+                                    <p className="text-sm font-serif font-bold text-zen-sand">{settings.maps.enabled ? 'Synchronized' : 'Offline'}</p>
+                                 </div>
+                                 <button 
+                                    onClick={() => setSettings(prev => prev ? {...prev, maps: {...prev.maps, enabled: !prev.maps.enabled}} : null)}
+                                    className={`w-16 h-8 rounded-full flex items-center px-1 transition-all duration-500 ${settings.maps.enabled ? 'bg-zen-sand shadow-[0_0_20px_rgba(234,179,8,0.4)]' : 'bg-zen-brown/10'}`}
+                                 >
+                                    <motion.div layout className="w-6 h-6 rounded-full bg-white shadow-sm" animate={{ x: settings.maps.enabled ? 32 : 0 }} />
+                                  </button>
+                               </div>
+                            </header>
+
+                            <div className="space-y-8">
+                               <div className="bg-zen-cream/10 p-6 sm:p-10 rounded-[1rem] border border-zen-brown/15 space-y-8">
+                                  <ZenInput 
+                                     label="Google Maps API Key" 
+                                     type="password"
+                                     placeholder="Enter your Google Maps JavaScript API Key"
+                                     value={settings.maps.googleMapsApiKey}
+                                     onChange={(e: any) => setSettings(prev => prev ? {...prev, maps: {...prev.maps, googleMapsApiKey: e.target.value}} : null)}
+                                  />
+                                  
+                                   <div className="p-6 bg-white/50 rounded-xl border border-zen-brown/5 space-y-4">
+                                      <div className="flex items-center justify-between">
+                                         <h4 className="text-[10px] font-black uppercase tracking-widest text-zen-brown/40">Required Capabilities</h4>
+                                         <a 
+                                            href="https://console.cloud.google.com/google/maps-apis/credentials" 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-[9px] font-bold text-zen-sand hover:underline flex items-center gap-1"
+                                         >
+                                            <Info size={12} />
+                                            Google Cloud Console
+                                         </a>
+                                      </div>
+                                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                         {[
+                                            'Maps JavaScript API',
+                                            'Geocoding API',
+                                            'Places API',
+                                            'Distance Matrix API'
+                                         ].map(api => (
+                                            <li key={api} className="flex items-center gap-2 text-xs text-zen-brown/60">
+                                               <div className="w-1.5 h-1.5 rounded-full bg-zen-sand" />
+                                               {api}
+                                            </li>
+                                         ))}
+                                      </ul>
+                                      <div className="mt-4 p-4 bg-red-50/50 rounded-xl border border-red-100/50">
+                                         <p className="text-[10px] text-red-600/70 font-medium leading-relaxed">
+                                            <b>Note:</b> If you see "Oops! Something went wrong" on the map, ensure your API key is restricted to the correct domain (e.g. localhost) and that the "Maps JavaScript API" is enabled.
+                                         </p>
+                                      </div>
+                                   </div>
+                               </div>
+
+                               <ZenButton onClick={() => handleSave('maps')} className="w-full py-5 rounded-[1.5rem] text-lg shadow-sm">
+                                  Synchronize Maps Gateway
+                               </ZenButton>
+                            </div>
+                         </section>
+                      </div>
+                   )}
 
                    {activeSection === 'alerts' && (
                       <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-12 rounded-[1.5rem] border border-zen-brown/15 shadow-sm">

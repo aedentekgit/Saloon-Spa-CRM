@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'motion/react';
 import dayjs from 'dayjs';
 import { useAuth } from '../../context/AuthContext';
 import {
   UserPlus, Mail, Phone, Edit2, Trash2, User, Search,
   UserCircle, Lock, Eye, EyeOff, Sparkles, Calendar, Info,
   FileText, Upload, Download, File, Loader2, Cloud, Clock, Zap, Shield,
-  Grid, List
+  Grid, List, ChevronLeft, ChevronRight, LayoutGrid, CalendarDays
 } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 import { validatePhoneNumber, getPhoneValidationProtocol } from '../../utils/validation';
@@ -19,7 +20,7 @@ dayjs.extend(customParseFormat);
 // Global Zen Components
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenPagination } from '../../components/zen/ZenPagination';
-import { ZenDropdown, ZenInput, ZenTextarea, ZenDatePicker } from '../../components/zen/ZenInputs';
+import { ZenDropdown, ZenInput, ZenTextarea, ZenDatePicker, ZenMonthPicker } from '../../components/zen/ZenInputs';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
@@ -141,7 +142,7 @@ const Employees = () => {
     branch: '',
     status: 'Active',
     shift: '',
-    shiftType: 'Day' as 'Day' | 'Week' | 'Month',
+    shiftType: 'Week' as 'Day' | 'Week' | 'Month',
     payroll: {
       type: 'Monthly' as const,
       baseAmount: 0,
@@ -152,6 +153,7 @@ const Employees = () => {
   });
 
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'config' | 'payroll' | 'documents' | 'activity'>('profile');
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [docName, setDocName] = useState('');
@@ -334,8 +336,10 @@ const Employees = () => {
       await Promise.all(promises);
       notify('success', 'Roster Created', `Generated ${cycleDays} schedule entries based on ${editingEmp.shiftType} shift.`);
 
-      // Force refresh activity data
-      const res = await fetch(`${API_URL}/attendance`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
+      // Force refresh activity data using same date-range API as StaffAttendance
+      const start = dayjs(historyMonth).startOf('month').format('YYYY-MM-DD');
+      const end = dayjs(historyMonth).endOf('month').format('YYYY-MM-DD');
+      const res = await fetch(`${API_URL}/attendance?startDate=${start}&endDate=${end}&employeeName=${encodeURIComponent(editingEmp.name)}&limit=500`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
       const data = await res.json();
       const attendanceList = Array.isArray(data) ? data : (data?.data || []);
       if (Array.isArray(attendanceList)) {
@@ -354,11 +358,17 @@ const Employees = () => {
     if (activeTab === 'activity' && editingEmp) {
       const getAttendanceHistory = async () => {
         try {
-          const res = await fetch(`${API_URL}/attendance`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
+          const start = dayjs(historyMonth).startOf('month').format('YYYY-MM-DD');
+          const end = dayjs(historyMonth).endOf('month').format('YYYY-MM-DD');
+          const res = await fetch(`${API_URL}/attendance?startDate=${start}&endDate=${end}&employeeName=${encodeURIComponent(editingEmp.name)}&limit=500`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
           const data = await res.json();
           const attendanceList = Array.isArray(data) ? data : (data?.data || []);
           if (Array.isArray(attendanceList)) {
-            const history = attendanceList.filter((item: any) => item.user?._id === editingEmp._id || item.user === editingEmp._id);
+            const history = attendanceList.filter((item: any) =>
+              item.user?._id === editingEmp._id ||
+              item.user === editingEmp._id ||
+              item.employeeName?.toLowerCase() === editingEmp.name?.toLowerCase()
+            );
             history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             setEmployeeAttendance(history);
           }
@@ -366,7 +376,7 @@ const Employees = () => {
       };
       getAttendanceHistory();
     }
-  }, [activeTab, editingEmp]);
+  }, [activeTab, editingEmp, historyMonth]);
 
    const deleteAttendance = async (id: string) => {
      openConfirm(
@@ -611,7 +621,7 @@ const Employees = () => {
         branch: getEmployeeBranchId(emp),
         status: emp.status || 'Active',
         shift: emp.shift || '',
-        shiftType: emp.shiftType || 'Day',
+        shiftType: (emp.shiftType === 'Day' ? 'Week' : emp.shiftType) || 'Week',
         payroll: emp.payroll || { type: 'Monthly', baseAmount: 0, otRate: 0, shiftHours: 8, commissionBasis: true }
       });
     } else {
@@ -629,11 +639,12 @@ const Employees = () => {
         branch: branches.length > 0 ? branches[0]._id : '',
         status: 'Active',
         shift: '',
-        shiftType: 'Day',
+        shiftType: 'Week',
         payroll: { type: 'Monthly', baseAmount: 0, otRate: 0, shiftHours: 8, commissionBasis: true }
       });
     }
     setProfilePicFile(null);
+    setImagePreview(null);
     setActiveTab('profile');
     setIsModalOpen(true);
   };
@@ -908,11 +919,25 @@ const Employees = () => {
           <section className="grid grid-cols-1 lg:grid-cols-[96px_minmax(0,1fr)] gap-5 lg:gap-6 items-start">
             <div className="relative mx-auto lg:mx-0 w-24 h-24 sm:w-28 sm:h-28 group cursor-pointer shrink-0">
               <div className="w-full h-full zen-pointed-surface ring-4 ring-zen-cream overflow-hidden bg-zen-cream flex items-center justify-center transition-all group-hover:ring-zen-brown/20 shadow-xl">
-                {(profilePicFile || (editingEmp && editingEmp.profilePic)) ? (
-                  <img src={profilePicFile ? URL.createObjectURL(profilePicFile) : getImageUrl(editingEmp?.profilePic)} className="w-full h-full object-cover" />
+                {(imagePreview || (editingEmp && editingEmp.profilePic)) ? (
+                  <img src={imagePreview || getImageUrl(editingEmp?.profilePic)} className="w-full h-full object-cover" />
                 ) : <UserCircle className="text-zen-brown/10" size={56} />}
               </div>
-              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e => setProfilePicFile(e.target.files?.[0] || null)} />
+              <input 
+                type="file" 
+                className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                onChange={e => {
+                  const file = e.target.files?.[0] || null;
+                  setProfilePicFile(file);
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setImagePreview(reader.result as string);
+                    reader.readAsDataURL(file);
+                  } else {
+                    setImagePreview(null);
+                  }
+                }} 
+              />
             </div>
 
             <div className="space-y-3 lg:pt-0.5">
@@ -970,7 +995,13 @@ const Employees = () => {
                     <div className="col-span-1">
                        <ZenDropdown
                          label="Assigned Shift"
-                         options={['None', ...(shifts || []).map(s => s.name)]}
+                         options={[
+                           { label: 'None', value: 'None' },
+                           ...(shifts || []).map(s => ({
+                             label: `${s.name} (${s.startTime} - ${s.endTime})`,
+                             value: s.name
+                           }))
+                         ]}
                          value={formData.shift || 'None'}
                          onChange={(val) => {
                             const selectedShift = (shifts || []).find(s => s.name === val);
@@ -985,13 +1016,36 @@ const Employees = () => {
                          }}
                          icon={Clock}
                        />
+                       {formData.shift && shifts.find(s => s.name === formData.shift) && (
+                         <motion.div 
+                           initial={{ opacity: 0, y: 10 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           className="mt-2 p-4 bg-zen-gold/5 rounded-2xl border border-zen-gold/10 flex items-center justify-between"
+                         >
+                           <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-zen-gold shadow-sm">
+                               <Clock size={14} />
+                             </div>
+                             <div>
+                               <p className="text-[10px] font-black text-zen-brown uppercase tracking-widest">Shift Insight</p>
+                               <p className="text-xs font-serif italic text-zen-brown/60">
+                                 {shifts.find(s => s.name === formData.shift)?.startTime} – {shifts.find(s => s.name === formData.shift)?.endTime}
+                               </p>
+                             </div>
+                           </div>
+                           <div className="text-right">
+                             <p className="text-[10px] font-black text-zen-brown uppercase tracking-widest">Duration</p>
+                             <p className="text-xs font-bold text-zen-gold">{shifts.find(s => s.name === formData.shift)?.durationHours} Hours</p>
+                           </div>
+                         </motion.div>
+                       )}
                     </div>
 
                     <div className="col-span-1">
                        <ZenDropdown
                           label="Schedule Cycle"
-                          options={['Day', 'Week', 'Month']}
-                          value={formData.shiftType}
+                          options={['Week', 'Month']}
+                          value={formData.shiftType === 'Day' ? 'Week' : formData.shiftType}
                           onChange={(val: any) => setFormData({...formData, shiftType: val})}
                           icon={Zap}
                        />
@@ -1010,6 +1064,122 @@ const Employees = () => {
                         <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-500 ${formData.payroll.commissionBasis ? 'left-7' : 'left-1'}`} />
                       </button>
                     </div>
+
+                    {/* Schedule Cycle Calendar */}
+                    {(formData.shiftType === 'Week' || formData.shiftType === 'Month') && (() => {
+                      const today = dayjs();
+
+                      if (formData.shiftType === 'Week') {
+                        // Sat-starting week
+                        const dow = today.day(); // 0=Sun,6=Sat
+                        const satOffset = dow === 6 ? 0 : -(dow + 1);
+                        const weekStart = today.add(satOffset, 'day');
+                        const weekEnd = weekStart.add(6, 'day');
+                        const weekDays = Array.from({ length: 7 }, (_, i) => weekStart.add(i, 'day'));
+                        const dayLabels = ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'];
+
+                        return (
+                          <motion.div
+                            key="week-cal"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="col-span-1 md:col-span-2 p-6 bg-white/90 rounded-[2rem] border border-zen-brown/10"
+                          >
+                            <div className="flex items-center justify-between mb-5">
+                              <div>
+                                <p className="text-[10px] font-black text-zen-brown uppercase tracking-widest">Week Cycle</p>
+                                <p className="text-[9px] font-serif italic text-zen-brown/40 mt-0.5">Saturday — Friday</p>
+                              </div>
+                              <span className="text-[10px] font-bold text-zen-brown/40 bg-zen-cream/50 px-3 py-1.5 rounded-full border border-zen-brown/10">
+                                {weekStart.format('MMM D')} – {weekEnd.format('MMM D, YYYY')}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-7 gap-2">
+                              {dayLabels.map((label, i) => (
+                                <div key={i} className="text-center text-[8px] font-black text-zen-brown/30 uppercase tracking-widest pb-1">{label}</div>
+                              ))}
+                              {weekDays.map((day, i) => {
+                                const isToday = day.isSame(today, 'day');
+                                return (
+                                  <div
+                                    key={i}
+                                    className={`flex flex-col items-center justify-center py-3 px-1 rounded-2xl border transition-all duration-300 ${
+                                      isToday
+                                        ? 'bg-zen-gold/10 border-zen-gold/30 shadow-sm shadow-zen-gold/10'
+                                        : 'bg-zen-cream/30 border-transparent'
+                                    }`}
+                                  >
+                                    <span className={`text-base font-serif font-black leading-none ${isToday ? 'text-zen-gold' : 'text-zen-brown/60'}`}>
+                                      {day.format('D')}
+                                    </span>
+                                    <span className={`text-[7px] font-bold uppercase tracking-widest mt-1 ${isToday ? 'text-zen-gold/70' : 'text-zen-brown/25'}`}>
+                                      {day.format('MMM')}
+                                    </span>
+                                    {isToday && (
+                                      <div className="w-1 h-1 rounded-full bg-zen-gold mt-1.5" />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+                        );
+                      }
+
+                      // Month calendar (Sat-starting grid)
+                      const startOfMonth = today.startOf('month');
+                      const daysInMonth = startOfMonth.daysInMonth();
+                      const firstDow = startOfMonth.day(); // 0=Sun,6=Sat
+                      const offset = (firstDow + 1) % 7; // cells before day 1 in Sat-starting grid
+                      const dayLabels = ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'];
+
+                      return (
+                        <motion.div
+                          key="month-cal"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="col-span-1 md:col-span-2 p-6 bg-white/90 rounded-[2rem] border border-zen-brown/10"
+                        >
+                          <div className="flex items-center justify-between mb-5">
+                            <div>
+                              <p className="text-[10px] font-black text-zen-brown uppercase tracking-widest">Month Cycle</p>
+                              <p className="text-[9px] font-serif italic text-zen-brown/40 mt-0.5">Full calendar month</p>
+                            </div>
+                            <span className="text-[10px] font-bold text-zen-brown/40 bg-zen-cream/50 px-3 py-1.5 rounded-full border border-zen-brown/10">
+                              {today.format('MMMM YYYY')}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-7 gap-1.5">
+                            {dayLabels.map((label, i) => (
+                              <div key={i} className="text-center text-[8px] font-black text-zen-brown/30 uppercase tracking-widest pb-1">{label}</div>
+                            ))}
+                            {Array.from({ length: offset }, (_, i) => (
+                              <div key={`e-${i}`} className="h-10 rounded-xl bg-zen-brown/[0.02]" />
+                            ))}
+                            {Array.from({ length: daysInMonth }, (_, i) => {
+                              const day = i + 1;
+                              const date = startOfMonth.date(day);
+                              const isToday = date.isSame(today, 'day');
+                              return (
+                                <div
+                                  key={day}
+                                  className={`h-10 flex flex-col items-center justify-center rounded-xl border transition-all duration-300 ${
+                                    isToday
+                                      ? 'bg-zen-gold/10 border-zen-gold/30 shadow-sm shadow-zen-gold/10'
+                                      : 'bg-zen-cream/30 border-transparent hover:bg-white hover:shadow-sm'
+                                  }`}
+                                >
+                                  <span className={`text-[11px] font-serif font-black leading-none ${isToday ? 'text-zen-gold' : 'text-zen-brown/50'}`}>
+                                    {day}
+                                  </span>
+                                  {isToday && <div className="w-1 h-1 rounded-full bg-zen-gold mt-0.5" />}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      );
+                    })()}
 
                     <ZenInput
                       label={formData.payroll.type === 'Monthly' ? "Base Salary" : "Hourly Rate"}
@@ -1103,133 +1273,132 @@ const Employees = () => {
                     </div>
                  </div>
               ) : activeTab === 'activity' ? (
-                <div className="animate-in fade-in duration-500 py-6 space-y-6">
-                         <div className="w-full">
-                             <div className="flex items-center justify-between bg-white/40 p-6 rounded-[2rem] border border-zen-brown/15 mb-6">
-                                <div className="flex items-center gap-6">
-                                   <ZenDropdown
-                                     label="Analysis Period"
-                                     options={Array.from({ length: 12 }, (_, i) => dayjs().subtract(i, 'month').format('MMMM YYYY'))}
-                                     value={dayjs(historyMonth, 'YYYY-MM').format('MMMM YYYY')}
-                                     onChange={(val) => setHistoryMonth(dayjs(val, 'MMMM YYYY').format('YYYY-MM'))}
-                                     icon={Calendar}
-                                   />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                   {employeeAttendance.length === 0 && (
-                                     <ZenButton onClick={simulateAttendance} variant="ghost" className="text-[10px] py-4 px-8 rounded-2xl border-dashed border-zen-brown/25">Generate Sample Data</ZenButton>
-                                   )}
-                                </div>
+                 <div className="animate-in fade-in duration-500 py-6 space-y-6">
+                    <div className="w-full">
+                       <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white/90 p-6 rounded-[2rem] border border-zen-brown/15 mb-6">
+                          <div className="flex items-center gap-6">
+                             <div className="block">
+                                <h3 className="text-xl md:text-2xl font-serif font-black text-zen-brown tracking-tight leading-none">Monthly Insights</h3>
+                                <p className="text-[8px] md:text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-1">Temporal Presence Registry</p>
                              </div>
+                             <ZenMonthPicker
+                                value={historyMonth}
+                                onChange={(v: any) => setHistoryMonth(v)}
+                                variant="pill"
+                                className="w-[180px]"
+                                hideLabel
+                             />
+                          </div>
 
-                            <div className="flex items-center justify-between gap-6 mb-4 shrink-0">
-                               <div className="flex bg-zen-cream/30 p-1.5 rounded-[1.5rem] border border-zen-brown/15 shadow-inner">
-                                  <button
-                                    type="button"
-                                    onClick={() => setHistoryView('calendar')}
-                                    className={`px-8 py-3 rounded-xl text-[10px] font-extrabold uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-2 ${historyView === 'calendar' ? 'bg-white text-zen-brown shadow-xl' : 'text-zen-brown/30 hover:text-zen-brown/50'}`}
-                                  >
-                                     <Calendar size={12} />
-                                     Calendar View
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setHistoryView('list')}
-                                    className={`px-8 py-3 rounded-xl text-[10px] font-extrabold uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-2 ${historyView === 'list' ? 'bg-white text-zen-brown shadow-xl' : 'text-zen-brown/30 hover:text-zen-brown/50'}`}
-                                  >
-                                     <Shield size={12} />
-                                     Log View
-                                  </button>
-                               </div>
-
-                            </div>
-                         </div>
+                          <div className="flex bg-zen-cream/30 p-1.5 rounded-[1.5rem] border border-zen-brown/15 shadow-inner">
+                             <button
+                               type="button"
+                               onClick={() => setHistoryView('calendar')}
+                               className={`px-8 py-3 rounded-xl text-[10px] font-extrabold uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-2 ${historyView === 'calendar' ? 'bg-white text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/50'}`}
+                             >
+                                <LayoutGrid size={12} />
+                                Calendar
+                             </button>
+                             <button
+                               type="button"
+                               onClick={() => setHistoryView('list')}
+                               className={`px-8 py-3 rounded-xl text-[10px] font-extrabold uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-2 ${historyView === 'list' ? 'bg-white text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/50'}`}
+                             >
+                                <CalendarDays size={12} />
+                                Log View
+                             </button>
+                          </div>
+                       </div>
+                    </div>
 
                     {historyView === 'calendar' ? (
-                       employeeAttendance.length > 0 ? (
-                          <div className="p-6 bg-white/40 rounded-[2rem] border border-zen-brown/15 animate-in zoom-in-95 duration-700 shadow-sm">
-                             <div className="flex items-center justify-between mb-6">
-                                <h4 className="text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em]">Attendance Overview · {dayjs(historyMonth).format('MMM YYYY')}</h4>
-                                <div className="flex gap-4">
-                                   <div className="flex items-center gap-2">
-                                      <div className="w-2 h-2 rounded-full bg-zen-leaf shadow-sm shadow-zen-leaf/40" />
-                                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Regular Hours</span>
-                                   </div>
-                                   <div className="flex items-center gap-2">
-                                      <div className="w-2 h-2 rounded-full bg-red-400 shadow-sm shadow-red-400/40" />
-                                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Overtime</span>
-                                   </div>
-                                </div>
-                             </div>
-
-                             <div className="grid grid-cols-7 gap-2 lg:gap-3">
+                          <div className="p-4 md:p-8 bg-white/90 backdrop-blur-2xl rounded-[2rem] md:rounded-[3rem] border border-white animate-in zoom-in-95 duration-700">
+                             <div className="grid grid-cols-7 gap-1 md:gap-3">
                                 {['S','M','T','W','T','F','S'].map((d, i) => (
-                                   <div key={i} className="text-center text-[9px] font-black text-zen-brown/10 uppercase mb-2">{d}</div>
+                                   <div key={i} className="text-center py-2 text-[8px] md:text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">{d}</div>
                                 ))}
-                                 {Array.from({ length: dayjs(historyMonth).startOf('month').day() }).map((_, i) => (
-                                   <div key={`empty-${i}`} />
-                                ))}
-                                 {Array.from({ length: dayjs(historyMonth).daysInMonth() }).map((_, i) => {
-                                    const day = i + 1;
-                                    const date = dayjs(historyMonth).date(day);
-                                    const dateStr = date.format('YYYY-MM-DD');
-                                    const record = employeeAttendance.find(a => a.date === dateStr);
-                                    const isToday = dayjs().format('YYYY-MM-DD') === dateStr;
+                                
+                                {(() => {
+                                   const startOfMonth = dayjs(historyMonth).startOf('month');
+                                   const daysInMonth = startOfMonth.daysInMonth();
+                                   const startDay = startOfMonth.day();
+                                   const days = [];
 
-                                    // High-precision cycle logic:
-                                    const anchorDate = dayjs(formData.joiningDate);
-                                    const isJoinMonth = anchorDate.format('YYYY-MM') === historyMonth;
-                                    const isFutureMonth = dayjs(historyMonth).isAfter(anchorDate, 'month');
+                                   for (let i = 0; i < startDay; i++) {
+                                      days.push(<div key={`empty-${i}`} className="h-16 md:h-28 rounded-[0.75rem] md:rounded-[1.5rem] bg-zen-brown/[0.02]" />);
+                                   }
 
-                                    let isInCycle = false;
-                                    let startDay = -1;
+                                   for (let d = 1; d <= daysInMonth; d++) {
+                                      const date = dayjs(historyMonth).date(d);
+                                      const dateStr = date.format('YYYY-MM-DD');
+                                      const record = employeeAttendance.find(a => a.date === dateStr);
+                                      const isToday = dayjs().isSame(date, 'day');
+                                      
+                                      const anchorDate = dayjs(formData.joiningDate);
+                                      const isJoined = date.isAfter(anchorDate, 'day') || date.isSame(anchorDate, 'day');
+                                      const isInCycle = isJoined && (formData.shiftType === 'Month' || (formData.shiftType === 'Day' ? date.day() >= 1 && date.day() <= 5 : true));
 
-                                    if (isJoinMonth) {
-                                       startDay = anchorDate.date();
-                                    } else if (isFutureMonth) {
-                                       startDay = 1;
-                                    }
-
-                                    if (startDay !== -1) {
-                                       const cycleDuration = formData.shiftType === 'Day' ? 5 : (formData.shiftType === 'Week' ? 7 : 40);
-                                       const cycleDiff = day - startDay;
-
-                                       if (formData.shiftType === 'Month') {
-                                          isInCycle = day >= startDay;
-                                       } else {
-                                          isInCycle = cycleDiff >= 0 && cycleDiff < cycleDuration;
-                                       }
-                                    }
-
-                                    return (
-                                       <div key={day} className={`aspect-square rounded-xl border flex flex-col p-2 relative transition-all duration-500 group cursor-default shadow-sm ${
-                                          record
-                                             ? record.overtimeMinutes > 0 ? 'bg-red-50/30 border-red-100 text-red-500 hover:shadow-red-200/50' : 'bg-zen-leaf/5 border-zen-leaf/10 text-zen-leaf hover:shadow-zen-leaf/20'
-                                             : isToday ? 'bg-zen-cream border-zen-brown/35 text-zen-brown' : 'bg-white/10 border-zen-brown/15 text-zen-brown/20'
-                                       } ${isInCycle && !record ? 'ring-2 ring-indigo-200/30 border-indigo-200 bg-indigo-50/10' : ''} hover:scale-105 hover:shadow-xl hover:z-10`}>
-                                          <span className={`text-[10px] font-bold tracking-widest relative z-10 ${record ? 'opacity-90' : isToday ? 'text-zen-brown' : 'text-zen-brown/60'}`}>{day}</span>
-                                          {record?.overtimeMinutes > 0 && <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse shadow-sm" />}
-                                          {isInCycle && !record && <div className="absolute bottom-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-sm" />}
-
-                                          <div className={`absolute inset-0 transition-all duration-500 bg-white/5 rounded-xl flex items-center justify-center p-1.5 pointer-events-none backdrop-blur-sm border border-zen-brown/15 shadow-sm z-0 ${isInCycle || record ? 'opacity-100' : 'opacity-0'}`}>
-                                             <p className="text-[8px] font-black uppercase tracking-widest text-zen-brown leading-relaxed text-center whitespace-pre-line">
-                                                 {record ? `${record.checkIn}\n—\n${record.checkOut}` : isInCycle ? (formData.shift || 'Full Shift') + '\nScheduled' : ''}
-                                             </p>
-                                          </div>
-                                       </div>
-                                    );
-                                 })}
+                                      days.push(
+                                         <div 
+                                           key={d} 
+                                           className={`h-24 md:h-28 p-2 md:p-3 rounded-[0.75rem] md:rounded-[1.5rem] border transition-all duration-500 relative group overflow-hidden ${
+                                             isToday 
+                                               ? 'bg-zen-gold/5 border-zen-gold/30 shadow-lg shadow-zen-gold/5' 
+                                               : 'bg-white/40 border-zen-brown/5 hover:border-zen-gold/20 hover:bg-white hover:shadow-xl'
+                                           }`}
+                                         >
+                                           <span className={`text-[10px] md:text-[11px] font-serif font-black ${isToday ? 'text-zen-gold' : 'text-zen-brown/30 group-hover:text-zen-brown'}`}>{d}</span>
+                                           
+                                           {record ? (
+                                             <div className="mt-1 md:mt-2 space-y-1 md:space-y-1.5">
+                                               <div className="flex items-center gap-1 md:gap-1.5">
+                                                 <div className={`w-1 md:w-1.5 h-1 md:h-1.5 rounded-full ${
+                                                   record.status === 'Present' ? 'bg-emerald-400' : 'bg-red-400'
+                                                 }`} />
+                                                 <span className="text-[7px] md:text-[9px] font-bold text-zen-brown uppercase tracking-widest leading-none truncate">{record.status}</span>
+                                               </div>
+                                               
+                                               <div className="flex flex-col gap-0.5 md:gap-1">
+                                                 <div className="flex items-center gap-1 md:gap-1.5 text-[7px] md:text-[9px] font-medium text-zen-brown/50">
+                                                   <Clock size={8} className="md:hidden text-zen-brown/20" />
+                                                   <Clock size={10} className="hidden md:block text-zen-brown/20" />
+                                                   <span className="truncate">{record.checkIn}–{record.checkOut || '...'}</span>
+                                                 </div>
+                                                 {(() => {
+                                                   const shiftLabel = (record.shift && record.shift !== 'None')
+                                                     ? record.shift
+                                                     : formData.shift || null;
+                                                   return shiftLabel ? (
+                                                     <div className="flex items-center gap-1 mt-0.5">
+                                                       <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/10 border border-violet-400/20 text-[6px] md:text-[8px] font-black text-violet-600 uppercase tracking-wider truncate max-w-full">
+                                                         <Zap size={7} className="shrink-0 fill-violet-500 text-violet-500" />
+                                                         {shiftLabel}
+                                                       </span>
+                                                     </div>
+                                                   ) : null;
+                                                 })()}
+                                               </div>
+                                             </div>
+                                           ) : (
+                                             isInCycle && formData.shift && (
+                                               <div className="absolute bottom-2 md:bottom-2.5 left-2 md:left-2.5 right-2 md:right-2.5">
+                                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/10 border border-violet-400/20 text-[6px] md:text-[7px] font-black text-violet-400 uppercase tracking-wider truncate max-w-full">
+                                                   <Zap size={6} className="shrink-0" />
+                                                   {formData.shift}
+                                                 </span>
+                                               </div>
+                                             )
+                                           )}
+                                         </div>
+                                      );
+                                   }
+                                   return days;
+                                })()}
                              </div>
                           </div>
-                       ) : (
-                          <div className="flex-1 flex flex-col items-center justify-center p-20 animate-in fade-in zoom-in-95 duration-1000">
-                             <div className="w-24 h-24 rounded-full border-2 border-dashed border-zen-brown/25 flex items-center justify-center text-zen-brown/20 mb-6">
-                                <Calendar size={40} strokeWidth={1} />
-                             </div>
-                             <p className="font-serif italic text-lg text-zen-brown/40">No activity recorded for this period</p>
-                          </div>
-                       )
-                     ) : (
+
+
+                    ) : (
                        <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden table-container animate-in fade-in duration-700">
                           <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
                              <thead>
@@ -1242,7 +1411,6 @@ const Employees = () => {
                              </thead>
                              <tbody className="divide-y divide-zen-brown/15">
                                 {employeeAttendance
-                                   .filter(log => log.date.startsWith(historyMonth))
                                    .map((log: any, idx: number) => (
                                       <tr key={idx} className="hover:bg-zen-cream/10 transition-all group">
                                          <td className="px-8 py-5">
@@ -1301,7 +1469,7 @@ const Employees = () => {
                                    ))}
                              </tbody>
                           </table>
-                          {employeeAttendance.filter(log => log.date.startsWith(historyMonth)).length === 0 && (
+                          {employeeAttendance.length === 0 && (
                              <div className="flex flex-col items-center justify-center py-24 text-zen-brown/10 space-y-6">
                                 <div className="w-20 h-20 rounded-[2.5rem] border border-dashed border-zen-brown/25 flex items-center justify-center">
                                    <Shield size={28} strokeWidth={1} />

@@ -65,7 +65,7 @@ const Sidebar = ({
       label: 'Team',
       items: [
         { name: 'Employees', icon: Briefcase, path: '/employees', permission: 'employees' },
-        { name: 'Attendance Ritual', icon: Clock, path: '/attendance', permission: 'attendance' },
+        { name: 'Attendance Ritual', icon: Clock, path: user?.role === 'Employee' ? '/staff-attendance' : '/attendance', permission: 'attendance' },
 
         { name: 'Shifts', icon: Timer, path: '/shifts', permission: ['shifts', 'settings'] },
         { name: 'Payroll', icon: Landmark, path: '/payroll', permission: ['payroll', 'finance'] },

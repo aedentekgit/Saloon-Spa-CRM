@@ -88,6 +88,7 @@ const Rooms = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [roomImageFile, setRoomImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
@@ -240,6 +241,7 @@ const Rooms = () => {
       });
     }
     setRoomImageFile(null);
+    setImagePreview(null);
     setIsModalOpen(true);
   };
 
@@ -747,11 +749,11 @@ const Rooms = () => {
                   <div className="flex items-center gap-8 sm:gap-12">
                     <div className="relative w-24 sm:w-40 h-24 sm:h-40 group cursor-pointer shrink-0">
                       <div className="w-full h-full zen-pointed-surface ring-4 ring-zen-sand/20 ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-xl relative">
-                        {(roomImageFile || previewRoomImage) ? (
+                        {(imagePreview || previewRoomImage) ? (
                           <img 
-                            src={roomImageFile ? URL.createObjectURL(roomImageFile) : previewRoomImage?.src} 
+                            src={imagePreview || previewRoomImage?.src} 
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                            style={roomImageFile ? undefined : { objectPosition: previewRoomImage?.objectPosition }}
+                            style={imagePreview ? undefined : { objectPosition: previewRoomImage?.objectPosition }}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif text-4xl sm:text-6xl uppercase tracking-tighter profile-pic-placeholder">
@@ -760,7 +762,21 @@ const Rooms = () => {
                         )}
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Camera className="text-white" size={32} /></div>
                       </div>
-                      <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e => setRoomImageFile(e.target.files?.[0] || null)} />
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                        onChange={e => {
+                          const file = e.target.files?.[0] || null;
+                          setRoomImageFile(file);
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setImagePreview(reader.result as string);
+                            reader.readAsDataURL(file);
+                          } else {
+                            setImagePreview(null);
+                          }
+                        }} 
+                      />
                       <div className="absolute bottom-1 right-1 p-3 bg-zen-brown text-white rounded-full shadow-lg scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={16} /></div>
                     </div>
                     <div className="flex-1">

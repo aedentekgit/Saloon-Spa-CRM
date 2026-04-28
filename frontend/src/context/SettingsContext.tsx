@@ -26,6 +26,9 @@ export interface SettingsData {
   };
   upload: {
     provider: 'cloudinary' | 'local';
+    cloudinaryCloudName?: string;
+    cloudinaryApiKey?: string;
+    cloudinaryApiSecret?: string;
   };
   billing?: {
     gstEnabled: boolean;
@@ -34,9 +37,28 @@ export interface SettingsData {
     host: string;
     port: number;
     user: string;
-    password: string;
+    password?: string;
     fromName: string;
     fromEmail: string;
+  };
+  whatsapp?: {
+    instanceId: string;
+    token: string;
+    provider: string;
+    enabled: boolean;
+  };
+  notifications: {
+    pushEnabled: boolean;
+    firebaseApiKey?: string;
+    firebaseAuthDomain?: string;
+    firebaseProjectId?: string;
+    firebaseStorageBucket?: string;
+    firebaseMessagingSenderId?: string;
+    firebaseAppId?: string;
+    firebaseMeasurementId?: string;
+    firebaseVapidKey?: string;
+    firebaseClientEmail?: string;
+    firebasePrivateKey?: string;
   };
   workingHours?: {
     [key in 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday']: {
@@ -44,6 +66,10 @@ export interface SettingsData {
       openTime: string;
       closeTime: string;
     }
+  };
+  maps?: {
+    googleMapsApiKey: string;
+    enabled: boolean;
   };
 }
 
@@ -137,18 +163,18 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const fetchSettings = async (silent: boolean = false) => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
     try {
       if (!silent && !settings) setLoading(true);
-      const endpoint = hasPermission('settings') ? 'settings' : 'settings/public';
-      const response = await fetch(`${API_URL}/${endpoint}`, {
-        headers: { 'Authorization': `Bearer ${user.token}` }
-      });
+      
+      const endpoint = (user && hasPermission('settings')) ? 'settings' : 'settings/public';
+      const headers: Record<string, string> = {};
+      if (user?.token) {
+        headers['Authorization'] = `Bearer ${user.token}`;
+      }
 
-      if (response.status === 401) {
+      const response = await fetch(`${API_URL}/${endpoint}`, { headers });
+
+      if (response.status === 401 && user) {
         logout();
         return;
       }
@@ -193,16 +219,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    if (user) {
-      fetchSettings();
-      
-      const interval = setInterval(() => {
-        if (!shouldPollNow()) return;
-        fetchSettings(true);
-      }, getPollIntervalMs(60000)); // default 60s
-      
-      return () => clearInterval(interval);
-    }
+    fetchSettings();
+    
+    const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
+      fetchSettings(true);
+    }, getPollIntervalMs(60000)); // default 60s
+    
+    return () => clearInterval(interval);
   }, [user]);
 
   useEffect(() => {
@@ -223,13 +247,39 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const sidebarGradient = deriveSidebarGradient(settings.theme.primaryColor);
       
       if (settings.theme.primaryColor) {
-        root.style.setProperty('--zen-sand', settings.theme.primaryColor);
-        root.style.setProperty('--zen-primary', settings.theme.primaryColor);
-        root.style.setProperty('--zen-contrast-text', getContrastColor(settings.theme.primaryColor));
+        const primary = settings.theme.primaryColor;
+        const contrast = getContrastColor(primary);
+        
+        // Base variables
+        root.style.setProperty('--zen-sand', primary);
+        root.style.setProperty('--zen-primary', primary);
+        root.style.setProperty('--zen-contrast-text', contrast);
+        
+        // RGB variables for transparency support
+        const rgb = hexToRgb(primary);
+        if (rgb) {
+          const rgbStr = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
+          root.style.setProperty('--zen-primary-rgb', rgbStr);
+          root.style.setProperty('--zen-sand-rgb', rgbStr);
+        }
+        
+        // Tailwind 4 compatible variables
+        root.style.setProperty('--color-zen-sand', primary);
+        root.style.setProperty('--color-zen-primary', primary);
+        root.style.setProperty('--color-zen-contrast', contrast);
+
+        // Derive tinted cream for background if not in dark mode
+        if (!settings.theme.darkMode) {
+          const tintedCream = mixHexColors(primary, '#FFFFFF', 0.97);
+          root.style.setProperty('--zen-cream', tintedCream);
+          root.style.setProperty('--color-zen-cream', tintedCream);
+        }
       }
 
       root.style.setProperty('--sidebar-gradient-start', sidebarGradient.start);
       root.style.setProperty('--sidebar-gradient-end', sidebarGradient.end);
+      root.style.setProperty('--color-sidebar-gradient-start', sidebarGradient.start);
+      root.style.setProperty('--color-sidebar-gradient-end', sidebarGradient.end);
 
       if (settings.theme.headingFont || settings.theme.bodyFont) {
         const hFont = settings.theme.headingFont || 'Plus Jakarta Sans';
@@ -301,6 +351,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const root = document.documentElement;
       root.style.setProperty('--sidebar-gradient-start', DEFAULT_SIDEBAR_START);
       root.style.setProperty('--sidebar-gradient-end', DEFAULT_SIDEBAR_END);
+      root.style.setProperty('--zen-primary', '#6D28D9');
+      root.style.setProperty('--zen-sand', '#8B5CF6');
+      root.style.setProperty('--color-zen-primary', '#6D28D9');
+      root.style.setProperty('--color-zen-sand', '#8B5CF6');
     }
 
       // Update Favicon — render as circle using canvas

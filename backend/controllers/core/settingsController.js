@@ -4,7 +4,7 @@ const { sendNotification } = require('../../utils/firebase');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { encrypt } = require('../../utils/secretCrypto');
+const { encrypt, decrypt } = require('../../utils/secretCrypto');
 
 const SECRET_MASK = '********';
 
@@ -38,6 +38,10 @@ const sanitizeSettingsForResponse = (settingsDoc) => {
     whatsapp: {
       ...settings.whatsapp,
       token: maskIfSet(settings.whatsapp?.token)
+    },
+    maps: {
+      ...settings.maps,
+      googleMapsApiKey: settings.maps?.googleMapsApiKey ? decrypt(settings.maps.googleMapsApiKey) : ''
     }
   };
 };
@@ -75,6 +79,10 @@ const buildPublicSettings = (settings) => ({
     friday: { isOpen: true, openTime: '14:00', closeTime: '23:00' },
     saturday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
     sunday: { isOpen: true, openTime: '09:00', closeTime: '21:00' }
+  },
+  maps: {
+    enabled: Boolean(settings?.maps?.enabled),
+    googleMapsApiKey: settings?.maps?.googleMapsApiKey ? decrypt(settings?.maps?.googleMapsApiKey) : ''
   }
 });
 
@@ -119,7 +127,7 @@ exports.updateSettings = async (req, res) => {
       settings = new Settings();
     }
 
-    const { general, upload, theme, notifications, billing, smtp, payroll, whatsapp, workingHours } = req.body;
+    const { general, upload, theme, notifications, billing, smtp, payroll, whatsapp, workingHours, maps } = req.body;
 
     if (general) {
       settings.general = { ...settings.general, ...general };
@@ -195,6 +203,18 @@ exports.updateSettings = async (req, res) => {
     if (workingHours) {
       settings.workingHours = { ...settings.workingHours, ...workingHours };
       settings.markModified('workingHours');
+    }
+    if (maps) {
+      const merged = { ...settings.maps, ...maps };
+      if (Object.prototype.hasOwnProperty.call(maps, 'googleMapsApiKey')) {
+        if (maps.googleMapsApiKey === SECRET_MASK) {
+          merged.googleMapsApiKey = settings.maps?.googleMapsApiKey;
+        } else {
+          merged.googleMapsApiKey = encrypt(maps.googleMapsApiKey);
+        }
+      }
+      settings.maps = merged;
+      settings.markModified('maps');
     }
 
     const updatedSettings = await settings.save();

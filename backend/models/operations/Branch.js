@@ -29,7 +29,12 @@ const branchSchema = new mongoose.Schema({
   lat: { type: Number },
   lng: { type: Number },
   radius: { type: Number, default: 100 }, // Radius in meters
-  allowedIPs: [{ type: String }]
+  allowedIPs: [{ type: String }],
+  restrictionMode: {
+    type: String,
+    enum: ['geofence', 'ip', 'none'],
+    default: 'geofence'
+  }
 }, {
   timestamps: true
 });

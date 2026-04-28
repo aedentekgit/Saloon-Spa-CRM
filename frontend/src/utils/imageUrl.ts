@@ -38,19 +38,7 @@ const normalizeRelativeUploadPath = (rawPath: string) => {
   if (cleanPath.toLowerCase().startsWith('api/uploads/')) {
     cleanPath = cleanPath.slice(4);
   }
-
-  if (cleanPath.toLowerCase().startsWith('uploads/')) {
-    const baseLastSegment = getApiBaseLastSegment();
-    if (baseLastSegment) {
-      const duplicateUploadPrefix = `uploads/${baseLastSegment}/`;
-      if (cleanPath.toLowerCase().startsWith(duplicateUploadPrefix.toLowerCase())) {
-        return `uploads/${cleanPath.slice(duplicateUploadPrefix.length)}`;
-      }
-    }
-    return cleanPath;
-  }
-
-  if (cleanPath.toLowerCase().startsWith('images/')) {
+  if (cleanPath.toLowerCase().startsWith('uploads/') || cleanPath.toLowerCase().startsWith('images/')) {
     return cleanPath;
   }
 

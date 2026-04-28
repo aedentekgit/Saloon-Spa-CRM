@@ -9,6 +9,7 @@ import { SettingsProvider } from './context/SettingsContext';
 
 import { BranchProvider } from './context/BranchContext';
 import { CategoryProvider } from './context/CategoryContext';
+import { MapsProvider } from './context/MapsContext';
 
 // Components
 import Sidebar from './components/layout/Sidebar';
@@ -30,6 +31,7 @@ const Appointments = React.lazy(() => import('./pages/operations/Appointments'))
 const Rooms = React.lazy(() => import('./pages/resources/Rooms'));
 const Employees = React.lazy(() => import('./pages/resources/Employees'));
 const Attendance = React.lazy(() => import('./pages/operations/Attendance'));
+const StaffAttendance = React.lazy(() => import('./pages/operations/StaffAttendance'));
 const Leave = React.lazy(() => import('./pages/operations/Leave'));
 const ApplyLeave = React.lazy(() => import('./pages/operations/ApplyLeave'));
 const Services = React.lazy(() => import('./pages/resources/Services'));
@@ -212,6 +214,7 @@ const AppRoutes = () => {
           <Route path="/rooms" element={guarded(<Rooms />)} />
           <Route path="/employees" element={guarded(<Employees />)} />
           <Route path="/attendance" element={guarded(<Attendance />)} />
+          <Route path="/staff-attendance" element={guarded(<StaffAttendance />)} />
           <Route path="/leave" element={guarded(<Leave />)} />
           <Route path="/leave/apply" element={guarded(<ApplyLeave />)} />
           <Route path="/services" element={guarded(<Services />)} />
@@ -247,19 +250,21 @@ export default function App() {
   return (
     <AuthProvider>
       <SettingsProvider>
-        <BranchProvider>
-          <CategoryProvider>
-            <DataProvider>
-              <Router basename={routerBase}>
-                <ScrollToTop />
-                <ErrorBoundary>
-                  <AppRoutes />
-                </ErrorBoundary>
-                <NotificationContainer />
-              </Router>
-            </DataProvider>
-          </CategoryProvider>
-        </BranchProvider>
+        <MapsProvider>
+          <BranchProvider>
+            <CategoryProvider>
+              <DataProvider>
+                <Router basename={routerBase}>
+                  <ScrollToTop />
+                  <ErrorBoundary>
+                    <AppRoutes />
+                  </ErrorBoundary>
+                  <NotificationContainer />
+                </Router>
+              </DataProvider>
+            </CategoryProvider>
+          </BranchProvider>
+        </MapsProvider>
       </SettingsProvider>
     </AuthProvider>
   );

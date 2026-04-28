@@ -98,6 +98,13 @@ export const ZenDropdown = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const displayValue = useMemo(() => {
+    if (!value) return placeholder;
+    const option = safeOptions.find(opt => (typeof opt === 'string' ? opt : opt.value) === value);
+    if (!option) return value;
+    return typeof option === 'string' ? option : option.label;
+  }, [safeOptions, value, placeholder]);
+
   return (
     <div className={`space-y-1 group relative ${isOpen ? 'z-[9999]' : 'z-10'} ${className} ${disabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`} ref={dropdownRef}>
       {!hideLabel && <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>}
@@ -117,7 +124,7 @@ export const ZenDropdown = ({
             }
             style={fontFamily ? { fontFamily } : {}}
           >
-            {value || placeholder}
+            {displayValue}
           </span>
         </div>
         <ChevronDown size={variant === 'pill' ? 14 : 18} className={`text-zen-brown/20 flex-shrink-0 transition-all duration-700 ${isOpen ? 'rotate-180 text-zen-gold' : ''}`} />
@@ -294,6 +301,23 @@ export const ZenAutocomplete = ({
 export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', type, required, containerClassName, compact, ...props }: any) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
+
+  if (type === 'date') {
+    return (
+      <ZenDatePicker 
+        {...props}
+        label={label}
+        icon={Icon}
+        variant={variant === 'professional' || variant === 'pill' ? 'pill' : 'line'}
+        className={containerClassName}
+        onChange={(val: string) => {
+          if (props.onChange) {
+            props.onChange({ target: { value: val, name: props.name } });
+          }
+        }}
+      />
+    );
+  }
   
   return (
     <div className={`space-y-2 group ${containerClassName || ''}`}>
@@ -390,7 +414,8 @@ export const ZenMasterCalendar = ({
   hideLabel = false,
   icon: Icon = Calendar,
   placeholder = "Select Date",
-  variant = 'line'
+  variant = 'line',
+  minDate
 }: {
   label: string;
   selectionType?: 'single' | 'range' | 'month';
@@ -401,6 +426,7 @@ export const ZenMasterCalendar = ({
   icon?: any;
   placeholder?: string;
   variant?: 'line' | 'pill';
+  minDate?: string;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -473,6 +499,7 @@ export const ZenMasterCalendar = ({
     if (selectionType === 'single') return value ? dayjs(value).format('DD MMM, YYYY') : placeholder;
     if (selectionType === 'month') return value ? dayjs(value + '-01').format('MMMM YYYY') : placeholder;
     if (selectionType === 'range') {
+      if (typeof value === 'string') return value;
       if (!value?.from) return placeholder;
       if (!value?.to) return `${dayjs(value.from).format('DD MMM')} - ...`;
       return `${dayjs(value.from).format('DD MMM')} - ${dayjs(value.to).format('DD MMM')}`;
@@ -562,15 +589,17 @@ export const ZenMasterCalendar = ({
                   const selected = isSelected(date);
                   const ranged = isInRange(date);
                   const isCurrentMonth = date.isSame(viewDate, 'month');
+                  const isBeforeMin = minDate && date.isBefore(dayjs(minDate), 'day');
                   
                   return (
                     <div key={i} className="relative">
                       <button
-                        onClick={() => handleDateClick(date)}
+                        onClick={() => !isBeforeMin && handleDateClick(date)}
+                        disabled={isBeforeMin}
                         className={`
                           w-10 h-10 rounded-xl text-xs font-bold transition-all relative z-10
-                          ${!isCurrentMonth ? 'text-zen-brown/10' : 'text-zen-brown'}
-                          ${selected ? 'bg-zen-brown text-white shadow-lg shadow-zen-brown/20' : 'hover:bg-zen-cream/40'}
+                          ${!isCurrentMonth || isBeforeMin ? 'text-zen-brown/10' : 'text-zen-brown'}
+                          ${selected ? 'bg-zen-brown text-white shadow-lg shadow-zen-brown/20' : isBeforeMin ? 'cursor-not-allowed' : 'hover:bg-zen-cream/40'}
                         `}
                       >
                         {date.date()}

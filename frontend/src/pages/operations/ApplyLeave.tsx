@@ -190,7 +190,14 @@ const ApplyLeave = () => {
                           type="date"
                           required
                           value={formData.startDate}
-                          onChange={(e: any) => setFormData({ ...formData, startDate: e.target.value })}
+                          onChange={(e: any) => {
+                            const newStart = e.target.value;
+                            setFormData(prev => ({
+                              ...prev,
+                              startDate: newStart,
+                              endDate: dayjs(prev.endDate).isBefore(dayjs(newStart)) ? newStart : prev.endDate
+                            }));
+                          }}
                           icon={Wind}
                           variant="pill"
                           className="!text-base"
@@ -200,6 +207,7 @@ const ApplyLeave = () => {
                           type="date"
                           required
                           value={formData.endDate}
+                          minDate={formData.startDate}
                           onChange={(e: any) => setFormData({ ...formData, endDate: e.target.value })}
                           icon={Moon}
                           variant="pill"

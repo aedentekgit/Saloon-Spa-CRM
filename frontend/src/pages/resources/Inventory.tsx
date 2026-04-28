@@ -72,6 +72,7 @@ const Inventory = () => {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(() => getCachedJson<InventoryItem[]>('zen_page_inventory_list', []).length === 0);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_inventory_view') as 'grid' | 'table') || 'table';
   });
@@ -163,6 +164,7 @@ const Inventory = () => {
 
   const handleOpenModal = (item: InventoryItem | null = null) => {
     setImageFile(null);
+    setImagePreview(null);
     if (item) {
       setEditingItem(item);
       setFormData({
@@ -475,15 +477,25 @@ const Inventory = () => {
         <form id="inventory-form" onSubmit={handleSubmit} className="space-y-8">
            <div className="flex items-center gap-8 mb-4">
               <div className="relative w-24 h-24 zen-pointed-surface overflow-hidden bg-zen-cream flex items-center justify-center group shadow-sm border border-white transition-all duration-700 hover:scale-105">
-                {(imageFile || formData.image) ? (
-                  <img src={imageFile ? URL.createObjectURL(imageFile) : getImageUrl(formData.image)} className="w-full h-full object-cover" />
+                {(imagePreview || formData.image) ? (
+                  <img src={imagePreview || getImageUrl(formData.image)} className="w-full h-full object-cover" />
                 ) : (
                   <Package className="text-zen-brown/10" size={32} />
                 )}
                 <label htmlFor="inventory-image-upload" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center cursor-pointer backdrop-blur-[2px]">
                    <Camera className="text-white" size={24} />
                 </label>
-                <input type="file" id="inventory-image-upload" className="hidden" onChange={e => setImageFile(e.target.files?.[0] || null)} />
+                <input type="file" id="inventory-image-upload" className="hidden" onChange={e => {
+                  const file = e.target.files?.[0] || null;
+                  setImageFile(file);
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setImagePreview(reader.result as string);
+                    reader.readAsDataURL(file);
+                  } else {
+                    setImagePreview(null);
+                  }
+                }} />
               </div>
               <div className="flex-1">
                  <ZenInput
@@ -562,7 +574,17 @@ const Inventory = () => {
                    <Camera size={16} className="text-zen-brown/30 group-hover/btn:text-white transition-colors" />
                    <span className="text-[10px] font-bold uppercase tracking-widest">Replace Image</span>
                 </label>
-                <input type="file" id="inventory-image-footer" className="hidden" onChange={e => setImageFile(e.target.files?.[0] || null)} />
+                <input type="file" id="inventory-image-footer" className="hidden" onChange={e => {
+                  const file = e.target.files?.[0] || null;
+                  setImageFile(file);
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setImagePreview(reader.result as string);
+                    reader.readAsDataURL(file);
+                  } else {
+                    setImagePreview(null);
+                  }
+                }} />
                 
                 {imageFile && (
                   <div className="flex items-center gap-2 text-zen-leaf">

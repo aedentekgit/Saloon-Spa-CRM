@@ -96,6 +96,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, PermissionId[]> = {
   '/rooms': ['rooms'],
   '/employees': ['employees'],
   '/attendance': ['attendance'],
+  '/staff-attendance': ['attendance'],
   '/leave': ['leave'],
   '/leave/apply': ['leave'],
   '/services': ['services'],

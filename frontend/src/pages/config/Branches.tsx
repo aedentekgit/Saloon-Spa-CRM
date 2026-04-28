@@ -4,6 +4,7 @@ import {
   Plus, Edit2, Trash2, MapPin, Mail, Phone, X, 
   Search, Building2, Globe, Activity, Camera, Grid, List, Sparkles, Zap
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from '../../context/SettingsContext';
 import { countries } from '../../utils/countries';
 
@@ -18,6 +19,7 @@ import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import { getImageUrl } from '../../utils/imageUrl';
+import { ZenMap, ZenGoogleSearchInput } from '../../components/zen/ZenMap';
 
 
 interface Branch {
@@ -32,6 +34,7 @@ interface Branch {
   lng?: number;
   radius?: number;
   allowedIPs?: string[];
+  restrictionMode?: 'geofence' | 'ip' | 'none';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -74,6 +77,7 @@ const Branches = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -145,7 +149,8 @@ const Branches = () => {
     lat: 0,
     lng: 0,
     radius: 100,
-    allowedIPs: '' as any
+    allowedIPs: '' as any,
+    restrictionMode: 'geofence'
   });
 
   const handleOpenModal = (branch: Branch | null = null) => {
@@ -165,7 +170,8 @@ const Branches = () => {
         lat: branch.lat || 0,
         lng: branch.lng || 0,
         radius: branch.radius || 100,
-        allowedIPs: Array.isArray(branch.allowedIPs) ? branch.allowedIPs.join(', ') : ''
+        allowedIPs: Array.isArray(branch.allowedIPs) ? branch.allowedIPs.join(', ') : '',
+        restrictionMode: branch.restrictionMode || 'geofence'
       });
     } else {
       setEditingBranch(null);
@@ -178,10 +184,12 @@ const Branches = () => {
         lat: 0,
         lng: 0,
         radius: 100,
-        allowedIPs: ''
+        allowedIPs: '',
+        restrictionMode: 'geofence'
       });
     }
     setLogoFile(null);
+    setImagePreview(null);
     setIsModalOpen(true);
   };
 
@@ -202,10 +210,17 @@ const Branches = () => {
       data.append('isActive', formData.isActive.toString());
       data.append('lat', formData.lat.toString());
       data.append('lng', formData.lng.toString());
+      data.append('restrictionMode', formData.restrictionMode);
       data.append('radius', formData.radius.toString());
       
-      const ipsArray = formData.allowedIPs.toString().split(',').map(ip => ip.trim()).filter(ip => ip);
-      data.append('allowedIPs', JSON.stringify(ipsArray));
+      if (formData.restrictionMode === 'geofence') {
+        data.append('allowedIPs', JSON.stringify([]));
+      } else if (formData.restrictionMode === 'ip') {
+        const ipsArray = formData.allowedIPs.toString().split(',').map(ip => ip.trim()).filter(ip => ip);
+        data.append('allowedIPs', JSON.stringify(ipsArray));
+      } else {
+        data.append('allowedIPs', JSON.stringify([]));
+      }
 
       if (logoFile) data.append('logo', logoFile);
 
@@ -519,7 +534,7 @@ const Branches = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        maxWidth="max-w-3xl"
+        maxWidth="max-w-5xl"
         header={
           <div className="flex items-start justify-between gap-6 px-6 sm:px-10 py-6 sm:py-8">
             <div className="flex items-start gap-4 sm:gap-5 min-w-0">
@@ -573,9 +588,9 @@ const Branches = () => {
               <div className="relative mx-auto mt-5 aspect-square w-40 sm:w-48 group">
                 <div className="absolute inset-0 rounded-[2rem] bg-zen-cream/30 blur-sm" />
                 <div className="relative h-full w-full overflow-hidden rounded-[2rem] border-4 border-white bg-zen-cream flex items-center justify-center shadow-lg">
-                  {logoFile || (editingBranch && editingBranch.logo) ? (
+                  {imagePreview || (editingBranch && editingBranch.logo) ? (
                     <img
-                      src={logoFile ? URL.createObjectURL(logoFile) : getImageUrl(editingBranch?.logo)}
+                      src={imagePreview || getImageUrl(editingBranch?.logo)}
                       alt={formData.name || 'Branch logo preview'}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
@@ -591,7 +606,17 @@ const Branches = () => {
                 <input
                   type="file"
                   className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                  onChange={e => setLogoFile(e.target.files?.[0] || null)}
+                  onChange={e => {
+                    const file = e.target.files?.[0] || null;
+                    setLogoFile(file);
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => setImagePreview(reader.result as string);
+                      reader.readAsDataURL(file);
+                    } else {
+                      setImagePreview(null);
+                    }
+                  }}
                 />
                 <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-zen-brown text-white flex items-center justify-center shadow-lg ring-4 ring-white">
                   <Edit2 size={14} />
@@ -643,13 +668,20 @@ const Branches = () => {
                   value={formData.isActive ? 'Active' : 'Inactive'}
                   onChange={(val) => setFormData({ ...formData, isActive: val === 'Active' })}
                 />
-                <ZenInput
+                <ZenGoogleSearchInput
                   label="Address"
                   icon={MapPin}
                   placeholder="Enter the physical address"
                   value={formData.address}
-                  onChange={(e: any) => setFormData({ ...formData, address: e.target.value })}
-                  containerClassName="sm:col-span-2"
+                  onChange={(address, lat, lng) => {
+                    const updates: any = { address };
+                    if (lat !== undefined && lng !== undefined) {
+                      updates.lat = lat;
+                      updates.lng = lng;
+                    }
+                    setFormData({ ...formData, ...updates });
+                  }}
+                  className="sm:col-span-2"
                 />
               </div>
             </div>
@@ -663,45 +695,106 @@ const Branches = () => {
               </div>
               <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-zen-brown/35">
                 <Globe size={12} />
-                Branch network
+                Branch Ritual Zone
               </div>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-3">
-              <ZenInput
-                label="Latitude"
-                type="number"
-                step="any"
-                value={formData.lat}
-                onChange={(e: any) => setFormData({ ...formData, lat: parseFloat(e.target.value) })}
-              />
-              <ZenInput
-                label="Longitude"
-                type="number"
-                step="any"
-                value={formData.lng}
-                onChange={(e: any) => setFormData({ ...formData, lng: parseFloat(e.target.value) })}
-              />
-              <ZenInput
-                label="Radius (meters)"
-                type="number"
-                value={formData.radius}
-                onChange={(e: any) => setFormData({ ...formData, radius: parseInt(e.target.value) })}
-              />
+            <div className="flex items-center gap-2 p-1 bg-zen-cream/50 rounded-2xl border border-zen-brown/10 mb-8 max-w-fit">
+              {[
+                { id: 'geofence', label: 'Geofencing', icon: MapPin },
+                { id: 'ip', label: 'IP Access', icon: Globe },
+                { id: 'none', label: 'Open Access', icon: X }
+              ].map((mode) => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, restrictionMode: mode.id as any })}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
+                    formData.restrictionMode === mode.id 
+                      ? 'bg-zen-brown text-white shadow-md' 
+                      : 'text-zen-brown/40 hover:bg-white'
+                  }`}
+                >
+                  <mode.icon size={12} />
+                  {mode.label}
+                </button>
+              ))}
             </div>
 
-            <div className="mt-6">
-              <ZenInput
-                label="Authorized IP addresses"
-                icon={Globe}
-                placeholder="e.g. 192.168.1.1, 122.164.20.1"
-                value={formData.allowedIPs}
-                onChange={(e: any) => setFormData({ ...formData, allowedIPs: e.target.value })}
-              />
-              <p className="text-[10px] text-zen-brown/35 mt-3 ml-1 tracking-[0.25em] uppercase">
-                Separate multiple IPs with commas. Leave empty to allow any network.
-              </p>
-            </div>
+            <AnimatePresence mode="wait">
+              <div className="grid gap-8 lg:grid-cols-2">
+                <div className="space-y-6">
+                  <ZenInput
+                    label="Geofence Radius (meters)"
+                    type="number"
+                    value={formData.radius}
+                    onChange={(e: any) => setFormData({ ...formData, radius: parseInt(e.target.value) })}
+                  />
+
+                  {formData.restrictionMode === 'geofence' && (
+                    <motion.div 
+                      key="geofence-info"
+                      initial={{ opacity: 0, x: -10 }} 
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                    >
+                      <p className="text-[10px] text-zen-brown/35 mt-1 ml-1 tracking-[0.25em] uppercase leading-relaxed">
+                        Security active. Employees can only clock in within this radius of the branch center.
+                      </p>
+                    </motion.div>
+                  )}
+
+                  {formData.restrictionMode === 'ip' && (
+                    <motion.div 
+                      key="ip-input"
+                      initial={{ opacity: 0, x: -10 }} 
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                    >
+                      <ZenInput
+                        label="Authorized IP addresses"
+                        icon={Globe}
+                        placeholder="e.g. 192.168.1.1, 122.164.20.1"
+                        value={formData.allowedIPs}
+                        onChange={(e: any) => setFormData({ ...formData, allowedIPs: e.target.value })}
+                      />
+                      <p className="text-[10px] text-zen-brown/35 mt-3 ml-1 tracking-[0.25em] uppercase">
+                        Separate multiple IPs with commas. Leave empty to allow any network.
+                      </p>
+                    </motion.div>
+                  )}
+
+                  {formData.restrictionMode === 'none' && (
+                    <motion.div 
+                      key="none-input"
+                      initial={{ opacity: 0 }} 
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="p-8 rounded-3xl bg-zen-sand/5 border border-zen-sand/20 text-center"
+                    >
+                      <div className="w-12 h-12 bg-zen-sand/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <Globe className="text-zen-sand" size={24} />
+                      </div>
+                      <h5 className="text-sm font-serif font-bold text-zen-brown mb-2">Unrestricted Access Mode</h5>
+                      <p className="text-[10px] text-zen-brown/50 leading-relaxed uppercase tracking-widest">
+                        Employees will be able to clock in from any location and any network. 
+                        Security geofencing and IP validation are currently disabled.
+                      </p>
+                    </motion.div>
+                  )}
+                </div>
+
+                <div className="h-[300px] lg:h-full min-h-[300px]">
+                  <div className="h-full">
+                    <ZenMap 
+                      center={{ lat: formData.lat, lng: formData.lng }}
+                      radius={formData.radius}
+                      onLocationSelect={(lat, lng) => setFormData({ ...formData, lat, lng })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </AnimatePresence>
           </div>
         </form>
       </Modal>

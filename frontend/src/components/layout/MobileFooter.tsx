@@ -44,7 +44,7 @@ const MobileFooter: React.FC = () => {
     { name: 'Memberships', icon: Crown, path: '/memberships', permission: ['memberships', 'billing'] },
     { name: 'Rooms', icon: Bed, path: '/rooms', permission: 'rooms' },
     { name: 'Specialists', icon: UserRound, path: '/employees', permission: 'employees' },
-    { name: 'Presence', icon: UserCheck, path: '/attendance', permission: 'attendance' },
+    { name: 'Presence', icon: UserCheck, path: user?.role === 'Employee' ? '/staff-attendance' : '/attendance', permission: 'attendance' },
     { name: 'Shifts', icon: Repeat, path: '/shifts', permission: ['shifts', 'settings'] },
     { name: 'Payroll', icon: TrendingUp, path: '/payroll', permission: ['payroll', 'finance'] },
     { name: 'Leave Matrix', icon: CalendarDays, path: '/leave', permission: 'leave' },

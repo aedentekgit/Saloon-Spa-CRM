@@ -112,6 +112,19 @@ const Memberships = () => {
 
     const [planDocumentFile, setPlanDocumentFile] = useState<File | null>(null);
     const [removePlanDocument, setRemovePlanDocument] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+       if (!planDocumentFile) {
+          setPreviewUrl(null);
+          return;
+       }
+       if (planDocumentFile.type.startsWith('image/')) {
+          const url = URL.createObjectURL(planDocumentFile);
+          setPreviewUrl(url);
+          return () => URL.revokeObjectURL(url);
+       }
+    }, [planDocumentFile]);
 
     const [enrollData, setEnrollData] = useState({
        clientId: '',
@@ -1226,7 +1239,7 @@ title="Membership Management"
                   <div className="w-24 h-24 rounded-3xl bg-white shadow-md flex items-center justify-center text-zen-brown/40 group-hover/upload:text-zen-sand group-hover/upload:scale-105 transition-all duration-500 overflow-hidden border-2 border-white">
                      {planDocumentFile ? (
                         planDocumentFile.type.startsWith('image/') ? (
-                           <img src={URL.createObjectURL(planDocumentFile)} className="w-full h-full object-cover" alt="Preview" />
+                           <img src={previewUrl || ''} className="w-full h-full object-cover" alt="Preview" />
                         ) : (
                            <FileText size={32} strokeWidth={1.5} />
                         )

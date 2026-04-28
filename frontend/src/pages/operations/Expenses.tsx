@@ -367,7 +367,7 @@ const Expenses = () => {
       hideAddButton
       hideBranchSelector
     >
-      <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="space-y-6 pb-20 mt-4">
+      <div className="space-y-6 pb-20 mt-4">
         <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
             {

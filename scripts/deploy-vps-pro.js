@@ -146,6 +146,7 @@ run(
 const remoteSteps = [
   'set -e',
   `test -f ${target.remoteRoot}/backend/.env`,
+  `mkdir -p ${target.remoteRoot}/backend/uploads`,
   `cd ${target.remoteRoot}/backend && npm install --omit=dev`,
   `cd ${target.remoteRoot}/backend && CHECK_ENV_STRICT=true node scripts/check-env-security.js`,
   `cd ${target.remoteRoot}/frontend && npm install && ${target.frontendBuildCmd}`,

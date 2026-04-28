@@ -43,10 +43,15 @@ const branchRoutes = require('./routes/operations/branchRoutes');
 const categoryRoutes = require('./routes/operations/categoryRoutes');
 const shiftRoutes = require('./routes/human-resources/shiftRoutes');
 const notificationRoutes = require('./routes/core/notificationRoutes');
+const permissionRoutes = require('./routes/human-resources/permissionRoutes');
 const { DEFAULT_UPLOAD_DIR } = require('./middleware/uploadMiddleware');
 
+const { scheduleAutoAbsent } = require('./jobs/autoAbsent');
+
 // Connect to database
-connectDB();
+connectDB().then(() => {
+  scheduleAutoAbsent();
+});
 
 const app = express();
 const isDev = process.env.NODE_ENV !== 'production';
@@ -178,6 +183,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leaves', leaveRoutes);
+app.use('/api/permissions', permissionRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/inventory', inventoryRoutes);

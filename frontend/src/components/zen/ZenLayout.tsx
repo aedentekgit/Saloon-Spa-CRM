@@ -41,55 +41,56 @@ export const ZenPageLayout = ({
   hideSearch = false,
   hideBranchSelector = false,
   hideViewToggle = false,
-  searchActions,
-  headerActions
-}: ZenLayoutProps) => {
-  const { loading } = useData();
-
-  return (
-    <div className="page-container min-h-screen p-3 sm:p-6 lg:p-10 pt-2 sm:pt-6 lg:pt-10 relative">
-      
-      {/* Top Loading Progress Bar */}
-      <AnimatePresence>
-        {loading && (
-          <motion.div 
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: '100%', opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.5, ease: "easeInOut" }}
-            className="fixed top-0 left-0 h-0.5 bg-gradient-to-r from-zen-sand via-zen-primary to-zen-sand z-[1000]"
-          />
+    searchActions,
+    headerActions,
+    searchMaxWidth = "lg:max-w-md"
+  }: ZenLayoutProps & { searchMaxWidth?: string }) => {
+    const { loading } = useData();
+  
+    return (
+      <div className="page-container min-h-screen p-3 sm:p-6 lg:p-10 pt-2 sm:pt-6 lg:pt-10 relative">
+        
+        {/* Top Loading Progress Bar */}
+        <AnimatePresence>
+          {loading && (
+            <motion.div 
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: '100%', opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.5, ease: "easeInOut" }}
+              className="fixed top-0 left-0 h-0.5 bg-gradient-to-r from-zen-sand via-zen-primary to-zen-sand z-[1000]"
+            />
+          )}
+        </AnimatePresence>
+        
+        {/* Spacer for removed title */}
+        <div className="h-0" />
+        
+        {topContent && (
+          <div className="mb-6">
+            {topContent}
+          </div>
         )}
-      </AnimatePresence>
-      
-      {/* Spacer for removed title */}
-      <div className="h-0" />
-      
-      {topContent && (
-        <div className="mb-6">
-          {topContent}
-        </div>
-      )}
-      
-      {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel) || searchActions || headerActions) && (
-        <div className="zen-pointed-surface border border-zen-stone bg-white shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-4 mb-4">
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 sm:gap-5 lg:gap-8 overflow-hidden">
-            {!hideSearch && (
-              <div className="w-full lg:flex-1 flex items-center gap-4">
-                <div className="relative group flex-1">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
-                  <input 
-                    type="text" 
-                    placeholder={`Search ${title?.toLowerCase() || 'records'}...`}
-                    value={searchTerm}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                    className="w-full h-[52px] pl-[52px] pr-6 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
-                  />
+        
+        {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel) || searchActions || headerActions) && (
+          <div className="zen-pointed-surface border border-zen-stone bg-white shadow-[0_16px_40px_rgba(0,0,0,0.04)] px-5 sm:px-6 py-4 mb-4">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 sm:gap-5 lg:gap-8">
+              {!hideSearch && (
+                <div className={`w-full ${searchMaxWidth} flex items-center gap-4`}>
+                  <div className="relative group flex-1">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
+                    <input 
+                      type="text" 
+                      placeholder={`Search ${title?.toLowerCase() || 'records'}...`}
+                      value={searchTerm}
+                      onChange={(e) => onSearchChange(e.target.value)}
+                      className="w-full h-[52px] pl-[52px] pr-6 bg-white/70 border border-zen-brown/10 rounded-[1.15rem] focus:bg-white focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/20 outline-none transition-all duration-500 text-sm font-medium shadow-sm"
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center justify-start lg:justify-end gap-3 sm:gap-5 lg:gap-8 lg:ml-auto shrink-0">
+              )}
+  
+              <div className="flex items-center justify-start lg:justify-end gap-3 sm:gap-5 lg:gap-8 lg:ml-auto shrink-0 flex-wrap">
               {searchActions && (
                 <div className="flex-shrink-0">
                   {searchActions}

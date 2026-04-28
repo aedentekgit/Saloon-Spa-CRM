@@ -127,6 +127,7 @@ const Clients = () => {
   });
 
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'membership' | 'history'>('profile');
   const [historyMonth, setHistoryMonth] = useState(dayjs().format('YYYY-MM'));
@@ -511,6 +512,7 @@ const Clients = () => {
       });
     }
     setProfilePicFile(null);
+    setImagePreview(null);
     setActiveTab('profile');
     setHistoryMonth(dayjs().format('YYYY-MM'));
     setSelectedMembershipHistory(null);
@@ -925,9 +927,9 @@ const Clients = () => {
                     <div className="relative mx-auto mt-5 aspect-square w-40 sm:w-48 group">
                       <div className="absolute inset-0 rounded-full bg-zen-cream/30 blur-sm" />
                       <div className="relative h-full w-full overflow-hidden zen-pointed-surface border-4 border-white bg-zen-cream flex items-center justify-center shadow-lg">
-                        {(profilePicFile || (editingClient && editingClient.profilePic)) ? (
+                        {(imagePreview || (editingClient && editingClient.profilePic)) ? (
                           <img
-                            src={profilePicFile ? URL.createObjectURL(profilePicFile) : getImageUrl(editingClient?.profilePic)}
+                            src={imagePreview || getImageUrl(editingClient?.profilePic)}
                             alt={formData.name || 'Client profile preview'}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                           />
@@ -943,7 +945,17 @@ const Clients = () => {
                       <input
                         type="file"
                         className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                        onChange={e => setProfilePicFile(e.target.files?.[0] || null)}
+                        onChange={e => {
+                          const file = e.target.files?.[0] || null;
+                          setProfilePicFile(file);
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setImagePreview(reader.result as string);
+                            reader.readAsDataURL(file);
+                          } else {
+                            setImagePreview(null);
+                          }
+                        }}
                       />
                       <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-zen-brown text-white flex items-center justify-center shadow-lg ring-4 ring-white">
                         <Edit2 size={14} />

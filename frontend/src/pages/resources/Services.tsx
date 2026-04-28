@@ -68,6 +68,7 @@ const Services = () => {
   const [activeTab, setActiveTab] = useState<'basic' | 'inventory' | 'commission'>('basic');
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [inventoryList, setInventoryList] = useState<any[]>(() => getCachedJson('zen_page_services_inventory', []));
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
@@ -307,6 +308,7 @@ const Services = () => {
 
   const handleOpenModal = (service: Service | null = null) => {
     setImageFile(null);
+    setImagePreview(null);
     if (service) {
       setEditingService(service);
       setFormData({
@@ -675,9 +677,9 @@ const Services = () => {
                 <div className="flex items-center gap-8 sm:gap-12">
                    <div className="relative w-24 sm:w-40 h-24 sm:h-40 group cursor-pointer shrink-0">
                       <div className="w-full h-full zen-pointed-surface ring-4 ring-zen-sand/20 ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-xl relative">
-                         {(imageFile || (editingService && editingService.image)) ? (
+                         {(imagePreview || (editingService && editingService.image)) ? (
                            <img 
-                             src={imageFile ? URL.createObjectURL(imageFile) : getImageUrl(editingService?.image)} 
+                             src={imagePreview || getImageUrl(editingService?.image)} 
                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                            />
                          ) : (
@@ -693,7 +695,17 @@ const Services = () => {
                       <input 
                         type="file" 
                         className="absolute inset-0 opacity-0 cursor-pointer z-10" 
-                        onChange={e => setImageFile(e.target.files?.[0] || null)} 
+                        onChange={e => {
+                          const file = e.target.files?.[0] || null;
+                          setImageFile(file);
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setImagePreview(reader.result as string);
+                            reader.readAsDataURL(file);
+                          } else {
+                            setImagePreview(null);
+                          }
+                        }} 
                       />
                       <div className="absolute bottom-1 right-1 p-3 bg-zen-brown text-white rounded-full shadow-lg scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={16} /></div>
                    </div>

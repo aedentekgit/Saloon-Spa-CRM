@@ -50,7 +50,7 @@ const Attendance = () => {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [dateRange, setDateRange] = useState<any>('All');
+  const [dateRange, setDateRange] = useState<any>('Today');
   const [shifts, setShifts] = useState<any[]>([]);
 
   const isAdminOrManager = user?.role === 'Admin' || user?.role === 'Manager';
@@ -274,7 +274,7 @@ const Attendance = () => {
         </div>
       }
     >
-      <div style={{ '--zen-primary': primaryColor } as React.CSSProperties} className="space-y-6 pb-20">
+      <div className="space-y-6 pb-20">
 
         {/* Registry Content */}
         {loading ? (

@@ -9,6 +9,7 @@ import {
 import { usePublicSettings } from '../../components/landing/usePublicSettings';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { getImageUrl } from '../../utils/imageUrl';
+import { withBase } from '../../utils/assetPath';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -98,38 +99,73 @@ const MembershipTiers = () => {
 
       <div className="max-w-[1400px] mx-auto relative z-10">
         {/* Header Section */}
-        <div className="text-center space-y-6 mb-24 max-w-4xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-3 px-6 py-2 bg-white rounded-full shadow-sm border border-zen-brown/5 text-[9px] font-black uppercase tracking-[0.4em] text-zen-sand"
-          >
-            <Sparkles size={14} />
-            Privileged Access
-          </motion.div>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-5xl sm:text-6xl lg:text-[7.5rem] font-serif font-black text-zen-brown leading-[0.85] tracking-tighter"
-          >
-            The Art of <br />
-            <span className="italic relative">
-               Loyalty
-               <div className="absolute -bottom-2 left-0 w-full h-2 bg-zen-sand/10 -rotate-1 rounded-full blur-sm" />
-            </span>
-          </motion.h1>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-lg sm:text-xl text-zen-brown/40 font-serif max-w-2xl mx-auto italic leading-relaxed"
-          >
-            Join an exclusive community dedicated to the pursuit of consistent wellness and profound restoration.
-          </motion.p>
-        </div>
+        <header className="relative z-10 pt-0 pb-20 lg:pb-32 mb-12">
+          <div className="grid lg:grid-cols-12 gap-12 items-center">
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1 }}
+              className="lg:col-span-7 space-y-10 relative z-20"
+            >
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 text-[10px] font-bold tracking-[0.4em] uppercase text-zen-brown/40">
+                  <span className="w-12 h-[1px] bg-zen-brown/20" />
+                  Privileged Access
+                </div>
+                <h1 className="text-5xl md:text-6xl lg:text-[6rem] xl:text-[6.5rem] font-serif font-bold leading-[0.9] tracking-tight text-zen-brown">
+                  Exclusive<br />
+                  <span className="italic relative animate-text-shine pr-8">
+                    Memberships
+                    <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-zen-brown/10" />
+                  </span>
+                </h1>
+              </div>
+
+              <div className="space-y-8">
+                <p className="text-xl text-zen-brown/60 leading-relaxed font-sans max-w-md font-light italic">
+                  Join an exclusive community dedicated to the pursuit of consistent wellness and profound restoration.
+                </p>
+                <div className="flex items-center gap-6">
+                   <div className="h-[1px] w-12 bg-zen-brown/10" />
+                   <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/30 italic">Curated Memberships</span>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+              className="lg:col-span-5 relative"
+            >
+              {/* Primary Image Frame */}
+              <div className="relative aspect-[16/10] w-full rounded-[3rem] overflow-hidden shadow-2xl z-10 border-[8px] border-white/50 backdrop-blur-sm">
+                <img 
+                  src={withBase('/images/lux_spa_hero.png')} 
+                  alt="Membership Tiers" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1540555700478-4be289a5090a?auto=format&fit=crop&q=80'; }}
+                />
+              </div>
+
+              {/* Secondary Floating Overlap Element */}
+              <motion.div 
+                animate={{ y: [0, -20, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -bottom-12 -right-6 w-48 h-64 hidden xl:block z-20 rounded-[2rem] overflow-hidden border-[6px] border-white shadow-2xl shadow-zen-brown/20"
+              >
+                <img 
+                  src={withBase('/images/aromatherapy_massage.png')} 
+                  alt="Detail" 
+                  className="w-full h-full object-cover"
+                />
+              </motion.div>
+
+              {/* Geometric Decorative Accent */}
+              <div className="absolute -top-12 -left-12 w-48 h-48 border border-zen-sand/20 rounded-full -z-0 animate-pulse" />
+            </motion.div>
+          </div>
+        </header>
 
         {/* Pricing Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-12 items-start">
@@ -328,62 +364,81 @@ const MembershipTiers = () => {
               className="relative w-full max-w-2xl bg-white rounded-[3rem] overflow-hidden shadow-2xl"
             >
               {/* Modal Header/Image */}
-              <div className="h-64 relative">
-                {selectedPlan.document ? (
-                  <img src={getImageUrl(selectedPlan.document)} className="w-full h-full object-cover" alt={selectedPlan.name} />
-                ) : (
-                  <div className={`w-full h-full bg-gradient-to-br ${selectedPlan.color || 'from-zen-sand/20 to-zen-primary/10'} flex items-center justify-center`}>
-                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #2b2440 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
-                     {React.createElement(ICON_MAP[selectedPlan.icon] || Sparkles, { size: 80, strokeWidth: 0.5, className: "text-zen-brown/10" })}
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
+              <div className="h-72 relative overflow-hidden group/modal-img">
+                {(selectedPlan.document || (selectedPlan as any).image) ? (
+                  <img 
+                    src={getImageUrl(selectedPlan.document || (selectedPlan as any).image)} 
+                    className="w-full h-full object-cover group-hover/modal-img:scale-105 transition-transform duration-[3s]" 
+                    alt={selectedPlan.name} 
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                
+                <div className={`absolute inset-0 bg-gradient-to-br ${selectedPlan.color || 'from-zen-sand/30 via-zen-sand/10 to-white'} flex items-center justify-center`} style={{ display: (selectedPlan.document || (selectedPlan as any).image) ? 'none' : 'flex' }}>
+                   <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle, #2b2440 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+                   {React.createElement(ICON_MAP[selectedPlan.icon] || Sparkles, { size: 140, strokeWidth: 0.5, className: "text-zen-brown/10 animate-pulse" })}
+                </div>
+
+                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+                
                 <button 
                   onClick={() => setSelectedPlan(null)}
-                  className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-zen-brown hover:bg-white transition-all shadow-lg z-20"
+                  className="absolute top-8 right-8 w-12 h-12 rounded-full bg-white/90 backdrop-blur-xl flex items-center justify-center text-zen-brown hover:bg-white transition-all shadow-2xl z-20 active:scale-90"
                 >
-                  <X size={20} />
+                  <X size={24} />
                 </button>
               </div>
 
-              <div className="p-10 -mt-12 relative z-10 space-y-8 max-h-[70vh] overflow-y-auto scrollbar-hide">
-                <div className="space-y-2 text-center sm:text-left">
-                  <h2 className="text-4xl font-serif font-black text-zen-brown tracking-tighter">{selectedPlan.name}</h2>
-                  <div className="flex items-baseline justify-center sm:justify-start gap-2">
-                     <span className="text-3xl font-serif font-black text-zen-brown">QR {selectedPlan.price}</span>
-                     <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">{selectedPlan.duration || 'Monthly Cycle'}</span>
+              <div className="p-10 -mt-16 relative z-10 space-y-10 max-h-[70vh] overflow-y-auto scrollbar-hide">
+                <div className="space-y-3 text-center sm:text-left">
+                  <div className="flex items-center justify-center sm:justify-start gap-4">
+                    <h2 className="text-5xl font-serif font-black text-zen-brown tracking-tighter">{selectedPlan.name}</h2>
+                    {selectedPlan.popular && <span className="px-3 py-1 bg-zen-sand/10 text-zen-sand rounded-full text-[8px] font-black uppercase tracking-widest border border-zen-sand/20">Elite</span>}
+                  </div>
+                  <div className="flex items-baseline justify-center sm:justify-start gap-3">
+                     <span className="text-4xl font-serif font-black text-zen-brown">QR {selectedPlan.price}</span>
+                     <span className="text-[11px] font-black text-zen-brown/30 uppercase tracking-[0.3em]">{selectedPlan.duration || 'Monthly Cycle'}</span>
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-8">
-                  {/* Benefits Column */}
-                  <div className="space-y-4">
-                    <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-[0.3em]">Plan Highlights</p>
-                    <div className="space-y-3">
+                <div className="space-y-8">
+                  {/* Benefits Summary */}
+                  <div className="space-y-4 bg-zen-cream/30 p-6 rounded-[2rem] border border-zen-brown/5">
+                    <p className="text-[9px] font-black text-zen-brown/40 uppercase tracking-[0.3em] px-2 text-center sm:text-left">Plan Highlights & Benefits</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-4">
                       {(selectedPlan.benefits || []).map((benefit: string, bi: number) => (
-                        <div key={bi} className="flex items-center gap-3 text-xs text-zen-brown/70 font-medium">
-                          <Check size={14} className="text-zen-sand shrink-0" />
+                        <div key={bi} className="flex items-center gap-4 text-xs text-zen-brown/80 font-bold group/benefit">
+                          <div className="w-6 h-6 rounded-lg bg-white shadow-sm flex items-center justify-center text-zen-sand shrink-0 group-hover/benefit:bg-zen-sand group-hover/benefit:text-white transition-all">
+                             <Check size={14} strokeWidth={3} />
+                          </div>
                           {benefit}
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Services Column */}
-                  <div className="space-y-4">
-                    <p className="text-[9px] font-black text-zen-brown/20 uppercase tracking-[0.3em]">Service Privileges</p>
-                    <div className="space-y-3">
+                  {/* Services Grid (Horizontal 2 list per line) */}
+                  <div className="space-y-5 px-2">
+                    <div className="flex items-center gap-4">
+                      <p className="text-[9px] font-black text-zen-brown/40 uppercase tracking-[0.3em] whitespace-nowrap">Service Privileges</p>
+                      <div className="h-px flex-1 bg-zen-brown/5" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-5">
                       {(selectedPlan.applicableServices || []).length > 0 ? (
                         (selectedPlan.applicableServices || []).map((service: any, si: number) => (
-                          <div key={si} className="flex items-center gap-3 text-xs text-zen-brown/70 font-medium">
-                            <div className="w-1.5 h-1.5 rounded-full bg-zen-sand/40" />
-                            {typeof service === 'object' ? service.name : 'Premium Service'}
+                          <div key={si} className="flex items-center gap-3 text-xs text-zen-brown/70 font-semibold group/service">
+                            <div className="w-1.5 h-1.5 rounded-full bg-zen-sand/30 group-hover/service:scale-150 group-hover/service:bg-zen-sand transition-all shrink-0" />
+                            <span className="truncate">{typeof service === 'object' ? service.name : 'Premium Service'}</span>
                           </div>
                         ))
                       ) : (
-                        <div className="flex items-center gap-3 text-xs text-zen-brown/30 italic">
-                          <LayoutGrid size={14} />
-                          All standard rituals included
+                        <div className="col-span-full flex items-center gap-3 text-xs text-zen-brown/30 italic py-4">
+                          <LayoutGrid size={16} strokeWidth={1.5} />
+                          All standard sanctuary rituals are inclusive with this tier.
                         </div>
                       )}
                     </div>
@@ -391,21 +446,24 @@ const MembershipTiers = () => {
                 </div>
 
                 {/* Branch Message */}
-                <div className="bg-zen-cream/50 p-8 rounded-[2rem] border border-zen-brown/5 space-y-4 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-white shadow-sm mx-auto flex items-center justify-center text-zen-sand">
-                    <MapPin size={24} strokeWidth={1.5} />
+                <div className="bg-zen-brown p-10 rounded-[3rem] space-y-6 text-center relative overflow-hidden shadow-2xl shadow-zen-brown/40 group/join">
+                  {/* Subtle pattern overlay */}
+                  <div className="absolute inset-0 opacity-[0.03] rotate-12 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+                  
+                  <div className="w-16 h-16 rounded-3xl bg-white/10 backdrop-blur-xl mx-auto flex items-center justify-center text-zen-sand group-hover/join:rotate-12 transition-transform duration-700">
+                    <MapPin size={32} strokeWidth={1} />
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-black uppercase tracking-widest text-zen-brown">Ready to Join?</h4>
-                    <p className="text-xs text-zen-brown/40 font-serif italic leading-relaxed">
-                      To maintain our standards of personalized service, membership registrations are processed in person. Please visit your nearest branch to finalize your enrollment and receive your physical member card.
+                  <div className="space-y-3 relative z-10">
+                    <h4 className="text-xl font-serif font-black text-white tracking-tight italic">Your journey begins in person.</h4>
+                    <p className="text-[11px] text-white/50 font-serif italic leading-relaxed max-w-sm mx-auto">
+                      To preserve our standards of bespoke care, registrations are finalized at our physical locations. Visit your nearest sanctuary today.
                     </p>
                   </div>
                   <button 
                     onClick={() => setSelectedPlan(null)}
-                    className="w-full py-4 bg-zen-brown text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-zen-sand transition-all shadow-lg active:scale-95"
+                    className="w-full py-5 bg-white text-zen-brown rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-zen-sand hover:text-white transition-all shadow-xl active:scale-95 relative z-10"
                   >
-                    Understood
+                    I understand
                   </button>
                 </div>
               </div>
@@ -414,22 +472,6 @@ const MembershipTiers = () => {
         )}
       </AnimatePresence>
 
-      <style>{`
-        @keyframes text-shine {
-          0% { background-position: 0% 50%; }
-          100% { background-position: 100% 50%; }
-        }
-        .animate-text-shine {
-          background: linear-gradient(to right, #2b2440 20%, #8b5cf6 40%, #8b5cf6 60%, #2b2440 80%);
-          background-size: 200% auto;
-          color: #000;
-          background-clip: text;
-          text-fill-color: transparent;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: text-shine 5s linear infinite;
-        }
-      `}</style>
     </div>
   );
 };

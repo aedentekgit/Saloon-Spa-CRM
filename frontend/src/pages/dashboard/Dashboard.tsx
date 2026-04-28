@@ -208,10 +208,7 @@ const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRa
 
   return (
     <div
-      style={{
-        '--zen-primary': settings?.theme?.primaryColor || '#2D2D2D',
-        height: 'calc(100vh - 100px)'
-      } as React.CSSProperties}
+      style={{ height: 'calc(100vh - 100px)' }}
       className="space-y-4 sm:space-y-8 font-sans overflow-x-hidden flex flex-col"
     >
       <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 sm:space-y-8 pr-4">
@@ -708,7 +705,7 @@ const Dashboard = () => {
   const [dateRange, setDateRange] = useState<any>('All');
   const quickActions = [
     { label: 'Book Ritual', icon: Sparkles, color: 'bg-zen-brown text-white', path: hasPermission('appointments') ? '/appointments' : '/book', permissions: ['appointments', 'book'] },
-    { label: 'Digital Punch', icon: Clock, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/attendance', permissions: ['attendance'] },
+    { label: 'Digital Punch', icon: Clock, color: 'bg-white text-zen-brown border-zen-gold/20', path: user?.role === 'Employee' ? '/staff-attendance' : '/attendance', permissions: ['attendance'] },
     { label: 'New Artisan', icon: Users, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/employees', permissions: ['employees'] },
     { label: 'Inventory Restock', icon: Target, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/inventory', permissions: ['inventory'] },
   ].filter((action) => action.permissions.some((permission) => hasPermission(permission)));

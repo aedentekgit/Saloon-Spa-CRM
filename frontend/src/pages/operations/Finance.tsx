@@ -508,7 +508,7 @@ const Finance = () => {
         </div>
       }
     >
-      <div style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} className="space-y-6 pb-20 mt-0">
+      <div className="space-y-6 pb-20 mt-0">
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 font-sans">
         {/* Left Side: Chart */}

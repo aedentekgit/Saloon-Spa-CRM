@@ -834,10 +834,7 @@ const Appointments = () => {
         />
       }
     >
-      <div 
-        style={{ '--zen-primary': settings?.theme?.primaryColor || '#332766' } as React.CSSProperties} 
-        className="contents font-sans h-[calc(100dvh-180px)] overflow-hidden"
-      >
+      <div className="contents font-sans h-[calc(100dvh-180px)] overflow-hidden">
         <div className="flex flex-col lg:flex-row gap-10 h-full overflow-hidden">
           <div className="flex-1 flex flex-col min-h-0 space-y-8">
            {/* Calendar Controls - Now visible in both Grid and Table view */}

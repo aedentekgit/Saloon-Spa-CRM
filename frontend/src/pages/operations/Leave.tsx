@@ -289,21 +289,20 @@ const Leave = () => {
       onSearchChange={setSearchTerm}
       hideViewToggle
       addButtonLabel={user?.role === 'Employee' ? "Apply Leave" : undefined}
-      onAddClick={() => navigate('/apply-leave')}
+      onAddClick={() => navigate('/leave/apply')}
       addButtonIcon={<Plus size={18} />}
+      searchMaxWidth="lg:max-w-md"
       searchActions={
-        <>
-          <div className="flex items-center shrink-0 h-[52px]">
-            <ZenMasterCalendar
-              label="Date Range"
-              value={dateRange}
-              onChange={(v: any) => setDateRange(v)}
-              selectionType="range"
-              variant="pill"
-              className="w-[200px]"
-              hideLabel
-            />
-          </div>
+        <div className="flex items-center gap-4">
+          <ZenMasterCalendar
+            label="Date Range"
+            value={dateRange}
+            onChange={(v: any) => setDateRange(v)}
+            selectionType="range"
+            variant="pill"
+            className="w-[200px]"
+            hideLabel
+          />
           <ExportPopup<LeaveRequest>
             data={requests}
             columns={leaveExportColumns}
@@ -313,7 +312,7 @@ const Leave = () => {
             description="Choose format and export the complete leave registry with employee, branch, dates, duration, reason, and status values."
             resolveData={fetchAllLeavesForExport}
           />
-        </>
+        </div>
       }
     >
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
