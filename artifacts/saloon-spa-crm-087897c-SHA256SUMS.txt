@@ -1,0 +1,2 @@
+8b47c5899c3a10c98f6b350d48fb1b314e5adc864e1c122b9965e141971b50e2  artifacts/saloon-spa-crm-087897c-frontend-dist.tar.gz
+b48c1cec90ba07a2f188519142558bab0d9e08c4c1d649647ecf737b2334013f  artifacts/saloon-spa-crm-087897c-backend-source.tar.gz

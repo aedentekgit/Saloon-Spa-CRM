@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
-  Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Calendar, ChevronDown,
+  Plus, Minus, ChevronLeft, ChevronRight, Edit2, Trash2, Calendar, ChevronDown,
   Sparkles, User as UserIcon, Search, MapPin, Check, X as CloseIcon, UserCheck, History,
   AlertTriangle, Slash
 } from 'lucide-react';
@@ -40,6 +40,7 @@ interface Appointment {
   clientEmail?: string;
   service: string;
   serviceId?: any;
+  quantity?: number;
   employee: string;
   employeeId?: any;
   date: string;
@@ -50,9 +51,18 @@ interface Appointment {
   bookingType?: string;
   status?: string;
   cancellationReason?: string;
+  completedAt?: string;
+  completedByEmployeeId?: any;
+  completedByName?: string;
+  completedByRole?: string;
+  billedInvoiceId?: any;
+  billedAt?: string;
   createdAt?: string;
   updatedAt?: string;
   addOns?: any[];
+  totalQuantity?: number;
+  totalDuration?: number;
+  totalAmount?: number;
 }
 
 const getEntityId = (value: any) => {
@@ -60,6 +70,12 @@ const getEntityId = (value: any) => {
   if (typeof value === 'string') return value;
   if (typeof value === 'object' && value._id) return String(value._id);
   return String(value);
+};
+
+const normalizeServiceQuantity = (value: any) => {
+  const qty = Number(value);
+  if (!Number.isFinite(qty) || qty < 1) return 1;
+  return Math.floor(qty);
 };
 
 // ── Rich Staff Dropdown ─────────────────────────────────────────────────────
@@ -85,32 +101,30 @@ const StaffDropdown = ({ staffOptions, rawStaff, rawShifts, value, onChange, err
   const selectedShift = rawShifts?.find((s: any) => s.name === selectedMember?.shift);
 
   return (
-    <div className="space-y-1 group relative" ref={triggerRef}>
-      <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">Staff member</label>
+    <div className="group relative" ref={triggerRef}>
+      <label className="mb-2 block h-3 text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">Staff member</label>
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-1 pb-3 bg-transparent border-b-[2px] flex items-center justify-between cursor-pointer transition-all ${
+        className={`w-full min-h-[58px] px-1 pb-3 bg-transparent border-b-[2px] flex items-end justify-between cursor-pointer transition-all ${
           error ? 'border-rose-400' : 'border-zen-brown/15 group-hover:border-zen-gold/40'
         }`}
       >
-        <div className="flex flex-col min-w-0">
+        <div className="flex min-h-[40px] min-w-0 flex-col justify-end">
           <div className="flex items-center gap-2">
             {error && (
               <div className="w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
                 <span className="text-[8px] font-bold">!</span>
               </div>
             )}
-            <span className={`font-serif text-lg truncate ${value && value !== 'None' ? (error ? 'text-rose-600 font-bold' : 'text-zen-brown') : 'text-zen-brown/20'}`}>
+            <span className={`font-serif text-base sm:text-lg leading-6 truncate ${value && value !== 'None' ? (error ? 'text-rose-600 font-bold' : 'text-zen-brown') : 'text-zen-brown/20'}`}>
               {value && value !== 'None' ? value : 'Select specialist'}
             </span>
           </div>
-          {selectedShift && (
-            <span className={`text-[9px] font-bold uppercase tracking-widest -mt-0.5 ${error ? 'text-rose-400/60' : 'text-zen-brown/30'}`}>
-              {selectedMember?.designation || 'Specialist'} · {selectedShift.startTime}–{selectedShift.endTime}
-            </span>
-          )}
+          <span className={`mt-0.5 h-3 text-[9px] font-bold uppercase tracking-widest leading-3 ${error ? 'text-rose-400/60' : 'text-zen-brown/30'} ${selectedShift ? '' : 'invisible'}`}>
+            {selectedMember?.designation || 'Specialist'} · {selectedShift?.startTime || '00:00'}–{selectedShift?.endTime || '00:00'}
+          </span>
         </div>
-        <ChevronDown size={18} className={`flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-zen-gold' : (error ? 'text-rose-400' : 'text-zen-brown/20')}`} />
+        <ChevronDown size={18} className={`mb-5 flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-zen-gold' : (error ? 'text-rose-400' : 'text-zen-brown/20')}`} />
       </div>
 
       {isOpen && createPortal(
@@ -160,6 +174,81 @@ const StaffDropdown = ({ staffOptions, rawStaff, rawShifts, value, onChange, err
     </div>
   );
 };
+
+const RoomAssignmentDropdown = ({ roomOptions, value, onChange, error }: any) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const floatingStyle = useFloatingAnchor(triggerRef, isOpen, 8);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target as Node) &&
+        listRef.current && !listRef.current.contains(e.target as Node)
+      ) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const safeOptions = Array.isArray(roomOptions) ? roomOptions : [];
+  const displayValue = value || 'None';
+
+  return (
+    <div className="group relative" ref={triggerRef}>
+      <label className="mb-2 block h-3 text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">Room</label>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full min-h-[58px] px-1 pb-3 bg-transparent border-b-[2px] flex items-end justify-between cursor-pointer transition-all ${
+          error ? 'border-rose-400' : 'border-zen-brown/15 group-hover:border-zen-gold/40'
+        }`}
+      >
+        <div className="flex min-h-[40px] min-w-0 flex-col justify-end">
+          <div className="flex items-center gap-2">
+            {error && (
+              <div className="w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
+                <span className="text-[8px] font-bold">!</span>
+              </div>
+            )}
+            <span className={`font-serif text-base sm:text-lg leading-6 truncate ${displayValue && displayValue !== 'None' ? (error ? 'text-rose-600 font-bold' : 'text-zen-brown') : 'text-zen-brown'}`}>
+              {displayValue}
+            </span>
+          </div>
+          <span className="mt-0.5 h-3 text-[9px] font-bold uppercase tracking-widest leading-3 text-zen-brown/30 invisible">
+            Treatment room
+          </span>
+        </div>
+        <ChevronDown size={18} className={`mb-5 flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-zen-gold' : (error ? 'text-rose-400' : 'text-zen-brown/20')}`} />
+      </div>
+
+      {isOpen && createPortal(
+        <div
+          ref={listRef}
+          className="fixed bg-white border border-zen-brown/15 rounded-[1rem] z-[99999] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 overflow-y-auto"
+          style={{
+            ...floatingStyle,
+            maxHeight: 320
+          }}
+        >
+          {safeOptions.map((roomName: string) => {
+            const isSelected = displayValue === roomName;
+            return (
+              <div
+                key={roomName}
+                onMouseDown={e => { e.preventDefault(); onChange(roomName); setIsOpen(false); }}
+                className={`px-5 py-4 cursor-pointer transition-all hover:bg-zen-cream/60 border-b border-zen-brown/5 last:border-0 ${isSelected ? 'bg-zen-cream/80' : ''}`}
+              >
+                <p className={`text-sm font-bold font-serif ${isSelected ? 'text-zen-brown' : 'text-zen-brown/80'}`}>{roomName}</p>
+              </div>
+            );
+          })}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
 // ────────────────────────────────────────────────────────────────────────────
 
 const Appointments = () => {
@@ -199,6 +288,8 @@ const Appointments = () => {
   const [formData, setFormData] = useState({
     client: '',
     service: '',
+    serviceId: '',
+    quantity: 1,
     employee: '',
     room: '',
     time: '',
@@ -208,7 +299,10 @@ const Appointments = () => {
     branch: (user as any)?.branch?._id || (user as any)?.branch || '',
     status: 'Confirmed',
     cancellationReason: '',
-    addOns: [] as any[]
+    addOns: [] as any[],
+    totalQuantity: 0,
+    totalDuration: 0,
+    totalAmount: 0
   });
 
   const activeMemberships = useMemo(() => {
@@ -217,7 +311,15 @@ const Appointments = () => {
     return (client?.memberships || []).filter((m: any) => m.status === 'Active' && m.remainingSessions > 0);
   }, [formData.client, rawClients]);
 
+  const selectedFormBranchId = getEntityId(formData.branch);
+  const isInSelectedFormBranch = (entity: any) => {
+    if (!selectedFormBranchId) return false;
+    return getEntityId(entity?.branch) === selectedFormBranchId;
+  };
+
   const serviceOptions = useMemo(() => {
+    if (!selectedFormBranchId) return ['None'];
+
     // If a membership is selected, show EXACTLY its covered services
     if (formData.membershipId) {
       const selectedMembership = activeMemberships.find((m: any) =>
@@ -230,7 +332,11 @@ const Appointments = () => {
         const appIds = apps.map((s: any) => (s._id || s).toString());
 
         // Find matching services from rawServices to get their names
-        const matched = rawServices.filter(s => appIds.includes(s._id.toString()));
+        const matched = rawServices.filter(s =>
+          appIds.includes(s._id.toString()) &&
+          isInSelectedFormBranch(s) &&
+          (!s.status || s.status === 'Active')
+        );
         if (matched.length > 0) {
           return ['None', ...matched.map(s => s.name)];
         }
@@ -239,17 +345,23 @@ const Appointments = () => {
 
     // Default: Show all active services for the current branch
     let filtered = rawServices.filter(s => {
-      const matchesBranch = !formData.branch || s.branch === formData.branch || s.branch?._id === formData.branch;
-      return matchesBranch;
+      return isInSelectedFormBranch(s) && (!s.status || s.status === 'Active');
     });
 
     return ['None', ...filtered.map(s => s.name)];
-  }, [rawServices, formData.branch, formData.membershipId, activeMemberships]);
+  }, [rawServices, selectedFormBranchId, formData.membershipId, activeMemberships]);
 
   // Watch for membership changes and reset service if it's no longer valid
   useEffect(() => {
     if (formData.service && formData.service !== 'None' && !serviceOptions.includes(formData.service)) {
-       setFormData(prev => ({ ...prev, service: '' }));
+       setFormData(prev => ({
+         ...prev,
+         service: '',
+         serviceId: '',
+         quantity: 1,
+         addOns: [],
+         time: ''
+       }));
     }
   }, [formData.membershipId, serviceOptions]);
 
@@ -349,7 +461,7 @@ const Appointments = () => {
 
   useEffect(() => {
     fetchDayAppointments(formData.date);
-  }, [formData.date]);
+  }, [formData.date, formData.branch]);
 
   const fetchAllData = async (silent: boolean = false) => {
     const hasVisibleData = (
@@ -436,6 +548,22 @@ const Appointments = () => {
     return false;
   };
 
+  const isAppointmentAssignedToCurrentUser = (apt?: Appointment | null) => {
+    if (!apt || user?.role !== 'Employee') return false;
+    const employeeId = getEntityId(apt.employeeId);
+    return (
+      (employeeId && employeeId === user._id) ||
+      String(apt.employee || '').trim().toLowerCase() === String(user.name || '').trim().toLowerCase() ||
+      String(apt.employeeId?.name || '').trim().toLowerCase() === String(user.name || '').trim().toLowerCase()
+    );
+  };
+
+  const canManageAppointmentStatus = (apt?: Appointment | null) => {
+    const role = user?.role?.toLowerCase();
+    if (role === 'admin' || role === 'manager') return true;
+    return role === 'employee' && isAppointmentAssignedToCurrentUser(apt);
+  };
+
   const appointmentMatchesSearch = (apt: Appointment) => {
     const query = searchTerm.trim().toLowerCase();
     if (!query) return true;
@@ -497,13 +625,15 @@ const Appointments = () => {
   }, [branches]);
 
   const staffOptions = useMemo(() => {
+    if (!selectedFormBranchId) return ['None'];
+
     const isToday = formData.date === dayjs().format('YYYY-MM-DD');
     const isAdmin = ['admin', 'manager'].includes(user?.role?.toLowerCase() || '');
 
     return ['None', ...rawStaff.filter(e => {
       // 1. Branch Match
-      const matchesBranch = !formData.branch || e.branch === formData.branch || e.branch?._id === formData.branch;
-      if (!matchesBranch) return false;
+      if (!isInSelectedFormBranch(e)) return false;
+      if (e.status && e.status !== 'Active') return false;
 
       // 2. Admin Override: Admins see everyone in the branch
       if (isAdmin) return true;
@@ -537,22 +667,188 @@ const Appointments = () => {
 
       return true;
     }).map(e => e.name)];
-  }, [rawStaff, formData.branch, formData.date, formData.time, rawAttendance, rawShifts, user?.role]);
+  }, [rawStaff, selectedFormBranchId, formData.date, formData.time, rawAttendance, rawShifts, user?.role]);
 
   const roomOptions = useMemo(() => {
+    if (!selectedFormBranchId) return ['None'];
+
     return ['None', ...rawRooms.filter(r => {
-      const matchesBranch = !formData.branch || r.branch === formData.branch || r.branch?._id === formData.branch;
-      return matchesBranch;
+      return isInSelectedFormBranch(r) && r.isActive !== false;
     }).map(r => r.name)];
-  }, [rawRooms, formData.branch]);
+  }, [rawRooms, selectedFormBranchId]);
+
+  const serviceCatalog = useMemo(() => {
+    const byName = new Map<string, any>();
+    const byId = new Map<string, any>();
+    rawServices.filter((service: any) => isInSelectedFormBranch(service) && (!service.status || service.status === 'Active')).forEach((service: any) => {
+      if (service?.name) byName.set(service.name, service);
+      const serviceId = getEntityId(service);
+      if (serviceId) byId.set(serviceId, service);
+    });
+    return { byName, byId };
+  }, [rawServices, selectedFormBranchId]);
+
+  const serviceLineItems = useMemo(() => {
+    const lines: any[] = [];
+
+    const appendLine = (entry: any, isPrimary: boolean, addOnIndex: number | null = null) => {
+      const serviceName = entry?.service || entry?.name || '';
+      if (!serviceName || serviceName === 'None') return;
+
+      const serviceId = getEntityId(entry?.serviceId);
+      const catalogItem = (serviceId && serviceCatalog.byId.get(serviceId)) || serviceCatalog.byName.get(serviceName);
+      const quantity = normalizeServiceQuantity(entry?.quantity);
+      const price = Number(entry?.price ?? catalogItem?.price ?? 0) || 0;
+      const duration = Number(entry?.duration ?? catalogItem?.duration ?? 0) || 0;
+
+      lines.push({
+        key: isPrimary ? 'primary-service' : `addon-${addOnIndex}`,
+        serviceId: serviceId || catalogItem?._id || '',
+        service: catalogItem?.name || serviceName,
+        quantity,
+        price,
+        duration,
+        lineTotal: price * quantity,
+        lineDuration: duration * quantity,
+        isPrimary,
+        addOnIndex
+      });
+    };
+
+    appendLine({
+      serviceId: formData.serviceId,
+      service: formData.service,
+      quantity: formData.quantity
+    }, true);
+
+    (formData.addOns || []).forEach((addOn: any, index: number) => appendLine(addOn, false, index));
+
+    return lines;
+  }, [formData.service, formData.serviceId, formData.quantity, formData.addOns, serviceCatalog]);
+
+  const serviceTotals = useMemo(() => {
+    return serviceLineItems.reduce((totals, item) => ({
+      quantity: totals.quantity + item.quantity,
+      duration: totals.duration + item.lineDuration,
+      amount: totals.amount + item.lineTotal
+    }), { quantity: 0, duration: 0, amount: 0 });
+  }, [serviceLineItems]);
+
+  const servicePickerOptions = useMemo(() => serviceOptions.filter(option => option !== 'None'), [serviceOptions]);
+  const currencySymbol = settings?.general?.currencySymbol || 'QR';
+
+  const handleAddServiceLine = (serviceName: string) => {
+    if (!serviceName || serviceName === 'None') return;
+    const service = serviceCatalog.byName.get(serviceName);
+
+    setFormData(prev => {
+      if (prev.service === serviceName) {
+        return {
+          ...prev,
+          quantity: normalizeServiceQuantity(prev.quantity) + 1,
+          time: ''
+        };
+      }
+
+      const addOns = prev.addOns || [];
+      const existingAddOnIndex = addOns.findIndex((addOn: any) => addOn.service === serviceName);
+      if (existingAddOnIndex >= 0) {
+        return {
+          ...prev,
+          addOns: addOns.map((addOn: any, index: number) => index === existingAddOnIndex
+            ? { ...addOn, quantity: normalizeServiceQuantity(addOn.quantity) + 1 }
+            : addOn),
+          time: ''
+        };
+      }
+
+      if (!prev.service || prev.service === 'None') {
+        return {
+          ...prev,
+          service: service?.name || serviceName,
+          serviceId: service?._id || '',
+          quantity: 1,
+          time: ''
+        };
+      }
+
+      return {
+        ...prev,
+        addOns: [
+          ...addOns,
+          {
+            serviceId: service?._id || '',
+            service: service?.name || serviceName,
+            price: Number(service?.price || 0),
+            duration: Number(service?.duration || 0),
+            quantity: 1
+          }
+        ],
+        time: ''
+      };
+    });
+    setFormErrors((prev: any) => ({ ...prev, service: false }));
+  };
+
+  const handleUpdateServiceQuantity = (line: any, nextQuantity: number) => {
+    const quantity = normalizeServiceQuantity(nextQuantity);
+
+    setFormData(prev => {
+      if (line.isPrimary) {
+        return { ...prev, quantity, time: '' };
+      }
+
+      return {
+        ...prev,
+        addOns: (prev.addOns || []).map((addOn: any, index: number) => index === line.addOnIndex
+          ? { ...addOn, quantity }
+          : addOn),
+        time: ''
+      };
+    });
+  };
+
+  const handleRemoveServiceLine = (line: any) => {
+    setFormData(prev => {
+      const addOns = prev.addOns || [];
+
+      if (line.isPrimary) {
+        const [promoted, ...remainingAddOns] = addOns;
+        if (promoted) {
+          return {
+            ...prev,
+            service: promoted.service || '',
+            serviceId: promoted.serviceId || '',
+            quantity: normalizeServiceQuantity(promoted.quantity),
+            addOns: remainingAddOns,
+            time: ''
+          };
+        }
+
+        return {
+          ...prev,
+          service: '',
+          serviceId: '',
+          quantity: 1,
+          addOns: [],
+          time: ''
+        };
+      }
+
+      return {
+        ...prev,
+        addOns: addOns.filter((_: any, index: number) => index !== line.addOnIndex),
+        time: ''
+      };
+    });
+  };
 
   const availableSlots = useMemo(() => {
     if (!formData.date || !formData.employee || formData.employee === 'None') return [];
 
-    const selectedService = rawServices.find(s => s.name === formData.service);
-    const serviceDuration = selectedService?.duration || 60;
+    const serviceDuration = serviceTotals.duration || 60;
 
-    const selectedRoom = rawRooms.find(r => r.name === formData.room);
+    const selectedRoom = rawRooms.find(r => r.name === formData.room && isInSelectedFormBranch(r));
     const roomCleaningDuration = selectedRoom?.cleaningDuration || 0;
     const totalRoomOccupancy = serviceDuration + roomCleaningDuration;
 
@@ -572,8 +868,20 @@ const Appointments = () => {
 
     const roomApts = dayAppointments.filter(a => {
       const rName = (a.room as any)?.name || a.room;
-      return rName === formData.room;
+      return rName === formData.room && (!selectedFormBranchId || getEntityId(a.branch) === selectedFormBranchId);
     });
+
+    const getScheduledAppointmentDuration = (appointment: Appointment) => {
+      const primaryServiceName = (appointment.service as any)?.name || appointment.service;
+      const primaryService = rawServices.find(s => s.name === primaryServiceName || getEntityId(s) === getEntityId(appointment.serviceId));
+      const primaryDuration = (primaryService?.duration || 60) * normalizeServiceQuantity(appointment.quantity);
+      const addOnDuration = (appointment.addOns || []).reduce((total: number, addOn: any) => {
+        const addOnService = rawServices.find(s => s.name === addOn.service || getEntityId(s) === getEntityId(addOn.serviceId));
+        const duration = Number(addOn.duration ?? addOnService?.duration ?? 0) || 0;
+        return total + (duration * normalizeServiceQuantity(addOn.quantity));
+      }, 0);
+      return primaryDuration + addOnDuration;
+    };
 
     const buildSlotsForEmployee = (emp: any) => {
       if (!emp?.shift) return [];
@@ -605,9 +913,7 @@ const Appointments = () => {
           if (editingApt && apt._id === editingApt._id) return false;
           const aptStart = parseTime(apt.time, formData.date);
           if (!aptStart) return false;
-          const aptServiceName = (apt.service as any)?.name || apt.service;
-          const aptService = rawServices.find(s => s.name === aptServiceName);
-          const aptDuration = aptService?.duration || 60;
+          const aptDuration = getScheduledAppointmentDuration(apt);
           const aptRoomName = (apt.room as any)?.name || apt.room;
           const aptRoom = rawRooms.find(r => r.name === aptRoomName);
           const aptCleaning = aptRoom?.cleaningDuration || 0;
@@ -619,9 +925,7 @@ const Appointments = () => {
           if (editingApt && apt._id === editingApt._id) return false;
           const aptStart = parseTime(apt.time, formData.date);
           if (!aptStart) return false;
-          const aptServiceName = (apt.service as any)?.name || apt.service;
-          const aptService = rawServices.find(s => s.name === aptServiceName);
-          const aptDuration = aptService?.duration || 60;
+          const aptDuration = getScheduledAppointmentDuration(apt);
           const aptRoomName = (apt.room as any)?.name || apt.room;
           const aptRoom = rawRooms.find(r => r.name === aptRoomName);
           const aptRoomCleaning = aptRoom?.cleaningDuration || 0;
@@ -640,7 +944,7 @@ const Appointments = () => {
     };
 
     // Known specific employee
-    const specificEmployee = rawStaff.find(e => e.name === formData.employee);
+    const specificEmployee = rawStaff.find(e => e.name === formData.employee && isInSelectedFormBranch(e));
     if (specificEmployee) {
       return buildSlotsForEmployee(specificEmployee);
     }
@@ -648,7 +952,7 @@ const Appointments = () => {
     // "Any available specialist" or unrecognised value (e.g. saved from client booking form):
     // merge slots across all branch staff — a slot is free if at least one specialist is free
     const branchStaff = rawStaff.filter(e =>
-      !formData.branch || e.branch === formData.branch || e.branch?._id === formData.branch
+      isInSelectedFormBranch(e)
     );
     if (branchStaff.length === 0) return [];
 
@@ -664,7 +968,7 @@ const Appointments = () => {
       });
     });
     return Array.from(merged.values()).sort((a, b) => a.time.localeCompare(b.time));
-  }, [formData.date, formData.employee, formData.service, formData.room, formData.branch, rawStaff, rawShifts, dayAppointments, rawServices, rawRooms, editingApt, settings]);
+  }, [formData.date, formData.employee, formData.room, formData.branch, serviceTotals.duration, rawStaff, rawShifts, dayAppointments, rawServices, rawRooms, editingApt, settings]);
 
   const handleOpenModal = (apt: Appointment | null = null) => {
     if (apt) {
@@ -672,6 +976,8 @@ const Appointments = () => {
       setFormData({
         client: (apt.client as any)?.name || apt.client || '',
         service: (apt.service as any)?.name || apt.service || '',
+        serviceId: getEntityId(apt.serviceId),
+        quantity: normalizeServiceQuantity(apt.quantity),
         employee: (apt.employee as any)?.name || apt.employee || 'None',
         room: (apt.room as any)?.name || apt.room || '',
         time: apt.time,
@@ -681,13 +987,21 @@ const Appointments = () => {
         branch: (apt.branch as any)?._id || apt.branch || '',
         status: apt.status || 'Confirmed',
         cancellationReason: apt.cancellationReason || '',
-        addOns: apt.addOns || []
+        addOns: (apt.addOns || []).map((addOn: any) => ({
+          ...addOn,
+          quantity: normalizeServiceQuantity(addOn.quantity)
+        })),
+        totalQuantity: apt.totalQuantity || 0,
+        totalDuration: apt.totalDuration || 0,
+        totalAmount: apt.totalAmount || 0
       });
     } else {
       setEditingApt(null);
       setFormData({
         client: user?.role === 'Client' ? user.name : '',
         service: '',
+        serviceId: '',
+        quantity: 1,
         employee: '',
         room: '',
         time: '',
@@ -697,7 +1011,10 @@ const Appointments = () => {
         branch: (user as any)?.branch?._id || (user as any)?.branch || '',
         status: 'Confirmed',
         cancellationReason: '',
-        addOns: []
+        addOns: [],
+        totalQuantity: 0,
+        totalDuration: 0,
+        totalAmount: 0
       });
     }
     setIsModalOpen(true);
@@ -709,19 +1026,37 @@ const Appointments = () => {
 
     // Validation
     const errors: any = {};
-    if (!formData.service || formData.service === 'None') errors.service = true;
+    if (!selectedFormBranchId) errors.branch = true;
+    if (serviceLineItems.length === 0) errors.service = true;
     if (!formData.employee || formData.employee === 'None') errors.employee = true;
     if (!formData.room || formData.room === 'None') errors.room = true;
     if (!formData.time) errors.time = true;
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
-      notify('error', 'Validation Failed', 'Please select a valid service, specialist, room and time slot.');
+      notify('error', 'Validation Failed', 'Please select a valid branch, service, specialist, room and time slot.');
       return;
     }
 
     setIsSubmitting(true);
     try {
+      const primaryService = serviceLineItems[0];
+      const payload = {
+        ...formData,
+        service: primaryService.service,
+        serviceId: primaryService.serviceId || undefined,
+        quantity: primaryService.quantity,
+        addOns: serviceLineItems.slice(1).map(item => ({
+          serviceId: item.serviceId || undefined,
+          service: item.service,
+          price: item.price,
+          duration: item.duration,
+          quantity: item.quantity
+        })),
+        totalQuantity: serviceTotals.quantity,
+        totalDuration: serviceTotals.duration,
+        totalAmount: serviceTotals.amount
+      };
       const url = editingApt ? `${API_URL}/appointments/${editingApt._id}` : `${API_URL}/appointments`;
       const method = editingApt ? 'PUT' : 'POST';
       const response = await fetch(url, {
@@ -730,7 +1065,7 @@ const Appointments = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user?.token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
@@ -762,6 +1097,59 @@ const Appointments = () => {
       }
     } catch (error) {
       notify('error', 'Error', 'Action failed');
+    }
+  };
+
+  const handleAppointmentStatusChange = async (status: string) => {
+    if (!editingApt) {
+      setFormData(prev => ({ ...prev, status }));
+      return;
+    }
+
+    if (!canManageAppointmentStatus(editingApt)) {
+      notify('error', 'Access Denied', 'You cannot update this appointment status.');
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, status }));
+    setStatusLoading(status);
+
+    try {
+      const response = await fetch(`${API_URL}/appointments/${editingApt._id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        body: JSON.stringify({
+          status,
+          cancellationReason: formData.cancellationReason
+        })
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        notify('error', 'Status Update Failed', payload?.message || 'Unable to update appointment status.');
+        setFormData(prev => ({ ...prev, status: editingApt.status || 'Confirmed' }));
+        return;
+      }
+
+      const updatedAppointment = payload as Appointment;
+      setEditingApt(updatedAppointment);
+      setFormData(prev => ({
+        ...prev,
+        status: updatedAppointment.status || status,
+        cancellationReason: updatedAppointment.cancellationReason || prev.cancellationReason
+      }));
+      setAppointments(prev => prev.map(apt => apt._id === updatedAppointment._id ? { ...apt, ...updatedAppointment } : apt));
+      setDayAppointments(prev => prev.map(apt => apt._id === updatedAppointment._id ? { ...apt, ...updatedAppointment } : apt));
+      notify('success', 'Status Updated', status === 'Completed' ? 'Service marked as completed.' : 'Appointment status updated.');
+      fetchData();
+    } catch (_error) {
+      notify('error', 'Connection Failed', 'Unable to update appointment status.');
+      setFormData(prev => ({ ...prev, status: editingApt.status || 'Confirmed' }));
+    } finally {
+      setStatusLoading(null);
     }
   };
 
@@ -1222,9 +1610,20 @@ const Appointments = () => {
                     label="Branch"
                     options={branchOptions}
                     value={branches?.find(b => b._id === formData.branch)?.name || 'None'}
+                    error={formErrors.branch}
                     onChange={val => {
                       const b = branches.find(b => b.name === val);
-                      setFormData({ ...formData, branch: b?._id || '', employee: '', service: '', room: '', time: '' });
+                      setFormData({
+                        ...formData,
+                        branch: b?._id || '',
+                        employee: '',
+                        service: '',
+                        serviceId: '',
+                        quantity: 1,
+                        addOns: [],
+                        room: '',
+                        time: ''
+                      });
                     }}
                   />
                 ) : (
@@ -1251,7 +1650,17 @@ const Appointments = () => {
                       options={clientSearchOptions}
                       subtextKey="email"
                       value={formData.client}
-                      onChange={(val: any) => setFormData({ ...formData, client: val, membershipId: '', bookingType: 'Normal' })}
+                      onChange={(val: any) => setFormData({
+                        ...formData,
+                        client: val,
+                        membershipId: '',
+                        bookingType: 'Normal',
+                        service: '',
+                        serviceId: '',
+                        quantity: 1,
+                        addOns: [],
+                        time: ''
+                      })}
                       icon={Search}
                       allowCustom={true}
                     />
@@ -1279,7 +1688,16 @@ const Appointments = () => {
                     value={activeMemberships.find((m: any) => (m._id || m).toString() === formData.membershipId?.toString())?.plan?.name || 'None'}
                     onChange={val => {
                       const m = activeMemberships.find((m: any) => m.plan?.name === val);
-                      setFormData({ ...formData, membershipId: m?._id || '', service: '', bookingType: m ? 'Membership' : 'Normal' });
+                      setFormData({
+                        ...formData,
+                        membershipId: m?._id || '',
+                        service: '',
+                        serviceId: '',
+                        quantity: 1,
+                        addOns: [],
+                        bookingType: m ? 'Membership' : 'Normal',
+                        time: ''
+                      });
                     }}
                   />
                 ) : (
@@ -1310,9 +1728,8 @@ const Appointments = () => {
                   error={formErrors.employee}
                 />
 
-                <ZenDropdown
-                  label="Room"
-                  options={roomOptions}
+                <RoomAssignmentDropdown
+                  roomOptions={roomOptions}
                   value={formData.room || 'None'}
                   onChange={val => {
                     setFormData({ ...formData, room: val });
@@ -1328,81 +1745,136 @@ const Appointments = () => {
               )}
             </div>
 
-            {/* ── Add-on Services ────────────────────────────────────────── */}
+            {/* ── Appointment Services ───────────────────────────────────── */}
             <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Complementary Rituals</p>
-                  <h4 className="mt-1 text-lg font-semibold text-zen-brown">Add-on services</h4>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Appointment services</p>
+                  <h4 className="mt-1 text-lg font-semibold text-zen-brown">Services list</h4>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.2em]">
-                    {(formData.service && formData.service !== 'None' ? 1 : 0) + (formData.addOns?.length || 0)} Total
-                  </span>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.2em]">{serviceTotals.quantity} Qty</p>
+                  <p className="mt-1 font-serif text-lg font-bold text-zen-brown">
+                    {currencySymbol} {serviceTotals.amount.toLocaleString()}
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-6">
-                {/* Primary Service Selection */}
-                <div className="pb-6 border-b border-zen-brown/5">
+                <div>
                   <ZenDropdown
-                    label="Primary Service Ritual"
-                    options={serviceOptions}
-                    value={formData.service || 'None'}
-                    onChange={val => {
-                      setFormData({ ...formData, service: val });
-                      setFormErrors({ ...formErrors, service: false });
-                    }}
-                    error={formErrors.service}
+                    label="Service"
+                    placeholder="Select service"
+                    options={servicePickerOptions}
+                    value=""
+                    onChange={handleAddServiceLine}
+                    error={formErrors.service && serviceLineItems.length === 0}
                     icon={Sparkles}
                   />
                 </div>
-                {formData.addOns && formData.addOns.length > 0 && (
-                  <div className="grid gap-3">
-                    {formData.addOns.map((addon, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-zen-cream/10 border border-zen-brown/5 group hover:border-zen-brown/20 transition-all">
-                        <div className="flex items-center gap-4">
-                          <div className="w-8 h-8 rounded-lg bg-zen-brown/5 flex items-center justify-center text-zen-brown/40">
-                            <Sparkles size={14} />
+
+                {serviceLineItems.length === 0 ? (
+                  <div className={`rounded-2xl border border-dashed p-8 text-center transition-colors ${
+                    formErrors.service ? 'border-rose-300 bg-rose-50/50 text-rose-500' : 'border-zen-brown/10 bg-zen-cream/20 text-zen-brown/30'
+                  }`}>
+                    <Sparkles size={24} className="mx-auto mb-3" strokeWidth={1.3} />
+                    <p className="text-[10px] font-bold uppercase tracking-[0.25em]">Select at least one service</p>
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-2xl border border-zen-brown/10 bg-white">
+                    <div className="hidden md:grid grid-cols-[1fr_8rem_7rem_8rem_3.5rem] items-center gap-4 bg-zen-brown/[0.02] px-5 py-3 border-b border-zen-brown/5">
+                      <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-zen-brown/30">Service</span>
+                      <span className="text-center text-[9px] font-bold uppercase tracking-[0.25em] text-zen-brown/30">Qty</span>
+                      <span className="text-right text-[9px] font-bold uppercase tracking-[0.25em] text-zen-brown/30">Duration</span>
+                      <span className="text-right text-[9px] font-bold uppercase tracking-[0.25em] text-zen-brown/30">Total</span>
+                      <span />
+                    </div>
+
+                    <div className="divide-y divide-zen-brown/5">
+                      {serviceLineItems.map((item) => (
+                        <div key={item.key} className="grid gap-4 px-5 py-4 md:grid-cols-[1fr_8rem_7rem_8rem_3.5rem] md:items-center">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zen-brown/[0.04] text-zen-brown/40">
+                              <Sparkles size={15} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate font-serif text-sm font-bold text-zen-brown">{item.service}</p>
+                              <p className="mt-0.5 text-[10px] font-semibold text-zen-brown/35">
+                                {currencySymbol} {item.price.toLocaleString()} / {item.duration || 0} min
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-xs font-bold text-zen-brown">{addon.service}</p>
-                            <p className="text-[10px] text-zen-brown/40 font-medium">{addon.duration} min • {addon.price} QR</p>
+
+                          <div className="flex h-10 items-center justify-between rounded-xl border border-zen-brown/10 bg-zen-cream/20 px-2">
+                            <button
+                              type="button"
+                              disabled={item.quantity <= 1}
+                              onClick={() => handleUpdateServiceQuantity(item, item.quantity - 1)}
+                              className="flex h-7 w-7 items-center justify-center rounded-lg text-zen-brown/40 transition-colors hover:bg-white hover:text-zen-brown disabled:cursor-not-allowed disabled:opacity-30"
+                              aria-label={`Decrease ${item.service} quantity`}
+                            >
+                              <Minus size={14} />
+                            </button>
+                            <input
+                              type="number"
+                              min={1}
+                              value={item.quantity}
+                              onChange={event => handleUpdateServiceQuantity(item, Number(event.target.value))}
+                              className="h-8 w-10 bg-transparent text-center text-sm font-bold text-zen-brown outline-none"
+                              aria-label={`${item.service} quantity`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateServiceQuantity(item, item.quantity + 1)}
+                              className="flex h-7 w-7 items-center justify-center rounded-lg text-zen-brown/40 transition-colors hover:bg-white hover:text-zen-brown"
+                              aria-label={`Increase ${item.service} quantity`}
+                            >
+                              <Plus size={14} />
+                            </button>
                           </div>
+
+                          <div className="flex items-center justify-between md:block md:text-right">
+                            <span className="md:hidden text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">Duration</span>
+                            <p className="text-sm font-bold text-zen-brown">{item.lineDuration} min</p>
+                          </div>
+
+                          <div className="flex items-center justify-between md:block md:text-right">
+                            <span className="md:hidden text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">Total</span>
+                            <p className="font-serif text-base font-bold text-zen-brown">
+                              {currencySymbol} {item.lineTotal.toLocaleString()}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveServiceLine(item)}
+                            className="flex h-10 w-full items-center justify-center rounded-xl border border-transparent text-zen-brown/25 transition-colors hover:border-rose-100 hover:bg-rose-50 hover:text-rose-500 md:w-10"
+                            aria-label={`Remove ${item.service}`}
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, addOns: prev.addOns.filter((_, i) => i !== idx) }))}
-                          className="p-2 text-zen-brown/20 hover:text-rose-500 transition-colors"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                      ))}
+                    </div>
+
+                    <div className="grid gap-3 bg-zen-cream/20 px-5 py-4 sm:grid-cols-3">
+                      <div>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">Total Qty</p>
+                        <p className="mt-1 text-sm font-bold text-zen-brown">{serviceTotals.quantity}</p>
                       </div>
-                    ))}
+                      <div>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">Total Duration</p>
+                        <p className="mt-1 text-sm font-bold text-zen-brown">{serviceTotals.duration} min</p>
+                      </div>
+                      <div className="sm:text-right">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">Estimated Amount</p>
+                        <p className="mt-1 font-serif text-lg font-bold text-zen-brown">
+                          {currencySymbol} {serviceTotals.amount.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
-
-                <div className="pt-2">
-                  <ZenDropdown
-                    label="Add more service"
-                    options={serviceOptions.filter(opt => opt !== 'None' && opt !== formData.service && !(formData.addOns || []).some(a => a.service === opt))}
-                    value="Select service to add"
-                    onChange={val => {
-                      const s = rawServices.find(s => s.name === val);
-                      if (s) {
-                        setFormData(prev => ({
-                          ...prev,
-                          addOns: [...(prev.addOns || []), {
-                            serviceId: s._id,
-                            service: s.name,
-                            price: s.price,
-                            duration: s.duration
-                          }]
-                        }));
-                      }
-                    }}
-                  />
-                </div>
               </div>
             </div>
 
@@ -1464,12 +1936,14 @@ const Appointments = () => {
                 </div>
               )}
             </div>
-            {editingApt && ['admin', 'manager'].includes(user?.role?.toLowerCase() || '') && (
+            {editingApt && canManageAppointmentStatus(editingApt) && (
               <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
                 <div className="flex items-start justify-between gap-4 mb-8">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Administrative protocol</p>
-                    <h4 className="mt-1 text-lg font-semibold text-zen-brown">Ritual status & lifecycle</h4>
+                    <h4 className="mt-1 text-lg font-semibold text-zen-brown">
+                      {user?.role === 'Employee' ? 'Service completion' : 'Ritual status & lifecycle'}
+                    </h4>
                   </div>
                   <ZenBadge variant={
                      formData.status === 'Confirmed' ? 'leaf' :
@@ -1487,19 +1961,24 @@ const Appointments = () => {
                     { id: 'Confirmed', label: 'Approve Ritual', sub: 'Confirmed & active', icon: Check, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', active: 'bg-emerald-100 border-emerald-300 ring-2 ring-emerald-500/20' },
                     { id: 'Completed', label: 'Service Completed', sub: 'Session finished', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', active: 'bg-indigo-100 border-indigo-300 ring-2 ring-indigo-500/20' },
                     { id: 'Cancelled', label: 'Cancel Session', sub: 'Voided record', icon: CloseIcon, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', active: 'bg-rose-100 border-rose-300 ring-2 ring-rose-500/20' }
-                   ].map((s) => {
+                   ].filter((s) => ['admin', 'manager'].includes(user?.role?.toLowerCase() || '') || s.id === 'Completed').map((s) => {
                     const Icon = s.icon;
                     return (
                       <button
                         key={s.id}
                         type="button"
-                        onClick={() => setFormData({ ...formData, status: s.id })}
-                        className={`flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 text-left ${
+                        disabled={statusLoading !== null}
+                        onClick={() => handleAppointmentStatusChange(s.id)}
+                        className={`flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 text-left disabled:cursor-not-allowed disabled:opacity-70 ${
                           formData.status === s.id ? s.active : `${s.bg} ${s.border} hover:scale-[1.02]`
                         }`}
                       >
                         <div className={`w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm ${s.color}`}>
-                          <Icon size={20} />
+                          {statusLoading === s.id ? (
+                            <div className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                          ) : (
+                            <Icon size={20} />
+                          )}
                         </div>
                         <div>
                           <p className={`text-xs font-bold ${s.color}`}>{s.label}</p>
@@ -1509,6 +1988,13 @@ const Appointments = () => {
                     );
                   })}
                 </div>
+
+                {formData.status === 'Completed' && (editingApt.completedByName || formData.employee) && (
+                  <div className="mt-6 rounded-2xl border border-zen-brown/10 bg-zen-cream/20 px-5 py-4">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-zen-brown/30">Completed by</p>
+                    <p className="mt-1 text-sm font-semibold text-zen-brown">{editingApt.completedByName || formData.employee}</p>
+                  </div>
+                )}
 
                 {(formData.status === 'Cancelled' || formData.status === 'Pending') && (
                   <div className="mt-8 pt-8 border-t border-zen-brown/5 animate-in fade-in slide-in-from-top-4 duration-500">

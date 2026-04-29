@@ -1,8 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertCircle, X, Sparkles, LogOut, Trash2, AlertTriangle, Info } from 'lucide-react';
-import { ZenButton, ZenIconButton } from '../zen/ZenButtons';
+import { X, LogOut, Trash2, AlertTriangle, Info } from 'lucide-react';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -29,33 +28,30 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     switch (type) {
       case 'danger':
         return {
-          icon: LogOut,
+          icon: confirmText.toLowerCase().includes('logout') ? LogOut : Trash2,
           color: 'text-rose-500',
-          bg: 'bg-rose-500/10',
-          border: 'border-rose-500/20',
-          glow: 'shadow-rose-500/20',
-          buttonBg: 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30',
-          accent: 'bg-rose-500/5'
+          bg: 'bg-rose-50',
+          border: 'border-rose-100',
+          buttonBg: 'bg-rose-500 hover:bg-rose-600 focus:ring-rose-500/20',
+          eyebrow: 'Security check'
         };
       case 'warning':
         return {
           icon: AlertTriangle,
           color: 'text-amber-500',
-          bg: 'bg-amber-500/10',
-          border: 'border-amber-500/20',
-          glow: 'shadow-amber-500/20',
-          buttonBg: 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30',
-          accent: 'bg-amber-500/5'
+          bg: 'bg-amber-50',
+          border: 'border-amber-100',
+          buttonBg: 'bg-amber-500 hover:bg-amber-600 focus:ring-amber-500/20',
+          eyebrow: 'Please confirm'
         };
       default:
         return {
           icon: Info,
           color: 'text-zen-sand',
           bg: 'bg-zen-sand/10',
-          border: 'border-zen-sand/20',
-          glow: 'shadow-zen-sand/20',
-          buttonBg: 'bg-zen-sand hover:bg-zen-primary shadow-zen-sand/30',
-          accent: 'bg-zen-sand/5'
+          border: 'border-zen-sand/15',
+          buttonBg: 'bg-zen-brown hover:bg-zen-brown/90 focus:ring-zen-brown/20',
+          eyebrow: 'Confirmation'
         };
     }
   };
@@ -66,66 +62,59 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-6 sm:p-10">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-zen-brown/60 backdrop-blur-xl transition-all duration-500"
+            className="absolute inset-0 bg-zen-brown/55 backdrop-blur-md transition-all duration-300"
           />
 
           <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 40 }}
+            initial={{ scale: 0.96, opacity: 0, y: 18 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 40 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-[480px] bg-white/95 backdrop-blur-3xl rounded-[3rem] shadow-[0_32px_128px_-16px_rgba(45,35,30,0.4)] overflow-hidden border border-white p-1"
+            exit={{ scale: 0.96, opacity: 0, y: 18 }}
+            transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-dialog-title"
+            className="relative w-full max-w-[420px] overflow-hidden rounded-[1.75rem] border border-white/80 bg-white shadow-[0_28px_90px_-32px_rgba(45,35,30,0.55)]"
           >
-            {/* Artistic Background Decor */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-zen-sand/10 rounded-full blur-[80px] -z-0 pointer-events-none translate-x-1/2 -translate-y-1/2" />
-            <div className={`absolute bottom-0 left-0 w-64 h-64 ${theme.accent} rounded-full blur-[60px] -z-0 pointer-events-none -translate-x-1/2 translate-y-1/2`} />
-
-            <div className="relative z-10">
-               {/* Close Button */}
-               <div className="absolute top-8 right-8">
-                  <button onClick={onClose} className="p-2 text-zen-brown/20 hover:text-zen-brown transition-colors">
-                     <X size={24} />
+            <div className="relative">
+               <div className="flex items-start justify-between gap-5 border-b border-zen-brown/5 px-6 py-5 sm:px-7">
+                  <div className="flex min-w-0 items-center gap-4">
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${theme.border} ${theme.bg}`}>
+                      <Icon size={24} className={theme.color} strokeWidth={1.8} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-[10px] font-black uppercase tracking-[0.24em] ${theme.color}`}>
+                        {theme.eyebrow}
+                      </p>
+                      <h3 id="confirm-dialog-title" className="mt-1 text-xl font-serif font-black leading-tight text-zen-brown">
+                        {title}
+                      </h3>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onClose}
+                    aria-label="Close dialog"
+                    className="rounded-xl p-2 text-zen-brown/45 transition-colors hover:bg-zen-brown/5 hover:text-zen-brown focus:outline-none focus:ring-4 focus:ring-zen-brown/10"
+                  >
+                    <X size={20} />
                   </button>
                </div>
 
-               <div className="p-10 pb-4 flex flex-col items-center text-center">
-                  {/* Status Label */}
-                  <span className={`text-[10px] font-black uppercase tracking-[0.4em] ${theme.color} mb-8 opacity-80`}>
-                     Security Protocol
-                  </span>
-
-                  {/* Icon Container */}
-                  <div className={`relative mb-10 group`}>
-                    <div className={`absolute inset-0 ${theme.bg} rounded-[2rem] blur-2xl opacity-50 group-hover:opacity-80 transition-opacity duration-700`} />
-                    <div className={`w-28 h-28 rounded-[2.2rem] bg-white border ${theme.border} flex items-center justify-center relative shadow-2xl ${theme.glow} transition-transform duration-700 group-hover:scale-105 group-hover:rotate-3`}>
-                      <Icon size={44} className={theme.color} strokeWidth={1.5} />
-                    </div>
-                    {/* Decorative Ring */}
-                    <div className="absolute -inset-2 border border-white/50 rounded-[2.5rem] pointer-events-none" />
-                  </div>
-
-                  <h3 className="text-4xl font-serif font-black text-zen-brown mb-5 tracking-tight px-4 leading-tight">
-                    {title}
-                  </h3>
-
-                  <div className="max-w-[280px] space-y-4">
-                    <p className="text-zen-brown/40 text-[13px] font-medium leading-relaxed italic">
-                      {message}
-                    </p>
-                  </div>
+               <div className="px-6 py-6 sm:px-7">
+                  <p className="text-sm font-semibold leading-6 text-zen-brown/55">
+                    {message}
+                  </p>
                </div>
 
-               {/* Action Section */}
-               <div className="px-10 pb-12 pt-8 flex flex-col sm:flex-row gap-4">
+               <div className="flex flex-col-reverse gap-3 border-t border-zen-brown/5 bg-zen-cream/35 px-6 py-5 sm:flex-row sm:px-7">
                   <button
                     onClick={onClose}
-                    className="flex-1 py-4.5 rounded-2xl text-[11px] font-black uppercase tracking-widest text-zen-brown/40 hover:text-zen-brown hover:bg-zen-brown/5 transition-all border border-zen-brown/5 order-2 sm:order-1"
+                    className="min-h-[48px] flex-1 rounded-2xl border border-zen-brown/20 bg-white px-5 text-[11px] font-black uppercase tracking-[0.18em] text-zen-brown shadow-sm transition-all hover:border-zen-brown/35 hover:bg-zen-brown/5 focus:outline-none focus:ring-4 focus:ring-zen-brown/10"
                   >
                     {cancelText}
                   </button>
@@ -134,23 +123,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                        onConfirm();
                        onClose();
                     }}
-                    className={`flex-[1.5] py-4.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] text-white transition-all active:scale-95 shadow-xl flex items-center justify-center gap-3 group order-1 sm:order-2 ${theme.buttonBg}`}
+                    className={`min-h-[48px] flex-[1.25] rounded-2xl px-5 text-[11px] font-black uppercase tracking-[0.18em] text-white shadow-lg transition-all hover:shadow-xl active:scale-[0.98] focus:outline-none focus:ring-4 ${theme.buttonBg}`}
                   >
-                    <span>{confirmText}</span>
-                    <motion.div
-                      animate={{ x: [0, 4, 0] }}
-                      transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                    >
-                      <Sparkles size={16} className="opacity-60" />
-                    </motion.div>
+                    {confirmText}
                   </button>
-               </div>
-
-               {/* Footer Subtle Note */}
-               <div className="pb-8 text-center px-10">
-                  <p className="text-[9px] font-bold text-zen-brown/15 uppercase tracking-[0.2em]">
-                    Synchronized with identity hub v2.4
-                  </p>
                </div>
             </div>
           </motion.div>

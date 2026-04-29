@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Eye, EyeOff, Mail, Lock, Sparkles, ArrowRight } from 'lucide-react';
 import { withBase } from '../../utils/assetPath';
+import { getInitialRouteForUser } from '../../config/accessControl';
 
 const Login = () => {
   const { user, loading, login } = useAuth();
@@ -14,7 +15,7 @@ const Login = () => {
 
   React.useEffect(() => {
     if (!loading && user) {
-      navigate('/dashboard');
+      navigate(getInitialRouteForUser(user.role, user.permissions), { replace: true });
     }
   }, [user, loading, navigate]);
 
@@ -32,7 +33,7 @@ const Login = () => {
     setError('');
     const result = await login(email, password);
     if (result.success) {
-      navigate('/dashboard');
+      navigate(result.redirectPath || '/profile', { replace: true });
     } else {
       setError(result.message || 'Invalid registry credentials');
     }

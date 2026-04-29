@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { type UserRole, hasPermissionForRole } from '../config/accessControl';
+import { type UserRole, getInitialRouteForUser, hasPermissionForRole } from '../config/accessControl';
 
 export type { UserRole };
 
@@ -10,14 +10,14 @@ interface User {
   name: string;
   token?: string;
   permissions?: string[];
-  branch?: string | { _id?: string; name?: string };
+  branch?: string | { _id?: string; name?: string } | null;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   validating: boolean;
-  login: (email: string, password?: string) => Promise<{ success: boolean; message?: string }>;
+  login: (email: string, password?: string) => Promise<{ success: boolean; message?: string; redirectPath?: string }>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   hasPermission: (permId: string) => boolean;
@@ -36,11 +36,24 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-const getBranchId = (branch: User['branch']) => {
-  if (!branch) return '';
+const normalizeBranch = (branch: any): User['branch'] => {
+  if (!branch) return null;
   if (typeof branch === 'string') return branch;
-  return branch._id || '';
+  return {
+    _id: branch._id || '',
+    name: branch.name || ''
+  };
 };
+
+const normalizeAuthUser = (data: any): User => ({
+  _id: data._id,
+  email: data.email,
+  role: data.role as UserRole,
+  name: data.name,
+  permissions: Array.isArray(data.permissions) ? data.permissions : [],
+  branch: normalizeBranch(data.branch),
+  token: data.token
+});
 
 const parseResponseBody = async (response: Response) => {
   const text = await response.text();
@@ -77,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return hasPermissionForRole(user.role, user.permissions, permId);
   };
 
-  const login = async (email: string, password?: string): Promise<{ success: boolean; message?: string }> => {
+  const login = async (email: string, password?: string): Promise<{ success: boolean; message?: string; redirectPath?: string }> => {
     try {
       const response = await fetch(`${API_URL}/users/login`, {
         method: 'POST',
@@ -90,18 +103,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await parseResponseBody(response);
 
       if (response.ok) {
-        const userData: User = {
-          _id: data._id,
-          email: data.email,
-          role: data.role as UserRole,
-          name: data.name,
-          permissions: data.permissions,
-          branch: getBranchId(data.branch),
-          token: data.token
-        };
+        const userData = normalizeAuthUser(data);
         setUser(userData);
         localStorage.setItem('zen_spa_user', JSON.stringify(userData));
-        return { success: true };
+        return {
+          success: true,
+          redirectPath: getInitialRouteForUser(userData.role, userData.permissions)
+        };
       } else {
         const message = data.message || data.error || `Login failed (${response.status})`;
         console.error('Login failed:', message);
@@ -148,12 +156,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const updates: Partial<User> = {
             role: data.role,
             name: data.name,
-            permissions: data.permissions
+            permissions: Array.isArray(data.permissions) ? data.permissions : [],
+            branch: normalizeBranch(data.branch)
           };
-          const branchId = getBranchId(data.branch);
-          if (branchId || data.role === 'Admin') {
-            updates.branch = branchId;
-          }
           updateUser(updates);
           console.log('ZenSync: Identity and Branch validated');
         } else if (response.status === 401) {

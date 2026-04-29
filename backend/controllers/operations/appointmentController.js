@@ -27,6 +27,272 @@ const parseTime12ToMinutes = (time = '') => {
   return (hours * 60) + minutes;
 };
 
+const normalizeQuantity = (value) => {
+  const quantity = Number(value);
+  if (!Number.isFinite(quantity) || quantity < 1) return 1;
+  return Math.floor(quantity);
+};
+
+const resolveServiceForAppointment = async (Service, branchId, serviceId, serviceName) => {
+  const branch = toObjectIdIfValid(branchId);
+  const rawId = getBranchId(serviceId);
+  const id = rawId && /^[0-9a-fA-F]{24}$/.test(String(rawId)) ? rawId : null;
+
+  if (id) {
+    const service = await Service.findById(id);
+    if (!service) return { error: 'Selected service was not found.' };
+    if (!sameBranch(service.branch, branch)) {
+      return { error: 'Access Denied: Selected service belongs to another branch.', status: 403 };
+    }
+    return { service };
+  }
+
+  if (!serviceName) return { service: null };
+
+  const service = await Service.findOne({ name: serviceName, branch });
+  return { service };
+};
+
+const normalizeAppointmentServices = async (Service, appointmentData) => {
+  const branchId = appointmentData.branch;
+  const primary = await resolveServiceForAppointment(
+    Service,
+    branchId,
+    appointmentData.serviceId,
+    appointmentData.service
+  );
+
+  if (primary.error) return primary;
+
+  const primaryQuantity = normalizeQuantity(appointmentData.quantity);
+  const primaryService = primary.service;
+  if (!primaryService) {
+    return { error: 'Selected service is not available in the appointment branch.', status: 403 };
+  }
+  if (primaryService.status && primaryService.status !== 'Active') {
+    return { error: 'Selected service is inactive for the appointment branch.', status: 403 };
+  }
+
+  appointmentData.quantity = primaryQuantity;
+
+  if (primaryService) {
+    appointmentData.serviceId = primaryService._id;
+    appointmentData.service = primaryService.name;
+  }
+
+  const primaryPrice = Number(primaryService?.price || 0);
+  const primaryDuration = Number(primaryService?.duration || 60);
+  let totalQuantity = primaryQuantity;
+  let totalDuration = primaryDuration * primaryQuantity;
+  let totalAmount = primaryPrice * primaryQuantity;
+
+  const normalizedAddOns = [];
+  for (const addOn of appointmentData.addOns || []) {
+    const serviceName = addOn?.service || addOn?.name;
+    const addOnServiceResult = await resolveServiceForAppointment(
+      Service,
+      branchId,
+      addOn?.serviceId,
+      serviceName
+    );
+
+    if (addOnServiceResult.error) return addOnServiceResult;
+
+    const addOnService = addOnServiceResult.service;
+    if (!addOnService && !serviceName) continue;
+    if (!addOnService) {
+      return { error: 'Selected add-on service is not available in the appointment branch.', status: 403 };
+    }
+    if (addOnService.status && addOnService.status !== 'Active') {
+      return { error: 'Selected add-on service is inactive for the appointment branch.', status: 403 };
+    }
+
+    const quantity = normalizeQuantity(addOn?.quantity);
+    const price = Number(addOnService?.price ?? addOn?.price ?? 0) || 0;
+    const duration = Number(addOnService?.duration ?? addOn?.duration ?? 0) || 0;
+
+    normalizedAddOns.push({
+      serviceId: addOnService?._id || addOn?.serviceId,
+      service: addOnService?.name || serviceName,
+      price,
+      duration,
+      quantity
+    });
+
+    totalQuantity += quantity;
+    totalDuration += duration * quantity;
+    totalAmount += price * quantity;
+  }
+
+  appointmentData.addOns = normalizedAddOns;
+  appointmentData.totalQuantity = totalQuantity;
+  appointmentData.totalDuration = totalDuration || primaryDuration;
+  appointmentData.totalAmount = totalAmount;
+
+  return { appointmentData };
+};
+
+const resolveEmployeeForAppointment = async (Employee, branchId, employeeId, employeeName) => {
+  const branch = toObjectIdIfValid(branchId);
+  const rawId = getBranchId(employeeId);
+  const id = rawId && /^[0-9a-fA-F]{24}$/.test(String(rawId)) ? rawId : null;
+
+  if (id) {
+    const employee = await Employee.findById(id).select('_id branch name status');
+    if (!employee) return { error: 'Selected employee was not found.', status: 400 };
+    if (!sameBranch(employee.branch, branch)) {
+      return { error: 'Access Denied: Selected employee belongs to another branch.', status: 403 };
+    }
+    if (employee.status && employee.status !== 'Active') {
+      return { error: 'Selected employee is inactive in the appointment branch.', status: 403 };
+    }
+    return { employee };
+  }
+
+  if (!employeeName || employeeName === 'None') return { employee: null };
+
+  const employee = await Employee.findOne({
+    name: employeeName,
+    branch
+  }).select('_id branch name status');
+
+  if (!employee) {
+    return { error: 'Selected employee is not available in the appointment branch.', status: 403 };
+  }
+  if (employee.status && employee.status !== 'Active') {
+    return { error: 'Selected employee is inactive in the appointment branch.', status: 403 };
+  }
+
+  return { employee };
+};
+
+const resolveRoomForAppointment = async (Room, branchId, roomId, roomName) => {
+  const branch = toObjectIdIfValid(branchId);
+  const rawId = getBranchId(roomId);
+  const id = rawId && /^[0-9a-fA-F]{24}$/.test(String(rawId)) ? rawId : null;
+
+  if (id) {
+    const room = await Room.findById(id).select('_id branch name isActive');
+    if (!room) return { error: 'Selected room was not found.', status: 400 };
+    if (!sameBranch(room.branch, branch)) {
+      return { error: 'Access Denied: Selected room belongs to another branch.', status: 403 };
+    }
+    if (room.isActive === false) {
+      return { error: 'Selected room is inactive in the appointment branch.', status: 403 };
+    }
+    return { room };
+  }
+
+  if (!roomName || roomName === 'None') return { room: null };
+
+  const room = await Room.findOne({
+    name: roomName,
+    branch
+  }).select('_id branch name isActive');
+
+  if (!room) {
+    return { error: 'Selected room is not available in the appointment branch.', status: 403 };
+  }
+  if (room.isActive === false) {
+    return { error: 'Selected room is inactive in the appointment branch.', status: 403 };
+  }
+
+  return { room };
+};
+
+const getAppointmentDuration = async (Service, appointment, branchId) => {
+  if (Number(appointment.totalDuration) > 0) return Number(appointment.totalDuration);
+
+  const primary = await resolveServiceForAppointment(
+    Service,
+    branchId,
+    appointment.serviceId,
+    appointment.service
+  );
+  const primaryDuration = Number(primary.service?.duration || 60) * normalizeQuantity(appointment.quantity);
+  const addOnDuration = await (appointment.addOns || []).reduce(async (durationPromise, addOn) => {
+    const duration = await durationPromise;
+    const result = await resolveServiceForAppointment(Service, branchId, addOn?.serviceId, addOn?.service);
+    const serviceDuration = Number(result.service?.duration ?? addOn?.duration ?? 0) || 0;
+    return duration + (serviceDuration * normalizeQuantity(addOn?.quantity));
+  }, Promise.resolve(0));
+
+  return primaryDuration + addOnDuration;
+};
+
+const isAppointmentAssignedToUser = (appointment, user) => {
+  if (!appointment || !user) return false;
+  const appointmentEmployeeId = getBranchId(appointment.employeeId);
+  if (appointmentEmployeeId && appointmentEmployeeId.toString() === user._id.toString()) return true;
+
+  const appointmentEmployeeName = String(appointment.employee || '').trim().toLowerCase();
+  const userName = String(user.name || '').trim().toLowerCase();
+  const userEmail = String(user.email || '').trim().toLowerCase();
+
+  return Boolean(appointmentEmployeeName && (
+    appointmentEmployeeName === userName ||
+    appointmentEmployeeName === userEmail
+  ));
+};
+
+const findCompletionEmployee = async (Employee, appointment, req) => {
+  const branch = getBranchId(appointment.branch);
+
+  if (req.authSource === 'Employee') {
+    const employee = await Employee.findById(req.user._id).select('_id branch name role status');
+    if (employee && sameBranch(employee.branch, branch)) return employee;
+  }
+
+  if (req.user.role === 'Employee') {
+    const employee = await Employee.findOne({
+      branch: toObjectIdIfValid(branch),
+      $or: [
+        { email: req.user.email },
+        { name: req.user.name }
+      ]
+    }).select('_id branch name role status');
+    if (employee) return employee;
+  }
+
+  const appointmentEmployeeId = getBranchId(appointment.employeeId);
+  if (appointmentEmployeeId) {
+    const employee = await Employee.findById(appointmentEmployeeId).select('_id branch name role status');
+    if (employee && sameBranch(employee.branch, branch)) return employee;
+  }
+
+  if (appointment.employee) {
+    const employee = await Employee.findOne({
+      branch: toObjectIdIfValid(branch),
+      name: appointment.employee
+    }).select('_id branch name role status');
+    if (employee) return employee;
+  }
+
+  return null;
+};
+
+const applyCompletionMetadata = async (appointment, req, status) => {
+  if (status !== 'Completed') {
+    appointment.completedAt = undefined;
+    appointment.completedBy = undefined;
+    appointment.completedBySource = undefined;
+    appointment.completedByEmployeeId = undefined;
+    appointment.completedByName = undefined;
+    appointment.completedByRole = undefined;
+    return;
+  }
+
+  const Employee = require('../../models/human-resources/Employee');
+  const completionEmployee = await findCompletionEmployee(Employee, appointment, req);
+
+  appointment.completedAt = new Date();
+  appointment.completedBy = req.user._id;
+  appointment.completedBySource = req.authSource === 'Employee' ? 'Employee' : 'User';
+  appointment.completedByEmployeeId = completionEmployee?._id || getBranchId(appointment.employeeId) || undefined;
+  appointment.completedByName = completionEmployee?.name || appointment.employee || req.user.name;
+  appointment.completedByRole = completionEmployee?.role || req.user.role;
+};
+
 // @desc    Get all appointments
 // @route   GET /api/appointments
 // @access  Private
@@ -130,6 +396,39 @@ const createAppointment = async (req, res) => {
       appointmentData.room = appointmentData.room || targetRoom.name;
     }
 
+    const employeeSelection = await resolveEmployeeForAppointment(
+      Employee,
+      appointmentData.branch,
+      appointmentData.employeeId,
+      appointmentData.employee
+    );
+    if (employeeSelection.error) {
+      return res.status(employeeSelection.status || 400).json({ message: employeeSelection.error });
+    }
+    if (employeeSelection.employee) {
+      appointmentData.employeeId = employeeSelection.employee._id;
+      appointmentData.employee = employeeSelection.employee.name;
+    }
+
+    const roomSelection = await resolveRoomForAppointment(
+      Room,
+      appointmentData.branch,
+      appointmentData.roomId,
+      appointmentData.room
+    );
+    if (roomSelection.error) {
+      return res.status(roomSelection.status || 400).json({ message: roomSelection.error });
+    }
+    if (roomSelection.room) {
+      appointmentData.roomId = roomSelection.room._id;
+      appointmentData.room = roomSelection.room.name;
+    }
+
+    const serviceSummary = await normalizeAppointmentServices(Service, appointmentData);
+    if (serviceSummary.error) {
+      return res.status(serviceSummary.status || 400).json({ message: serviceSummary.error });
+    }
+
       // --- CONFLICT VALIDATION (Staff + Room) ---
       const { date, time, employee, room } = appointmentData;
       if (date && time && employee) {
@@ -140,7 +439,7 @@ const createAppointment = async (req, res) => {
           ],
           branch: toObjectIdIfValid(appointmentData.branch)
         }).catch(() => null);
-        const serviceDuration = selectedService?.duration || 60;
+        const serviceDuration = appointmentData.totalDuration || selectedService?.duration || 60;
 
         const selectedRoom = room ? await Room.findOne({
           name: room,
@@ -162,11 +461,7 @@ const createAppointment = async (req, res) => {
         let occupiedRoomCount = 0;
 
         for (const apt of existingApts) {
-          const existingService = await Service.findOne({
-            name: apt.service,
-            branch: toObjectIdIfValid(appointmentData.branch)
-          });
-          const existingDuration = existingService?.duration || 60;
+          const existingDuration = await getAppointmentDuration(Service, apt, appointmentData.branch);
 
           const aptRoom = apt.room ? await Room.findOne({
             name: apt.room,
@@ -233,6 +528,10 @@ const createAppointment = async (req, res) => {
     }
 
     const appointment = await Appointment.create(appointmentData);
+    if (appointment.status === 'Completed') {
+      await applyCompletionMetadata(appointment, req, 'Completed');
+      await appointment.save();
+    }
 
     // --- REAL-TIME NOTIFICATION INTEGRATION ---
     try {
@@ -361,6 +660,7 @@ const updateAppointment = async (req, res) => {
       'clientEmail',
       'service',
       'serviceId',
+      'quantity',
       'employee',
       'employeeId',
       'date',
@@ -370,13 +670,17 @@ const updateAppointment = async (req, res) => {
       'bookingType',
       'status',
       'cancellationReason',
-      'addOns'
+      'addOns',
+      'totalQuantity',
+      'totalDuration',
+      'totalAmount'
     ];
     const allowedForOwnerOnly = [
       'clientPhone',
       'clientEmail',
       'service',
       'serviceId',
+      'quantity',
       'employee',
       'employeeId',
       'date',
@@ -404,6 +708,25 @@ const updateAppointment = async (req, res) => {
     }
 
     const oldStatus = appointment.status;
+    const statusIsChanging = Object.prototype.hasOwnProperty.call(updatePayload, 'status') && updatePayload.status !== oldStatus;
+    if (statusIsChanging) {
+      const allowedStatus = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
+      if (!allowedStatus.includes(updatePayload.status)) {
+        return res.status(400).json({ message: 'Invalid status value' });
+      }
+
+      const isManagerLike = isAdmin || (req.user.role === 'Manager' && isBranchMatch);
+      const isAssignedEmployeeCompletion = (
+        req.user.role === 'Employee' &&
+        updatePayload.status === 'Completed' &&
+        isAppointmentAssignedToUser(appointment, req.user)
+      );
+
+      if (!isManagerLike && !isAssignedEmployeeCompletion) {
+        return res.status(403).json({ message: 'Access Denied: You cannot update this appointment status.' });
+      }
+    }
+
     const { date, time, employee, room } = updatePayload;
 
     // --- CONFLICT VALIDATION (Staff + Room) ---
@@ -441,13 +764,62 @@ const updateAppointment = async (req, res) => {
       if (!updatePayload.room) updatePayload.room = targetRoom.name;
     }
 
+    const employeeSelection = await resolveEmployeeForAppointment(
+      Employee,
+      checkBranch,
+      updatePayload.employeeId ?? appointment.employeeId,
+      updatePayload.employee ?? appointment.employee
+    );
+    if (employeeSelection.error) {
+      return res.status(employeeSelection.status || 400).json({ message: employeeSelection.error });
+    }
+    if (employeeSelection.employee) {
+      updatePayload.employeeId = employeeSelection.employee._id;
+      updatePayload.employee = employeeSelection.employee.name;
+    }
+
+    const roomSelection = await resolveRoomForAppointment(
+      Room,
+      checkBranch,
+      updatePayload.roomId ?? appointment.roomId,
+      updatePayload.room ?? appointment.room
+    );
+    if (roomSelection.error) {
+      return res.status(roomSelection.status || 400).json({ message: roomSelection.error });
+    }
+    if (roomSelection.room) {
+      updatePayload.roomId = roomSelection.room._id;
+      updatePayload.room = roomSelection.room.name;
+    }
+
+    const mergedServiceData = {
+      branch: checkBranch,
+      service: updatePayload.service ?? appointment.service,
+      serviceId: updatePayload.serviceId ?? appointment.serviceId,
+      quantity: updatePayload.quantity ?? appointment.quantity,
+      addOns: updatePayload.addOns ?? appointment.addOns
+    };
+    const serviceSummary = await normalizeAppointmentServices(Service, mergedServiceData);
+    if (serviceSummary.error) {
+      return res.status(serviceSummary.status || 400).json({ message: serviceSummary.error });
+    }
+    Object.assign(updatePayload, {
+      service: mergedServiceData.service,
+      serviceId: mergedServiceData.serviceId,
+      quantity: mergedServiceData.quantity,
+      addOns: mergedServiceData.addOns,
+      totalQuantity: mergedServiceData.totalQuantity,
+      totalDuration: mergedServiceData.totalDuration,
+      totalAmount: mergedServiceData.totalAmount
+    });
+
     if (checkDate && checkTime && checkEmployee) {
       const updatedService = updatePayload.service || appointment.service;
       const selectedService = await Service.findOne({
         name: updatedService,
         branch: toObjectIdIfValid(checkBranch)
       });
-      const serviceDuration = selectedService?.duration || 60;
+      const serviceDuration = updatePayload.totalDuration || selectedService?.duration || 60;
 
       const existingApts = await Appointment.find({
         branch: checkBranch,
@@ -460,11 +832,7 @@ const updateAppointment = async (req, res) => {
       const newEnd = newStart + serviceDuration;
 
       for (const apt of existingApts) {
-        const existingService = await Service.findOne({
-          name: apt.service,
-          branch: toObjectIdIfValid(checkBranch)
-        });
-        const existingDuration = existingService?.duration || 60;
+        const existingDuration = await getAppointmentDuration(Service, apt, checkBranch);
         const existingStart = parseTime(apt.date, apt.time);
         const existingEnd = existingStart + existingDuration;
         const overlaps = newStart < existingEnd && newEnd > existingStart;
@@ -479,7 +847,15 @@ const updateAppointment = async (req, res) => {
     }
     // ------------------------------------------
 
+    const shouldApplyCompletionMetadata = (
+      Object.prototype.hasOwnProperty.call(updatePayload, 'status') &&
+      (updatePayload.status !== oldStatus || (updatePayload.status === 'Completed' && !appointment.completedAt))
+    );
+
     Object.assign(appointment, updatePayload);
+    if (shouldApplyCompletionMetadata) {
+      await applyCompletionMetadata(appointment, req, updatePayload.status);
+    }
     const updatedAppointment = await appointment.save();
 
     // Trigger notification if status changed during update
@@ -575,7 +951,7 @@ const updateAppointmentStatus = async (req, res) => {
     }
 
     const isOwner = appointment.clientId?.toString() === req.user._id.toString();
-    const isBranchManager = req.user.role !== 'Client' && isBranchMatch;
+    const isManagerLike = isAdmin || (req.user.role === 'Manager' && isBranchMatch);
 
     const allowedStatus = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
     if (!allowedStatus.includes(status)) {
@@ -583,11 +959,18 @@ const updateAppointmentStatus = async (req, res) => {
     }
 
     const isOwnerCancellation = isOwner && status === 'Cancelled' && ['Pending', 'Confirmed'].includes(appointment.status);
-    if (!isAdmin && !isBranchManager && !isOwnerCancellation) {
+    const isAssignedEmployeeCompletion = (
+      req.user.role === 'Employee' &&
+      status === 'Completed' &&
+      isAppointmentAssignedToUser(appointment, req.user)
+    );
+
+    if (!isManagerLike && !isAssignedEmployeeCompletion && !isOwnerCancellation) {
       return res.status(403).json({ message: 'Access Denied: You cannot update this appointment status.' });
     }
 
     appointment.status = status;
+    await applyCompletionMetadata(appointment, req, status);
     if (cancellationReason) {
       appointment.cancellationReason = cancellationReason;
     }
@@ -664,7 +1047,7 @@ const getPublicAppointments = async (req, res) => {
 
     // Only return fields needed for availability calculation
     const appointments = await Appointment.find(query)
-      .select('date time service employee room branch status')
+      .select('date time service employee room branch status quantity addOns totalDuration')
       .populate('branch', 'name');
 
     res.json(appointments);
@@ -685,10 +1068,23 @@ const createGuestAppointment = async (req, res) => {
       return res.status(400).json({ message: 'Missing required booking details' });
     }
 
-    // Server-side conflict validation to prevent double booking
+    // Server-side service validation and conflict validation to prevent double booking
     const Service = require('../../models/operations/Service');
-    const selectedService = await Service.findOne({ name: rest.service }) || await Service.findById(rest.service).catch(() => null);
-    const serviceDuration = selectedService?.duration || 60;
+    const serviceSummary = await normalizeAppointmentServices(Service, {
+      ...rest,
+      branch: appointmentBranch
+    });
+
+    if (serviceSummary.error) {
+      return res.status(serviceSummary.status || 400).json({ message: serviceSummary.error });
+    }
+
+    Object.assign(rest, serviceSummary.appointmentData);
+
+    const selectedService = rest.serviceId
+      ? await Service.findById(rest.serviceId).catch(() => null)
+      : await Service.findOne({ name: rest.service, branch: appointmentBranch });
+    const serviceDuration = rest.totalDuration || selectedService?.duration || 60;
     const existingApts = await Appointment.find({
       branch: appointmentBranch,
       date: rest.date,
@@ -699,8 +1095,7 @@ const createGuestAppointment = async (req, res) => {
 
     const windows = [];
     for (const apt of existingApts) {
-      const existingService = await Service.findOne({ name: apt.service });
-      const existingDuration = existingService?.duration || 60;
+      const existingDuration = apt.totalDuration || await getAppointmentDuration(Service, apt, appointmentBranch);
       const existingStart = parseTime(apt.date, apt.time);
       const existingEnd = existingStart + existingDuration;
       windows.push({

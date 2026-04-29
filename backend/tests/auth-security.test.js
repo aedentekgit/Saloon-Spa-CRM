@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const jwt = require('jsonwebtoken');
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:5005/api';
 const MANAGER_TOKEN = process.env.MANAGER_TOKEN || '';
@@ -7,10 +8,21 @@ const CLIENT_TOKEN = process.env.CLIENT_TOKEN || '';
 const FOREIGN_BRANCH_ID = process.env.FOREIGN_BRANCH_ID || '';
 const EXPIRED_MANAGER_TOKEN = process.env.EXPIRED_MANAGER_TOKEN || '';
 const TAMPERED_MANAGER_TOKEN = process.env.TAMPERED_MANAGER_TOKEN || '';
+const STAFF_MANAGER_EMAIL = process.env.STAFF_MANAGER_EMAIL || '';
+const STAFF_MANAGER_PASSWORD = process.env.STAFF_MANAGER_PASSWORD || '';
+const STAFF_MANAGER_BRANCH_ID = process.env.STAFF_MANAGER_BRANCH_ID || '';
 
 const hasManager = Boolean(MANAGER_TOKEN);
 const hasClient = Boolean(CLIENT_TOKEN);
 const hasForeignBranch = Boolean(FOREIGN_BRANCH_ID);
+const hasStaffManagerFixture = Boolean(STAFF_MANAGER_EMAIL && STAFF_MANAGER_PASSWORD && STAFF_MANAGER_BRANCH_ID);
+
+const toId = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value._id) return String(value._id);
+  return String(value);
+};
 
 const requestJson = async ({ token, method = 'GET', path, body }) => {
   const headers = { 'Content-Type': 'application/json' };
@@ -142,6 +154,37 @@ test('NoSQL-style login payload does not crash server', async () => {
     res.status === 400 || res.status === 401 || res.status === 429,
     `Expected 400/401/429 for malformed login payload, got ${res.status}`
   );
+});
+
+test('staff manager login preserves Manager role and branch in response and JWT', { skip: !hasStaffManagerFixture }, async () => {
+  const res = await requestJson({
+    method: 'POST',
+    path: '/users/login',
+    body: {
+      email: STAFF_MANAGER_EMAIL,
+      password: STAFF_MANAGER_PASSWORD
+    }
+  });
+
+  assert.equal(res.status, 200, `Expected staff manager login to succeed, got ${res.status}`);
+  assert.equal(res.payload.role, 'Manager');
+  assert.equal(toId(res.payload.branch), STAFF_MANAGER_BRANCH_ID);
+  assert.ok(Array.isArray(res.payload.permissions), 'Expected permissions in login response');
+  assert.ok(res.payload.permissions.includes('dashboard'), 'Expected Manager permissions in login response');
+
+  const decoded = jwt.verify(res.payload.token, process.env.JWT_SECRET);
+  assert.equal(decoded.role, 'Manager');
+  assert.equal(decoded.branch, STAFF_MANAGER_BRANCH_ID);
+  assert.equal(decoded.source, 'Employee');
+
+  const profile = await requestJson({
+    token: res.payload.token,
+    path: '/users/profile'
+  });
+
+  assert.equal(profile.status, 200, `Expected staff manager profile fetch to succeed, got ${profile.status}`);
+  assert.equal(profile.payload.role, 'Manager');
+  assert.equal(toId(profile.payload.branch), STAFF_MANAGER_BRANCH_ID);
 });
 
 test('suspicious query patterns on protected list do not cause server error', { skip: !hasManager }, async () => {

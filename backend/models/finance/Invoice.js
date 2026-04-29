@@ -22,8 +22,26 @@ const invoiceSchema = mongoose.Schema({
   items: [
     {
       name: String,
+      serviceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Service'
+      },
+      appointmentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Appointment'
+      },
+      specialist: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Employee'
+      },
+      specialistName: String,
       price: Number,
-      duration: Number
+      duration: Number,
+      quantity: {
+        type: Number,
+        default: 1,
+        min: 1
+      }
     }
   ],
   subtotal: {

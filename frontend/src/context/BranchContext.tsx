@@ -38,6 +38,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return isAdmin ? (saved || 'all') : '';
   });
   const [loading, setLoading] = useState(() => getCachedJson<Branch[]>('zen_branch_context_list', []).length === 0);
+  const scopedBranches = scopeBranches(branches);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -92,8 +93,8 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [user?.token, user?.role, userBranchId, selectedBranch]);
 
   useEffect(() => {
-    setCachedJson('zen_branch_context_list', branches);
-  }, [branches]);
+    setCachedJson('zen_branch_context_list', scopeBranches(branches));
+  }, [branches, isAdmin, userBranchId]);
 
   // Validation: If selected branch is not 'all' and not found in branches, reset to 'all'
   useEffect(() => {
@@ -121,7 +122,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   return (
     <BranchContext.Provider value={{
-      branches,
+      branches: scopedBranches,
       selectedBranch,
       setSelectedBranch,
       loading,

@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   User, Mail, Phone, MapPin, Calendar, Camera, Lock,
-  Save, ShieldCheck, Key, Sparkles, Zap, Fingerprint,
-  Activity, Star, Clock, Globe, Shield, Edit3, X,
-  ArrowRight, CheckCircle2, AlertCircle, RefreshCw,
-  LogOut, Settings, Award, Verified
+  Save, ShieldCheck, Key, Zap, Fingerprint,
+  Activity, Clock, Shield, X,
+  AlertCircle, RefreshCw,
+  Award, Verified
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenButton } from '../../components/zen/ZenButtons';
@@ -24,7 +23,14 @@ interface ProfileData {
   address: string;
   profilePic: string;
   role: string;
+  branch?: string | { _id?: string; name?: string } | null;
 }
+
+const getBranchName = (branch: ProfileData['branch']) => {
+  if (!branch) return '';
+  if (typeof branch === 'string') return '';
+  return branch.name || '';
+};
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
@@ -32,7 +38,6 @@ const Profile = () => {
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'essence' | 'security'>('essence');
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -56,16 +61,16 @@ const Profile = () => {
       if (response.ok) {
         setProfile(data);
 
-        // Ensure role is treated as a clean string for global state
-        const freshRole = String(data.role || 'Employee');
+        // Keep global identity surfaces in sync with the backend profile.
+        const freshRole = String(data.role || user?.role || '');
         const freshName = String(data.name || '');
 
-        // Broadcast to global state (Top Bar, Sidebar, etc)
-        // Using a tiny timeout to ensure AuthProvider is ready to receive
         setTimeout(() => {
           updateUser({
             role: freshRole as any,
-            name: freshName
+            name: freshName,
+            permissions: Array.isArray(data.permissions) ? data.permissions : user?.permissions,
+            branch: data.branch ?? user?.branch
           });
           console.log('ZenSync: Global identity updated to', freshRole);
         }, 100);
@@ -179,6 +184,8 @@ const Profile = () => {
   }
 
   const profilePicUrl = getImageUrl(profile.profilePic) || null;
+  const displayRole = profile.role || user?.role || 'User';
+  const displayBranch = getBranchName(profile.branch) || getBranchName(user?.branch as ProfileData['branch']);
 
   return (
     <ZenPageLayout
@@ -226,7 +233,7 @@ const Profile = () => {
                  <div className="flex items-center gap-4 mb-1">
                     <h1 className="text-4xl md:text-5xl font-serif font-black text-zen-brown tracking-tight">{profile.name}</h1>
                     <span className="px-3 py-1 bg-zen-sand/10 text-zen-sand text-[10px] font-black uppercase tracking-[0.2em] rounded-lg border border-zen-sand/20">
-                       {profile.role}
+                       {displayRole}
                     </span>
                  </div>
                  <div className="flex items-center gap-6 text-zen-brown/40">
@@ -238,6 +245,12 @@ const Profile = () => {
                        <Shield size={14} className="text-zen-leaf" />
                        <span className="text-[10px] font-bold uppercase tracking-widest">Global ID: {profile._id.slice(-8).toUpperCase()}</span>
                     </div>
+                    {displayBranch && (
+                      <div className="flex items-center gap-2">
+                         <MapPin size={14} className="text-zen-sand" />
+                         <span className="text-[10px] font-bold uppercase tracking-widest">{displayBranch}</span>
+                      </div>
+                    )}
                  </div>
               </div>
 
@@ -355,11 +368,11 @@ const Profile = () => {
                        <span className="text-xs font-bold">Active</span>
                     </div>
                     <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-                       <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
                           <Award size={16} className="text-amber-400" />
                           <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Level</span>
                        </div>
-                       <span className="text-xs font-bold">Manager</span>
+                       <span className="text-xs font-bold">{displayRole}</span>
                     </div>
                  </div>
 

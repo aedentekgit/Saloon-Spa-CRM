@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { notify } from '../../components/shared/ZenNotification';
 import { motion, AnimatePresence } from 'motion/react';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 const Navbar = ({
   onMenuClick,
@@ -20,6 +21,7 @@ const Navbar = ({
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -273,7 +275,7 @@ const Navbar = ({
                 <button
                   onClick={() => {
                     setIsOpen(false);
-                    logout();
+                    setShowLogoutConfirm(true);
                   }}
                   className="w-full flex items-center gap-3 px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
                 >
@@ -285,6 +287,17 @@ const Navbar = ({
           </AnimatePresence>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={logout}
+        title="Confirm Logout"
+        message="Are you sure you want to log out of your session?"
+        confirmText="Logout Now"
+        cancelText="Cancel"
+        type="danger"
+      />
     </header>
   );
 };

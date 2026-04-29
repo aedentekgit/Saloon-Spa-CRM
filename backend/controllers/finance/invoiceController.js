@@ -3,10 +3,17 @@ const User = require('../../models/core/User');
 const Employee = require('../../models/human-resources/Employee');
 const Service = require('../../models/operations/Service');
 const Branch = require('../../models/operations/Branch');
+const Appointment = require('../../models/operations/Appointment');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const normalizeQuantity = (value) => {
+  const quantity = Number(value);
+  if (!Number.isFinite(quantity) || quantity < 1) return 1;
+  return Math.floor(quantity);
+};
 
 // @desc    Get all invoices
 // @route   GET /api/invoices
@@ -171,9 +178,33 @@ const createInvoice = async (req, res) => {
       nextInvoiceNumber = `${prefix}0001`;
     }
 
+    const linkedAppointmentIds = [];
+    const normalizedItems = [];
+
     if (items && Array.isArray(items)) {
       const Inventory = require('../../models/inventory/Inventory');
       for (const item of items) {
+        let linkedAppointment = null;
+        if (item.appointmentId) {
+          linkedAppointment = await Appointment.findById(item.appointmentId).select('branch clientId client status billedInvoiceId service employee employeeId completedByEmployeeId completedByName');
+          if (!linkedAppointment) {
+            return res.status(400).json({ message: 'Invalid completed appointment selection.' });
+          }
+          if (!sameBranch(linkedAppointment.branch, requestedBranch)) {
+            return res.status(403).json({ message: 'Access Denied: Completed appointment belongs to another branch.' });
+          }
+          if (linkedAppointment.status !== 'Completed') {
+            return res.status(400).json({ message: 'Only completed appointments can be billed.' });
+          }
+          if (linkedAppointment.billedInvoiceId) {
+            return res.status(400).json({ message: 'This completed appointment is already linked to an invoice.' });
+          }
+          if (targetClientId && linkedAppointment.clientId && linkedAppointment.clientId.toString() !== targetClientId.toString()) {
+            return res.status(400).json({ message: 'Completed appointment does not belong to the selected client.' });
+          }
+          linkedAppointmentIds.push(linkedAppointment._id);
+        }
+
         if (item.specialist) {
           const employee = await Employee.findById(item.specialist).select('branch');
           if (!employee || !sameBranch(employee.branch, requestedBranch)) {
@@ -196,15 +227,26 @@ const createInvoice = async (req, res) => {
             }
           }
         }
+
+        normalizedItems.push({
+          ...item,
+          appointmentId: linkedAppointment?._id || item.appointmentId || undefined,
+          serviceId: item.serviceId || service?._id || undefined,
+          specialist: item.specialist || linkedAppointment?.completedByEmployeeId || linkedAppointment?.employeeId || undefined,
+          specialistName: item.specialistName || linkedAppointment?.completedByName || linkedAppointment?.employee,
+          quantity: normalizeQuantity(item.quantity)
+        });
       }
     }
+
+    const invoiceItems = normalizedItems.length > 0 ? normalizedItems : items;
 
     const invoice = await Invoice.create({
       user: targetClientId || req.user._id,
       clientId: targetClientId,
       invoiceNumber: nextInvoiceNumber,
       clientName,
-      items,
+      items: invoiceItems,
       subtotal,
       gst,
       discount,
@@ -215,10 +257,17 @@ const createInvoice = async (req, res) => {
       branch: toObjectIdIfValid(requestedBranch)
     });
 
+    if (linkedAppointmentIds.length > 0) {
+      await Appointment.updateMany(
+        { _id: { $in: linkedAppointmentIds }, branch: toObjectIdIfValid(requestedBranch) },
+        { $set: { billedInvoiceId: invoice._id, billedAt: new Date() } }
+      );
+    }
+
     // Auto-update Employee Earnings and Inventory Stock
-    if (items && Array.isArray(items)) {
+    if (invoiceItems && Array.isArray(invoiceItems)) {
       const Inventory = require('../../models/inventory/Inventory');
-      for (const item of items) {
+      for (const item of invoiceItems) {
         const service = await Service.findOne({
           name: item.name,
           branch: toObjectIdIfValid(requestedBranch)

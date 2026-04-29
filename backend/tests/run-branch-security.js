@@ -50,7 +50,21 @@ const cleanupOldFixtures = async () => {
 
 const ensureRole = async (name, permissions) => {
   const existing = await Role.findOne({ name });
-  if (existing) return existing;
+  if (existing) {
+    const currentPermissions = Array.isArray(existing.permissions) ? existing.permissions : [];
+    const mergedPermissions = Array.from(new Set([...currentPermissions, ...permissions]));
+    const shouldUpdatePermissions = mergedPermissions.length !== currentPermissions.length;
+    const shouldReactivate = existing.status === 'Inactive' || existing.isActive === false;
+
+    if (shouldUpdatePermissions || shouldReactivate) {
+      existing.permissions = mergedPermissions;
+      existing.status = 'Active';
+      existing.isActive = true;
+      await existing.save();
+    }
+
+    return existing;
+  }
   return Role.create({
     name,
     description: `${name} role for branch security fixtures`,

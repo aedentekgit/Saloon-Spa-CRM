@@ -1,51 +1,20 @@
 const User = require('../../models/core/User');
 const Employee = require('../../models/human-resources/Employee');
-const Role = require('../../models/human-resources/Role');
-const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../../utils/sendEmail');
 const { getStoredFilePath } = require('../../middleware/uploadMiddleware');
 const { hasAssignedBranch } = require('../../utils/branch');
-const { DEFAULT_ROLE_PERMISSIONS } = require('../../utils/permissions');
+const {
+  ACCOUNT_SOURCES,
+  normalizeEmail,
+  normalizeAuthRole,
+  findAuthAccountByEmail,
+  resolveRoleAccess,
+  generateAuthToken,
+  buildAuthResponse
+} = require('../../utils/authIdentity');
 
 const getFrontendUrl = () => process.env.FRONTEND_URL || 'http://localhost:3000';
-
-const getEffectiveRole = (user, type) => {
-  let effectiveRole = user.role || type;
-  if (type === 'Employee') effectiveRole = 'Employee';
-  if (type === 'Client') effectiveRole = 'Client';
-  return effectiveRole;
-};
-
-const resolvePermissionsForRole = async (role) => {
-  const roleData = await Role.findOne({ name: role });
-  const isInactive = roleData && (roleData.status === 'Inactive' || roleData.isActive === false);
-
-  return {
-    roleData,
-    isActive: !isInactive,
-    permissions: role === 'Admin'
-      ? ['*']
-      : (roleData ? (roleData.permissions || []) : (DEFAULT_ROLE_PERMISSIONS[role] || []))
-  };
-};
-
-// Helper to find user across models
-const findUserByEmail = async (email) => {
-  let user = await User.findOne({ email }).select('+password');
-  let type = 'User';
-
-  if (user && user.role === 'Client') {
-    type = 'Client';
-  }
-
-  if (!user) {
-    user = await Employee.findOne({ email }).select('+password');
-    type = 'Employee';
-  }
-
-  return { user, type };
-};
 
 // @desc    Register a new user
 // @route   POST /api/users/register
@@ -115,12 +84,15 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: 'Invalid login payload' });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
     if (!normalizedEmail || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const { user, type } = await findUserByEmail(normalizedEmail);
+    const { account: user, source } = await findAuthAccountByEmail(normalizedEmail, {
+      withPassword: true,
+      populateBranch: true
+    });
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
@@ -156,31 +128,22 @@ exports.loginUser = async (req, res) => {
     await user.save();
 
     // Check if email is verified
-    if (type !== 'Employee' && !user.isEmailVerified) {
+    if (source !== ACCOUNT_SOURCES.EMPLOYEE && !user.isEmailVerified) {
        // Allow login for now to avoid locking out, but logic is there
     }
 
-    const effectiveRole = getEffectiveRole(user, type);
-    user.role = effectiveRole;
+    const effectiveRole = normalizeAuthRole(user.role, source);
 
-    if (!hasAssignedBranch(user)) {
+    if (!hasAssignedBranch({ role: effectiveRole, branch: user.branch })) {
       return res.status(403).json({ message: 'Access Denied: Branch assignment required for this role.' });
     }
 
-    const { isActive: roleIsActive, permissions } = await resolvePermissionsForRole(effectiveRole);
+    const { isActive: roleIsActive, permissions } = await resolveRoleAccess(effectiveRole);
     if (!roleIsActive && effectiveRole !== 'Admin') {
       return res.status(403).json({ message: 'Role is inactive' });
     }
 
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: effectiveRole,
-      permissions,
-      branch: user.branch,
-      token: generateToken(user._id)
-    });
+    res.json(buildAuthResponse(user, source, { permissions, token: true }));
   } catch (error) {
     console.error('Login Error details:', error);
     res.status(500).json({ message: error.message || 'Internal Server Error during login' });
@@ -192,7 +155,7 @@ exports.loginUser = async (req, res) => {
 // @access  Public
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
-  const { user } = await findUserByEmail(email);
+  const { account: user } = await findAuthAccountByEmail(email, { populateBranch: false });
 
   if (!user) {
     return res.status(404).json({ message: 'There is no user with that email' });
@@ -231,11 +194,16 @@ exports.resetPassword = async (req, res) => {
 
   const findResetUser = async () => {
     let u = await User.findOne({ resetPasswordToken, resetPasswordExpires: { $gt: Date.now() } });
-    if (!u) u = await Employee.findOne({ resetPasswordToken, resetPasswordExpires: { $gt: Date.now() } });
-    return u;
+    if (u) return { account: u, source: u.role === 'Client' ? ACCOUNT_SOURCES.CLIENT : ACCOUNT_SOURCES.USER };
+
+    u = await Employee.findOne({ resetPasswordToken, resetPasswordExpires: { $gt: Date.now() } });
+    return {
+      account: u,
+      source: u ? ACCOUNT_SOURCES.EMPLOYEE : null
+    };
   };
 
-  const user = await findResetUser();
+  const { account: user, source } = await findResetUser();
 
   if (!user) {
     return res.status(400).json({ message: 'Invalid token or token expired' });
@@ -250,7 +218,7 @@ exports.resetPassword = async (req, res) => {
 
   res.status(200).json({
     message: 'Password reset successful',
-    token: generateToken(user._id)
+    token: generateAuthToken(user, source, normalizeAuthRole(user.role, source))
   });
 };
 
@@ -285,11 +253,13 @@ exports.verifyEmail = async (req, res) => {
 // @access  Private
 exports.getUserProfile = async (req, res) => {
   try {
-    const { user, type } = await findUserByEmail(req.user.email);
+    const { account: user, source } = await findAuthAccountByEmail(req.user.email, {
+      populateBranch: true
+    });
 
     if (user) {
-      const effectiveRole = getEffectiveRole(user, type);
-      const { permissions } = await resolvePermissionsForRole(effectiveRole);
+      const effectiveRole = normalizeAuthRole(user.role, source);
+      const { permissions } = await resolveRoleAccess(effectiveRole);
       res.json({
         _id: user._id,
         name: user.name,
@@ -315,7 +285,9 @@ exports.getUserProfile = async (req, res) => {
 // @access  Private
 exports.updateUserProfile = async (req, res) => {
   try {
-    const { user } = await findUserByEmail(req.user.email);
+    const { account: user, source } = await findAuthAccountByEmail(req.user.email, {
+      populateBranch: true
+    });
 
     if (user) {
       user.name = req.body.name || user.name;
@@ -324,12 +296,16 @@ exports.updateUserProfile = async (req, res) => {
       user.address = req.body.address || user.address;
 
       const updatedUser = await user.save();
+      const effectiveRole = normalizeAuthRole(updatedUser.role, source);
+      const { permissions } = await resolveRoleAccess(effectiveRole);
 
       res.json({
         _id: updatedUser._id,
         name: updatedUser.name,
         email: updatedUser.email,
-        role: updatedUser.role,
+        role: effectiveRole,
+        permissions,
+        branch: updatedUser.branch,
         phone: updatedUser.phone,
         dob: updatedUser.dob,
         address: updatedUser.address,
@@ -348,7 +324,10 @@ exports.updateUserProfile = async (req, res) => {
 // @access  Private
 exports.changePassword = async (req, res) => {
   try {
-    const { user } = await findUserByEmail(req.user.email);
+    const { account: user } = await findAuthAccountByEmail(req.user.email, {
+      withPassword: true,
+      populateBranch: false
+    });
 
     if (user) {
       const isMatch = await user.matchPassword(req.body.currentPassword);
@@ -377,7 +356,9 @@ exports.uploadProfilePic = async (req, res) => {
       return res.status(400).json({ message: 'Please upload an image' });
     }
 
-    const { user } = await findUserByEmail(req.user.email);
+    const { account: user } = await findAuthAccountByEmail(req.user.email, {
+      populateBranch: false
+    });
 
     if (user) {
       user.profilePic = getStoredFilePath(req.file);
@@ -415,11 +396,4 @@ exports.updateFcmToken = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
-
-// Generate JWT
-const generateToken = (id) => {
-  return jwt.sign({ id: id.toString() }, process.env.JWT_SECRET, {
-    expiresIn: '24h'
-  });
 };

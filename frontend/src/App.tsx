@@ -68,7 +68,7 @@ const MembershipTiers = React.lazy(() => import('./pages/landing/MembershipTiers
 
 import { ZenLoadingBarrier } from './components/zen/ZenLoading';
 import { useData } from './context/DataContext';
-import { getRoutePermissions, isAuthenticatedOnlyRoute } from './config/accessControl';
+import { getInitialRouteForUser, getRoutePermissions, isAuthenticatedOnlyRoute } from './config/accessControl';
 
 const Layout = () => {
   const { user, loading: authLoading } = useAuth();
@@ -169,7 +169,7 @@ const AccessDenied = ({ required }: { required: string[] }) => {
 };
 
 const ProtectedPage = ({ children }: { children: React.ReactElement }) => {
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const location = useLocation();
   const required = getRoutePermissions(location.pathname);
 
@@ -178,6 +178,9 @@ const ProtectedPage = ({ children }: { children: React.ReactElement }) => {
   }
 
   if (!required || !required.some((permission) => hasPermission(permission))) {
+    if (location.pathname === '/dashboard' && user) {
+      return <Navigate to={getInitialRouteForUser(user.role, user.permissions)} replace />;
+    }
     return <AccessDenied required={required || []} />;
   }
 
@@ -187,6 +190,7 @@ const ProtectedPage = ({ children }: { children: React.ReactElement }) => {
 const AppRoutes = () => {
   const { user } = useAuth();
   const guarded = (element: React.ReactElement) => <ProtectedPage>{element}</ProtectedPage>;
+  const initialRoute = user ? getInitialRouteForUser(user.role, user.permissions) : '/login';
 
   return (
     <React.Suspense fallback={<ZenLoadingBarrier />}>
@@ -201,8 +205,8 @@ const AppRoutes = () => {
         <Route path="/book" element={<PublicLayout><BookAppointment /></PublicLayout>} />
         <Route path="/membership-tiers" element={<PublicLayout><MembershipTiers /></PublicLayout>} />
 
-        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-        <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
+        <Route path="/login" element={user ? <Navigate to={initialRoute} replace /> : <Login />} />
+        <Route path="/signup" element={user ? <Navigate to={initialRoute} replace /> : <Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />

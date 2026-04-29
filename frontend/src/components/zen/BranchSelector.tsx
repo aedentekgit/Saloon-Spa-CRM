@@ -20,14 +20,16 @@ export const BranchSelector = ({
 
   const isAdmin = user?.role === 'Admin';
   const userBranchId = typeof user?.branch === 'string' ? user.branch : user?.branch?._id || '';
+  const userBranchName = typeof user?.branch === 'object' ? user.branch?.name || '' : '';
   const lockedBranchId = isAdmin ? selectedBranch : (userBranchId || selectedBranch);
 
   if (!user) return null;
 
   const visibleBranches = isAdmin ? branches : branches.filter(branch => branch._id === lockedBranchId);
+  const visibleBranchName = visibleBranches.find(branch => branch._id === lockedBranchId)?.name || userBranchName;
   const lockedOptions = visibleBranches.length > 0
     ? visibleBranches.map(b => ({ label: b.name, value: b._id }))
-    : (lockedBranchId ? [{ label: 'Assigned Branch', value: lockedBranchId }] : []);
+    : (lockedBranchId ? [{ label: visibleBranchName || 'Assigned Branch', value: lockedBranchId }] : []);
   const branchOptions = isAdmin
     ? [{ label: 'All Branches', value: 'all' }, ...visibleBranches.map(b => ({ label: b.name, value: b._id }))]
     : lockedOptions;

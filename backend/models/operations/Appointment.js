@@ -17,6 +17,11 @@ const appointmentSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Service'
   },
+  quantity: {
+    type: Number,
+    default: 1,
+    min: 1
+  },
   employee: {
     type: String,
     required: true
@@ -64,6 +69,33 @@ const appointmentSchema = mongoose.Schema({
   cancellationReason: {
     type: String
   },
+  completedAt: {
+    type: Date
+  },
+  completedBy: {
+    type: mongoose.Schema.Types.ObjectId
+  },
+  completedBySource: {
+    type: String,
+    enum: ['User', 'Employee']
+  },
+  completedByEmployeeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employee'
+  },
+  completedByName: {
+    type: String
+  },
+  completedByRole: {
+    type: String
+  },
+  billedInvoiceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Invoice'
+  },
+  billedAt: {
+    type: Date
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -75,8 +107,25 @@ const appointmentSchema = mongoose.Schema({
     },
     service: String,
     price: Number,
-    duration: Number
-  }]
+    duration: Number,
+    quantity: {
+      type: Number,
+      default: 1,
+      min: 1
+    }
+  }],
+  totalQuantity: {
+    type: Number,
+    default: 1
+  },
+  totalDuration: {
+    type: Number,
+    default: 0
+  },
+  totalAmount: {
+    type: Number,
+    default: 0
+  }
 }, {
   timestamps: true
 });

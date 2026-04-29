@@ -1,21 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import dayjs from 'dayjs';
 import {
-  Printer,
-  Share2,
   CreditCard,
   Smartphone,
   Wallet,
-  Plus,
   Trash2,
   Receipt,
   Zap,
   Sparkles,
   Search,
-  ChevronRight,
   Crown,
   Split,
-  ChevronDown,
   User,
   ShoppingBag,
   ArrowRight,
@@ -25,8 +20,9 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
+import { BranchSelector } from '../../components/zen/BranchSelector';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
-import { ZenInput, ZenDropdown, ZenAutocomplete } from '../../components/zen/ZenInputs';
+import { ZenDropdown, ZenAutocomplete } from '../../components/zen/ZenInputs';
 import { notify } from '../../components/shared/ZenNotification';
 import { useSettings } from '../../context/SettingsContext';
 import { useData } from '../../context/DataContext';
@@ -57,18 +53,70 @@ interface Client {
   _id: string;
   name: string;
   phone: string;
+  branch?: any;
 }
+
+interface EmployeeRecord {
+  _id: string;
+  name: string;
+  status?: string;
+  branch?: any;
+}
+
+interface CompletedAppointment {
+  _id: string;
+  client: string;
+  clientId?: any;
+  service: string;
+  serviceId?: any;
+  quantity?: number;
+  employee: string;
+  employeeId?: any;
+  completedByEmployeeId?: any;
+  completedByName?: string;
+  completedAt?: string;
+  date: string;
+  time: string;
+  branch?: any;
+  addOns?: any[];
+  billedInvoiceId?: any;
+}
+
+const getEntityId = (value: any) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value._id) return String(value._id);
+  return String(value);
+};
+
+const normalizeQuantity = (value: any) => {
+  const quantity = Number(value);
+  if (!Number.isFinite(quantity) || quantity < 1) return 1;
+  return Math.floor(quantity);
+};
 
 const Billing = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const { invoices, clients: rawClients, services: rawServices, refreshData } = useData();
-  const { selectedBranch } = useBranches();
+  const { invoices, clients: rawClients, services: rawServices, employees: rawEmployees, refreshData } = useData();
+  const { selectedBranch, branches } = useBranches();
 
-  const clients = useMemo(() => rawClients.filter((c: any) => c.status === 'Active'), [rawClients]);
-  const services = useMemo(() => rawServices.filter((s: any) => s.status === 'Active'), [rawServices]);
+  const effectiveBranchId = selectedBranch !== 'all' ? selectedBranch : getEntityId(user?.branch);
+  const isInBillingBranch = (entity: any) => {
+    if (!effectiveBranchId) return true;
+    return getEntityId(entity?.branch) === effectiveBranchId;
+  };
+
+  const clients = useMemo(() => rawClients.filter((c: any) => c.status === 'Active' && isInBillingBranch(c)), [rawClients, effectiveBranchId]);
+  const services = useMemo(() => rawServices.filter((s: any) => s.status === 'Active' && isInBillingBranch(s)), [rawServices, effectiveBranchId]);
+  const branchEmployees = useMemo(() => rawEmployees.filter((e: EmployeeRecord) =>
+    (!e.status || e.status === 'Active') && isInBillingBranch(e)
+  ), [rawEmployees, effectiveBranchId]);
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('all');
+  const [completedAppointments, setCompletedAppointments] = useState<CompletedAppointment[]>([]);
+  const [loadingCompletedAppointments, setLoadingCompletedAppointments] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState('Fixed');
@@ -90,6 +138,21 @@ const Billing = () => {
     fetchGSTRates();
   }, []);
 
+  useEffect(() => {
+    if (selectedClient && !clients.some(client => client._id === selectedClient._id)) {
+      setSelectedClient(null);
+      setCompletedAppointments([]);
+      setInvoiceItems([]);
+    }
+    setSelectedEmployeeId('all');
+  }, [effectiveBranchId]);
+
+  useEffect(() => {
+    if (selectedEmployeeId !== 'all' && !branchEmployees.some((employee: EmployeeRecord) => employee._id === selectedEmployeeId)) {
+      setSelectedEmployeeId('all');
+    }
+  }, [branchEmployees, selectedEmployeeId]);
+
   const fetchGSTRates = async () => {
     try {
       const res = await fetch(`${API_URL}/gst`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
@@ -105,17 +168,113 @@ const Billing = () => {
   };
 
   const subtotal = useMemo(() => {
-    return invoiceItems.reduce((acc, item) => acc + (item.isRedeem ? 0 : (item.price || 0)), 0);
+    return invoiceItems.reduce((acc, item) => acc + (item.isRedeem ? 0 : ((item.price || 0) * normalizeQuantity(item.quantity))), 0);
   }, [invoiceItems]);
+
+  const billedAppointmentIds = useMemo(() => {
+    const ids = new Set<string>();
+    invoices.forEach((invoice: any) => {
+      (invoice.items || []).forEach((item: any) => {
+        const appointmentId = getEntityId(item.appointmentId);
+        if (appointmentId) ids.add(appointmentId);
+      });
+    });
+    return ids;
+  }, [invoices]);
+
+  const fetchCompletedAppointmentsForClient = async (clientId: string) => {
+    if (!clientId) {
+      setCompletedAppointments([]);
+      return;
+    }
+
+    setLoadingCompletedAppointments(true);
+    try {
+      const params = new URLSearchParams({
+        clientId,
+        status: 'Completed',
+        limit: '200'
+      });
+      if (effectiveBranchId) params.set('branch', effectiveBranchId);
+
+      const res = await fetch(`${API_URL}/appointments?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const data = await res.json();
+      const rows = Array.isArray(data) ? data : (data?.data || []);
+      setCompletedAppointments(Array.isArray(rows) ? rows : []);
+    } catch (_error) {
+      setCompletedAppointments([]);
+      notify('error', 'Sync Error', 'Unable to fetch completed appointment services.');
+    } finally {
+      setLoadingCompletedAppointments(false);
+    }
+  };
+
+  const completedServiceItems = useMemo(() => {
+    const serviceByName = new Map<string, any>(services.map((service: any) => [service.name, service]));
+    const serviceById = new Map<string, any>(services.map((service: any) => [getEntityId(service), service]));
+    const rows: any[] = [];
+
+    const appendServiceLine = (appointment: CompletedAppointment, entry: any, index: number) => {
+      const appointmentId = getEntityId(appointment);
+      if (!appointmentId || billedAppointmentIds.has(appointmentId) || appointment.billedInvoiceId) return;
+
+      const serviceName = entry.service || entry.name || appointment.service;
+      const serviceId = getEntityId(entry.serviceId || appointment.serviceId);
+      const service = (serviceId && serviceById.get(serviceId)) || serviceByName.get(serviceName);
+      const specialistId = getEntityId(appointment.completedByEmployeeId || appointment.employeeId);
+      const specialistName = appointment.completedByName || appointment.employeeId?.name || appointment.employee || 'Unassigned';
+
+      if (selectedEmployeeId !== 'all' && specialistId !== selectedEmployeeId) return;
+
+      rows.push({
+        uniqueId: `${appointmentId}-${index}`,
+        appointmentId,
+        serviceId: serviceId || service?._id || '',
+        _id: serviceId || service?._id || '',
+        name: service?.name || serviceName,
+        price: Number(entry.price ?? service?.price ?? 0) || 0,
+        duration: Number(entry.duration ?? service?.duration ?? 0) || 0,
+        quantity: normalizeQuantity(entry.quantity ?? appointment.quantity),
+        specialist: specialistId || '',
+        specialistName,
+        appointmentDate: appointment.date,
+        appointmentTime: appointment.time,
+        branch: getEntityId(appointment.branch),
+        isRedeem: false
+      });
+    };
+
+    completedAppointments.forEach((appointment) => {
+      appendServiceLine(appointment, {
+        service: appointment.service,
+        serviceId: appointment.serviceId,
+        quantity: appointment.quantity
+      }, 0);
+
+      (appointment.addOns || []).forEach((addOn, index) => {
+        appendServiceLine(appointment, addOn, index + 1);
+      });
+    });
+
+    return rows;
+  }, [completedAppointments, services, billedAppointmentIds, selectedEmployeeId]);
+
+  useEffect(() => {
+    setInvoiceItems(completedServiceItems);
+  }, [completedServiceItems]);
 
   useEffect(() => {
     if (selectedClient?._id && selectedClient._id.length === 24) {
       fetchClientMembership(selectedClient._id);
+      fetchCompletedAppointmentsForClient(selectedClient._id);
     } else {
       setActiveMembership(null);
       setDiscount(0);
+      setCompletedAppointments([]);
     }
-  }, [selectedClient]);
+  }, [selectedClient, effectiveBranchId]);
 
   const fetchClientMembership = async (clientId: string) => {
     try {
@@ -144,13 +303,6 @@ const Billing = () => {
   const gst = isGstEnabled ? (subtotal * (selectedGSTRate?.percentage || 0) / 100) : 0;
   const discountAmount = discountType === 'Percentage' ? (subtotal * discount / 100) : discount;
   const total = subtotal + gst - discountAmount;
-
-  const handleAddService = (serviceName: string) => {
-    const service = services.find(s => s.name === serviceName);
-    if (service) {
-      setInvoiceItems([...invoiceItems, { ...service, uniqueId: Date.now(), isRedeem: false }]);
-    }
-  };
 
   const toggleRedeem = (uniqueId: number) => {
     setInvoiceItems(invoiceItems.map(item => {
@@ -184,7 +336,19 @@ const Billing = () => {
 
   const handleConfirmPayment = async () => {
     if (!selectedClient || invoiceItems.length === 0) {
-      notify('error', 'Validation Failed', 'Selection of an ambassador and services is required.');
+      notify('error', 'Validation Failed', 'Select a client with completed appointment services first.');
+      return;
+    }
+
+    const invoiceBranch = effectiveBranchId || invoiceItems[0]?.branch;
+    if (!invoiceBranch) {
+      notify('error', 'Branch Required', 'Select a branch before authorizing billing.');
+      return;
+    }
+
+    const hasMixedBranches = invoiceItems.some(item => item.branch && item.branch !== invoiceBranch);
+    if (hasMixedBranches) {
+      notify('error', 'Branch Mismatch', 'Completed services from multiple branches cannot be billed together.');
       return;
     }
 
@@ -203,7 +367,16 @@ const Billing = () => {
       invoiceNumber: nextNumber,
       clientId: selectedClient._id || undefined,
       clientName: selectedClient.name,
-      items: invoiceItems.map(i => ({ name: i.name, price: i.price, duration: i.duration })),
+      items: invoiceItems.map(i => ({
+        appointmentId: i.appointmentId,
+        serviceId: i.serviceId || i._id,
+        name: i.name,
+        price: i.price,
+        duration: i.duration,
+        quantity: normalizeQuantity(i.quantity),
+        specialist: i.specialist || undefined,
+        specialistName: i.specialistName
+      })),
       subtotal,
       gst,
       gstName: selectedGSTRate ? `${selectedGSTRate.percentage}%` : 'Tax',
@@ -212,7 +385,7 @@ const Billing = () => {
       paymentMode,
       payments: paymentMode === 'Split' ? payments.filter(p => p.amount > 0) : [{ mode: paymentMode, amount: total }],
       date: dayjs().format('YYYY-MM-DD'),
-      branch: selectedBranch !== 'all' ? selectedBranch : (user?.branch || undefined)
+      branch: invoiceBranch
     };
 
     try {
@@ -248,6 +421,8 @@ const Billing = () => {
 
         notify('success', 'Billing Updated', 'Billing records have been synchronized successfully.');
         setSelectedClient(null);
+        setSelectedEmployeeId('all');
+        setCompletedAppointments([]);
         setInvoiceItems([]);
         setDiscount(0);
         setPayments(payments.map(p => ({ ...p, amount: 0 })));
@@ -269,7 +444,7 @@ const Billing = () => {
       title="Billing Terminal"
       hideSearch
       hideAddButton
-      hideBranchSelector={false}
+      hideBranchSelector={true}
       hideViewToggle
     >
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start max-w-[1600px] mx-auto">
@@ -321,35 +496,45 @@ const Billing = () => {
                 </div>
               </div>
 
-              <AnimatePresence mode="wait">
-                {selectedClient ? (
-                  <motion.div
-                    initial={{ opacity: 0, x: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    className="flex items-center gap-5 bg-white/50 backdrop-blur-md pl-6 pr-8 py-5 rounded-[2rem] border border-zen-brown/10 shadow-sm min-w-[280px]"
-                  >
-                    <div className="w-14 h-14 rounded-2xl bg-white border border-zen-brown/10 flex items-center justify-center text-zen-gold shadow-sm shrink-0">
-                      {activeMembership ? <Crown size={28} strokeWidth={1.5} /> : <User size={28} strokeWidth={1.5} />}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.2em] mb-1">Active Profile</p>
-                      <p className="font-serif text-xl font-bold text-zen-brown truncate">{selectedClient.name}</p>
-                      {selectedClient.phone && <p className="text-[10px] font-bold text-zen-gold uppercase tracking-widest mt-0.5">{selectedClient.phone}</p>}
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="hidden md:flex flex-col items-end opacity-20"
-                  >
-                    <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-zen-brown/30 flex items-center justify-center">
-                      <Plus size={24} className="text-zen-brown" />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <div className="flex flex-col items-stretch md:items-end gap-3 min-w-[280px]">
+                <BranchSelector variant="pill" className="!w-full shadow-sm" />
+                <ZenDropdown
+                  label=""
+                  hideLabel
+                  variant="pill"
+                  options={[
+                    { label: 'All completed staff', value: 'all' },
+                    ...branchEmployees.map((employee: EmployeeRecord) => ({ label: employee.name, value: employee._id }))
+                  ]}
+                  value={selectedEmployeeId}
+                  onChange={setSelectedEmployeeId}
+                />
+                <AnimatePresence mode="wait">
+                  {selectedClient && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                      className="flex items-center gap-5 bg-white/50 backdrop-blur-md pl-6 pr-8 py-5 rounded-[2rem] border border-zen-brown/10 shadow-sm w-full"
+                    >
+                      <div className="w-14 h-14 rounded-2xl bg-white border border-zen-brown/10 flex items-center justify-center text-zen-gold shadow-sm shrink-0">
+                        {activeMembership ? <Crown size={28} strokeWidth={1.5} /> : <User size={28} strokeWidth={1.5} />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.2em] mb-1">Active Profile</p>
+                        <p className="font-serif text-xl font-bold text-zen-brown truncate">{selectedClient.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="w-1 h-1 rounded-full bg-zen-gold/40" />
+                          <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest">
+                            {branches.find(b => b._id === selectedBranch)?.name || 'All Branches'}
+                          </p>
+                        </div>
+                        {selectedClient.phone && <p className="text-[10px] font-bold text-zen-gold uppercase tracking-widest mt-1">{selectedClient.phone}</p>}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {activeMembership && (
@@ -402,18 +587,18 @@ const Billing = () => {
                 </div>
                 <div>
                   <h3 className="text-[11px] font-bold uppercase tracking-[0.4em] text-zen-brown/30 leading-none">Active Registry</h3>
-                  <p className="text-[10px] text-zen-brown/20 mt-1 uppercase tracking-widest">{invoiceItems.length} items staged</p>
+                  <p className="text-[10px] text-zen-brown/20 mt-1 uppercase tracking-widest">
+                    {loadingCompletedAppointments ? 'Syncing completed services' : `${invoiceItems.length} completed services staged`}
+                  </p>
                 </div>
               </div>
               <div className="w-full sm:w-72">
-                <ZenDropdown
-                  label=""
-                  hideLabel
-                  placeholder="+ Add Service Protocol"
-                  options={services.map(s => s.name)}
-                  value=""
-                  onChange={handleAddService}
-                />
+                <div className="rounded-[1.35rem] border border-zen-brown/10 bg-white px-5 py-3 text-right">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-zen-brown/25">Source</p>
+                  <p className="text-sm font-serif font-bold text-zen-brown">
+                    Completed appointments
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -422,6 +607,8 @@ const Billing = () => {
                 <thead>
                   <tr className="bg-zen-brown/[0.02]">
                     <th className="px-10 py-4 text-left text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] border-b border-zen-brown/5">Reference</th>
+                    <th className="px-6 py-4 text-center text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] border-b border-zen-brown/5">Qty</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] border-b border-zen-brown/5">Completed By</th>
                     <th className="px-8 py-4 text-right text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] border-b border-zen-brown/5">Energy Value</th>
                     <th className="px-8 py-4 text-center text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] border-b border-zen-brown/5">Logic</th>
                     <th className="px-10 py-4 text-center text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] border-b border-zen-brown/5">Actions</th>
@@ -435,12 +622,16 @@ const Billing = () => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                       >
-                        <td colSpan={4} className="px-10 py-32 text-center">
+                        <td colSpan={6} className="px-10 py-32 text-center">
                           <div className="flex flex-col items-center gap-5 opacity-30">
                             <ShoppingBag size={64} strokeWidth={1} className="text-zen-brown" />
                             <div className="space-y-1">
-                              <p className="font-serif italic text-2xl text-zen-brown">Registry is vacant</p>
-                              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-zen-brown">Awaiting item selection</p>
+                              <p className="font-serif italic text-2xl text-zen-brown">
+                                {selectedClient ? 'No completed services found' : 'Registry is vacant'}
+                              </p>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-zen-brown">
+                                {selectedClient ? 'Only completed appointment services can be billed' : 'Select a client to sync completed services'}
+                              </p>
                             </div>
                           </div>
                         </td>
@@ -464,16 +655,27 @@ const Billing = () => {
                                 <p className={`font-serif text-lg leading-tight transition-all duration-500 ${item.isRedeem ? 'text-zen-sand font-bold' : 'text-zen-brown font-semibold'}`}>{item.name}</p>
                                 <div className="flex items-center gap-2">
                                   <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">{item.duration}m duration</span>
+                                  {item.appointmentDate && <span className="w-1 h-1 rounded-full bg-zen-brown/20" />}
+                                  {item.appointmentDate && <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.2em]">{dayjs(item.appointmentDate).format('DD MMM')} · {item.appointmentTime}</span>}
                                   {item.isRedeem && <span className="w-1 h-1 rounded-full bg-zen-sand/40" />}
                                   {item.isRedeem && <span className="text-[9px] font-bold text-zen-sand uppercase tracking-widest animate-pulse">Privilege applied</span>}
                                 </div>
                               </div>
                             </div>
                           </td>
+                          <td className="px-6 py-6 text-center">
+                            <span className="inline-flex min-w-10 items-center justify-center rounded-xl border border-zen-brown/10 bg-zen-cream/20 px-3 py-2 text-sm font-black text-zen-brown">
+                              {normalizeQuantity(item.quantity)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-6">
+                            <p className="text-xs font-bold text-zen-brown">{item.specialistName || 'Unassigned'}</p>
+                            <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">Completed service</p>
+                          </td>
                           <td className="px-8 py-6 text-right">
                              <div className={`transition-all duration-500 ${item.isRedeem ? 'opacity-30 scale-95 origin-right line-through blur-[0.5px]' : 'opacity-100'}`}>
                                <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">{settings?.general.currencySymbol || 'QR'}</p>
-                               <p className="font-serif text-2xl font-black text-zen-brown">{item.price?.toLocaleString()}</p>
+                               <p className="font-serif text-2xl font-black text-zen-brown">{((item.price || 0) * normalizeQuantity(item.quantity)).toLocaleString()}</p>
                              </div>
                           </td>
                           <td className="px-8 py-6">

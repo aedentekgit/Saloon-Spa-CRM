@@ -94,6 +94,7 @@ export const AUTHENTICATED_ONLY_ROUTES = ['/profile'];
 
 export const ROUTE_PERMISSION_MAP: Record<string, PermissionId[]> = {
   '/dashboard': ['dashboard'],
+  '/book': ['book'],
   '/clients': ['clients'],
   '/appointments': ['appointments'],
   '/rooms': ['rooms'],
@@ -121,6 +122,47 @@ export const ROUTE_PERMISSION_MAP: Record<string, PermissionId[]> = {
   '/transactions': ['transactions', 'finance', 'history'],
   '/expenses': ['finance']
 };
+
+const STAFF_ROUTE_ORDER = [
+  '/dashboard',
+  '/appointments',
+  '/billing',
+  '/clients',
+  '/memberships',
+  '/services',
+  '/rooms',
+  '/inventory',
+  '/employees',
+  '/attendance',
+  '/shifts',
+  '/payroll',
+  '/leave',
+  '/leave/apply',
+  '/finance',
+  '/expenses',
+  '/transactions',
+  '/reports',
+  '/whatsapp',
+  '/branches',
+  '/room-categories',
+  '/service-categories',
+  '/expense-categories',
+  '/admins',
+  '/roles',
+  '/settings',
+  '/profile'
+];
+
+const EMPLOYEE_ROUTE_ORDER = STAFF_ROUTE_ORDER.map((route) => (
+  route === '/attendance' ? '/staff-attendance' : route
+));
+
+const CLIENT_ROUTE_ORDER = [
+  '/dashboard',
+  '/book',
+  '/profile',
+  '/transactions'
+];
 
 const normalizePath = (pathname: string) => {
   const path = pathname.split('?')[0].split('#')[0] || '/';
@@ -167,4 +209,21 @@ export const hasPermissionForRole = (
   if (effective.includes('*')) return true;
 
   return requiredList.some((permission) => effective.includes(permission as PermissionId));
+};
+
+export const getInitialRouteForUser = (
+  role: string | undefined,
+  permissions: string[] | undefined
+) => {
+  const routeOrder = role === 'Client'
+    ? CLIENT_ROUTE_ORDER
+    : role === 'Employee'
+      ? EMPLOYEE_ROUTE_ORDER
+      : STAFF_ROUTE_ORDER;
+
+  return routeOrder.find((route) => {
+    if (isAuthenticatedOnlyRoute(route)) return true;
+    const required = getRoutePermissions(route);
+    return Boolean(required && hasPermissionForRole(role, permissions, required));
+  }) || '/profile';
 };

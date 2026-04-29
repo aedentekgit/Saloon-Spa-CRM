@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 
 const Branch = require('../models/operations/Branch');
 const User = require('../models/core/User');
+const Employee = require('../models/human-resources/Employee');
 const Role = require('../models/human-resources/Role');
 
 const API_BASE_URL = process.env.API_BASE_URL || `http://127.0.0.1:${process.env.PORT || '5005'}/api`;
@@ -20,15 +21,30 @@ const fail = (msg) => {
 
 const cleanupOldFixtures = async () => {
   const fixtureNameRx = /^authsec_\d+_/;
-  const fixtureEmailRx = /^authsec_\d+\.(manager|client)\.[ab]@test\.local$/;
+  const fixtureEmailRx = /^authsec_\d+\.(manager|client|staffmanager)\.[ab]@test\.local$/;
 
   await User.deleteMany({ email: { $regex: fixtureEmailRx } });
+  await Employee.deleteMany({ email: { $regex: fixtureEmailRx } });
   await Branch.deleteMany({ name: { $regex: fixtureNameRx } });
 };
 
 const ensureRole = async (name, permissions) => {
   const existing = await Role.findOne({ name });
-  if (existing) return existing;
+  if (existing) {
+    const currentPermissions = Array.isArray(existing.permissions) ? existing.permissions : [];
+    const mergedPermissions = Array.from(new Set([...currentPermissions, ...permissions]));
+    const shouldUpdatePermissions = mergedPermissions.length !== currentPermissions.length;
+    const shouldReactivate = existing.status === 'Inactive' || existing.isActive === false;
+
+    if (shouldUpdatePermissions || shouldReactivate) {
+      existing.permissions = mergedPermissions;
+      existing.status = 'Active';
+      existing.isActive = true;
+      await existing.save();
+    }
+
+    return existing;
+  }
   return Role.create({
     name,
     description: `${name} role for auth security fixtures`,
@@ -102,6 +118,18 @@ const createFixtures = async () => {
     }
   ]);
 
+  const staffManagerPassword = 'AuthSecStaffManager#123';
+  await Employee.create({
+    name: `${FIXTURE_TAG}_StaffManagerA`,
+    email: `${FIXTURE_TAG}.staffmanager.a@test.local`,
+    password: staffManagerPassword,
+    role: 'Manager',
+    branch: branchA._id,
+    isEmailVerified: true,
+    status: 'Active',
+    loginAttempts: 0
+  });
+
   console.log('[auth-security] creating signed tokens');
   const managerToken = jwt.sign({ id: managerAId }, process.env.JWT_SECRET, { expiresIn: '1h' });
   const clientToken = jwt.sign({ id: clientAId }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -114,7 +142,10 @@ const createFixtures = async () => {
     CLIENT_TOKEN: clientToken,
     FOREIGN_BRANCH_ID: branchB._id.toString(),
     EXPIRED_MANAGER_TOKEN: expiredManagerToken,
-    TAMPERED_MANAGER_TOKEN: tamperedManagerToken
+    TAMPERED_MANAGER_TOKEN: tamperedManagerToken,
+    STAFF_MANAGER_EMAIL: `${FIXTURE_TAG}.staffmanager.a@test.local`,
+    STAFF_MANAGER_PASSWORD: staffManagerPassword,
+    STAFF_MANAGER_BRANCH_ID: branchA._id.toString()
   };
 };
 
