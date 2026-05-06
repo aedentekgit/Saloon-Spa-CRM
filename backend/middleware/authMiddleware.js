@@ -43,6 +43,12 @@ const protect = async (req, res, next) => {
       req.user.role = effectiveRole;
       req.authSource = source;
 
+      if (effectiveRole === 'Admin') {
+        if (!decoded.currentSessionId || decoded.currentSessionId !== req.user.currentSessionId) {
+          return res.status(401).json({ message: 'Session invalidated: another login detected' });
+        }
+      }
+
       if (req.user.isActive === false || req.user.status === 'Inactive') {
         return res.status(403).json({ message: 'Account is inactive' });
       }

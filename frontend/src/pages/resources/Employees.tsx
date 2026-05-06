@@ -841,7 +841,7 @@ const Employees = () => {
 
                    {filteredEmployees.map((emp, idx) => (
                     <tr key={emp._id} className="transition-all group border-b border-black/[0.02]">
-                      <td className="text-center italic opacity-40 text-[11px]">
+                      <td>
                         {((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}
                       </td>
                       <td>
@@ -854,24 +854,23 @@ const Employees = () => {
                          </div>
                       </td>
                       <td>
-                         <div className="flex flex-col items-center justify-center gap-0.5 px-6">
+                         <div className="flex flex-col items-center justify-center leading-none px-6">
                             <span className="zen-table-primary">{emp.name}</span>
-                            {emp.employeeId && <span className="text-[9px] font-bold text-zen-sand tracking-widest opacity-80">{emp.employeeId}</span>}
-                            <span className="text-[10px] text-zen-brown/40 font-medium uppercase tracking-tight mt-1">{emp.role} • {getEmployeeBranchName(emp)}</span>
+                            <span className="zen-table-meta">{emp.role} • {getEmployeeBranchName(emp)}</span>
                          </div>
                       </td>
                       <td>
-                         <div className="flex flex-col items-center justify-center gap-0.5">
+                         <div className="flex flex-col items-center justify-center leading-none">
                             <span className="text-[10px] text-zen-brown/50 font-black uppercase tracking-widest">{emp.payroll?.type || 'Monthly'}</span>
-                            <span className="text-[9px] font-bold text-zen-brown/20 italic mt-0">{emp.shift || 'Flexible'} Record</span>
+                            <span className="zen-table-meta mt-1">{emp.shift || 'Flexible'} Record</span>
                          </div>
                       </td>
                       <td>
-                        <div className="flex flex-col items-center justify-center gap-0.5">
+                        <div className="flex flex-col items-center justify-center leading-none">
                            <span className="text-base font-serif font-black text-zen-brown leading-none">
                               {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
                            </span>
-                           <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-0">Total Earnings</span>
+                           <span className="zen-table-meta mt-1">Total Earnings</span>
                         </div>
                       </td>
                       <td>

@@ -19,7 +19,9 @@ import {
   Zap,
   Activity,
   ChevronRight,
-  Target
+  Target,
+  MapPin,
+  UserCheck
 } from 'lucide-react';
 
 import {
@@ -428,7 +430,7 @@ const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRa
                           </td>
                           <td>
                              <div className="flex flex-row items-center justify-center gap-2">
-                                <span className="zen-table-primary font-accent italic !text-[18px]">{apt.employee}</span>
+                                <span className="zen-table-primary font-accent italic !text-[18px] pr-2">{apt.employee}</span>
                                 <span className="text-zen-brown/20 px-1">|</span>
                                 <span className="zen-table-meta">Lead Artisan</span>
                              </div>
@@ -471,10 +473,20 @@ const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRa
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = React.useState<any>(() => getCachedJson('zen_dashboard_employee_stats', null));
   const [loading, setLoading] = React.useState(() => !getCachedJson('zen_dashboard_employee_stats', null));
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+
+  const formatName = (name: string) => {
+    if (!name) return 'Guest';
+    if (name.includes('authsec_')) {
+      const parts = name.split('_');
+      return parts[parts.length - 1] || 'Valued Client';
+    }
+    return name;
+  };
 
   useEffect(() => {
     const fetchEmployeeStats = async (silent: boolean = false) => {
@@ -506,70 +518,351 @@ const EmployeeDashboard = () => {
     if (stats) setCachedJson('zen_dashboard_employee_stats', stats);
   }, [stats]);
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div></div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-40 gap-4">
+      <div className="w-12 h-12 border-4 border-zen-sand border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em]">Synchronizing your sanctuary...</p>
+    </div>
+  );
 
   const cards = [
-    { label: "Today's Rituals", value: (stats?.performance?.today || 0).toString(), icon: Calendar, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Sanctuary Load', delay: 0 },
-    { label: 'Rituals Completed', value: (stats?.performance?.completed || 0).toString(), icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Mission Status', delay: 0.2 },
-    { label: 'Est. Earnings', value: `QR ${stats?.performance?.earnings || 0}`, icon: Coins, color: 'text-orange-500', bg: 'bg-orange-500/10', glow: 'bg-orange-500/20', trend: 'Value Created', delay: 0.4 },
-    { label: 'Zen Score', value: `${stats?.performance?.score || 0} pts`, icon: TrendingUp, color: 'text-zen-brown', bg: 'bg-zen-brown/[0.06]', glow: 'bg-zen-brown/10', trend: 'Harmony Metric', delay: 0.6 },
+    { label: "Today's Rituals", value: (stats?.performance?.today || 0).toString(), icon: Calendar, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Current Load', delay: 0 },
+    { label: 'Completed', value: (stats?.performance?.completed || 0).toString(), icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Total Accomplished', delay: 0.2 },
+    { label: 'Est. Earnings', value: `QR ${stats?.performance?.earnings || 0}`, icon: Coins, color: 'text-sky-500', bg: 'bg-sky-500/10', glow: 'bg-sky-500/20', trend: 'Value Created', delay: 0.4 },
+    { label: 'Zen Score', value: `${stats?.performance?.score || 0}`, icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', trend: 'Harmony Metric', delay: 0.6 },
   ];
 
-  return (
-    <div className="space-y-12 pb-20">
-      <div className="zen-metrics-grid">
-        {cards.map((card, i) => (
-           <ZenStatCard key={i} {...card} />
-        ))}
-      </div>
+  const nextRitual = stats?.recentRituals?.find((apt: any) => apt.status === 'Confirmed' || apt.status === 'In Service' || apt.status === 'Pending');
 
-      <div className="bg-white p-12 rounded-[2rem] border border-zen-stone shadow-sm zen-card-hover relative group overflow-hidden">
-        <div className="absolute inset-2 rounded-[1.6rem] border border-zen-gold/5 pointer-events-none group-hover:border-zen-gold/10 transition-colors duration-700" />
-        <div className="flex items-center justify-between mb-12">
-          <div>
-            <h3 className="text-3xl font-serif font-bold text-black tracking-tight">Schedule Matrix</h3>
-            <p className="text-xs font-bold text-black/20 uppercase tracking-[0.4em] mt-2">Latest Sanctuary Interactions</p>
+   return (
+    <div className="space-y-12 sm:space-y-16 pb-20 max-w-[1600px] mx-auto animate-in fade-in duration-1000">
+      {/* Refined Welcome Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 px-4 lg:px-2">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-black text-zen-sand uppercase tracking-[0.4em] bg-zen-sand/5 px-5 py-2 rounded-full border border-zen-sand/10 backdrop-blur-sm">Artisan Command Center</span>
+            <div className="h-px w-16 bg-gradient-to-r from-zen-sand/30 to-transparent"></div>
           </div>
-          <div className="px-6 py-2 bg-zen-sand/10 rounded-full border border-zen-sand/10">
-             <span className="text-[10px] font-bold text-zen-sand uppercase tracking-widest">{user?.name}</span>
+          <h2 className="text-5xl sm:text-6xl font-serif font-black text-gray-900 tracking-normal leading-tight">
+            Ahlan, <span className="text-transparent bg-clip-text bg-gradient-to-r from-zen-primary to-zen-sand italic pr-4">{user?.name?.split(' ')[0]}</span>
+          </h2>
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.4em] flex items-center gap-3">
+            <Clock size={16} className="text-zen-sand animate-pulse" /> 
+            {dayjs().format('dddd, MMMM D')} <span className="w-1.5 h-1.5 rounded-full bg-zen-sand/20"></span> 
+            {dayjs().format('YYYY')}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-6">
+          <div className="hidden sm:flex flex-col items-end gap-2">
+             <span className="text-[9px] font-black text-gray-300 uppercase tracking-[0.3em]">Sanctuary Pulse</span>
+             <div className="flex items-center gap-4 bg-white/60 backdrop-blur-md px-8 py-4 rounded-2xl border border-zen-stone shadow-none group hover:border-zen-sand/30 transition-all duration-500">
+                <div className="relative">
+                  <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+                  <div className="absolute inset-0 w-3 h-3 rounded-full bg-emerald-500 animate-ping opacity-40"></div>
+                </div>
+                <span className="text-[11px] font-black text-gray-800 uppercase tracking-[0.2em]">Systems Operational</span>
+             </div>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-6">
-          {stats?.recentRituals?.length > 0 ? (
-            stats.recentRituals.map((apt: any) => (
-              <div key={apt._id} className="flex items-center justify-between p-8 bg-white/50 rounded-[1.5rem] border border-transparent hover:border-zen-brown/15 hover:bg-white hover:shadow-sm hover:shadow-zen-brown/15 transition-all duration-700 group">
-                <div className="flex items-center gap-10">
-                  <div className="w-20 h-20 bg-zen-cream rounded-[1rem] flex flex-col items-center justify-center border border-white shadow-sm group-hover:bg-zen-brown group-hover:text-white transition-all duration-700">
-                    <span className="text-[10px] font-bold uppercase opacity-30 tracking-widest mb-1">Time</span>
-                    <span className="text-lg font-bold">{apt.time?.split(' ')[0] || '--'}</span>
-                  </div>
-                  <div>
-                    <h4 className="text-2xl font-serif font-bold text-zen-brown mb-1">{apt.clientName || apt.client}</h4>
-                    <p className="text-xs font-bold text-zen-brown/30 uppercase tracking-[0.2em] flex items-center gap-2">
-                       {apt.serviceName || apt.service} <span className="text-zen-brown/20 mx-1">|</span> {apt.branch?.name || 'Local'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className={`px-6 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm ${
-                    apt.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' :
-                    apt.status === 'In Service' ? 'bg-indigo-500/10 text-indigo-600' : 'bg-orange-500/10 text-orange-600'
-                  }`}>
-                    {apt.status}
-                  </div>
-                  <ZenIconButton icon={ChevronRight} />
-                </div>
+      {/* Metrics Section with subtle backdrop glow */}
+      <div className="relative">
+        <div className="absolute -inset-10 bg-zen-sand/5 blur-[100px] rounded-full pointer-events-none opacity-50" />
+        <div className="zen-metrics-grid relative z-10">
+          {cards.map((card, i) => (
+             <ZenStatCard key={i} {...card} />
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-2">
+        {/* Left Column: Highlight & Impact */}
+        <div className="lg:col-span-4 space-y-10">
+           {/* Majestic Next Session Highlight */}
+           <div className="zen-majestic-gradient p-12 rounded-[3.5rem] text-white shadow-none relative overflow-hidden group border border-white/20 min-h-[460px] flex flex-col justify-between transition-all duration-1000 hover:shadow-[0_40px_80px_-20px_rgba(109,40,217,0.25)]">
+              {/* Animated decorative backgrounds */}
+              <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-[100px] group-hover:bg-white/20 transition-all duration-1000 animate-pulse"></div>
+              <div className="absolute top-0 right-0 p-16 opacity-5 group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-1000">
+                 <Sparkles size={240} strokeWidth={0.5} />
               </div>
-            ))
-          ) : (
-            <div className="py-24 text-center">
-              <div className="w-20 h-20 bg-zen-brown/5 rounded-full flex items-center justify-center mx-auto mb-8 border border-white">
-                 <Calendar size={32} className="text-zen-brown/20" />
+              <div className="absolute -left-24 -bottom-24 w-96 h-96 bg-zen-brown/20 rounded-full blur-[120px]"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-12">
+                   <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20 backdrop-blur-md shadow-inner group-hover:rotate-6 transition-all duration-500">
+                         <Calendar size={20} className="text-white" />
+                      </div>
+                      <h3 className="text-[11px] font-black text-white/50 uppercase tracking-[0.5em]">Upcoming Ritual</h3>
+                   </div>
+                   {nextRitual?.status === 'In Service' && (
+                     <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/20 animate-pulse">
+                        <div className="w-2 h-2 rounded-full bg-zen-sand" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-white">Live Now</span>
+                     </div>
+                   )}
+                </div>
+
+                {nextRitual ? (
+                  <div className="space-y-10 animate-in slide-in-from-bottom-6 duration-1000">
+                    <div className="space-y-3">
+                       <h4 className="text-5xl font-serif font-black leading-[1.1] tracking-tight group-hover:translate-x-2 transition-transform duration-700">
+                         {formatName(nextRitual.client)}
+                       </h4>
+                       <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/15 border border-white/20 backdrop-blur-md">
+                         <Zap size={14} className="text-white animate-pulse" />
+                         <p className="text-white font-black text-[11px] uppercase tracking-[0.2em]">{formatName(nextRitual.service)}</p>
+                       </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-6">
+                       <div className="bg-white/10 backdrop-blur-xl px-7 py-6 rounded-[2rem] border border-white/15 shadow-inner group-hover:-translate-y-1 transition-all duration-500">
+                          <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em] mb-2">Ceremony Time</p>
+                          <div className="flex items-center gap-3 text-lg font-black tracking-tight">
+                             <Clock size={18} className="text-white/60" /> {nextRitual.time}
+                          </div>
+                       </div>
+                       <div className="bg-white/10 backdrop-blur-xl px-7 py-6 rounded-[2rem] border border-white/15 shadow-inner group-hover:-translate-y-1 transition-all duration-500 delay-75">
+                          <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em] mb-2">Sanctuary Hall</p>
+                          <div className="flex items-center gap-3 text-lg font-black tracking-tight">
+                             <MapPin size={18} className="text-white/60" /> {nextRitual.branch?.name?.split(' ')[0] || 'Main'}
+                          </div>
+                       </div>
+                    </div>
+
+                    {nextRitual.status === 'In Service' && (
+                       <div className="space-y-3 pt-2">
+                          <div className="flex justify-between items-center">
+                             <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Ritual Progress</span>
+                             <span className="text-[9px] font-black text-white uppercase tracking-widest">45%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                             <motion.div 
+                               initial={{ width: 0 }}
+                               animate={{ width: '45%' }}
+                               transition={{ duration: 2, ease: "easeOut" }}
+                               className="h-full bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                             />
+                          </div>
+                       </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="py-20 text-center">
+                     <div className="w-24 h-24 rounded-[2.5rem] bg-white/10 flex items-center justify-center mx-auto mb-8 border border-white/10 backdrop-blur-md animate-float">
+                        <Activity size={40} className="text-white/20" strokeWidth={1} />
+                     </div>
+                     <p className="text-2xl font-serif italic text-white/40">The sanctuary remains in peace.</p>
+                     <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mt-3">No active rituals scheduled</p>
+                  </div>
+                )}
               </div>
-              <p className="text-2xl font-serif text-zen-brown/20 italic tracking-tight">No active rituals logged.</p>
+
+              <div className="relative z-10 pt-10 mt-auto">
+                 <button 
+                    onClick={() => navigate('/appointments')}
+                    className="w-full bg-white text-zen-primary rounded-[2.2rem] py-6 font-black text-[12px] uppercase tracking-[0.4em] flex items-center justify-center gap-4 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)] hover:bg-zen-sand hover:text-white hover:scale-[1.02] transition-all duration-500 active:scale-95 group/btn"
+                 >
+                   Sanctuary Hub 
+                   <ArrowUpRight size={18} className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
+                 </button>
+              </div>
+           </div>
+
+           {/* Refined Service Impact */}
+           <div className="bg-white p-12 rounded-[3.5rem] border border-zen-stone shadow-none flex flex-col group relative overflow-hidden transition-all duration-700 hover:border-zen-sand/20">
+              <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000">
+                 <TrendingUp size={140} />
+              </div>
+              
+              <div className="flex items-center justify-between mb-12">
+                 <div className="space-y-1">
+                    <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.5em]">Artisan Velocity</h3>
+                    <div className="w-10 h-1 bg-zen-sand/20 rounded-full" />
+                 </div>
+                 <div className="w-10 h-10 rounded-full bg-zen-sand/5 flex items-center justify-center">
+                    <div className="w-2.5 h-2.5 rounded-full bg-zen-sand animate-pulse shadow-[0_0_10px_rgba(139,92,246,0.5)]"></div>
+                 </div>
+              </div>
+
+              <div className="h-[180px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { name: 'Rituals', value: stats?.performance?.completed || 0 },
+                    { name: 'Target', value: Math.max((stats?.performance?.completed || 0) + 2, 10) }
+                  ]}>
+                    <defs>
+                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--zen-sand, #8B5CF6)" stopOpacity={1} />
+                        <stop offset="100%" stopColor="var(--zen-primary, #6D28D9)" stopOpacity={1} />
+                      </linearGradient>
+                    </defs>
+                    <Bar dataKey="value" radius={[14, 14, 0, 0]} barSize={50}>
+                       { [0, 1].map((_, index) => (
+                         <Cell key={index} fill={index === 0 ? "url(#barGradient)" : "#F8FAFC"} />
+                       ))}
+                    </Bar>
+                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '1.5rem', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', padding: '16px' }} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              
+              <div className="mt-10 pt-10 border-t border-gray-50 flex justify-between items-end relative z-10">
+                 <div className="space-y-2">
+                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Achieved Today</p>
+                    <p className="text-3xl font-serif font-black text-gray-900 group-hover:text-zen-primary transition-colors">{stats?.performance?.completed || 0} <span className="text-lg text-gray-300 font-normal">Ceremonies</span></p>
+                 </div>
+                 <div className="text-right">
+                    <p className="text-[10px] font-black text-zen-sand uppercase tracking-widest">Performance</p>
+                    <div className="flex items-center gap-2 mt-1">
+                       <Sparkles size={14} className="text-zen-gold" />
+                       <p className="text-xl font-serif font-black text-gray-900">Elite</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        {/* Right Column: Timeline Schedule */}
+        <div className="lg:col-span-8 bg-white p-10 sm:p-16 rounded-[3.5rem] border border-zen-stone shadow-none relative group overflow-hidden transition-all duration-1000 hover:border-zen-sand/10">
+          <div className="absolute inset-6 rounded-[2.8rem] border border-zen-gold/5 pointer-events-none group-hover:border-zen-gold/10 transition-colors duration-1000" />
+          <div className="absolute top-0 right-0 p-20 opacity-[0.02] pointer-events-none">
+             <Clock size={300} strokeWidth={0.5} />
+          </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 mb-20 relative z-10">
+            <div className="space-y-3">
+              <h3 className="text-4xl font-serif font-black text-gray-900 tracking-tight">Today's Journey</h3>
+              <div className="flex items-center gap-4">
+                 <div className="w-12 h-1.5 bg-gradient-to-r from-zen-sand to-zen-sand/10 rounded-full"></div>
+                 <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.4em]">Chronological Pulse</p>
+              </div>
             </div>
-          )}
+            <button 
+              onClick={() => navigate('/appointments')}
+              className="px-8 py-4 rounded-2xl bg-zen-cream/50 text-zen-brown font-black text-[11px] uppercase tracking-[0.3em] hover:bg-zen-sand hover:text-white transition-all duration-500 shadow-none flex items-center gap-3 group/all backdrop-blur-sm border border-zen-stone"
+            >
+              Full Directory <ArrowUpRight size={16} className="group-hover/all:translate-x-1 group-hover/all:-translate-y-1 transition-transform" />
+            </button>
+          </div>
+
+          <div className="relative z-10 pl-2 sm:pl-0 space-y-0">
+            {/* Elegant Vertical Line */}
+            <div className="zen-timeline-line" />
+
+            {stats?.recentRituals?.length > 0 ? (
+              stats.recentRituals.map((apt: any, idx: number) => (
+                <motion.div 
+                  key={apt._id} 
+                  initial={{ opacity: 0, x: 30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: idx * 0.15 }}
+                  className="flex gap-10 group/item relative pb-16 last:pb-0"
+                >
+                  <div className="flex flex-col items-center shrink-0 pt-2">
+                    <div className={`w-[64px] h-[64px] rounded-[1.8rem] flex flex-col items-center justify-center font-black shadow-none transition-all duration-700 relative z-10 border-2 ${
+                      apt.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                      apt.status === 'In Service' ? 'bg-zen-primary text-white border-zen-primary shadow-[0_15px_30px_rgba(109,40,217,0.3)] scale-125' :
+                      'bg-white text-gray-400 border-zen-stone group-hover/item:border-zen-sand group-hover/item:text-zen-sand group-hover/item:-translate-y-1'
+                    }`}>
+                      <span className="text-[11px] leading-none mb-0.5">{apt.time?.split(' ')[0]}</span>
+                      <span className="text-[8px] opacity-40 leading-none">{apt.time?.split(' ')[1] || 'PM'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className={`p-10 rounded-[2.8rem] border transition-all duration-700 relative group/card overflow-hidden ${
+                      apt.status === 'In Service' ? 'bg-white border-zen-primary/30 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.12)]' :
+                      'bg-gray-50/30 border-transparent hover:border-zen-stone hover:bg-white hover:shadow-[0_30px_60px_-20px_rgba(0,0,0,0.08)]'
+                    }`}>
+                       {/* Subtle backdrop patterns for cards */}
+                       <div className="absolute top-0 right-0 p-12 opacity-[0.02] group-hover/card:opacity-[0.05] transition-all duration-1000">
+                          <Activity size={120} />
+                       </div>
+
+                       {apt.status === 'In Service' && (
+                         <div className="absolute top-10 right-10 flex items-center gap-3 bg-zen-sand/10 px-4 py-2 rounded-full border border-zen-sand/20">
+                            <span className="w-2 h-2 rounded-full bg-zen-sand animate-ping"></span>
+                            <span className="text-[9px] font-black text-zen-sand uppercase tracking-widest">Active Presence</span>
+                         </div>
+                       )}
+
+                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+                          <div className="space-y-2">
+                             <h4 className="text-3xl font-serif font-black text-gray-900 group-hover/card:text-zen-primary transition-colors duration-500">
+                               {formatName(apt.client)}
+                             </h4>
+                             <div className="flex items-center gap-4">
+                                <span className="text-[11px] font-black text-zen-sand uppercase tracking-[0.2em]">{formatName(apt.service)}</span>
+                                <div className="w-1 h-1 rounded-full bg-zen-stone"></div>
+                                <span className="text-[11px] font-bold text-gray-300 uppercase tracking-widest">60m Session</span>
+                             </div>
+                          </div>
+                          
+                          <span className={`self-start sm:self-center px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.25em] border transition-all duration-500 ${
+                            apt.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                            apt.status === 'In Service' ? 'bg-zen-primary text-white border-white/20' : 
+                            'bg-white text-gray-400 border-zen-stone group-hover/card:border-zen-sand/20'
+                          }`}>
+                            {apt.status}
+                          </span>
+                       </div>
+                       
+                       <div className="flex items-center gap-8 pt-8 border-t border-gray-100/60 mt-6 opacity-40 group-hover/card:opacity-100 transition-all duration-700 overflow-x-auto scrollbar-none">
+                          <div className="flex items-center gap-3 shrink-0">
+                             <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
+                                <MapPin size={14} />
+                             </div>
+                             <div className="flex flex-col">
+                                <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest leading-none mb-1">Sanctuary</span>
+                                <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest leading-none">{apt.branch?.name || apt.branch || 'Main Hall'}</span>
+                             </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                             <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
+                                <UserCheck size={14} />
+                             </div>
+                             <div className="flex flex-col">
+                                <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest leading-none mb-1">{apt.status === 'Completed' ? 'Completed By' : 'Artisan'}</span>
+                                <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest leading-none">{apt.completedByName || apt.employee || 'Specialist'}</span>
+                             </div>
+                          </div>
+
+                          {apt.completedAt && (
+                            <div className="flex items-center gap-3 shrink-0 animate-in fade-in slide-in-from-left-2 duration-500">
+                               <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500">
+                                  <Clock size={14} />
+                               </div>
+                               <div className="flex flex-col">
+                                  <span className="text-[8px] font-black text-emerald-600/40 uppercase tracking-widest leading-none mb-1">Timestamp</span>
+                                  <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-none">{dayjs(apt.completedAt).format('hh:mm A')}</span>
+                               </div>
+                            </div>
+                          )}
+                       </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <div className="py-32 text-center animate-in fade-in zoom-in duration-1000">
+                <div className="w-32 h-32 rounded-[3rem] bg-zen-cream/40 flex items-center justify-center mx-auto mb-10 border border-white relative">
+                   <div className="absolute inset-0 rounded-[3rem] bg-zen-sand/10 animate-ping opacity-20"></div>
+                   <Activity size={56} className="text-zen-sand/30" strokeWidth={0.5} />
+                </div>
+                <p className="text-3xl font-serif italic text-gray-300 leading-tight">Your timeline awaits<br/>the next ritual.</p>
+                <div className="flex items-center justify-center gap-4 mt-8">
+                   <div className="h-px w-8 bg-gray-100"></div>
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">Ready & Synchronized</p>
+                   <div className="h-px w-8 bg-gray-100"></div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -718,8 +1011,8 @@ const Dashboard = () => {
       hideBranchSelector={false}
       hideViewToggle={true}
       searchActions={
-        <div className="flex items-center gap-6 lg:gap-10 w-full overflow-hidden">
-          <div className="flex items-center gap-3 mr-auto overflow-x-auto scrollbar-hide py-1 shrink-0">
+        <div className="flex items-center justify-between w-full gap-6 lg:gap-10">
+          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide py-1 shrink-0">
               {quickActions.map((action, i) => (
                <motion.button
                  key={action.label}

@@ -61,12 +61,9 @@ exports.getClients = async (req, res) => {
 
     // Fetch all memberships for these clients
     const clientIds = clients.map(c => c._id);
-    const relatedBranchId = query.branch || (req.user.role !== 'Admin' ? toObjectIdIfValid(userBranchId) : null);
-    const relatedBranchFilter = relatedBranchId ? { branch: relatedBranchId } : {};
-
+    // Fetch all memberships for these clients globally (cross-branch view for client records)
     const memberships = await Membership.find({
-      client: { $in: clientIds },
-      ...relatedBranchFilter
+      client: { $in: clientIds }
     })
     .populate({
       path: 'plan',
@@ -79,9 +76,8 @@ exports.getClients = async (req, res) => {
 
     const clientNames = clients.map(c => c.name).filter(Boolean);
 
-    // Fetch all appointments for these clients, including name-only legacy rows.
+    // Fetch all appointments globally for these clients to see complete history.
     const appointments = await Appointment.find({
-      ...relatedBranchFilter,
       $or: [
         { clientId: { $in: clientIds } },
         { clientId: { $exists: false }, client: { $in: clientNames } },
@@ -90,7 +86,6 @@ exports.getClients = async (req, res) => {
     }).populate('branch').sort({ date: -1, time: -1 }).lean();
 
     const invoices = await Invoice.find({
-      ...relatedBranchFilter,
       $or: [
         { clientId: { $in: clientIds } },
         { clientId: { $exists: false }, clientName: { $in: clientNames } },

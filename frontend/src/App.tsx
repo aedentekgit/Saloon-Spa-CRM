@@ -33,7 +33,6 @@ const Employees = React.lazy(() => import('./pages/resources/Employees'));
 const Attendance = React.lazy(() => import('./pages/operations/Attendance'));
 const StaffAttendance = React.lazy(() => import('./pages/operations/StaffAttendance'));
 const Leave = React.lazy(() => import('./pages/operations/Leave'));
-const ApplyLeave = React.lazy(() => import('./pages/operations/ApplyLeave'));
 const Services = React.lazy(() => import('./pages/resources/Services'));
 const Memberships = React.lazy(() => import('./pages/resources/Memberships'));
 const Billing = React.lazy(() => import('./pages/operations/Billing'));
@@ -96,7 +95,7 @@ const Layout = () => {
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex p-0 gap-0 h-[100dvh] bg-zen-cream overflow-hidden font-sans text-zen-brown relative">
+    <div className="flex p-0 gap-0 h-[100dvh] overflow-hidden font-sans text-zen-brown relative">
       <div className={`
         fixed inset-y-0 left-0 z-[100] transform lg:relative lg:translate-x-0 transition-all duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -116,7 +115,7 @@ const Layout = () => {
         />
       )}
 
-      <div className="flex-1 flex flex-col min-w-0 relative bg-zen-cream">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scrollbar-hide rounded-none scroll-smooth relative pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
           <Navbar
             onMenuClick={() => setIsMobileMenuOpen(true)}
@@ -221,7 +220,6 @@ const AppRoutes = () => {
           <Route path="/attendance" element={guarded(<Attendance />)} />
           <Route path="/staff-attendance" element={guarded(<StaffAttendance />)} />
           <Route path="/leave" element={guarded(<Leave />)} />
-          <Route path="/leave/apply" element={guarded(<ApplyLeave />)} />
           <Route path="/services" element={guarded(<Services />)} />
           <Route path="/memberships" element={guarded(<Memberships />)} />
           <Route path="/billing" element={guarded(<Billing />)} />

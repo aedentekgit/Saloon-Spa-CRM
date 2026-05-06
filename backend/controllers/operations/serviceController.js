@@ -58,7 +58,7 @@ const getServices = async (req, res) => {
 // @access  Private/Manager
 const createService = async (req, res) => {
   try {
-    const { name, duration, price, branch, status, category, description, commissionType, commissionValue, inventoryUsage } = req.body;
+    const { name, duration, price, branch, status, category, description, commissionType, commissionValue, inventoryUsage, branches } = req.body;
 
     // Parse inventoryUsage if it's a string
     let parsedInventoryUsage = [];
@@ -70,31 +70,51 @@ const createService = async (req, res) => {
       }
     }
 
-    // IDOR Check
-    const userBranchId = getBranchId(req.user.branch);
-    const selectedBranch = getBranchId(branch) || userBranchId;
-    if (!selectedBranch) {
-      if (req.file) await deleteFile(getStoredFilePath(req.file));
-      return res.status(400).json({ message: 'Branch assignment required' });
-    }
-    if (req.user.role !== 'Admin' && !sameBranch(selectedBranch, userBranchId)) {
-      if (req.file) await deleteFile(getStoredFilePath(req.file));
-      return res.status(403).json({ message: 'Access Denied: Cannot create services for other branches.' });
+    // Parse branches if it's a string
+    let selectedBranches = [];
+    if (branches) {
+      try {
+        selectedBranches = typeof branches === 'string' ? JSON.parse(branches) : branches;
+      } catch (e) {
+        console.error('Failed to parse branches:', e);
+      }
     }
 
-    const inventoryIds = parsedInventoryUsage
-      .map(item => getBranchId(item.inventoryItem))
-      .filter(Boolean);
-    if (inventoryIds.length > 0) {
-      const Inventory = require('../../models/inventory/Inventory');
-      const allowedCount = await Inventory.countDocuments({
-        _id: { $in: inventoryIds },
-        branch: toObjectIdIfValid(selectedBranch)
-      });
-      if (allowedCount !== inventoryIds.length) {
+    // Access Control and Branch assignment
+    const userBranchId = getBranchId(req.user.branch);
+    
+    if (req.user.role !== 'Admin') {
+      // Non-admins can only create in their own branch
+      if (!userBranchId) {
         if (req.file) await deleteFile(getStoredFilePath(req.file));
-        return res.status(403).json({ message: 'Access Denied: Inventory usage must belong to the selected branch.' });
+        return res.status(400).json({ message: 'Branch assignment required' });
       }
+      selectedBranches = [userBranchId.toString()];
+    } else {
+      // Admin
+      if (selectedBranches.length === 0) {
+        // Fallback to single branch
+        const singleBranch = getBranchId(branch) || userBranchId;
+        if (!singleBranch) {
+          if (req.file) await deleteFile(getStoredFilePath(req.file));
+          return res.status(400).json({ message: 'Branch assignment required' });
+        }
+        selectedBranches = [singleBranch.toString()];
+      }
+    }
+
+    // Avoid duplicates: Check if any of the target branches already has a service with the same name
+    const duplicates = await Service.find({
+      name,
+      branch: { $in: selectedBranches.map(toObjectIdIfValid) }
+    }).populate('branch');
+
+    if (duplicates.length > 0) {
+      if (req.file) await deleteFile(getStoredFilePath(req.file));
+      const branchNames = duplicates.map(d => d.branch?.name || 'Unknown Branch').join(', ');
+      return res.status(400).json({
+        message: `Service already exists in the following branch(es): ${branchNames}`
+      });
     }
 
     let image = req.body.image;
@@ -102,27 +122,76 @@ const createService = async (req, res) => {
       image = getStoredFilePath(req.file);
     }
 
-    const serviceExists = await Service.findOne({ name, branch: selectedBranch });
-    if (serviceExists) {
-      if (req.file) await deleteFile(getStoredFilePath(req.file));
-      return res.status(400).json({ message: 'Service already exists in this branch' });
+    const createdServices = [];
+    const Inventory = require('../../models/inventory/Inventory');
+
+    for (const targetBranch of selectedBranches) {
+      // Map inventory for this specific branch
+      let branchInventoryUsage = [];
+      if (parsedInventoryUsage.length > 0) {
+        for (const usage of parsedInventoryUsage) {
+          const originalItemId = getBranchId(usage.inventoryItem);
+          if (!originalItemId) continue;
+
+          const originalItem = await Inventory.findById(originalItemId);
+          if (!originalItem) continue;
+
+          if (originalItem.branch && originalItem.branch.toString() === targetBranch) {
+            branchInventoryUsage.push({
+              inventoryItem: originalItem._id,
+              quantity: usage.quantity,
+              unit: usage.unit
+            });
+          } else {
+            // Find inventory item with same name in target branch
+            const targetItem = await Inventory.findOne({
+              name: originalItem.name,
+              branch: toObjectIdIfValid(targetBranch)
+            });
+            if (targetItem) {
+              branchInventoryUsage.push({
+                inventoryItem: targetItem._id,
+                quantity: usage.quantity,
+                unit: usage.unit
+              });
+            } else if (!originalItem.branch) {
+              // It's a global inventory item, use it directly
+              branchInventoryUsage.push({
+                inventoryItem: originalItem._id,
+                quantity: usage.quantity,
+                unit: usage.unit
+              });
+            }
+          }
+        }
+      }
+
+      const service = await Service.create({
+        name,
+        duration,
+        price,
+        branch: toObjectIdIfValid(targetBranch),
+        category,
+        description,
+        image,
+        status: status || 'Active',
+        commissionType: commissionType || 'Percentage',
+        commissionValue: commissionValue || 0,
+        inventoryUsage: branchInventoryUsage
+      });
+      createdServices.push(service);
     }
 
-    const service = await Service.create({
-      name,
-      duration,
-      price,
-      branch: toObjectIdIfValid(selectedBranch),
-      category,
-      description,
-      image,
-      status: status || 'Active',
-      commissionType: commissionType || 'Percentage',
-      commissionValue: commissionValue || 0,
-      inventoryUsage: parsedInventoryUsage
-    });
+    // Return the created services (or the first one for backwards compatibility if only 1 was created)
+    if (createdServices.length === 1) {
+      res.status(201).json(createdServices[0]);
+    } else {
+      res.status(201).json({
+        message: `Successfully created service across ${createdServices.length} branches.`,
+        data: createdServices
+      });
+    }
 
-    res.status(201).json(service);
   } catch (error) {
     if (req.file) await deleteFile(getStoredFilePath(req.file));
     res.status(400).json({ message: error.message });
@@ -177,14 +246,19 @@ const updateService = async (req, res) => {
           .map(item => getBranchId(item.inventoryItem))
           .filter(Boolean);
         if (inventoryIds.length > 0) {
+          const uniqueInventoryIds = [...new Set(inventoryIds)];
           const Inventory = require('../../models/inventory/Inventory');
           const allowedCount = await Inventory.countDocuments({
-            _id: { $in: inventoryIds },
-            branch: toObjectIdIfValid(service.branch)
+            _id: { $in: uniqueInventoryIds },
+            $or: [
+              { branch: toObjectIdIfValid(service.branch) },
+              { branch: null },
+              { branch: { $exists: false } }
+            ]
           });
-          if (allowedCount !== inventoryIds.length) {
+          if (allowedCount !== uniqueInventoryIds.length) {
             if (req.file) await deleteFile(getStoredFilePath(req.file));
-            return res.status(403).json({ message: 'Access Denied: Inventory usage must belong to the service branch.' });
+            return res.status(403).json({ message: 'Access Denied: Inventory usage must belong to the service branch or be global.' });
           }
         }
         service.inventoryUsage = parsedUsage;

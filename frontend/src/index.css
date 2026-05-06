@@ -7,7 +7,7 @@
   --font-accent: "Italiana", serif;
 
   /* Purple-lilac dashboard palette */
-  --color-zen-cream: var(--zen-cream, #F7F8FC);
+  --color-zen-cream: #F1F5F9;
   --color-zen-brown: var(--zen-brown, #2B2440);
   --color-zen-primary: var(--zen-primary, #6D28D9);
   --color-zen-sand: var(--zen-sand, #8B5CF6);
@@ -37,6 +37,12 @@
   --shadow-lg: none;
   --shadow-xl: none;
   --shadow-2xl: none;
+
+  /* Luxury Glassmorphism Tokens */
+  --zen-glass: rgba(255, 255, 255, 0.4);
+  --zen-glass-border: rgba(255, 255, 255, 0.2);
+  --zen-glass-dark: rgba(43, 36, 64, 0.05);
+  --zen-glass-dark-border: rgba(43, 36, 64, 0.1);
 }
 
 @layer base {
@@ -44,13 +50,11 @@
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
     font-size: 15px;
+    background: #F1F5F9 !important;
   }
 
   body {
-    background:
-      radial-gradient(circle at 0% 0%, rgba(var(--zen-primary-rgb, 139, 92, 246), 0.05), transparent 40%),
-      radial-gradient(circle at 100% 0%, rgba(var(--zen-gold-rgb, 197, 163, 88), 0.08), transparent 40%),
-      radial-gradient(circle at 50% 50%, var(--zen-cream, rgba(247, 248, 252, 1)), #FFFFFF 100%);
+    background: #F1F5F9 !important;
     background-attachment: fixed;
     @apply text-zen-brown font-sans antialiased overflow-x-hidden selection:bg-zen-sand selection:text-white;
   }
@@ -130,6 +134,22 @@
     @apply bg-lavender-500/10 backdrop-blur-md border border-lavender-500/20;
   }
 
+  .zen-glass-card {
+    @apply bg-white/40 backdrop-blur-xl border border-white/20 shadow-none;
+  }
+
+  .zen-glass-dark-card {
+    @apply bg-zen-brown/5 backdrop-blur-xl border border-zen-brown/10 shadow-none;
+  }
+
+  .zen-majestic-gradient {
+    background: linear-gradient(135deg, var(--zen-primary, #6D28D9) 0%, var(--zen-sand, #8B5CF6) 100%);
+  }
+
+  .zen-timeline-line {
+    @apply absolute left-[31px] top-10 bottom-0 w-px bg-gradient-to-b from-zen-sand/40 via-zen-sand/10 to-transparent;
+  }
+
   /* Responsive table container */
   .table-container {
     @apply w-full overflow-x-auto;
@@ -193,7 +213,7 @@
   }
 
   .zen-card-hover {
-    @apply relative border border-zen-stone/80 bg-white transition-all duration-500 hover:border-zen-gold/40 hover:-translate-y-1 cursor-pointer rounded-[2rem];
+    @apply relative border border-zen-stone/80 bg-white transition-all duration-500 hover:border-zen-gold/40 hover:-translate-y-1 hover:z-10 cursor-pointer rounded-[2rem];
     box-shadow: none;
   }
 
@@ -407,7 +427,7 @@
   }
 
   .zen-table-primary {
-    @apply block font-serif text-[16px] font-black text-zen-brown tracking-tight leading-tight whitespace-nowrap;
+    @apply block font-serif text-[16px] font-black text-zen-brown tracking-normal leading-tight whitespace-nowrap pr-1;
   }
 
   .zen-table-meta {

@@ -90,9 +90,9 @@ export const ZenPageLayout = ({
                 </div>
               )}
 
-              <div className="flex items-center justify-start lg:justify-end gap-3 sm:gap-5 lg:gap-8 lg:ml-auto shrink-0 flex-wrap">
+              <div className={`flex items-center gap-3 sm:gap-5 lg:gap-8 flex-1 shrink-0 flex-wrap lg:flex-nowrap ${!hideSearch ? 'lg:justify-end' : 'justify-start'}`}>
               {searchActions && (
-                <div className="flex-shrink-0">
+                <div className="flex-1">
                   {searchActions}
                 </div>
               )}
@@ -104,7 +104,7 @@ export const ZenPageLayout = ({
               )}
 
               {headerActions && (
-                <div className="flex-shrink-0">
+                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 flex-shrink-0">
                   {headerActions}
                 </div>
               )}

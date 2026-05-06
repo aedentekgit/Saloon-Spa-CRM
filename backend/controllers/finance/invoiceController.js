@@ -186,7 +186,7 @@ const createInvoice = async (req, res) => {
       for (const item of items) {
         let linkedAppointment = null;
         if (item.appointmentId) {
-          linkedAppointment = await Appointment.findById(item.appointmentId).select('branch clientId client status billedInvoiceId service employee employeeId completedByEmployeeId completedByName');
+          linkedAppointment = await Appointment.findById(item.appointmentId).select('branch clientId client status billedInvoiceId service employee employeeId completedByEmployeeId completedByName serviceType membershipId');
           if (!linkedAppointment) {
             return res.status(400).json({ message: 'Invalid completed appointment selection.' });
           }
@@ -228,13 +228,17 @@ const createInvoice = async (req, res) => {
           }
         }
 
+        const isMembershipItem = linkedAppointment?.serviceType === 'MEMBERSHIP' || item.serviceType === 'MEMBERSHIP';
+        const finalPrice = isMembershipItem ? 0 : Number(item.price ?? 0);
+
         normalizedItems.push({
           ...item,
           appointmentId: linkedAppointment?._id || item.appointmentId || undefined,
           serviceId: item.serviceId || service?._id || undefined,
           specialist: item.specialist || linkedAppointment?.completedByEmployeeId || linkedAppointment?.employeeId || undefined,
           specialistName: item.specialistName || linkedAppointment?.completedByName || linkedAppointment?.employee,
-          quantity: normalizeQuantity(item.quantity)
+          quantity: normalizeQuantity(item.quantity),
+          price: finalPrice
         });
       }
     }

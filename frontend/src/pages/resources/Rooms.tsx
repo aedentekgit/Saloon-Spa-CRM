@@ -519,7 +519,7 @@ const Rooms = () => {
                       const roomImage = getDisplayImage(room);
                       return (
                         <tr key={room._id} onClick={() => handleOpenModal(room)} className="cursor-pointer group hover:bg-zen-cream/5 border-b border-gray-50 transition-colors last:border-0">
-                          <td className="py-4 italic opacity-40 text-xs">
+                          <td>
                             {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
                           </td>
                           <td className="py-4">
@@ -531,18 +531,21 @@ const Rooms = () => {
                           </td>
                           <td className="py-4 text-[11px] font-bold text-zen-brown/60">{getRoomBranchName(room)}</td>
                           <td className="py-4">
-                            <div className="flex flex-col items-center justify-center leading-none">
-                              <span className="text-sm font-bold text-zen-brown">{room.name}</span>
-                              <span className="text-[9px] font-medium text-zen-brown/30 uppercase tracking-widest mt-1">Active Space</span>
+                            <div className="flex flex-col items-center justify-center leading-none px-6">
+                              <span className="zen-table-primary">{room.name}</span>
+                              <span className="zen-table-meta">{getRoomBranchName(room)} • Active Space</span>
                             </div>
                           </td>
                           <td className="py-4">
                             <ZenBadge variant="sand" className="scale-90 font-black tracking-widest">{room.type}</ZenBadge>
                           </td>
                           <td className="py-4">
-                            <div className="flex items-center justify-center gap-2 text-[10px] text-zen-brown/40 italic font-black uppercase tracking-widest">
-                              <Clock size={10} className="text-zen-sand" />
-                              {room.cleaningDuration || 0}m
+                            <div className="flex flex-col items-center justify-center leading-none">
+                              <div className="flex items-center gap-1.5">
+                                <Clock size={10} className="text-zen-sand" />
+                                <span className="text-sm font-serif font-black text-zen-brown">{room.cleaningDuration || 0}m</span>
+                              </div>
+                              <span className="zen-table-meta mt-1">Cleaning</span>
                             </div>
                           </td>
                           <td className="py-4">

@@ -80,6 +80,7 @@ interface CompletedAppointment {
   branch?: any;
   addOns?: any[];
   billedInvoiceId?: any;
+  serviceType?: string;
 }
 
 const getEntityId = (value: any) => {
@@ -98,8 +99,8 @@ const normalizeQuantity = (value: any) => {
 const Billing = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const { invoices, clients: rawClients, services: rawServices, employees: rawEmployees, refreshData } = useData();
-  const { selectedBranch, branches } = useBranches();
+  const { invoices, clients: rawClients, services: rawServices, employees: rawEmployees, appointments: rawAppointments, refreshData } = useData();
+  const { selectedBranch, setSelectedBranch, branches } = useBranches();
 
   const effectiveBranchId = selectedBranch !== 'all' ? selectedBranch : getEntityId(user?.branch);
   const isInBillingBranch = (entity: any) => {
@@ -107,7 +108,48 @@ const Billing = () => {
     return getEntityId(entity?.branch) === effectiveBranchId;
   };
 
-  const clients = useMemo(() => rawClients.filter((c: any) => c.status === 'Active' && isInBillingBranch(c)), [rawClients, effectiveBranchId]);
+  const billedAppointmentIds = useMemo(() => {
+    const ids = new Set<string>();
+    invoices.forEach((invoice: any) => {
+      (invoice.items || []).forEach((item: any) => {
+        const appointmentId = getEntityId(item.appointmentId);
+        if (appointmentId) ids.add(appointmentId);
+      });
+    });
+    return ids;
+  }, [invoices]);
+
+  const clients = useMemo(() => {
+    // Collect client IDs and names from completed and unbilled appointments
+    const completedUnbilledClientKeys = new Set<string>();
+
+    (rawAppointments || []).forEach((apt: any) => {
+      const isCompleted = apt.status === 'Completed';
+      const appointmentId = getEntityId(apt);
+      const isBilled = appointmentId && (billedAppointmentIds.has(appointmentId) || apt.billedInvoiceId);
+
+      if (isCompleted && !isBilled) {
+        const clientId = getEntityId(apt.clientId || apt.clientId?._id);
+        if (clientId) {
+          completedUnbilledClientKeys.add(clientId.toLowerCase());
+        }
+        const clientName = String(apt.client || '').trim().toLowerCase();
+        if (clientName) {
+          completedUnbilledClientKeys.add(clientName);
+        }
+      }
+    });
+
+    // Return active clients that have at least one completed, unbilled appointment
+    return rawClients.filter((c: any) => {
+      const isActive = c.status === 'Active';
+      if (!isActive) return false;
+
+      const hasCompleted = completedUnbilledClientKeys.has(c._id?.toLowerCase()) || 
+                           completedUnbilledClientKeys.has(String(c.name || '').trim().toLowerCase());
+      return hasCompleted;
+    });
+  }, [rawClients, rawAppointments, billedAppointmentIds]);
   const services = useMemo(() => rawServices.filter((s: any) => s.status === 'Active' && isInBillingBranch(s)), [rawServices, effectiveBranchId]);
   const branchEmployees = useMemo(() => rawEmployees.filter((e: EmployeeRecord) =>
     (!e.status || e.status === 'Active') && isInBillingBranch(e)
@@ -171,16 +213,6 @@ const Billing = () => {
     return invoiceItems.reduce((acc, item) => acc + (item.isRedeem ? 0 : ((item.price || 0) * normalizeQuantity(item.quantity))), 0);
   }, [invoiceItems]);
 
-  const billedAppointmentIds = useMemo(() => {
-    const ids = new Set<string>();
-    invoices.forEach((invoice: any) => {
-      (invoice.items || []).forEach((item: any) => {
-        const appointmentId = getEntityId(item.appointmentId);
-        if (appointmentId) ids.add(appointmentId);
-      });
-    });
-    return ids;
-  }, [invoices]);
 
   const fetchCompletedAppointmentsForClient = async (clientId: string) => {
     if (!clientId) {
@@ -228,13 +260,19 @@ const Billing = () => {
 
       if (selectedEmployeeId !== 'all' && specialistId !== selectedEmployeeId) return;
 
+      const isMembership = appointment.serviceType === 'MEMBERSHIP';
+      const originalPrice = Number(entry.price ?? service?.price ?? 0) || 0;
+      const price = isMembership ? 0 : originalPrice;
+
       rows.push({
         uniqueId: `${appointmentId}-${index}`,
         appointmentId,
         serviceId: serviceId || service?._id || '',
         _id: serviceId || service?._id || '',
         name: service?.name || serviceName,
-        price: Number(entry.price ?? service?.price ?? 0) || 0,
+        price,
+        originalPrice,
+        serviceType: appointment.serviceType || 'REGULAR',
         duration: Number(entry.duration ?? service?.duration ?? 0) || 0,
         quantity: normalizeQuantity(entry.quantity ?? appointment.quantity),
         specialist: specialistId || '',
@@ -242,7 +280,7 @@ const Billing = () => {
         appointmentDate: appointment.date,
         appointmentTime: appointment.time,
         branch: getEntityId(appointment.branch),
-        isRedeem: false
+        isRedeem: isMembership
       });
     };
 
@@ -456,19 +494,19 @@ const Billing = () => {
           <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/15 p-10 relative overflow-hidden group">
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-zen-sand/10 rounded-full blur-3xl transition-transform duration-1000 group-hover:scale-150" />
 
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
-              <div className="flex-1 w-full">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-2xl bg-zen-brown/5 flex items-center justify-center text-zen-brown/40">
-                    <User size={22} strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <h3 className="text-[11px] font-bold uppercase tracking-[0.4em] text-zen-brown/30">Ambassador Selection</h3>
-                    <p className="text-xs text-zen-brown/20 mt-0.5">Link a profile to initiate settlement protocol</p>
-                  </div>
+            <div className="relative z-10 flex flex-col gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-zen-brown/5 flex items-center justify-center text-zen-brown/40">
+                  <User size={22} strokeWidth={1.5} />
                 </div>
+                <div>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.4em] text-zen-brown/30">Ambassador Selection</h3>
+                  <p className="text-xs text-zen-brown/20 mt-0.5">Link a profile to initiate settlement protocol</p>
+                </div>
+              </div>
 
-                <div className="relative group/input">
+              <div className="flex flex-col lg:flex-row items-center gap-4">
+                <div className="relative group/input flex-1 w-full">
                   <ZenAutocomplete
                     label=""
                     hideLabel
@@ -483,6 +521,32 @@ const Billing = () => {
                       const client = clients.find(c => c._id === val || c.name === val);
                       if (client) {
                         setSelectedClient(client);
+
+                        // Find the latest completed and unbilled appointment for this client
+                        const latestCompletedApt = (rawAppointments || []).find((apt: any) => {
+                          const isCompleted = apt.status === 'Completed';
+                          const appointmentId = getEntityId(apt);
+                          const isBilled = appointmentId && (billedAppointmentIds.has(appointmentId) || apt.billedInvoiceId);
+
+                          if (isCompleted && !isBilled) {
+                            const clientId = getEntityId(apt.clientId || apt.clientId?._id);
+                            return clientId?.toLowerCase() === client._id?.toLowerCase() ||
+                                   String(apt.client || '').trim().toLowerCase() === String(client.name || '').trim().toLowerCase();
+                          }
+                          return false;
+                        });
+
+                        if (latestCompletedApt) {
+                          const aptBranchId = getEntityId(latestCompletedApt.branch);
+                          const aptEmployeeId = getEntityId(latestCompletedApt.employeeId || latestCompletedApt.completedByEmployeeId);
+
+                          if (aptBranchId) {
+                            setSelectedBranch(aptBranchId);
+                          }
+                          if (aptEmployeeId) {
+                            setSelectedEmployeeId(aptEmployeeId);
+                          }
+                        }
                       } else {
                         setSelectedClient({ _id: '', name: val, phone: '' });
                       }
@@ -494,47 +558,53 @@ const Billing = () => {
                     <Search size={18} className="text-zen-brown/20" />
                   </div>
                 </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                  <div className="w-full sm:w-[220px]">
+                    <BranchSelector variant="pill" className="!w-full shadow-sm" disabled={true} />
+                  </div>
+                  <div className="w-full sm:w-[220px]">
+                    <ZenDropdown
+                      label=""
+                      hideLabel
+                      variant="pill"
+                      disabled={true}
+                      options={[
+                        { label: 'All completed staff', value: 'all' },
+                        ...branchEmployees.map((employee: EmployeeRecord) => ({ label: employee.name, value: employee._id }))
+                      ]}
+                      value={selectedEmployeeId}
+                      onChange={setSelectedEmployeeId}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="flex flex-col items-stretch md:items-end gap-3 min-w-[280px]">
-                <BranchSelector variant="pill" className="!w-full shadow-sm" />
-                <ZenDropdown
-                  label=""
-                  hideLabel
-                  variant="pill"
-                  options={[
-                    { label: 'All completed staff', value: 'all' },
-                    ...branchEmployees.map((employee: EmployeeRecord) => ({ label: employee.name, value: employee._id }))
-                  ]}
-                  value={selectedEmployeeId}
-                  onChange={setSelectedEmployeeId}
-                />
-                <AnimatePresence mode="wait">
-                  {selectedClient && (
-                    <motion.div
-                      initial={{ opacity: 0, x: 20, scale: 0.95 }}
-                      animate={{ opacity: 1, x: 0, scale: 1 }}
-                      exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                      className="flex items-center gap-5 bg-white/50 backdrop-blur-md pl-6 pr-8 py-5 rounded-[2rem] border border-zen-brown/10 shadow-sm w-full"
-                    >
-                      <div className="w-14 h-14 rounded-2xl bg-white border border-zen-brown/10 flex items-center justify-center text-zen-gold shadow-sm shrink-0">
-                        {activeMembership ? <Crown size={28} strokeWidth={1.5} /> : <User size={28} strokeWidth={1.5} />}
+              <AnimatePresence mode="wait">
+                {selectedClient && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                    className="flex items-center gap-5 bg-white/50 backdrop-blur-md pl-6 pr-8 py-5 rounded-[2rem] border border-zen-brown/10 shadow-sm w-full"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-white border border-zen-brown/10 flex items-center justify-center text-zen-gold shadow-sm shrink-0">
+                      {activeMembership ? <Crown size={28} strokeWidth={1.5} /> : <User size={28} strokeWidth={1.5} />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.2em] mb-1">Active Profile</p>
+                      <p className="font-serif text-xl font-bold text-zen-brown truncate">{selectedClient.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="w-1 h-1 rounded-full bg-zen-gold/40" />
+                        <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest">
+                          {branches.find(b => b._id === selectedBranch)?.name || 'All Branches'}
+                        </p>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.2em] mb-1">Active Profile</p>
-                        <p className="font-serif text-xl font-bold text-zen-brown truncate">{selectedClient.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="w-1 h-1 rounded-full bg-zen-gold/40" />
-                          <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest">
-                            {branches.find(b => b._id === selectedBranch)?.name || 'All Branches'}
-                          </p>
-                        </div>
-                        {selectedClient.phone && <p className="text-[10px] font-bold text-zen-gold uppercase tracking-widest mt-1">{selectedClient.phone}</p>}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                      {selectedClient.phone && <p className="text-[10px] font-bold text-zen-gold uppercase tracking-widest mt-1">{selectedClient.phone}</p>}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {activeMembership && (
@@ -637,7 +707,7 @@ const Billing = () => {
                         </td>
                       </motion.tr>
                     ) : (
-                      invoiceItems.map((item) => (
+                      invoiceItems.map((item, index) => (
                         <motion.tr
                           key={item.uniqueId}
                           layout
@@ -648,8 +718,8 @@ const Billing = () => {
                         >
                           <td className="px-10 py-6">
                             <div className="flex items-center gap-5">
-                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all duration-500 ${item.isRedeem ? 'bg-zen-sand/10 border-zen-sand/20 text-zen-sand shadow-inner shadow-zen-sand/5' : 'bg-white border-zen-brown/10 text-zen-brown/20 group-hover:border-zen-brown/30 group-hover:text-zen-brown/40'}`}>
-                                {item.isRedeem ? <Sparkles size={20} /> : <Zap size={18} strokeWidth={1.5} />}
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border text-xs font-bold transition-all duration-500 ${item.isRedeem ? 'bg-zen-sand/10 border-zen-sand/20 text-zen-sand shadow-inner shadow-zen-sand/5' : 'bg-white border-zen-brown/10 text-zen-brown/40 group-hover:border-zen-brown/30 group-hover:text-zen-brown font-black'}`}>
+                                {index + 1}
                               </div>
                               <div className="flex flex-col gap-1">
                                 <p className={`font-serif text-lg leading-tight transition-all duration-500 ${item.isRedeem ? 'text-zen-sand font-bold' : 'text-zen-brown font-semibold'}`}>{item.name}</p>
@@ -680,7 +750,12 @@ const Billing = () => {
                           </td>
                           <td className="px-8 py-6">
                             <div className="flex justify-center">
-                              {item.isRedeem ? (
+                              {item.serviceType === 'MEMBERSHIP' ? (
+                                <div className="px-4 py-1.5 rounded-full bg-zen-sand/10 border border-zen-sand/20 flex items-center gap-2">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-zen-sand animate-pulse" />
+                                  <span className="text-[9px] font-black text-zen-sand uppercase tracking-[0.2em]">Membership</span>
+                                </div>
+                              ) : item.isRedeem ? (
                                 <div className="px-4 py-1.5 rounded-full bg-zen-sand/10 border border-zen-sand/20 flex items-center gap-2">
                                   <div className="w-1.5 h-1.5 rounded-full bg-zen-sand animate-pulse" />
                                   <span className="text-[9px] font-black text-zen-sand uppercase tracking-[0.2em]">Redemption</span>

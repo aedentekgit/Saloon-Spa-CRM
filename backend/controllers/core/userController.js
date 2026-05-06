@@ -134,6 +134,12 @@ exports.loginUser = async (req, res) => {
 
     const effectiveRole = normalizeAuthRole(user.role, source);
 
+    if (effectiveRole === 'Admin') {
+      const sessionId = crypto.randomBytes(16).toString('hex');
+      user.currentSessionId = sessionId;
+      await user.save();
+    }
+
     if (!hasAssignedBranch({ role: effectiveRole, branch: user.branch })) {
       return res.status(403).json({ message: 'Access Denied: Branch assignment required for this role.' });
     }

@@ -16,6 +16,7 @@ import { ZenInput, ZenMasterCalendar } from '../../components/zen/ZenInputs';
 import { useBranches } from '../../context/BranchContext';
 import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { ApplyLeaveModal } from '../../components/shared/ApplyLeaveModal';
 
 interface Branch {
   _id?: string;
@@ -80,6 +81,7 @@ const Leave = () => {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationMeta | null>(() => getCachedJson<PaginationMeta | null>('zen_page_leave_pagination', null));
   const [dateRange, setDateRange] = useState<any>('All');
+  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
   const PAGE_LIMIT = 12;
@@ -289,7 +291,7 @@ const Leave = () => {
       onSearchChange={setSearchTerm}
       hideViewToggle
       addButtonLabel={user?.role === 'Employee' ? "Apply Leave" : undefined}
-      onAddClick={() => navigate('/leave/apply')}
+      onAddClick={() => setIsApplyModalOpen(true)}
       addButtonIcon={<Plus size={18} />}
       searchMaxWidth="lg:max-w-md"
       searchActions={
@@ -549,6 +551,12 @@ const Leave = () => {
         onConfirm={executeDelete}
         title="Purge Application?"
         message="Are you certain you wish to remove this absence record from the workspace's history? This action cannot be reversed."
+      />
+
+      <ApplyLeaveModal
+        isOpen={isApplyModalOpen}
+        onClose={() => setIsApplyModalOpen(false)}
+        onSuccess={fetchData}
       />
     </ZenPageLayout>
   );

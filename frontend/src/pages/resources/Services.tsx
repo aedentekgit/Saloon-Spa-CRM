@@ -12,7 +12,7 @@ import { Modal } from '../../components/shared/Modal';
 import { notify } from '../../components/shared/ZenNotification';
 import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
-import { ZenDropdown, ZenInput, ZenTextarea } from '../../components/zen/ZenInputs';
+import { ZenDropdown, ZenInput, ZenTextarea, ZenMultiSelect } from '../../components/zen/ZenInputs';
 import { useSettings } from '../../context/SettingsContext';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
@@ -303,7 +303,8 @@ const Services = () => {
     status: 'Active' as 'Active' | 'Inactive',
     commissionType: 'Percentage' as 'Percentage' | 'Fixed',
     commissionValue: 10,
-    inventoryUsage: [] as any[]
+    inventoryUsage: [] as any[],
+    branches: [] as string[]
   });
 
   const [formErrors, setFormErrors] = useState<{[key: string]: boolean}>({});
@@ -313,7 +314,8 @@ const Services = () => {
     if (!formData.name) errors.name = true;
     if (!formData.price || formData.price <= 0) errors.price = true;
     if (!formData.duration || formData.duration <= 0) errors.duration = true;
-    if (!formData.branch) errors.branch = true;
+    if (!editingService && formData.branches.length === 0) errors.branches = true;
+    if (editingService && !formData.branch) errors.branch = true;
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -344,7 +346,8 @@ const Services = () => {
           inventoryItem: usage.inventoryItem?._id || usage.inventoryItem,
           quantity: usage.quantity,
           unit: usage.unit
-        })) || []
+        })) || [],
+        branches: service.branch?._id ? [service.branch._id] : []
       });
     } else {
       setEditingService(null);
@@ -359,7 +362,8 @@ const Services = () => {
         status: 'Active' as 'Active' | 'Inactive',
         commissionType: 'Percentage' as 'Percentage' | 'Fixed',
         commissionValue: 10,
-        inventoryUsage: []
+        inventoryUsage: [],
+        branches: selectedBranch === 'all' ? [] : [selectedBranch]
       });
     }
     setActiveTab('basic');
@@ -374,18 +378,18 @@ const Services = () => {
       const method = editingService ? 'PUT' : 'POST';
 
       const data = new FormData();
-      data.append('name', formData.name);
-      data.append('duration', (formData.duration ?? 0).toString());
-      data.append('price', (formData.price ?? 0).toString());
-      data.append('image', formData.image);
-      data.append('category', formData.category);
       Object.entries(formData).forEach(([key, value]) => {
-        if (key === 'inventoryUsage') {
+        if (key === 'inventoryUsage' || key === 'branches') {
           data.append(key, JSON.stringify(value));
-        } else if (key !== 'image') {
-          data.append(key, String(value));
+        } else if (key !== 'branch') {
+          data.append(key, String(value ?? ''));
         }
       });
+
+      // For single update or creation in specific branch
+      if (editingService || formData.branches.length === 1) {
+        data.append('branch', editingService ? formData.branch : formData.branches[0]);
+      }
 
       if (imageFile) {
         data.append('serviceImage', imageFile);
@@ -588,7 +592,7 @@ const Services = () => {
                   const branchName = service.branch?.name || 'Main Registry';
                   return (
                     <tr key={service._id} className="transition-all group border-b border-black/[0.02]">
-                      <td className="text-center italic opacity-40 text-[11px]">
+                      <td>
                         {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
                       </td>
                       <td>
@@ -613,7 +617,7 @@ const Services = () => {
                           <span className="text-base font-serif font-black text-zen-brown leading-none">
                             {settings?.general?.currencySymbol || 'QR'} {service.price}
                           </span>
-                          <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">{service.duration} MIN</span>
+                          <span className="zen-table-meta mt-1">{service.duration} MIN</span>
                         </div>
                       </td>
                       <td>
@@ -756,17 +760,33 @@ const Services = () => {
                      error={formErrors.duration}
                    />
 
-                   <ZenDropdown
-                      label="Primary Branch"
-                      options={(branches || []).map(b => b.name)}
-                      error={!!formErrors.branch}
-                      value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'}
-	                      onChange={(val) => {
-	                        const branch = (branches || []).find(b => b.name === val);
-	                        setFormData({...formData, branch: branch ? branch._id : ''});
-	                      }}
-                        disabled={user?.role !== 'Admin'}
-	                   />
+                   {!editingService && user?.role === 'Admin' ? (
+                     <ZenMultiSelect
+                       label="Target Branches"
+                       icon={MapPin}
+                       options={(branches || []).map(b => ({ label: b.name, value: b._id }))}
+                       value={formData.branches}
+                       onChange={(vals) => setFormData({ ...formData, branches: vals })}
+                       error={!!formErrors.branches}
+                       placeholder="Select branches..."
+                     />
+                   ) : (
+                     <ZenDropdown
+                       label="Primary Branch"
+                       options={(branches || []).map(b => b.name)}
+                       error={!!formErrors.branch}
+                       value={(branches || []).find(b => b._id === (editingService ? formData.branch : formData.branches[0]))?.name || 'None'}
+                       onChange={(val) => {
+                         const branch = (branches || []).find(b => b.name === val);
+                         if (editingService) {
+                           setFormData({ ...formData, branch: branch ? branch._id : '' });
+                         } else {
+                           setFormData({ ...formData, branches: branch ? [branch._id] : [] });
+                         }
+                       }}
+                       disabled={user?.role !== 'Admin'}
+                     />
+                   )}
 
                    <ZenDropdown
                       label="Service Category"
@@ -809,8 +829,8 @@ const Services = () => {
                       </div>
                       <ZenButton
                         type="button"
-                        variant="secondary"
-                        className="scale-90 text-[10px] py-2"
+                        variant="outline"
+                        className="text-xs py-2.5 px-5 shadow-sm border-zen-brown/20 bg-white hover:border-zen-sand hover:shadow-md"
                         onClick={() => {
                           setFormData({
                             ...formData,
@@ -835,10 +855,19 @@ const Services = () => {
                             <div className="flex-1 w-full">
                                <ZenDropdown
                                  label="Product"
-                                 options={['Select Product', ...inventoryList.map(i => i.name)]}
+                                 options={['Select Product', ...inventoryList.filter(i => {
+                                   const ib = i.branch?._id || i.branch;
+                                   const targetB = editingService ? formData.branch : formData.branches[0];
+                                   return !ib || ib === targetB;
+                                 }).map(i => i.name)]}
                                  value={inventoryList.find(i => i._id === usage.inventoryItem)?.name || 'Select Product'}
                                  onChange={(val) => {
-                                   const product = inventoryList.find(i => i.name === val);
+                                   const filteredList = inventoryList.filter(i => {
+                                     const ib = i.branch?._id || i.branch;
+                                     const targetB = editingService ? formData.branch : formData.branches[0];
+                                     return !ib || ib === targetB;
+                                   });
+                                   const product = filteredList.find(i => i.name === val);
                                    const newList = [...formData.inventoryUsage];
                                    newList[index] = {
                                      ...newList[index],

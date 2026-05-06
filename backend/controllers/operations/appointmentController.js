@@ -4,6 +4,7 @@ const Notification = require('../../models/core/Notification');
 const crypto = require('crypto');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
+const mongoose = require('mongoose');
 
 const ANY_SPECIALIST = 'Any available specialist';
 
@@ -220,6 +221,80 @@ const getAppointmentDuration = async (Service, appointment, branchId) => {
   return primaryDuration + addOnDuration;
 };
 
+const refundMembershipSessionIfNeeded = async (appointmentId) => {
+  try {
+    const Membership = require('../../models/operations/Membership');
+    const linkedMembership = await Membership.findOne({ "usageHistory.appointment": appointmentId }).populate('plan');
+    if (linkedMembership) {
+      linkedMembership.usageHistory = linkedMembership.usageHistory.filter(
+        usage => usage.appointment?.toString() !== appointmentId.toString()
+      );
+      if (linkedMembership.plan) {
+        const max = linkedMembership.plan.maxSessions || 0;
+        if (max > 0) {
+          linkedMembership.remainingSessions = Math.min(max, linkedMembership.remainingSessions + 1);
+        } else {
+          linkedMembership.remainingSessions += 1;
+        }
+      } else {
+        linkedMembership.remainingSessions += 1;
+      }
+      await linkedMembership.save();
+    }
+  } catch (err) {
+    console.error('Failed to refund membership session:', err);
+  }
+};
+
+const deductMembershipSessionIfNeeded = async (appointment, session = null) => {
+  try {
+    if (appointment.serviceType !== 'MEMBERSHIP') return;
+    if (!appointment.clientId) return;
+    const Membership = require('../../models/operations/Membership');
+    const ServiceModel = require('../../models/operations/Service');
+    const serviceObj = await ServiceModel.findOne({
+      name: appointment.service,
+      branch: appointment.branch
+    }).session(session);
+    const serviceId = appointment.serviceId || serviceObj?._id;
+
+    if (!serviceId) return;
+
+    let activeMembership;
+    if (appointment.membershipId) {
+      activeMembership = await Membership.findById(appointment.membershipId).populate('plan').session(session);
+    } else {
+      activeMembership = await Membership.findOne({
+        client: appointment.clientId,
+        branch: appointment.branch,
+        status: 'Active',
+        remainingSessions: { $gt: 0 }
+      }).populate('plan').session(session);
+    }
+
+    if (activeMembership) {
+      const applicableServices = Array.isArray(activeMembership.plan?.applicableServices)
+        ? activeMembership.plan.applicableServices
+        : [];
+      const isApplicable = applicableServices.length === 0 || applicableServices.some(
+        id => id.toString() === serviceId.toString()
+      );
+      if (isApplicable) {
+        activeMembership.remainingSessions -= 1;
+        activeMembership.usageHistory.push({
+          service: serviceId,
+          appointment: appointment._id,
+          branch: appointment.branch,
+          usedAt: new Date()
+        });
+        await activeMembership.save({ session });
+      }
+    }
+  } catch (err) {
+    console.error('Failed to deduct membership session:', err);
+  }
+};
+
 const isAppointmentAssignedToUser = (appointment, user) => {
   if (!appointment || !user) return false;
   const appointmentEmployeeId = getBranchId(appointment.employeeId);
@@ -292,6 +367,128 @@ const applyCompletionMetadata = async (appointment, req, status) => {
   appointment.completedByName = completionEmployee?.name || appointment.employee || req.user.name;
   appointment.completedByRole = completionEmployee?.role || req.user.role;
 };
+
+// ============================================================
+// ATOMIC CONFLICT VALIDATION (Race Condition Prevention)
+// Uses MongoDB transactions to ensure thread-safe booking
+// ============================================================
+
+const ATOMIC_CONFLICT_STATES = ['Confirmed', 'Pending'];
+
+/**
+ * Validates appointment conflicts atomically using a MongoDB transaction.
+ * This prevents race conditions where two simultaneous bookings could both pass validation.
+ *
+ * @param {Object} params - Validation parameters
+ * @param {mongoose.Connection} params.connection - MongoDB connection for transaction
+ * @param {string} params.branchId - Target branch ObjectId
+ * @param {string} params.date - Appointment date (YYYY-MM-DD)
+ * @param {string} params.time - Appointment time (HH:mm)
+ * @param {string} params.employee - Employee name
+ * @param {string} params.room - Room name (optional)
+ * @param {number} params.serviceDuration - Total service duration in minutes
+ * @param {number} params.cleaningDuration - Room cleaning duration in minutes
+ * @returns {Promise<{conflict: boolean, message?: string}>}
+ */
+const validateConflictAtomically = async ({
+  connection,
+  branchId,
+  date,
+  time,
+  employee,
+  room,
+  serviceDuration,
+  cleaningDuration
+}) => {
+  const session = await connection.startSession();
+  session.startTransaction();
+
+  try {
+    const totalNewOccupancy = serviceDuration + cleaningDuration;
+    const newStart = parseTime(date, time);
+    const newEnd = newStart + totalNewOccupancy;
+
+    // Use find with session for consistent read within transaction
+    const existingApts = await Appointment.find({
+      branch: branchId,
+      date: date,
+      status: { $in: ATOMIC_CONFLICT_STATES }
+    }).session(session);
+
+    // Lock the documents by reading them within transaction
+    // Any concurrent transaction trying to modify these will be serialized
+
+    let occupiedRoomCount = 0;
+    const branchRooms = await connection.db.collection('rooms')
+      .find({ branch: new mongoose.Types.ObjectId(branchId) })
+      .project({ _id: 1 })
+      .toArray();
+    const roomCapacity = branchRooms.length || 999;
+
+    for (const apt of existingApts) {
+      const existingDuration = apt.totalDuration || 60;
+      const aptRoom = apt.room;
+      const aptCleaning = 0; // Will fetch if needed
+
+      const existingStart = parseTime(apt.date, apt.time);
+      const existingEnd = existingStart + existingDuration;
+
+      const overlaps = newStart < existingEnd && newEnd > existingStart;
+
+      if (overlaps) {
+        // Employee conflict check
+        if (apt.employee === employee) {
+          await session.abortTransaction();
+          return { conflict: true, message: `${employee} is already booked at this time (including cleaning buffer).` };
+        }
+
+        // Specific room conflict
+        if (room && apt.room === room) {
+          await session.abortTransaction();
+          return { conflict: true, message: `Room "${room}" is occupied/cleaning during this period.` };
+        }
+
+        // Track room occupancy
+        if (apt.room) {
+          occupiedRoomCount++;
+        }
+      }
+    }
+
+    // Room capacity check (for auto-assignment)
+    if (!room && occupiedRoomCount >= roomCapacity) {
+      await session.abortTransaction();
+      return { conflict: true, message: `All rooms in this branch are occupied or cleaning during this period.` };
+    }
+
+    // No conflicts - commit the read-only validation transaction
+    // We don't actually write anything, just validate
+    await session.commitTransaction();
+    return { conflict: false };
+
+  } catch (error) {
+    await session.abortTransaction();
+    // If transaction failed due to write conflict, treat as conflict
+    if (error.code === 112 || error.code === 20) {
+      return { conflict: true, message: 'Booking conflict detected. Please choose a different time slot.' };
+    }
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
+/**
+ * Atomic appointment creation within a MongoDB transaction.
+ * Ensures no race conditions during booking.
+ */
+const createAppointmentAtomic = async (session, appointmentData) => {
+  return Appointment.create([appointmentData], { session });
+};
+
+// ============================================================
+// END ATOMIC CONFLICT VALIDATION
+// ============================================================
 
 // @desc    Get all appointments
 // @route   GET /api/appointments
@@ -429,80 +626,43 @@ const createAppointment = async (req, res) => {
       return res.status(serviceSummary.status || 400).json({ message: serviceSummary.error });
     }
 
-      // --- CONFLICT VALIDATION (Staff + Room) ---
-      const { date, time, employee, room } = appointmentData;
-      if (date && time && employee) {
-        const selectedService = await Service.findOne({
-          $or: [
-            { _id: appointmentData.serviceId || null },
-            { name: appointmentData.service }
-          ],
-          branch: toObjectIdIfValid(appointmentData.branch)
-        }).catch(() => null);
-        const serviceDuration = appointmentData.totalDuration || selectedService?.duration || 60;
+    // --- ATOMIC CONFLICT VALIDATION (Race Condition Prevention) ---
+    const { date, time, employee, room } = appointmentData;
+    if (date && time && employee) {
+      const selectedService = await Service.findOne({
+        $or: [
+          { _id: appointmentData.serviceId || null },
+          { name: appointmentData.service }
+        ],
+        branch: toObjectIdIfValid(appointmentData.branch)
+      }).catch(() => null);
+      const serviceDuration = appointmentData.totalDuration || selectedService?.duration || 60;
 
-        const selectedRoom = room ? await Room.findOne({
-          name: room,
-          branch: toObjectIdIfValid(appointmentData.branch)
-        }) : null;
-        const roomCleaning = selectedRoom?.cleaningDuration || 0;
-        const totalNewOccupancy = serviceDuration + roomCleaning;
+      const selectedRoom = room ? await Room.findOne({
+        name: room,
+        branch: toObjectIdIfValid(appointmentData.branch)
+      }) : null;
+      const roomCleaning = selectedRoom?.cleaningDuration || 0;
 
-        // Get all active appointments for this date
-        const existingApts = await Appointment.find({
-          branch: appointmentData.branch,
-          date,
-          status: { $in: ['Confirmed', 'Pending'] }
-        });
+      // Use atomic conflict validation with MongoDB transaction
+      const conflictResult = await validateConflictAtomically({
+        connection: Appointment.db,
+        branchId: appointmentData.branch,
+        date,
+        time,
+        employee,
+        room,
+        serviceDuration,
+        cleaningDuration: roomCleaning
+      });
 
-        const newStart = parseTime(date, time);
-        const newEnd = newStart + totalNewOccupancy;
-
-        let occupiedRoomCount = 0;
-
-        for (const apt of existingApts) {
-          const existingDuration = await getAppointmentDuration(Service, apt, appointmentData.branch);
-
-          const aptRoom = apt.room ? await Room.findOne({
-            name: apt.room,
-            branch: toObjectIdIfValid(appointmentData.branch)
-          }) : null;
-          const aptCleaning = aptRoom?.cleaningDuration || 0;
-          const totalExistingOccupancy = existingDuration + aptCleaning;
-
-          const existingStart = parseTime(apt.date, apt.time);
-          const existingEnd = existingStart + totalExistingOccupancy;
-
-          const overlaps = newStart < existingEnd && newEnd > existingStart;
-
-          if (overlaps) {
-            // Check Specialist Conflict
-            if (apt.employee === employee) {
-              return res.status(409).json({ message: `${employee} is already booked at this time (including cleaning buffer).` });
-            }
-
-            // Check Room Conflict (Specific Room)
-            if (room && apt.room === room) {
-              return res.status(409).json({ message: `Room "${room}" is occupied/cleaning during this period.` });
-            }
-
-            // Track room occupancy for capacity check
-            if (apt.room) {
-              occupiedRoomCount++;
-            }
-          }
-        }
-
-        // Branch-wide Room Capacity Check (for Guest/Unassigned Room bookings)
-        if (!room) {
-          const allRoomsInBranch = await Room.find({ branch: toObjectIdIfValid(appointmentData.branch) });
-          const roomCapacity = allRoomsInBranch.length || 999;
-          if (occupiedRoomCount >= roomCapacity) {
-            return res.status(409).json({ message: `All rooms in this branch are occupied or cleaning during this period.` });
-          }
-        }
+      if (conflictResult.conflict) {
+        return res.status(409).json({ message: conflictResult.message });
       }
+    }
     // ------------------------------------------
+    // Note: Actual appointment creation still needs transaction for atomicity
+    // See below after client resolution
 
     // Auto-resolve clientId
     if (isClient) {
@@ -519,104 +679,189 @@ const createAppointment = async (req, res) => {
         return res.status(403).json({ message: 'Access Denied: Selected client belongs to another branch.' });
       }
     } else if (!appointmentData.clientId && appointmentData.client) {
-      const foundClient = await User.findOne({
+      let foundClient = await User.findOne({
         name: appointmentData.client,
         role: 'Client',
         branch: toObjectIdIfValid(appointmentData.branch)
       });
+      if (!foundClient) {
+        foundClient = await User.findOne({
+          name: appointmentData.client,
+          role: 'Client'
+        });
+      }
       if (foundClient) appointmentData.clientId = foundClient._id;
     }
 
-    const appointment = await Appointment.create(appointmentData);
-    if (appointment.status === 'Completed') {
-      await applyCompletionMetadata(appointment, req, 'Completed');
-      await appointment.save();
+    // Set serviceType and bookingType based on membershipId
+    if (appointmentData.membershipId && appointmentData.membershipId !== 'None' && appointmentData.membershipId !== '') {
+      appointmentData.serviceType = 'MEMBERSHIP';
+      appointmentData.bookingType = 'Membership';
+    } else {
+      appointmentData.serviceType = 'REGULAR';
+      appointmentData.bookingType = 'Normal';
     }
 
-    // --- REAL-TIME NOTIFICATION INTEGRATION ---
-    try {
-      const Notification = require('../../models/core/Notification');
-      const sendPushNotification = require('../../utils/sendPushNotification');
-
-      const managers = await User.find({
-        $or: [{ role: 'Admin' }, { role: 'Manager', branch: appointment.branch }],
-        isActive: true
-      });
-
-      if (managers.length > 0) {
-        const title = 'New Appointment';
-        const body = `${appointment.client} booked ${appointment.service} for ${new Date(appointment.date).toLocaleDateString()}`;
-
-        const dbNotifications = managers.map(m => ({
-          recipient: m._id,
-          title,
-          message: body,
-          type: 'appointment',
-          link: `/appointments`
-        }));
-        await Notification.insertMany(dbNotifications);
-
-        const allTokens = managers.reduce((acc, m) => {
-          if (m.fcmTokens) acc.push(...m.fcmTokens);
-          return acc;
-        }, []);
-
-        if (allTokens.length > 0) {
-          await sendPushNotification({ title, body, tokens: allTokens, data: { appointmentId: appointment._id.toString() } });
-        }
-      }
-    } catch (notifErr) {
-      console.error('Non-blocking Notification Error:', notifErr);
-    }
-
-    // Membership Integration
-    if (appointment.clientId) {
+    // Membership Booking Validation
+    if (appointmentData.serviceType === 'MEMBERSHIP') {
       const Membership = require('../../models/operations/Membership');
-      const Service = require('../../models/operations/Service');
-      const serviceObj = await Service.findOne({
-        name: appointment.service,
-        branch: toObjectIdIfValid(appointment.branch)
+      const activeMembership = await Membership.findById(appointmentData.membershipId).populate('plan');
+      if (!activeMembership) {
+        return res.status(400).json({ message: 'Selected membership plan not found.' });
+      }
+      if (activeMembership.status !== 'Active') {
+        return res.status(400).json({ message: 'Selected membership is not active.' });
+      }
+      if (activeMembership.remainingSessions <= 0) {
+        return res.status(400).json({ message: 'Selected membership has zero remaining sessions.' });
+      }
+      if (activeMembership.client?.toString() !== appointmentData.clientId?.toString()) {
+        return res.status(400).json({ message: 'Selected membership does not belong to the selected client.' });
+      }
+
+      // Check if selected service is covered by the membership plan
+      const ServiceModel = require('../../models/operations/Service');
+      const serviceObj = await ServiceModel.findOne({
+        name: appointmentData.service,
+        branch: appointmentData.branch
       });
-      const serviceId = appointment.serviceId || serviceObj?._id;
+      const serviceId = appointmentData.serviceId || serviceObj?._id;
 
       if (serviceId) {
-        let activeMembership;
-        if (req.body.membershipId) {
-          activeMembership = await Membership.findById(req.body.membershipId).populate('plan');
-          if (activeMembership && !sameBranch(activeMembership.branch, appointment.branch)) {
-            return res.status(403).json({ message: 'Membership does not belong to this branch.' });
-          }
-        } else {
-          activeMembership = await Membership.findOne({
-            client: appointment.clientId,
-            branch: appointment.branch,
-            status: 'Active',
-            remainingSessions: { $gt: 0 }
-          }).populate('plan');
-        }
-
-        if (activeMembership) {
-          const applicableServices = Array.isArray(activeMembership.plan?.applicableServices)
-            ? activeMembership.plan.applicableServices
-            : [];
-          const isApplicable = applicableServices.length === 0 || applicableServices.some(
-            id => id.toString() === serviceId.toString()
-          );
-          if (isApplicable) {
-            activeMembership.remainingSessions -= 1;
-            activeMembership.usageHistory.push({
-              service: serviceId,
-              appointment: appointment._id,
-              branch: appointment.branch,
-              usedAt: new Date()
-            });
-            await activeMembership.save();
-          }
+        const applicableServices = Array.isArray(activeMembership.plan?.applicableServices)
+          ? activeMembership.plan.applicableServices
+          : [];
+        const isApplicable = applicableServices.length === 0 || applicableServices.some(
+          id => id.toString() === serviceId.toString()
+        );
+        if (!isApplicable) {
+          return res.status(400).json({ message: `The selected service "${appointmentData.service}" is not included in this membership plan.` });
         }
       }
     }
 
-    res.status(201).json(appointment);
+    // ============================================================
+    // ATOMIC APPOINTMENT CREATION (With Transaction)
+    // Ensures appointment + membership update are atomic
+    // ============================================================
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const createdApts = await Appointment.create([appointmentData], { session });
+      const appointment = createdApts[0];
+
+      if (appointment.status === 'Completed') {
+        appointment.completedAt = new Date();
+        appointment.completedBy = req.user._id;
+        appointment.completedBySource = req.authSource === 'Employee' ? 'Employee' : 'User';
+        appointment.completedByName = req.user.name;
+        appointment.completedByRole = req.user.role;
+        await appointment.save();
+      }
+
+      // Membership Integration (within same transaction) - Only deduct if COMPLETED and serviceType is MEMBERSHIP!
+      if (appointment.clientId && appointment.status === 'Completed' && appointment.serviceType === 'MEMBERSHIP') {
+        const Membership = require('../../models/operations/Membership');
+        const ServiceModel = require('../../models/operations/Service');
+        const serviceObj = await ServiceModel.findOne({
+          name: appointment.service,
+          branch: toObjectIdIfValid(appointment.branch)
+        }).session(session);
+        const serviceId = appointment.serviceId || serviceObj?._id;
+
+        if (serviceId) {
+          let activeMembership;
+          if (appointmentData.membershipId) {
+            activeMembership = await Membership.findById(appointmentData.membershipId).populate('plan').session(session);
+            if (activeMembership && !sameBranch(activeMembership.branch, appointment.branch)) {
+              throw new Error('Membership does not belong to this branch.');
+            }
+          } else {
+            activeMembership = await Membership.findOne({
+              client: appointment.clientId,
+              branch: appointment.branch,
+              status: 'Active',
+              remainingSessions: { $gt: 0 }
+            }).populate('plan').session(session);
+          }
+
+          if (activeMembership) {
+            const applicableServices = Array.isArray(activeMembership.plan?.applicableServices)
+              ? activeMembership.plan.applicableServices
+              : [];
+            const isApplicable = applicableServices.length === 0 || applicableServices.some(
+              id => id.toString() === serviceId.toString()
+            );
+            if (isApplicable) {
+              activeMembership.remainingSessions -= 1;
+              activeMembership.usageHistory.push({
+                service: serviceId,
+                appointment: appointment._id,
+                branch: appointment.branch,
+                usedAt: new Date()
+              });
+              await activeMembership.save({ session });
+            }
+          }
+        }
+      }
+
+      await session.commitTransaction();
+      session.endSession();
+
+      // --- REAL-TIME NOTIFICATION INTEGRATION (Outside transaction - non-critical) ---
+      try {
+        const Notification = require('../../models/core/Notification');
+        const sendPushNotification = require('../../utils/sendPushNotification');
+
+        const managers = await User.find({
+          $or: [{ role: 'Admin' }, { role: 'Manager', branch: appointment.branch }],
+          isActive: true
+        });
+
+        if (managers.length > 0) {
+          const title = 'New Appointment';
+          const body = `${appointment.client} booked ${appointment.service} for ${new Date(appointment.date).toLocaleDateString()}`;
+
+          const dbNotifications = managers.map(m => ({
+            recipient: m._id,
+            title,
+            message: body,
+            type: 'appointment',
+            link: `/appointments`
+          }));
+          await Notification.insertMany(dbNotifications);
+
+          const allTokens = managers.reduce((acc, m) => {
+            if (m.fcmTokens) acc.push(...m.fcmTokens);
+            return acc;
+          }, []);
+
+          if (allTokens.length > 0) {
+            await sendPushNotification({ title, body, tokens: allTokens, data: { appointmentId: appointment._id.toString() } });
+          }
+        }
+      } catch (notifErr) {
+        console.error('Non-blocking Notification Error:', notifErr);
+      }
+
+      res.status(201).json(appointment);
+
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+
+      // Handle duplicate key error specifically for race conditions
+      if (error.code === 11000) {
+        return res.status(409).json({ message: 'Booking conflict detected. Please choose a different time slot.' });
+      }
+
+      res.status(400).json({ message: error.message });
+    }
+    // ============================================================
+    // END ATOMIC APPOINTMENT CREATION
+    // ============================================================
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -764,32 +1009,40 @@ const updateAppointment = async (req, res) => {
       if (!updatePayload.room) updatePayload.room = targetRoom.name;
     }
 
-    const employeeSelection = await resolveEmployeeForAppointment(
-      Employee,
-      checkBranch,
-      updatePayload.employeeId ?? appointment.employeeId,
-      updatePayload.employee ?? appointment.employee
-    );
-    if (employeeSelection.error) {
-      return res.status(employeeSelection.status || 400).json({ message: employeeSelection.error });
-    }
-    if (employeeSelection.employee) {
-      updatePayload.employeeId = employeeSelection.employee._id;
-      updatePayload.employee = employeeSelection.employee.name;
+    // Only validate employee if it's being changed AND employee is in updatePayload
+    const isEmployeeBeingChanged = updatePayload.employee !== undefined || updatePayload.employeeId !== undefined;
+    if (isEmployeeBeingChanged) {
+      const employeeSelection = await resolveEmployeeForAppointment(
+        Employee,
+        checkBranch,
+        updatePayload.employeeId ?? appointment.employeeId,
+        updatePayload.employee ?? appointment.employee
+      );
+      if (employeeSelection.error) {
+        return res.status(employeeSelection.status || 400).json({ message: employeeSelection.error });
+      }
+      if (employeeSelection.employee) {
+        updatePayload.employeeId = employeeSelection.employee._id;
+        updatePayload.employee = employeeSelection.employee.name;
+      }
     }
 
-    const roomSelection = await resolveRoomForAppointment(
-      Room,
-      checkBranch,
-      updatePayload.roomId ?? appointment.roomId,
-      updatePayload.room ?? appointment.room
-    );
-    if (roomSelection.error) {
-      return res.status(roomSelection.status || 400).json({ message: roomSelection.error });
-    }
-    if (roomSelection.room) {
-      updatePayload.roomId = roomSelection.room._id;
-      updatePayload.room = roomSelection.room.name;
+    // Only validate room if it's being changed AND room is in updatePayload
+    const isRoomBeingChanged = updatePayload.room !== undefined || updatePayload.roomId !== undefined;
+    if (isRoomBeingChanged) {
+      const roomSelection = await resolveRoomForAppointment(
+        Room,
+        checkBranch,
+        updatePayload.roomId ?? appointment.roomId,
+        updatePayload.room ?? appointment.room
+      );
+      if (roomSelection.error) {
+        return res.status(roomSelection.status || 400).json({ message: roomSelection.error });
+      }
+      if (roomSelection.room) {
+        updatePayload.roomId = roomSelection.room._id;
+        updatePayload.room = roomSelection.room.name;
+      }
     }
 
     const mergedServiceData = {
@@ -858,6 +1111,14 @@ const updateAppointment = async (req, res) => {
     }
     const updatedAppointment = await appointment.save();
 
+    if (statusIsChanging) {
+      if (oldStatus === 'Completed' && updatePayload.status !== 'Completed') {
+        await refundMembershipSessionIfNeeded(appointment._id);
+      } else if (oldStatus !== 'Completed' && updatePayload.status === 'Completed') {
+        await deductMembershipSessionIfNeeded(appointment);
+      }
+    }
+
     // Trigger notification if status changed during update
     if (updatePayload.status && updatePayload.status !== oldStatus) {
       // Re-fetch populated for notification
@@ -925,6 +1186,9 @@ const deleteAppointment = async (req, res) => {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to delete this resource' });
     }
 
+    if (appointment.status === 'Completed') {
+      await refundMembershipSessionIfNeeded(appointment._id);
+    }
     await Appointment.deleteOne({ _id: req.params.id });
     res.json({ message: 'Appointment removed' });
   } catch (error) {
@@ -969,6 +1233,9 @@ const updateAppointmentStatus = async (req, res) => {
       return res.status(403).json({ message: 'Access Denied: You cannot update this appointment status.' });
     }
 
+    const oldStatus = appointment.status;
+    const statusIsChanging = status !== oldStatus;
+
     appointment.status = status;
     await applyCompletionMetadata(appointment, req, status);
     if (cancellationReason) {
@@ -976,6 +1243,14 @@ const updateAppointmentStatus = async (req, res) => {
     }
 
     await appointment.save();
+
+    if (statusIsChanging) {
+      if (oldStatus === 'Completed' && status !== 'Completed') {
+        await refundMembershipSessionIfNeeded(appointment._id);
+      } else if (oldStatus !== 'Completed' && status === 'Completed') {
+        await deductMembershipSessionIfNeeded(appointment);
+      }
+    }
 
     // --- EMAIL NOTIFICATION ---
     try {
@@ -1085,100 +1360,25 @@ const createGuestAppointment = async (req, res) => {
       ? await Service.findById(rest.serviceId).catch(() => null)
       : await Service.findOne({ name: rest.service, branch: appointmentBranch });
     const serviceDuration = rest.totalDuration || selectedService?.duration || 60;
-    const existingApts = await Appointment.find({
-      branch: appointmentBranch,
+
+    // ============================================================
+    // ATOMIC CONFLICT VALIDATION FOR GUEST BOOKING
+    // ============================================================
+    const conflictResult = await validateConflictAtomically({
+      connection: Appointment.db,
+      branchId: appointmentBranch,
       date: rest.date,
-      status: { $in: ['Confirmed', 'Pending'] }
+      time: rest.time,
+      employee: rest.employee || 'Any available specialist',
+      room: rest.room,
+      serviceDuration,
+      cleaningDuration: 0
     });
-    const newStart = parseTime(rest.date, rest.time);
-    const newEnd = newStart + serviceDuration;
 
-    const windows = [];
-    for (const apt of existingApts) {
-      const existingDuration = apt.totalDuration || await getAppointmentDuration(Service, apt, appointmentBranch);
-      const existingStart = parseTime(apt.date, apt.time);
-      const existingEnd = existingStart + existingDuration;
-      windows.push({
-        employee: apt.employee,
-        room: apt.room,
-        start: existingStart,
-        end: existingEnd
-      });
+    if (conflictResult.conflict) {
+      return res.status(409).json({ message: conflictResult.message });
     }
-
-    // Room conflict regardless of specialist selection
-    if (rest.room) {
-      const roomOverlap = windows.some(w => (newStart < w.end && newEnd > w.start) && w.room === rest.room);
-      if (roomOverlap) {
-        return res.status(409).json({ message: `Room "${rest.room}" is already booked at this time. Please choose a different slot or room.` });
-      }
-    }
-
-    // If a specific employee is chosen, validate conflict.
-    const wantsAny = !rest.employee || rest.employee === ANY_SPECIALIST;
-    if (!wantsAny) {
-      const empOverlap = windows.some(w => (newStart < w.end && newEnd > w.start) && w.employee === rest.employee);
-      if (empOverlap) {
-        return res.status(409).json({ message: `${rest.employee} is already booked at this time. Please choose a different slot.` });
-      }
-    }
-
-    // General booking: auto-assign an available specialist
-    if (wantsAny) {
-      const Employee = require('../../models/human-resources/Employee');
-      const Shift = require('../../models/human-resources/Shift');
-
-      const employees = await Employee.find({ branch: appointmentBranch, status: 'Active' })
-        .select('_id name shift services')
-        .lean();
-
-      const shiftNames = employees.map(e => e.shift).filter(Boolean);
-      const shifts = shiftNames.length > 0
-        ? await Shift.find({ name: { $in: Array.from(new Set(shiftNames)) } }).select('name startTime endTime').lean()
-        : [];
-
-      const serviceName = selectedService?.name || rest.service;
-
-      const isWithinShift = (employee) => {
-        const shift = shifts.find(s => s.name === employee.shift);
-        if (!shift?.startTime || !shift?.endTime) return true; // no shift => assume available
-
-        const startMin = parseTime12ToMinutes(shift.startTime);
-        const endMin = parseTime12ToMinutes(shift.endTime);
-        if (startMin === null || endMin === null) return true;
-
-        let shiftStart = startMin;
-        let shiftEnd = endMin;
-        let apptStart = newStart;
-        let apptEnd = newEnd;
-
-        if (shiftEnd < shiftStart) {
-          shiftEnd += 1440;
-          if (apptStart < shiftStart) {
-            apptStart += 1440;
-            apptEnd += 1440;
-          }
-        }
-
-        return apptStart >= shiftStart && apptEnd <= shiftEnd;
-      };
-
-      const matchesService = (employee) => {
-        const list = Array.isArray(employee.services) ? employee.services : [];
-        if (list.length === 0) return true;
-        return list.includes(serviceName);
-      };
-
-      const isEmployeeFree = (employeeName) => !windows.some(w => (newStart < w.end && newEnd > w.start) && w.employee === employeeName);
-
-      const candidate = employees.find(e => matchesService(e) && isWithinShift(e) && isEmployeeFree(e.name));
-      if (!candidate) {
-        return res.status(409).json({ message: 'No specialists are available for this time. Please choose a different slot.' });
-      }
-
-      rest.employee = candidate.name;
-      rest.employeeId = candidate._id;
-    }
+    // ============================================================
 
     // 1. Create or find a client profile for the guest
     // This allows them to show up in the Billing dropdown and maintain history

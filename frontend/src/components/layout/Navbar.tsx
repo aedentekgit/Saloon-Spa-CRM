@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Bell, ChevronLeft, ChevronRight, Settings, LogOut, UserRound } from 'lucide-react';
+import { useLocation, Link, useNavigate, NavLink } from 'react-router-dom';
+import { Bell, PanelLeftClose, PanelLeftOpen, Settings, LogOut, UserRound, LayoutGrid, CalendarClock, History } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
 import { notify } from '../../components/shared/ZenNotification';
@@ -110,35 +110,65 @@ const Navbar = ({
   };
 
   return (
-    <header className="h-16 sm:h-[72px] bg-white/80 backdrop-blur-xl border-b border-zen-stone/40 flex items-center justify-between px-3 sm:px-6 lg:px-10 sticky top-0 z-40 shadow-none">
+    <header className="h-16 sm:h-[72px] bg-white/80 backdrop-blur-xl border-b border-zen-stone/40 flex items-center justify-between px-3 sm:px-6 lg:px-10 sticky top-0 z-40 shadow-none overflow-visible">
 
       {/* Left section: Breadcrumb & Title */}
       <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden lg:flex text-zen-brown/40 hover:text-zen-brown transition-colors p-1 rounded-md hover:bg-zen-stone/30"
-          aria-label="Toggle Menu"
-        >
-          {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-        </button>
+        {/* Hide sidebar toggle for Client role */}
+        {user?.role !== 'Client' && (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden lg:flex text-zen-brown/40 hover:text-zen-brown transition-colors p-1.5 rounded-lg hover:bg-zen-stone/30"
+            aria-label="Toggle Menu"
+          >
+            {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+          </button>
+        )}
 
         <div className="h-5 w-px bg-zen-stone hidden sm:block"></div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={getPageTitle()}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="hidden sm:flex items-center gap-3 min-w-0"
-          >
-            <div className="w-1.5 h-5 bg-zen-sand rounded-sm opacity-90 shadow-none"></div>
-            <span className="text-[15px] font-black tracking-[0.15em] text-zen-brown uppercase font-sans">
-              {getPageTitle()}
-            </span>
-          </motion.div>
-        </AnimatePresence>
+        {/* Client role: show 4 nav tabs inline */}
+        {user?.role === 'Client' ? (
+          <nav className="hidden sm:flex items-center gap-1 bg-zen-cream/60 rounded-xl p-1 border border-zen-stone/30">
+            {[
+              { name: 'Home',    path: '/dashboard',    icon: LayoutGrid },
+              { name: 'Book',    path: '/book',         icon: CalendarClock },
+              { name: 'Profile', path: '/profile',      icon: UserRound },
+              { name: 'History', path: '/transactions', icon: History },
+            ].map(({ name, path, icon: Icon }) => (
+              <NavLink
+                key={path}
+                to={path}
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black tracking-wide transition-all duration-200 ${
+                    isActive
+                      ? 'bg-zen-sand text-white shadow-sm shadow-zen-sand/30'
+                      : 'text-zen-brown/50 hover:text-zen-brown hover:bg-white/60'
+                  }`
+                }
+              >
+                <Icon size={13} />
+                {name}
+              </NavLink>
+            ))}
+          </nav>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={getPageTitle()}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="hidden sm:flex items-center gap-3 min-w-0"
+            >
+              <div className="w-1.5 h-5 bg-zen-sand rounded-sm opacity-90 shadow-none"></div>
+              <span className="text-[15px] font-black tracking-[0.15em] text-zen-brown uppercase font-sans">
+                {getPageTitle()}
+              </span>
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
 
       {/* Right section: Icons & Profile */}
@@ -162,7 +192,7 @@ const Navbar = ({
                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
                  animate={{ opacity: 1, y: 0, scale: 1 }}
                  exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                 className="absolute right-0 mt-3 w-[calc(100vw-1.5rem)] max-w-80 bg-white rounded-3xl border border-zen-stone/30 shadow-2xl overflow-hidden z-[60]"
+                 className="absolute right-0 mt-3 w-[calc(100vw-1.5rem)] max-w-80 bg-white rounded-3xl border-2 border-zen-sand/40 shadow-2xl overflow-hidden z-[9999] ring-1 ring-zen-stone/20"
                >
                  <div className="p-5 border-b border-zen-stone/20 flex items-center justify-between bg-gradient-to-r from-stone-50/50 to-white">
                      <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zen-brown/40">Communications</h4>
@@ -251,7 +281,7 @@ const Navbar = ({
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-zen-stone/30 shadow-xl overflow-hidden py-2 z-50"
+                className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border-2 border-zen-sand/40 shadow-xl overflow-hidden py-2 z-[9999] ring-1 ring-zen-stone/20"
               >
                 <Link
                   to="/profile"

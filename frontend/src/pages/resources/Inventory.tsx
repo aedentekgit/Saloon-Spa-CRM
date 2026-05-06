@@ -457,7 +457,7 @@ const Inventory = () => {
               )}
            </div>
         ) : (
-           <div className="w-full bg-white/80 backdrop-blur-xl rounded-[2rem] border border-zen-brown/15 shadow-none overflow-hidden table-container">
+           <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden table-container">
               <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
                  <thead>
                     <tr>
@@ -479,7 +479,7 @@ const Inventory = () => {
 
                        {filteredInventory.map((item, index) => (
                           <tr key={item._id} className="transition-all group border-b border-black/[0.02]">
-                             <td className="text-center italic opacity-40 text-[11px]">
+                             <td>
                                 {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
                              </td>
                              <td>
@@ -494,9 +494,9 @@ const Inventory = () => {
                                 </div>
                              </td>
                              <td>
-                                 <div className="flex flex-col items-center justify-center gap-0.5 px-6">
-                                    <span className="zen-table-primary leading-none">{item.name}</span>
-                                    <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">{item.vendor || 'Inventory'}</span>
+                                 <div className="flex flex-col items-center justify-center leading-none px-6">
+                                    <span className="zen-table-primary">{item.name}</span>
+                                    <span className="zen-table-meta">{item.vendor || 'Inventory'}</span>
                                  </div>
                              </td>
                              <td>
@@ -511,11 +511,11 @@ const Inventory = () => {
                              </td>
                              <td>
                                 <div className="flex items-center justify-center gap-4">
-                                    <div className="flex flex-col items-center gap-0.5">
+                                 <div className="flex flex-col items-center justify-center leading-none">
                                        <span className={`text-base font-serif font-black leading-none ${item.stock <= item.lowStock ? 'text-red-500' : 'text-zen-brown'}`}>
                                           {item.stock} <span className="text-[10px] font-sans opacity-40 uppercase font-bold">{item.unit || 'Nos'}</span>
                                        </span>
-                                       <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest leading-none">In Reserve</span>
+                                       <span className="zen-table-meta mt-1">In Reserve</span>
                                     </div>
                                    {item.stock <= item.lowStock && (
                                       <div className="p-1.5 bg-red-50 text-red-500 rounded-lg animate-pulse border border-red-100 shadow-sm">

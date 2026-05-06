@@ -551,34 +551,32 @@ export const ZenMasterCalendar = ({
   }, [value, selectionType, placeholder]);
 
   return (
-    <div className={`relative group ${className}`} ref={containerRef}>
-      {!hideLabel && <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] block mb-4">{label}</label>}
+    <div className={`relative group space-y-1 ${className}`} ref={containerRef}>
+      {!hideLabel && <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>}
 
       <div
         onClick={() => setIsOpen(!isOpen)}
         className={variant === 'pill'
           ? "h-[50px] bg-white px-5 rounded-[1.35rem] border border-zen-brown/10 flex items-center justify-between gap-4 hover:border-zen-brown/20 transition-all cursor-pointer shadow-sm relative group/trigger"
-          : "flex items-center justify-between cursor-pointer group/trigger"
+          : "w-full px-1 pb-4 bg-transparent border-b-[2px] border-zen-brown/15 hover:border-zen-gold/40 flex items-center justify-between cursor-pointer group/trigger transition-all"
         }
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 overflow-hidden">
           <div className={variant === 'pill'
             ? "text-zen-brown/30 group-hover/trigger:text-zen-brown transition-colors"
-            : "w-10 h-10 rounded-2xl bg-zen-cream/40 flex items-center justify-center text-zen-brown/30 group-hover/trigger:text-zen-brown transition-all duration-500 border border-zen-brown/5 group-hover/trigger:border-zen-brown/20"
+            : "text-zen-brown/30 flex-shrink-0"
           }>
-            <Icon size={18} strokeWidth={1.5} />
+            <Icon size={16} />
           </div>
-          <span className={`font-serif tracking-tight ${variant === 'pill' ? 'text-sm font-black text-zen-brown' : 'text-sm sm:text-base font-black text-zen-brown'}`}>
+          <span className={`font-serif tracking-tight truncate ${variant === 'pill' ? 'text-sm font-black text-zen-brown' : 'text-sm sm:text-base font-semibold text-zen-brown'}`}>
             {displayValue}
           </span>
         </div>
         <ChevronDown
-          size={variant === 'pill' ? 14 : 20}
-          className={`text-zen-brown/20 transition-transform duration-700 ease-in-out ${isOpen ? 'rotate-180 text-zen-brown' : ''}`}
+          size={variant === 'pill' ? 14 : 18}
+          className={`flex-shrink-0 text-zen-brown/20 transition-transform duration-700 ease-in-out ${isOpen ? 'rotate-180 text-zen-gold' : ''}`}
         />
       </div>
-
-      {variant === 'line' && <div className="h-px w-full bg-zen-brown/5 mt-3 mb-1" />}
 
       {isOpen && createPortal(
         <div
@@ -909,6 +907,181 @@ export const ZenTimePicker = ({
               <div className="w-1 h-1 rounded-full bg-zen-sand" />
             </button>
           </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+
+export const ZenMultiSelect = ({
+  label, options = [], value = [], onChange, placeholder = "Select options",
+  className = "", icon: Icon, hideLabel, disabled, error
+}: {
+  label: string;
+  options: (string | { label: string; value: string })[];
+  value: string[];
+  onChange: (v: string[]) => void;
+  placeholder?: string;
+  className?: string;
+  icon?: any;
+  hideLabel?: boolean;
+  disabled?: boolean;
+  error?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isCompactViewport, setIsCompactViewport] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < 640
+  );
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const floatingStyle = useFloatingAnchor(dropdownRef, isOpen, 8);
+
+  const safeOptions = useMemo(() => options.map(opt => 
+    typeof opt === 'string' ? { label: opt, value: opt } : opt
+  ), [options]);
+
+  useEffect(() => {
+    const onResize = () => setIsCompactViewport(window.innerWidth < 640);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (dropdownRef.current && !dropdownRef.current.contains(target) &&
+          listRef.current && !listRef.current.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleOption = (optValue: string) => {
+    const newValue = value.includes(optValue)
+      ? value.filter(v => v !== optValue)
+      : [...value, optValue];
+    onChange(newValue);
+  };
+
+  const toggleSelectAll = () => {
+    if (value.length === safeOptions.length) {
+      onChange([]);
+    } else {
+      onChange(safeOptions.map(opt => opt.value));
+    }
+  };
+
+  const displayValue = useMemo(() => {
+    if (value.length === 0) return placeholder;
+    if (value.length === safeOptions.length) return "All Selected";
+    if (value.length === 1) {
+      return safeOptions.find(opt => opt.value === value[0])?.label || value[0];
+    }
+    return `${value.length} Selected`;
+  }, [value, safeOptions, placeholder]);
+
+  return (
+    <div className={`space-y-1 group relative ${isOpen ? 'z-[9999]' : 'z-10'} ${className} ${disabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`} ref={dropdownRef}>
+      {!hideLabel && (
+        <div className="flex items-center justify-between ml-1">
+          <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">{label}</label>
+          {value.length > 0 && (
+            <button 
+              type="button" 
+              onClick={(e) => { e.stopPropagation(); onChange([]); }}
+              className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-600 transition-colors"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+      <div
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`w-full px-1 pb-4 bg-transparent border-b-[2px] flex items-center justify-between cursor-pointer transition-all relative ${
+          error ? 'border-rose-400' : 'border-zen-brown/15 group-hover:border-zen-gold/40 group-focus-within:border-zen-brown'
+        }`}
+      >
+        <div className="flex items-center gap-4 overflow-hidden">
+          {error ? (
+             <div className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
+               <span className="text-[10px] font-bold">!</span>
+             </div>
+          ) : (
+             Icon && <Icon size={16} className="text-zen-brown/30 flex-shrink-0" />
+          )}
+          <span className={`font-serif text-sm sm:text-base truncate tracking-tight ${value.length > 0 ? (error ? 'text-rose-600 font-bold' : 'text-zen-brown font-semibold') : 'text-zen-brown/20'}`}>
+            {displayValue}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {value.length > 0 && !isCompactViewport && (
+            <div className="flex -space-x-2">
+              {value.slice(0, 3).map((v, i) => (
+                <div key={v} className="w-5 h-5 rounded-full bg-zen-sand border-2 border-white flex items-center justify-center text-[8px] font-black text-white">
+                  {i === 2 && value.length > 3 ? `+${value.length - 2}` : (safeOptions.find(o => o.value === v)?.label.charAt(0) || '')}
+                </div>
+              ))}
+            </div>
+          )}
+          <ChevronDown size={18} className={`flex-shrink-0 transition-all duration-700 ${isOpen ? 'rotate-180 text-zen-gold' : (error ? 'text-rose-400' : 'text-zen-brown/20')}`} />
+        </div>
+      </div>
+
+      {isOpen && createPortal(
+        <div
+          ref={listRef}
+          className={`fixed bg-white border border-zen-brown/10 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-500 z-[99999] overflow-y-auto rounded-[1.25rem] max-h-80 w-72 sm:w-80`}
+          style={isCompactViewport ? {
+            left: 16,
+            top: '50%',
+            width: 'calc(100vw - 32px)',
+            transform: 'translateY(-50%)',
+            maxHeight: '70vh'
+          } : floatingStyle}
+        >
+          <div className="sticky top-0 bg-white border-b border-zen-brown/5 p-4 z-20 flex items-center justify-between">
+            <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.3em]">Multi-Select</span>
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="text-[9px] font-black text-zen-sand uppercase tracking-[0.2em] hover:text-zen-primary transition-colors bg-zen-sand/5 px-3 py-1.5 rounded-full border border-zen-sand/10"
+            >
+              {value.length === safeOptions.length ? 'Deselect All' : 'Select All'}
+            </button>
+          </div>
+          
+          <div className="py-2">
+            {safeOptions.map((opt) => {
+              const isSelected = value.includes(opt.value);
+              return (
+                <div
+                  key={opt.value}
+                  onClick={() => toggleOption(opt.value)}
+                  className={`px-6 py-3.5 text-sm font-medium transition-all duration-300 cursor-pointer flex items-center gap-4 group/opt ${isSelected ? 'bg-zen-cream/40 text-zen-brown' : 'text-zen-brown/40 hover:bg-zen-cream/20 hover:text-zen-brown'}`}
+                >
+                  <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-zen-brown border-zen-brown scale-110' : 'border-zen-brown/10 group-hover/opt:border-zen-brown/30'}`}>
+                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+                  <span className={isSelected ? 'font-black' : ''}>{opt.label}</span>
+                </div>
+              );
+            })}
+          </div>
+          
+          {isCompactViewport && (
+            <div className="sticky bottom-0 bg-white p-4 border-t border-zen-brown/5">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="w-full py-3.5 bg-zen-brown text-white rounded-xl text-[10px] font-black uppercase tracking-widest"
+              >
+                Done ({value.length})
+              </button>
+            </div>
+          )}
         </div>,
         document.body
       )}

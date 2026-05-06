@@ -133,6 +133,41 @@ const Clients = () => {
   const [historyMonth, setHistoryMonth] = useState(dayjs().format('YYYY-MM'));
   const [selectedMembershipHistory, setSelectedMembershipHistory] = useState<any>(null);
 
+  const membershipCombinedHistory = useMemo(() => {
+    if (!selectedMembershipHistory || !editingClient) return [];
+
+    // 1. Map existing completed/used usage history
+    const completedHistory = (selectedMembershipHistory.usageHistory || []).map((usage: any) => ({
+      _id: usage._id,
+      date: usage.usedAt,
+      branchName: usage.branch?.name || 'Main branch',
+      serviceName: usage.service?.name || 'Service',
+      time: dayjs(usage.usedAt).format('hh:mm A'),
+      status: 'Completed'
+    }));
+
+    // 2. Map upcoming or completed appointments linked to this membership
+    const linkedAppointments = (editingClient.appointments || [])
+      .filter((apt: any) => 
+        (apt.membershipId?.toString() === selectedMembershipHistory._id?.toString()) &&
+        // Make sure we don't duplicate completed ones if already in usageHistory
+        !selectedMembershipHistory.usageHistory?.some((u: any) => u.appointment?.toString() === apt._id?.toString())
+      )
+      .map((apt: any) => ({
+        _id: apt._id,
+        date: apt.date,
+        branchName: apt.branch?.name || 'Main branch',
+        serviceName: apt.service || 'Service',
+        time: apt.time || '10:00',
+        status: apt.status || 'Confirmed'
+      }));
+
+    // Combine and sort descending by date
+    return [...completedHistory, ...linkedAppointments].sort((a, b) => 
+      dayjs(b.date).unix() - dayjs(a.date).unix()
+    );
+  }, [selectedMembershipHistory, editingClient]);
+
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
   const [confirmState, setConfirmState] = useState<{
@@ -268,13 +303,31 @@ const Clients = () => {
     fetchClients();
     fetchRoles();
 
+    const handleFocus = () => {
+      fetchClients(true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+
     const interval = setInterval(() => {
       if (!shouldPollNow()) return;
       fetchClients(true);
     }, getPollIntervalMs(30000)); // default 30s
 
-    return () => clearInterval(interval);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
   }, [page, selectedBranch, user?.token]);
+
+  useEffect(() => {
+    if (editingClient) {
+      const freshClient = clients.find(c => c._id === editingClient._id);
+      if (freshClient) {
+        setEditingClient(freshClient);
+      }
+    }
+  }, [clients]);
 
   useEffect(() => setCachedJson('zen_page_clients_list', clients), [clients]);
   useEffect(() => setCachedJson('zen_page_clients_counts', counts), [counts]);
@@ -696,7 +749,7 @@ const Clients = () => {
                        </h3>
                         <div className="flex items-center gap-2 mt-1 lg:mt-2">
                            <p className="text-[10px] lg:text-[11px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">
-                             {client.membership ? client.membership.plan.name : 'Member'}
+                             {client.membership ? (client.membership.plan?.name || 'Unknown Plan') : 'Member'}
                            </p>
                         </div>
                     </div>
@@ -806,7 +859,7 @@ const Clients = () => {
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
                       {client.membership ? (
                         <div className="flex flex-col items-center justify-center gap-1">
-                          <ZenBadge variant="sand" className="scale-90">{client.membership.plan.name}</ZenBadge>
+                          <ZenBadge variant="sand" className="scale-90">{client.membership.plan?.name || 'Unknown Plan'}</ZenBadge>
                           <span className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-widest mt-0">
                             {client.membership.remainingSessions}/{client.membership.totalSessions} SESS. LEFT
                           </span>
@@ -1102,7 +1155,15 @@ const Clients = () => {
                         </div>
                       </div>
                       <ZenBadge variant="sand">
-                        {selectedMembershipHistory.remainingSessions} / {selectedMembershipHistory.totalSessions || selectedMembershipHistory.plan?.maxSessions || 0} sessions left
+                        {(() => {
+                          const scheduledCount = (editingClient?.appointments || []).filter((apt: any) => 
+                            apt.membershipId?.toString() === selectedMembershipHistory._id?.toString() &&
+                            apt.status !== 'Cancelled' &&
+                            apt.status !== 'Completed' &&
+                            !selectedMembershipHistory.usageHistory?.some((u: any) => u.appointment?.toString() === apt._id?.toString())
+                          ).length;
+                          return Math.max(0, selectedMembershipHistory.remainingSessions - scheduledCount);
+                        })()} / {selectedMembershipHistory.totalSessions || selectedMembershipHistory.plan?.maxSessions || 0} sessions left
                       </ZenBadge>
                     </div>
 
@@ -1119,28 +1180,39 @@ const Clients = () => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-zen-brown/5">
-                            {selectedMembershipHistory.usageHistory?.length > 0 ? selectedMembershipHistory.usageHistory.map((usage: any, idx: number) => (
+                            {membershipCombinedHistory.length > 0 ? membershipCombinedHistory.map((usage: any, idx: number) => (
                               <tr key={idx} className="group hover:bg-zen-cream/20 transition-colors duration-300">
                                 <td className="px-8 py-6 text-sm font-semibold text-zen-brown/30">{(idx + 1).toString().padStart(2, '0')}</td>
                                 <td className="px-8 py-6">
                                   <div className="flex flex-col">
-                                    <span className="text-sm font-semibold text-zen-brown">{dayjs(usage.usedAt).format('MMM DD, YYYY')}</span>
-                                    <span className="text-[10px] text-zen-brown/30 uppercase tracking-[0.2em]">{dayjs(usage.usedAt).format('dddd')}</span>
+                                    <span className="text-sm font-semibold text-zen-brown">{dayjs(usage.date).format('MMM DD, YYYY')}</span>
+                                    <span className="text-[10px] text-zen-brown/30 uppercase tracking-[0.2em]">{dayjs(usage.date).format('dddd')}</span>
                                   </div>
                                 </td>
                                 <td className="px-8 py-6">
                                   <div className="flex items-center gap-2 text-sm text-zen-brown/75">
                                     <MapPin size={12} className="text-zen-sand" />
-                                    <span>{usage.branch?.name || 'Main branch'}</span>
+                                    <span>{usage.branchName}</span>
                                   </div>
                                 </td>
                                 <td className="px-8 py-6">
-                                  <span className="text-sm font-medium text-zen-brown">{usage.service?.name || 'Service'}</span>
+                                  <span className="text-sm font-medium text-zen-brown">{usage.serviceName}</span>
                                 </td>
                                 <td className="px-8 py-6">
-                                  <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-zen-brown/10 bg-zen-cream text-[11px] font-semibold text-zen-brown">
-                                    {dayjs(usage.usedAt).format('hh:mm A')}
-                                  </span>
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                    <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-zen-brown/10 bg-zen-cream text-[11px] font-semibold text-zen-brown">
+                                      {usage.time}
+                                    </span>
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-extrabold tracking-wider uppercase border ${
+                                      usage.status === 'Completed'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : usage.status === 'Cancelled'
+                                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                          : 'bg-zen-purple/10 text-zen-purple border-zen-purple/20'
+                                    }`}>
+                                      {usage.status}
+                                    </span>
+                                  </div>
                                 </td>
                               </tr>
                             )) : (
@@ -1204,10 +1276,19 @@ const Clients = () => {
                           <div className="flex items-center justify-between gap-5 sm:gap-8">
                             <div className="text-right">
                               <p className="text-2xl font-semibold text-zen-brown">
-                                {m.remainingSessions} / {m.totalSessions || m.plan?.maxSessions || 0}
+                                {(() => {
+                                  const completedCount = m.usageHistory?.length || 0;
+                                  const scheduledCount = (editingClient?.appointments || []).filter((apt: any) => 
+                                    apt.membershipId?.toString() === m._id?.toString() &&
+                                    apt.status !== 'Cancelled' &&
+                                    apt.status !== 'Completed' &&
+                                    !m.usageHistory?.some((u: any) => u.appointment?.toString() === apt._id?.toString())
+                                  ).length;
+                                  return completedCount + scheduledCount;
+                                })()} / {m.totalSessions || m.plan?.maxSessions || 0}
                               </p>
                               <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zen-brown/35">
-                                Sessions remaining
+                                Sessions used
                               </p>
                             </div>
 
@@ -1261,12 +1342,13 @@ const Clients = () => {
                       <table className="w-full min-w-[720px] text-left">
                         <thead>
                           <tr className="border-b border-zen-brown/10 bg-zen-cream/30">
-                            <th>S No</th>
-                            <th>Date</th>
-                            <th>Branch</th>
-                            <th>Service</th>
-                            <th>Staff</th>
-                            <th>Time</th>
+                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">S No</th>
+                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Date</th>
+                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Branch</th>
+                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Service</th>
+                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Staff</th>
+                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Time</th>
+                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Status</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zen-brown/5">
@@ -1288,7 +1370,20 @@ const Clients = () => {
                                   </div>
                                 </td>
                                 <td className="px-8 py-6">
-                                  <span className="text-sm font-medium text-zen-brown">{apt.service}</span>
+                                  <div className="flex flex-col gap-1.5">
+                                    <span className="text-sm font-semibold text-zen-brown">{apt.service}</span>
+                                    <div>
+                                      {apt.serviceType === 'MEMBERSHIP' ? (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold tracking-wider bg-zen-purple/10 text-zen-purple border border-zen-purple/20 uppercase">
+                                          Membership
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold tracking-wider bg-zen-sand/10 text-zen-sand border border-zen-sand/20 uppercase">
+                                          Regular
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
                                 </td>
                                 <td className="px-8 py-6">
                                   <span className="text-sm text-zen-brown/75">With {apt.employee}</span>
@@ -1297,6 +1392,25 @@ const Clients = () => {
                                   <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-zen-brown/10 bg-zen-cream text-[11px] font-semibold text-zen-brown">
                                     {apt.time}
                                   </span>
+                                </td>
+                                <td className="px-8 py-6">
+                                  {apt.status === 'Completed' ? (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold tracking-wider uppercase">
+                                      Completed
+                                    </span>
+                                  ) : apt.status === 'Cancelled' ? (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold tracking-wider uppercase">
+                                      Cancelled
+                                    </span>
+                                  ) : apt.status === 'Confirmed' ? (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold tracking-wider uppercase">
+                                      Confirmed
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold tracking-wider uppercase">
+                                      {apt.status || 'Pending'}
+                                    </span>
+                                  )}
                                 </td>
                               </tr>
                             ))}

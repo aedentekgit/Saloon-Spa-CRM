@@ -16,6 +16,7 @@ import {
   Plus,
   ShieldCheck,
   Sparkles,
+  Search,
   Trash2,
   User as UserIcon,
   UserCircle
@@ -632,7 +633,7 @@ const BookAppointment = () => {
         <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(#2B244003_1px,transparent_1px)] [background-size:32px_32px]" />
       </div>
 
-      <div className="relative z-10 flex flex-col max-w-[1440px] mx-auto w-full px-4 sm:px-8 lg:px-16 py-12 lg:py-20">
+      <div className="relative z-10 flex flex-col max-w-[1600px] mx-auto w-full px-4 sm:px-8 lg:px-12 py-12 lg:py-20">
         <main className="flex-1 min-h-0 relative">
           <AnimatePresence mode="wait">
             {step === 1 && (
@@ -641,10 +642,10 @@ const BookAppointment = () => {
                 initial={{ opacity: 0, scale: 0.99, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.99, y: -10 }}
-                className="min-h-[850px] max-w-[1200px] mx-auto grid lg:grid-cols-12 gap-10"
+                className="min-h-[850px] max-w-[1400px] mx-auto grid lg:grid-cols-12 gap-10"
               >
                 <div className="lg:col-span-12 h-full flex flex-col">
-                  <div className="flex-1 bg-white rounded-[3rem] p-6 lg:p-12 border border-zen-stone shadow-[0_32px_64px_-16px_rgba(43,36,64,0.08)] relative overflow-hidden flex flex-col min-h-0">
+                  <div className="flex-1 bg-white rounded-[3rem] px-10 lg:px-16 pt-16 lg:pt-24 pb-10 lg:pb-16 border border-zen-stone shadow-[0_32px_64px_-16px_rgba(43,36,64,0.08)] relative overflow-hidden flex flex-col min-h-0">
                     <div className="flex flex-col lg:flex-row items-center justify-between gap-6 mb-8 shrink-0 relative z-20">
                       <div className="space-y-2 text-center lg:text-left">
                         <div className="flex items-center justify-center lg:justify-start gap-4 text-[10px] font-black tracking-[0.4em] uppercase text-zen-sand">
@@ -690,8 +691,9 @@ const BookAppointment = () => {
                     <div className="flex-1 min-h-0 relative z-20 grid lg:grid-cols-12 gap-12 overflow-hidden">
                       {/* Left Column: Selections */}
                       <div className="lg:col-span-7 flex flex-col min-h-0">
-                        <div className="flex-1 overflow-y-auto pr-6 custom-scrollbar -mr-4 space-y-10 pb-8">
-                          <div className="grid sm:grid-cols-2 gap-8 lg:gap-10">
+                        <div className="flex-1 overflow-y-auto pr-6 pt-4 custom-scrollbar -mr-4 space-y-12 pb-8">
+                          {/* Date & Location Group */}
+                          <div className="grid sm:grid-cols-2 gap-10">
                             {/* Date Section */}
                             <div className="space-y-6">
                               <div className="space-y-1">
@@ -700,17 +702,13 @@ const BookAppointment = () => {
                                   Choose Your <span className="italic font-normal text-zen-gold">Moment</span>
                                 </h2>
                               </div>
-                              <div className="flex items-center gap-4 bg-zen-cream/30 p-1 rounded-2xl border border-zen-stone/40">
-                                <div className="flex-1">
-                                  <ZenDatePicker
-                                    label="Select Date"
-                                    value={formData.date}
-                                    onChange={(value: string) => setFormData({ ...formData, date: value, time: '' })}
-                                    hideLabel
-                                    variant="pill"
-                                  />
-                                </div>
-                              </div>
+                              <ZenDatePicker
+                                label="Select Date"
+                                value={formData.date}
+                                onChange={(value: string) => setFormData({ ...formData, date: value, time: '' })}
+                                hideLabel
+                                variant="pill"
+                              />
                             </div>
 
                             {/* Location Section */}
@@ -718,35 +716,45 @@ const BookAppointment = () => {
                                <div className="space-y-1">
                                 <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-sand">Sanctuary Details</p>
                                 <h2 className="text-3xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
-                                  Location & <span className="italic font-normal text-zen-gold">Services</span>
+                                  Select <span className="italic font-normal text-zen-gold">Location</span>
                                 </h2>
                               </div>
-                              <div className="space-y-4">
-                                <ZenDropdown
-                                  label="Select Location"
-                                  options={visibleBranches.map(branch => branch.name)}
-                                  value={selectedBranch?.name || ''}
-                                  onChange={(value) => {
-                                    const branch = visibleBranches.find(item => item.name === value);
-                                    resetAfterBranchChange(getEntityId(branch));
-                                  }}
-                                  placeholder={branchIsLocked ? 'Assigned branch' : 'Choose location'}
-                                  variant="pill"
-                                  icon={MapPin}
-                                  disabled={branchIsLocked}
-                                />
-                                <ZenDropdown
-                                  label="Add Service"
-                                  options={servicePickerOptions}
-                                  value=""
-                                  onChange={handleAddServiceLine}
-                                  placeholder={formData.branch ? 'Select service' : 'Select location first'}
-                                  variant="pill"
-                                  disabled={!formData.branch}
-                                  icon={Sparkles}
-                                />
-                              </div>
+                              <ZenDropdown
+                                label="Select Location"
+                                options={visibleBranches.map(branch => branch.name)}
+                                value={selectedBranch?.name || ''}
+                                onChange={(value) => {
+                                  const branch = visibleBranches.find(item => item.name === value);
+                                  resetAfterBranchChange(getEntityId(branch));
+                                }}
+                                placeholder={branchIsLocked ? 'Assigned branch' : 'Choose location'}
+                                variant="pill"
+                                icon={MapPin}
+                                disabled={branchIsLocked}
+                                hideLabel
+                              />
                             </div>
+                          </div>
+
+                          {/* Service Addition Section */}
+                          <div className="space-y-6 pt-2">
+                            <div className="space-y-1">
+                              <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-sand">Ritual Selection</p>
+                              <h2 className="text-3xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
+                                Add Your <span className="italic font-normal text-zen-gold">Treatments</span>
+                              </h2>
+                            </div>
+                            <ZenDropdown
+                              label="Add Service"
+                              options={servicePickerOptions}
+                              value=""
+                              onChange={handleAddServiceLine}
+                              placeholder={formData.branch ? 'Search and select rituals...' : 'Select location first'}
+                              variant="pill"
+                              disabled={!formData.branch}
+                              icon={Sparkles}
+                              hideLabel
+                            />
                           </div>
 
                           {/* Services List */}
@@ -837,7 +845,7 @@ const BookAppointment = () => {
 
                       {/* Right Column: Summary Card */}
                       <div className="lg:col-span-5 h-full relative">
-                        <div className="h-full bg-zen-cream/40 rounded-[3rem] border border-zen-stone flex flex-col text-zen-brown overflow-hidden shadow-[inset_0_2px_10px_rgba(43,36,64,0.02)]">
+                        <div className="sticky top-0 h-full bg-zen-cream/40 rounded-[3rem] border border-zen-stone flex flex-col text-zen-brown overflow-hidden shadow-[inset_0_2px_10px_rgba(43,36,64,0.02)]">
                           {formData.service ? (
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col p-8 lg:p-12 overflow-hidden relative">
                               <div className="flex justify-between items-start mb-10 relative z-10">
@@ -932,10 +940,10 @@ const BookAppointment = () => {
                 initial={{ opacity: 0, scale: 0.99, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.99, y: -10 }}
-                className="max-w-[1200px] mx-auto grid lg:grid-cols-12 gap-10"
+                className="max-w-[1400px] mx-auto grid lg:grid-cols-12 gap-10"
               >
                 <div className="lg:col-span-12 h-full flex flex-col">
-                  <div className="flex-1 bg-white rounded-[3rem] p-8 lg:p-14 border border-zen-stone shadow-[0_32px_64px_-16px_rgba(43,36,64,0.08)] relative overflow-hidden flex flex-col min-h-0">
+                  <div className="flex-1 bg-white rounded-[3rem] px-10 lg:px-16 pt-16 lg:pt-24 pb-10 lg:pb-16 border border-zen-stone shadow-[0_32px_64px_-16px_rgba(43,36,64,0.08)] relative overflow-hidden flex flex-col min-h-0">
                     <div className="flex flex-col lg:flex-row items-center justify-between gap-8 mb-12 shrink-0 relative z-20">
                       <div className="space-y-2 text-center lg:text-left">
                         <div className="flex items-center justify-center lg:justify-start gap-4 text-[10px] font-black tracking-[0.4em] uppercase text-zen-sand">
@@ -960,121 +968,158 @@ const BookAppointment = () => {
                         ))}
                       </div>
                     </div>
-
                     <div className="grid lg:grid-cols-12 gap-12 flex-1 min-h-0 relative z-10">
-                      <div className="lg:col-span-4 flex flex-col justify-start space-y-10">
-                        <div className="flex justify-between items-center mb-2">
+                      <div className="lg:col-span-4 flex flex-col justify-start space-y-12 relative z-10">
+                        <div className="space-y-8">
                           <button
                             type="button"
                             onClick={() => setStep(1)}
-                            className="flex items-center gap-4 text-[10px] font-bold tracking-widest uppercase text-zen-brown/60 hover:text-zen-brown transition-all group w-fit"
+                            className="flex items-center gap-4 text-[9px] font-black tracking-[0.4em] uppercase text-zen-brown/30 hover:text-zen-brown transition-all group w-fit"
                           >
-                            <div className="w-10 h-10 rounded-full border border-zen-stone flex items-center justify-center group-hover:bg-zen-brown group-hover:text-white transition-all shadow-sm">
-                              <ChevronRight size={16} className="rotate-180" />
+                            <div className="w-8 h-8 rounded-full border border-zen-brown/5 flex items-center justify-center group-hover:bg-zen-brown group-hover:text-white transition-all shadow-sm">
+                              <ChevronRight size={12} className="rotate-180" />
                             </div>
-                            Return to Services
+                            Change Rituals
                           </button>
+
+                          <div className="space-y-3">
+                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zen-sand">Selection Registry</p>
+                            <h2 className="text-4xl lg:text-5xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
+                              Curate Your <br /> <span className="italic font-normal text-zen-gold underline decoration-zen-gold/20 underline-offset-8">Artisans</span>
+                            </h2>
+                          </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zen-sand">Expert Hands</p>
-                          <h2 className="text-5xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
-                            Your Preferred <span className="italic font-normal text-zen-gold">Artisan</span>
-                          </h2>
-                        </div>
-
-                        <div className="space-y-8">
-                          <ZenDropdown
-                            label="Select Specialist"
-                            options={[ANY_SPECIALIST, ...filteredStaff.map(employee => employee.name)]}
-                            value={formData.employee}
-                            onChange={(value) => setFormData({ ...formData, employee: value, time: '' })}
-                            placeholder={formData.branch ? 'Choose Professional' : 'Choose Location First'}
-                            variant="pill"
-                            icon={UserCircle}
-                            disabled={!formData.branch}
-                          />
-
-                          {branchRooms.length > 0 && (
+                        <div className="space-y-6">
+                          <div className="bg-zen-cream/30 p-8 rounded-[2.5rem] border border-zen-stone/40 space-y-8 backdrop-blur-md relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                              <UserCircle size={100} strokeWidth={1} />
+                            </div>
+                            
                             <ZenDropdown
-                              label="Room Preference"
-                              options={[{ label: 'Auto assign', value: '' }, ...branchRooms.map(room => ({ label: room.name, value: room.name }))]}
-                              value={formData.room}
-                              onChange={(value) => setFormData({ ...formData, room: value, time: '' })}
-                              placeholder="Auto assign"
+                              label="Specialist"
+                              options={[ANY_SPECIALIST, ...filteredStaff.map(employee => employee.name)]}
+                              value={formData.employee}
+                              onChange={(value) => setFormData({ ...formData, employee: value, time: '' })}
+                              placeholder={formData.branch ? 'Choose Expert' : 'Choose Location'}
                               variant="pill"
-                              icon={Briefcase}
+                              icon={UserCircle}
+                              disabled={!formData.branch}
+                              hideLabel
                             />
-                          )}
 
-                          <div className="pt-8 border-t border-zen-stone">
-                            <div className="flex items-center gap-4 p-5 rounded-2xl bg-zen-cream/50 border border-zen-stone">
-                              <Info size={16} className="text-zen-sand shrink-0" />
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-zen-brown/60 leading-relaxed">
-                                Our specialists are available <br /> for your preferred time.
+                            {branchRooms.length > 0 && (
+                              <ZenDropdown
+                                label="Sanctuary Room"
+                                options={[{ label: 'Auto-allocation', value: '' }, ...branchRooms.map(room => ({ label: room.name, value: room.name }))]}
+                                value={formData.room}
+                                onChange={(value) => setFormData({ ...formData, room: value, time: '' })}
+                                placeholder="Auto-allocation"
+                                variant="pill"
+                                icon={Briefcase}
+                                hideLabel
+                              />
+                            )}
+
+                            <div className="pt-6 border-t border-zen-stone/40 flex items-start gap-4">
+                              <div className="w-8 h-8 rounded-full bg-white border border-zen-stone/60 flex items-center justify-center text-zen-gold shrink-0 shadow-sm">
+                                <Sparkles size={14} strokeWidth={2} />
+                              </div>
+                              <p className="text-[9px] font-bold uppercase tracking-widest text-zen-brown/50 leading-relaxed">
+                                Our experts are synchronized <br /> with your ritual choices.
                               </p>
                             </div>
                           </div>
                         </div>
                       </div>
-                      <div className="lg:col-span-8 flex flex-col min-h-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-8 border-b border-zen-stone/40 shrink-0 gap-6">
-                          <div className="space-y-1">
-                            <h4 className="text-3xl font-serif font-black text-zen-brown tracking-tighter">Available Windows</h4>
-                            <p className="text-[10px] font-black text-zen-sand uppercase tracking-[0.2em]">Select your appointment time</p>
+
+                      <div className="lg:col-span-8 flex flex-col min-h-0 pt-12 lg:pt-14 relative z-20">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-8 mb-10 border-b border-zen-stone/40 shrink-0 gap-8">
+                          <div className="space-y-2">
+                            <h4 className="text-3xl lg:text-4xl font-serif font-black text-zen-brown tracking-tighter">Available <span className="italic font-normal text-zen-gold">Windows</span></h4>
+                            <div className="flex items-center gap-3">
+                              <div className="w-1.5 h-1.5 rounded-full bg-zen-gold animate-pulse" />
+                              <p className="text-[10px] font-black text-zen-sand uppercase tracking-[0.3em]">Live Availability Status</p>
+                            </div>
                           </div>
                           {formData.employee && (
-                            <div className="px-6 py-2.5 bg-zen-sand text-white rounded-full flex items-center gap-3 shadow-md">
-                              <Check size={14} strokeWidth={3} />
-                              <span className="text-[10px] font-bold uppercase tracking-widest">Linked to Specialist</span>
+                            <div className="px-6 py-3 bg-white border border-zen-stone shadow-sm rounded-2xl flex items-center gap-4 transition-all hover:shadow-md">
+                              <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-zen-brown/60">Expert Linked</span>
                             </div>
                           )}
                         </div>
 
-                        <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto px-4 pt-4 -mx-4 custom-scrollbar">
                           {formData.employee ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
-                              {availableSlots.length > 0 ? availableSlots.map(slot => <button
-                                key={slot.time}
-                                type="button"
-                                disabled={slot.isBooked}
-                                onClick={() => setFormData({ ...formData, time: slot.time })}
-                                className={`group relative overflow-hidden py-5 px-4 rounded-[1.5rem] flex flex-col items-center justify-center transition-all duration-500 border-2 ${slot.isBooked ? 'bg-zen-cream/30 text-zen-brown/10 cursor-not-allowed border-transparent' :
-                                    formData.time === slot.time ? 'bg-zen-brown text-white border-zen-brown shadow-[0_20px_40px_-10px_rgba(43,36,64,0.3)] scale-[1.05] z-10' :
-                                      'bg-white border-zen-stone/40 text-zen-brown font-black hover:border-zen-sand hover:shadow-xl hover:-translate-y-1'
+                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 pb-12">
+                              {availableSlots.length > 0 ? availableSlots.map(slot => (
+                                <button
+                                  key={slot.time}
+                                  type="button"
+                                  disabled={slot.isBooked}
+                                  onClick={() => setFormData({ ...formData, time: slot.time })}
+                                  className={`group relative py-5 px-3 rounded-[1.75rem] flex flex-col items-center justify-center transition-all duration-700 border-2 ${slot.isBooked 
+                                    ? 'bg-transparent text-zen-brown/10 cursor-not-allowed border-zen-stone/20 grayscale' 
+                                    : formData.time === slot.time 
+                                      ? 'bg-white border-zen-gold text-zen-brown shadow-[0_20px_50px_-10px_rgba(197,163,88,0.25)] scale-[1.03] z-10' 
+                                      : 'bg-white/50 border-transparent text-zen-brown/60 hover:bg-white hover:border-zen-gold/40 hover:text-zen-brown hover:shadow-xl hover:-translate-y-1 hover:z-20'
                                   }`}
-                              >
-                                <span className={`relative z-10 text-[14px] tracking-tight ${slot.isBooked ? 'line-through' : ''}`}>{slot.display}</span>
-                                {formData.time === slot.time && <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-zen-gold animate-pulse" />}
-                              </button>
-                              ) : (
-                                <div className="col-span-full py-24 flex flex-col items-center justify-center space-y-6 opacity-30">
-                                  <Clock size={48} strokeWidth={1} />
-                                  <p className="text-lg font-serif text-center max-w-sm">No availability detected for this date. Please try another day.</p>
+                                >
+                                  <span className={`relative z-10 text-[16px] font-serif font-black tracking-tight ${slot.isBooked ? 'line-through opacity-30' : ''}`}>
+                                    {slot.display}
+                                  </span>
+                                  <div className={`mt-1 text-[8px] font-black uppercase tracking-[0.2em] transition-colors ${formData.time === slot.time ? 'text-zen-gold' : 'text-zen-brown/20'}`}>
+                                    {slot.isBooked ? 'Reserved' : 'Available'}
+                                  </div>
+
+                                  {formData.time === slot.time && (
+                                    <motion.div 
+                                      layoutId="active-slot-glow"
+                                      className="absolute inset-0 rounded-[2rem] border-4 border-zen-gold/10 animate-pulse pointer-events-none"
+                                    />
+                                  )}
+                                </button>
+                              )) : (
+                                <div className="col-span-full py-24 flex flex-col items-center justify-center space-y-8 bg-zen-cream/20 rounded-[3rem] border border-dashed border-zen-stone">
+                                  <div className="relative">
+                                    <Clock size={60} strokeWidth={1} className="text-zen-brown/10" />
+                                    <div className="absolute inset-0 bg-zen-gold/5 blur-2xl rounded-full" />
+                                  </div>
+                                  <p className="text-xl font-serif text-center max-w-sm text-zen-brown/40 italic">All windows are currently <br /> reserved for this artisan.</p>
                                 </div>
                               )}
                             </div>
                           ) : (
-                            <div className="h-full flex flex-col items-center justify-center opacity-10 space-y-8 py-12">
-                              <div className="p-10 rounded-full bg-zen-cream border border-zen-stone">
-                                <UserIcon size={80} strokeWidth={1} />
+                            <div className="h-full flex flex-col items-center justify-center space-y-12 py-16 bg-zen-cream/10 rounded-[4rem] border border-dashed border-zen-stone/40">
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-zen-gold/5 blur-3xl rounded-full scale-150 animate-pulse" />
+                                <div className="w-24 h-24 rounded-full bg-white border border-zen-stone shadow-xl flex items-center justify-center relative z-10">
+                                  <UserIcon size={40} strokeWidth={1.5} className="text-zen-gold/40" />
+                                </div>
+                                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-zen-gold text-white flex items-center justify-center shadow-lg animate-bounce-slow">
+                                  <Search size={14} />
+                                </div>
                               </div>
-                              <p className="text-xl font-serif text-center max-w-md uppercase tracking-widest leading-relaxed">Select a specialist <br /> to view their schedule.</p>
+                              <div className="space-y-3 text-center">
+                                <p className="text-2xl font-serif font-black text-zen-brown tracking-tighter uppercase opacity-30">Identify Your <span className="italic font-normal">Specialist</span></p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zen-sand leading-relaxed">Choose an expert to view their ritual schedule</p>
+                              </div>
                             </div>
                           )}
                         </div>
 
                         {formData.time && (
-                          <div className="pt-8 border-t border-zen-stone/40 mt-auto">
+                          <div className="pt-12 mt-auto">
                             <ZenButton
                               onClick={() => setStep(3)}
                               disabled={!canContinueTime}
-                              className="w-full py-5 bg-zen-sand text-white rounded-2xl shadow-2xl shadow-zen-sand/20 transition-all duration-500 hover:scale-[1.02] border-none text-[11px] font-black uppercase tracking-[0.3em] group relative overflow-hidden"
+                              className="w-full py-7 bg-zen-brown text-white rounded-3xl shadow-[0_20px_40px_-10px_rgba(43,36,64,0.3)] transition-all duration-500 hover:scale-[1.01] hover:shadow-[0_25px_50px_-12px_rgba(43,36,64,0.4)] border-none text-[12px] font-black uppercase tracking-[0.4em] group relative overflow-hidden"
                             >
-                              <span className="relative z-10 flex items-center justify-center">
-                                Finalize Details <ArrowRight size={18} className="ml-3 group-hover:translate-x-2 transition-transform duration-500" />
+                              <span className="relative z-10 flex items-center justify-center gap-4">
+                                Complete Registration <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform duration-500" />
                               </span>
-                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                             </ZenButton>
                           </div>
                         )}
@@ -1091,10 +1136,10 @@ const BookAppointment = () => {
                 initial={{ opacity: 0, scale: 0.98, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.98, y: -10 }}
-                className="max-w-[1200px] mx-auto grid lg:grid-cols-12 gap-10"
+                className="max-w-[1400px] mx-auto grid lg:grid-cols-12 gap-10"
               >
                 <div className="lg:col-span-12 h-full flex flex-col">
-                  <div className="flex-1 bg-white rounded-[3rem] p-8 lg:p-14 border border-zen-stone shadow-[0_32px_64px_-16px_rgba(43,36,64,0.08)] relative overflow-hidden flex flex-col min-h-0">
+                  <div className="flex-1 bg-white rounded-[3rem] px-10 lg:px-16 pt-16 lg:pt-24 pb-10 lg:pb-16 border border-zen-stone shadow-[0_32px_64px_-16px_rgba(43,36,64,0.08)] relative overflow-hidden flex flex-col min-h-0">
                     <div className="flex flex-col lg:flex-row items-center justify-between gap-8 mb-12 shrink-0 relative z-20">
                       <div className="space-y-2 text-center lg:text-left">
                         <div className="flex items-center justify-center lg:justify-start gap-4 text-[10px] font-black tracking-[0.4em] uppercase text-zen-sand">
@@ -1134,7 +1179,7 @@ const BookAppointment = () => {
                     </div>
 
                     <div className="grid lg:grid-cols-2 gap-12 flex-1 min-h-0">
-                      <div className="flex flex-col space-y-10 overflow-y-auto pr-6 custom-scrollbar">
+                      <div className="flex flex-col space-y-10 overflow-y-auto pr-6 pt-4 custom-scrollbar">
                         <div className="space-y-2">
                           <h2 className="text-5xl font-serif font-black text-zen-brown tracking-tighter">Guest <span className="italic font-normal text-zen-gold">Registry</span></h2>
                           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zen-sand">Please provide your contact details</p>

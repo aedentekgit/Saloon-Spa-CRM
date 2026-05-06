@@ -61,6 +61,15 @@ const appointmentSchema = mongoose.Schema({
     enum: ['Normal', 'Membership', 'Guest'],
     default: 'Normal'
   },
+  membershipId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Membership'
+  },
+  serviceType: {
+    type: String,
+    enum: ['REGULAR', 'MEMBERSHIP'],
+    default: 'REGULAR'
+  },
   status: {
     type: String,
     enum: ['Pending', 'Confirmed', 'Completed', 'Cancelled'],

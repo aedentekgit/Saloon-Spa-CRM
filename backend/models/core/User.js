@@ -84,6 +84,9 @@ const userSchema = new mongoose.Schema({
     type: Date
   },
   fcmTokens: [{ type: String }],
+  currentSessionId: {
+    type: String
+  },
   clientId: {
     type: String,
     unique: true,

@@ -52,6 +52,7 @@ const getEntityId = (value: any) => {
 const formatDate = (value: any) => value ? dayjs(value).format('DD MMM YYYY') : '-';
 const formatDateTime = (value: any) => value ? dayjs(value).format('DD MMM YYYY, hh:mm A') : '-';
 const money = (value: any) => Number(value || 0).toLocaleString();
+
 const Memberships = () => {
     const { user } = useAuth();
     const { selectedBranch } = useBranches();
@@ -64,9 +65,7 @@ const Memberships = () => {
     const [isLoading, setIsLoading] = useState(() => getCachedJson<any[]>('zen_page_memberships_list', []).length === 0);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'registry' | 'plans'>('registry');
-    const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
-        return (localStorage.getItem('zen_membership_view') as 'grid' | 'table') || 'table';
-    });
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
@@ -147,7 +146,7 @@ const Memberships = () => {
        setEnrollData({
           clientId: '',
           planId: '',
-          branchId: '',
+          branchId: selectedBranch !== 'all' ? selectedBranch : (getEntityId(user?.branch) || ''),
           startDate: new Date().toISOString().split('T')[0],
           status: 'Active'
        });
@@ -179,8 +178,6 @@ const Memberships = () => {
        () => memberships.find((membership) => membership._id === editingEnrollmentId),
        [memberships, editingEnrollmentId]
     );
-
-
 
     useEffect(() => {
        localStorage.setItem('zen_membership_view', viewMode);
@@ -432,13 +429,13 @@ const Memberships = () => {
           });
           if (response.ok) {
              fetchData();
-             notify('success', 'Plan Disabled', 'Membership plan has been disabled');
+             notify('success', 'Plan Deleted', 'Membership plan has been deleted');
           } else {
              throw new Error('Failed to delete plan');
           }
        } catch (error) {
           console.error('Error deleting plan:', error);
-          notify('error', 'Retirement Failed', 'Failed to retire tier');
+          notify('error', 'Deletion Failed', 'Failed to delete plan');
        }
     };
 
@@ -455,10 +452,10 @@ const Memberships = () => {
     const handleDeletePlan = (id: string) => {
         setConfirmState({
             isOpen: true,
-            title: 'Retire Tier',
-            message: 'Are you sure you want to deactivate this membership plan? Existing members will retain their benefits, but no new enrollments will be possible.',
+            title: 'Delete Plan',
+            message: 'Are you sure you want to permanently delete this membership plan? This action cannot be undone.',
             onConfirm: () => deletePlanConfirmed(id),
-            type: 'warning'
+            type: 'danger'
         });
     };
 
@@ -720,16 +717,38 @@ const Memberships = () => {
     const activeExportFileName = activeTab === 'registry' ? 'memberships' : 'membership_plans';
     const activeExportResolver = activeTab === 'registry' ? fetchAllMembershipsForExport : fetchAllPlansForExport;
 
+    const openCreatePlan = () => {
+      setEditingPlan(null);
+      setPlanFormData({
+        name: '',
+        price: 0,
+        durationDays: 30,
+        maxSessions: 0,
+        applicableServices: [],
+        description: '',
+        branches: [],
+        isActive: true,
+        isUnlimited: false,
+        benefits: '',
+        icon: 'Sparkles',
+        isPopular: false
+      });
+      setPlanDocumentFile(null);
+      setRemovePlanDocument(false);
+      setIsPlanModalOpen(true);
+    };
+
     return (
     <ZenPageLayout
-title="Membership Management"
-      addButtonLabel={user?.role === 'Client' ? "" : "New Enrollment"}
+      title="Membership Management"
+      addButtonLabel={user?.role === 'Client' ? "" : activeTab === 'plans' ? 'Define New Plan' : 'New Enrollment'}
       addButtonIcon={user?.role === 'Client' ? null : <Crown size={18} />}
-      onAddClick={user?.role === 'Client' ? () => {} : openCreateEnrollment}
+      onAddClick={user?.role === 'Client' ? () => {} : activeTab === 'plans' ? openCreatePlan : openCreateEnrollment}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      hideViewToggle={true}
       searchActions={
         <ExportPopup<any>
           data={activeExportData}
@@ -790,209 +809,186 @@ title="Membership Management"
          >
             {activeTab === 'plans' && (
               <div className="space-y-8">
-                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-2">
-                    <div>
-                       <h3 className="text-lg sm:text-xl font-serif font-bold text-zen-brown">Membership Plan Setup</h3>
-                       <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">Global Service Structure</p>
-                    </div>
-                    <ZenButton onClick={() => {
-                      setEditingPlan(null);
-                      setPlanFormData({
-                        name: '',
-                        price: 0,
-                        durationDays: 30,
-                        maxSessions: 0,
-                        applicableServices: [],
-                        description: '',
-                        branches: [],
-                        isActive: true,
-                        isUnlimited: false,
-                        benefits: '',
-                        icon: 'Sparkles',
-                        isPopular: false
-                      });
-                      setPlanDocumentFile(null);
-                      setRemovePlanDocument(false);
-                      setIsPlanModalOpen(true);
-                    }} variant="secondary" type="button" className="w-full sm:w-auto">Define New Plan</ZenButton>
-                 </div>
+                 {/* Removed redundant header spacing */}
 
                  {viewMode === 'grid' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                     {filteredPlans.map((plan) => (
-                        <div key={plan._id} className="group relative bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-zen-brown/15 transition-all duration-500 hover:shadow-xl hover:translate-y-[-4px] hover:z-10 h-full flex flex-col justify-between">
-                           {/* Background Glow */}
-                           <div className="absolute top-0 right-0 w-28 h-28 bg-zen-sand/5 rounded-bl-3xl rounded-tr-3xl overflow-hidden -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {filteredPlans.map((plan, idx) => (
+                         <div key={plan._id} className="zen-card-hover !rounded-[2.8rem] p-1 group transition-all duration-700 hover:border-zen-sand/40">
+                            <div className="relative h-full bg-white rounded-[2.5rem] p-8 sm:p-10 overflow-hidden flex flex-col justify-between">
+                               {/* Decorative accent elements */}
+                               <div className="absolute -top-12 -right-12 w-40 h-40 bg-zen-sand/5 rounded-full blur-3xl group-hover:bg-zen-sand/15 transition-all duration-1000" />
+                               <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-zen-brown/5 rounded-full blur-2xl opacity-50" />
+                               
+                               <div className="relative z-10 flex-1">
+                                  <div className="flex items-start justify-between mb-8">
+                                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-700 shadow-sm ${
+                                        plan.isActive ? 'bg-zen-sand/10 text-zen-sand border-zen-sand/20 group-hover:bg-zen-sand group-hover:text-white group-hover:rotate-6' : 'bg-gray-100 text-gray-400 border-gray-200'
+                                     }`}>
+                                        <Crown size={24} strokeWidth={1.5} />
+                                     </div>
+                                     <div className="flex items-center gap-2">
+                                        <div className="flex flex-col items-end gap-2">
+                                           <ZenBadge variant={plan.isActive ? 'sand' : 'default'} className="!text-[9px] font-black tracking-widest px-3">
+                                              {plan.isActive ? 'OPERATIONAL' : 'RETIRED'}
+                                           </ZenBadge>
+                                           <div className="flex items-center gap-1.5 pt-1">
+                                              <ZenIconButton icon={Edit3} onClick={() => {
+                                                 setEditingPlan(plan);
+                                                 setPlanFormData({
+                                                    ...plan as any,
+                                                    applicableServices: plan.applicableServices?.map((s: any) => typeof s === 'string' ? s : s._id) || [],
+                                                    isUnlimited: plan.durationDays >= 36500
+                                                 });
+                                                 setIsPlanModalOpen(true);
+                                              }} />
+                                              <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeletePlan(plan._id)} />
+                                           </div>
+                                        </div>
+                                     </div>
+                                  </div>
 
-                           <div className="absolute -bottom-4 -right-4 text-zen-sand opacity-[0.03] group-hover:opacity-[0.07] transition-all duration-700 pointer-events-none">
-                              <Crown size={150} />
-                           </div>
+                                  <div className="space-y-1 mb-6">
+                                     <h4 className="text-3xl font-serif font-black text-zen-brown tracking-tight group-hover:text-zen-primary transition-colors duration-500 leading-none">
+                                        {plan.name}
+                                     </h4>
+                                     <p className="text-[10px] font-black text-zen-brown/30 uppercase tracking-[0.3em]">Signature Membership</p>
+                                  </div>
 
-                           <div className="relative z-10 flex flex-col h-full justify-between">
-                              <div>
-                                 <div className="flex items-center justify-between mb-6">
-                                    <div className="w-14 h-14 rounded-2xl bg-zen-sand/10 text-zen-sand flex items-center justify-center group-hover:scale-110 transition-transform duration-700 shadow-sm border border-zen-brown/10">
-                                       <Crown size={28} strokeWidth={1.5} />
-                                    </div>
-                                    <div className="flex flex-col items-end gap-2">
-                                       <ZenBadge variant={plan.isActive ? 'sand' : 'default'}>
-                                          {plan.isActive ? 'Active' : 'Retired'}
-                                       </ZenBadge>
-                                       <div className="flex gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
-                                          {plan.document && (
-                                             <ZenIconButton
-                                               icon={FileText}
-                                               variant="secondary"
-                                               onClick={() => window.open(getImageUrl(plan.document), '_blank')}
-                                             />
-                                          )}
-                                          <ZenIconButton icon={Edit3} onClick={() => {
-                                             setEditingPlan(plan);
-                                             setPlanFormData({
-                                                ...plan as any,
-                                                applicableServices: plan.applicableServices?.map((s: any) => typeof s === 'string' ? s : s._id) || [],
-                                                isUnlimited: plan.durationDays >= 36500,
-                                                benefits: Array.isArray(plan.benefits) ? plan.benefits.join('\n') : (plan.benefits || '')
-                                             });
-                                             setPlanDocumentFile(null);
-                                             setRemovePlanDocument(false);
-                                             setIsPlanModalOpen(true);
-                                          }} />
-                                          <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeletePlan(plan._id)} />
-                                       </div>
-                                    </div>
-                                 </div>
+                                  <div className="flex items-baseline gap-3 mb-8">
+                                     <span className="text-4xl font-black tracking-tighter text-zen-brown group-hover:translate-x-1 transition-transform duration-700 origin-left">QR {plan.price}</span>
+                                     <span className="text-[10px] font-black text-zen-brown/25 uppercase tracking-[0.2em]">Renewal Rate</span>
+                                  </div>
 
-                                 <h4 className="text-xl font-serif font-black text-zen-brown mb-2 group-hover:text-zen-sand transition-colors duration-500">{plan.name}</h4>
-                                 <div className="flex items-baseline gap-2 mb-5">
-                                    <span className="text-3xl font-black tracking-tighter text-zen-brown">QR {plan.price}</span>
-                                    <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.2em]">Renewal Rate</span>
-                                 </div>
+                                  {/* Included Services Section */}
+                                  <div className="mb-10 p-6 rounded-[2rem] bg-zen-cream/40 border border-zen-stone/40 backdrop-blur-sm group-hover:bg-white/60 transition-all duration-700">
+                                     <p className="text-[10px] font-black text-zen-brown/40 uppercase tracking-[0.3em] mb-4">Artisan Ritual Coverage</p>
+                                     <div className="flex flex-wrap gap-2">
+                                        {(plan.applicableServices || []).length > 0 ? (
+                                           <>
+                                              {(plan.applicableServices || []).slice(0, 3).map((s: any) => (
+                                                 <span key={s._id} className="px-3 py-1.5 bg-white border border-zen-stone/80 rounded-xl text-[9px] text-zen-brown font-bold shadow-none group-hover:border-zen-sand/20 transition-all">
+                                                    {s.name}
+                                                 </span>
+                                              ))}
+                                              {(plan.applicableServices || []).length > 3 && (
+                                                 <span className="px-3 py-1.5 bg-zen-sand/10 border border-zen-sand/20 rounded-xl text-[9px] text-zen-sand font-black">
+                                                    +{(plan.applicableServices || []).length - 3} Rituals
+                                                 </span>
+                                              )}
+                                           </>
+                                        ) : (
+                                           <div className="flex items-center gap-2 py-1">
+                                              <Sparkles size={12} className="text-zen-gold animate-pulse" />
+                                              <span className="text-[10px] text-zen-brown/40 italic font-serif font-bold">Universal Sanctuary Coverage</span>
+                                           </div>
+                                        )}
+                                     </div>
+                                  </div>
+                               </div>
 
-                                 {/* Applicable Services List */}
-                                 <div className="mb-6">
-                                    <p className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.3em] mb-3 px-1">Included Services</p>
-                                    <div className="flex flex-wrap gap-1.5">
-                                       {(plan.applicableServices || []).slice(0, 3).map((s: any) => (
-                                          <span key={s._id} className="px-2 py-1 bg-zen-brown/5 rounded-lg text-[8px] text-zen-brown/60 font-bold border border-zen-brown/15 shadow-sm">
-                                             {s.name}
-                                          </span>
-                                       ))}
-                                       {(plan.applicableServices || []).length > 3 && (
-                                          <span className="px-2 py-1 bg-zen-sand/10 rounded-lg text-[8px] text-zen-sand font-bold border border-zen-sand/10">
-                                             +{(plan.applicableServices || []).length - 3} More
-                                          </span>
-                                       )}
-                                       {(plan.applicableServices || []).length === 0 && (
-                                          <span className="text-[8px] text-zen-brown/20 italic font-serif">Universal Service Coverage</span>
-                                       )}
-                                    </div>
-                                 </div>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-zen-brown/15 relative z-10">
-                                 <div className="flex flex-col gap-1">
-                                    <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-[0.3em]">Usage Limit</span>
-                                    <span className="text-sm font-black text-zen-brown flex items-center gap-2">
-                                       <div className="w-1.5 h-1.5 rounded-full bg-zen-sand" />
-                                       {plan.maxSessions} Sessions
-                                    </span>
-                                 </div>
-                                 <div className="flex flex-col gap-1">
-                                    <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-[0.3em]">Validity Duration</span>
-                                    <span className="text-sm font-black text-zen-brown flex items-center gap-2">
-                                       <div className="w-1.5 h-1.5 rounded-full bg-zen-leaf" />
-                                       {plan.durationDays >= 36500 ? 'Permanent' : `${plan.durationDays} Days`}
-                                    </span>
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
-                     ))}
-                  </div>
+                               <div className="grid grid-cols-2 gap-4 pt-8 border-t border-zen-stone relative z-10">
+                                  <div className="flex flex-col gap-2">
+                                     <span className="text-[9px] font-black text-zen-brown/25 uppercase tracking-[0.3em]">Usage Capacity</span>
+                                     <div className="flex items-center gap-3">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-zen-sand shadow-[0_0_8px_rgba(139,92,246,0.3)]" />
+                                        <span className="text-sm font-black text-zen-brown tracking-tight">
+                                           {plan.maxSessions} <span className="text-zen-brown/40 font-normal">Rituals</span>
+                                        </span>
+                                     </div>
+                                  </div>
+                                  <div className="flex flex-col gap-2 border-l border-zen-stone pl-6">
+                                     <span className="text-[9px] font-black text-zen-brown/25 uppercase tracking-[0.3em]">Validity Window</span>
+                                     <div className="flex items-center gap-3">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
+                                        <span className="text-sm font-black text-zen-brown tracking-tight">
+                                           {plan.durationDays >= 36500 ? 'Infinite' : `${plan.durationDays} Days`}
+                                        </span>
+                                     </div>
+                                  </div>
+                               </div>
+                            </div>
+                         </div>
+                      ))}
+                   </div>
                   ) : (
                     <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden table-container animate-in fade-in slide-in-from-bottom-4 duration-700">
-                       <div className="table-container">
-                          <table className="w-full min-w-[760px] lg:min-w-[900px]">
-                          <thead>
-                             <tr>
-                                <th>S NO</th>
-                                <th>VISUAL</th>
-                                <th>IDENTITY</th>
-                                <th>METRICS</th>
-                                <th>DURATION</th>
-                                <th>BENEFIT</th>
-                                <th>STATUS</th>
-                                <th>ACTIONS</th>
+                       <table className="w-full min-w-[760px] lg:min-w-[900px]">
+                       <thead>
+                          <tr>
+                             <th>S NO</th>
+                             <th>VISUAL</th>
+                             <th>IDENTITY</th>
+                             <th>METRICS</th>
+                             <th>DURATION</th>
+                             <th>BENEFIT</th>
+                             <th>STATUS</th>
+                             <th>ACTIONS</th>
+                          </tr>
+                       </thead>
+                       <tbody>
+                          {filteredPlans.map((plan, idx) => (
+                             <tr key={plan._id} className="transition-all group border-b border-black/[0.02]">
+                                <td>{(idx + 1).toString().padStart(2, '0')}</td>
+                                <td>
+                                    <div className="flex justify-center">
+                                       <div className="w-10 h-10 rounded-xl bg-zen-sand/10 flex items-center justify-center text-zen-sand shadow-sm group-hover:scale-110 transition-transform">
+                                          <Crown size={18} />
+                                       </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div className="flex flex-col items-center justify-center leading-none px-6">
+                                       <span className="zen-table-primary">{plan.name}</span>
+                                       <span className="zen-table-meta">Membership Plan</span>
+                                    </div>
+                                </td>
+                                <td>
+                                   <div className="flex flex-col items-center justify-center leading-none">
+                                      <span className="zen-table-primary">QR {plan.price}</span>
+                                      <span className="zen-table-meta mt-1">Renewal Rate</span>
+                                   </div>
+                                </td>
+                                <td>
+                                   <div className="flex flex-col items-center justify-center leading-none">
+                                      <span className="text-sm font-serif font-black text-zen-brown leading-none">
+                                         {plan.durationDays >= 36500 ? 'Infinite' : plan.durationDays}
+                                      </span>
+                                      <span className="zen-table-meta mt-1">Days</span>
+                                   </div>
+                                </td>
+                                <td>
+                                   <div className="flex flex-col items-center justify-center leading-none">
+                                      <span className="text-sm font-serif font-black text-zen-brown leading-none">{plan.maxSessions}</span>
+                                      <span className="zen-table-meta mt-1">Credits</span>
+                                   </div>
+                                </td>
+                                <td>
+                                   <div className="flex justify-center">
+                                      <ZenBadge variant={plan.isActive ? 'sand' : 'default'}>{plan.isActive ? 'OPERATIONAL' : 'RETIRED'}</ZenBadge>
+                                   </div>
+                                </td>
+                                <td>
+                                   <div className="flex items-center justify-center gap-2">
+                                      <ZenIconButton icon={Edit3} onClick={() => {
+                                         setEditingPlan(plan);
+                                         setPlanFormData({
+                                            ...plan as any,
+                                            applicableServices: plan.applicableServices?.map((s: any) => typeof s === 'string' ? s : s._id) || [],
+                                            isUnlimited: plan.durationDays >= 36500
+                                         });
+                                         setIsPlanModalOpen(true);
+                                      }} />
+                                      <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeletePlan(plan._id)} />
+                                   </div>
+                                </td>
                              </tr>
-                          </thead>
-                          <tbody>
-                             {filteredPlans.map((plan, idx) => (
-                                <tr key={plan._id} className="transition-all group border-b border-black/[0.02]">
-                                   <td className="text-center italic opacity-40 text-[11px]">{(idx + 1).toString().padStart(2, '0')}</td>
-                                   <td>
-                                       <div className="flex justify-center">
-                                          <div className="w-10 h-10 rounded-xl bg-zen-sand/10 flex items-center justify-center text-zen-sand shadow-sm group-hover:scale-110 transition-transform">
-                                             <Crown size={18} />
-                                          </div>
-                                       </div>
-                                   </td>
-                                   <td>
-                                       <div className="flex flex-row items-center justify-center gap-2 px-6">
-                                          <span className="zen-table-primary">{plan.name}</span>
-                                          <span className="text-zen-brown/20 px-1">|</span>
-                                          <span className="zen-table-meta">Membership Plan</span>
-                                       </div>
-                                   </td>
-                                   <td>
-                                      <div className="flex flex-row items-center justify-center gap-2">
-                                         <span className="zen-table-primary">QR {plan.price}</span>
-                                         <span className="text-zen-brown/20 px-1">|</span>
-                                         <span className="zen-table-meta">Renewal Rate</span>
-                                      </div>
-                                   </td>
-                                   <td>
-                                      <div className="flex flex-row items-center justify-center gap-2">
-                                         <span className="text-sm font-serif font-black text-zen-brown leading-none">
-                                            {plan.durationDays >= 36500 ? 'Infinite' : plan.durationDays}
-                                         </span>
-                                         <span className="text-zen-brown/20 px-1">|</span>
-                                         <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-0">Days</span>
-                                      </div>
-                                   </td>
-                                   <td>
-                                      <div className="flex flex-row items-center justify-center gap-2">
-                                         <span className="text-sm font-serif font-black text-zen-brown leading-none">{plan.maxSessions}</span>
-                                         <span className="text-zen-brown/20 px-1">|</span>
-                                         <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-0">Credits</span>
-                                      </div>
-                                   </td>
-                                   <td>
-                                      <div className="flex justify-center">
-                                         <ZenBadge variant={plan.isActive ? 'sand' : 'default'}>{plan.isActive ? 'OPERATIONAL' : 'RETIRED'}</ZenBadge>
-                                      </div>
-                                   </td>
-                                   <td>
-                                      <div className="flex items-center justify-center gap-2">
-                                         <ZenIconButton icon={Edit3} onClick={() => {
-                                            setEditingPlan(plan);
-                                            setPlanFormData({
-                                               ...plan as any,
-                                               applicableServices: plan.applicableServices?.map((s: any) => typeof s === 'string' ? s : s._id) || [],
-                                               isUnlimited: plan.durationDays >= 36500
-                                            });
-                                            setIsPlanModalOpen(true);
-                                         }} />
-                                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeletePlan(plan._id)} />
-                                      </div>
-                                   </td>
-                                </tr>
-                             ))}
-                          </tbody>
-                          </table>
-                       </div>
+                          ))}
+                       </tbody>
+                       </table>
                     </div>
-                 )}
+                  )}
+
               </div>
             )}
 
@@ -1002,7 +998,6 @@ title="Membership Management"
 
                     {viewMode === 'table' ? (
                        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden table-container">
-                          <div className="table-container">
                           <table className="w-full min-w-[760px] lg:min-w-[1000px]">
                              <thead>
                                  <tr>
@@ -1019,7 +1014,7 @@ title="Membership Management"
                              <tbody>
                                 {filteredMemberships.map((m, index) => (
                                   <tr key={m._id} className="transition-all group border-b border-black/[0.02]">
-                                     <td className="text-center italic opacity-40 text-[11px]">{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</td>
+                                     <td>{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</td>
                                      <td>
                                          <div className="flex justify-center">
                                             <div className="w-12 h-12 rounded-xl bg-zen-sand/10 border border-zen-brown/10 flex items-center justify-center text-zen-sand shadow-sm group-hover:scale-110 transition-transform duration-500">
@@ -1029,8 +1024,8 @@ title="Membership Management"
                                      </td>
                                      <td>
                                         <div className="flex flex-col items-center justify-center gap-0.5 px-6">
-                                           <span className="zen-table-primary leading-none">{m.client?.name}</span>
-                                           <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">{m.client?.phone}</span>
+                                           <span className="zen-table-primary">{m.client?.name}</span>
+                                           <span className="zen-table-meta">{m.client?.phone}</span>
                                         </div>
                                      </td>
                                      <td>
@@ -1043,7 +1038,7 @@ title="Membership Management"
                                            <div className="text-[11px] font-black text-zen-brown uppercase tracking-widest leading-none">
                                               {dayjs(m.startDate).format('DD/MM')} — {dayjs(m.endDate).format('DD/MM')}
                                            </div>
-                                           <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest">Validity Cycle</span>
+                                           <span className="zen-table-meta mt-1">Validity Cycle</span>
                                         </div>
                                      </td>
                                      <td>
@@ -1074,79 +1069,91 @@ title="Membership Management"
                                 ))}
                              </tbody>
                           </table>
-                          </div>
                        </div>
                     ) : (
-                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {filteredMemberships.map((m) => (
-                             <div key={m._id} className="group relative bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-zen-brown/15 transition-all duration-500 hover:shadow-xl hover:translate-y-[-4px] h-full flex flex-col justify-between overflow-hidden">
-                                {/* Background Glow Overlay */}
-                                <div className="absolute top-0 right-0 w-28 h-28 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+                           {filteredMemberships.map((m) => (
+                              <div key={m._id} className="zen-card-hover !rounded-[2.8rem] p-1 group transition-all duration-700 hover:border-zen-sand/40">
+                                 <div className="relative h-full bg-white rounded-[2.5rem] p-8 sm:p-10 overflow-hidden flex flex-col justify-between">
+                                    {/* Decorative accent elements */}
+                                    <div className="absolute -top-12 -right-12 w-40 h-40 bg-zen-sand/5 rounded-full blur-3xl group-hover:bg-zen-sand/15 transition-all duration-1000" />
+                                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-zen-brown/5 rounded-full blur-2xl opacity-50" />
+                                    
+                                    <div className="relative z-10 flex-1">
+                                       <div className="flex items-start justify-between mb-8">
+                                          <div className="flex items-center gap-4">
+                                             <div className="w-14 h-14 rounded-2xl bg-zen-sand/10 text-zen-sand flex items-center justify-center shrink-0 border border-zen-sand/20 group-hover:bg-zen-sand group-hover:text-white transition-all duration-700 shadow-sm">
+                                                <Users size={24} strokeWidth={1.5} />
+                                             </div>
+                                             <div className="min-w-0">
+                                                <h4 className="text-xl font-serif font-black text-zen-brown group-hover:text-zen-primary transition-colors duration-500 truncate leading-tight">
+                                                   {m.client?.name}
+                                                </h4>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                   <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.2em]">{m.client?.phone}</span>
+                                                </div>
+                                             </div>
+                                          </div>
+                                          <div className="flex items-center gap-1.5">
+                                             <ZenIconButton icon={History} onClick={() => {
+                                                setSelectedHistory(m);
+                                                setIsHistoryModalOpen(true);
+                                             }} />
+                                             {user?.role !== 'Client' && (
+                                                <>
+                                                   <ZenIconButton icon={Edit3} onClick={() => openEditEnrollment(m)} />
+                                                   <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteMembership(m._id)} />
+                                                </>
+                                             )}
+                                          </div>
+                                       </div>
 
-                                <div className="relative z-10">
-                                   <div className="flex items-center justify-between mb-6">
-                                      <div className="flex items-center gap-4">
-                                         <div className="w-14 h-14 rounded-2xl bg-zen-sand/10 text-zen-sand flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700 shadow-sm border border-zen-brown/10">
-                                            <Users size={24} strokeWidth={1.5} />
-                                         </div>
-                                         <div className="min-w-0">
-                                            <h4 className="font-serif font-black text-lg text-zen-brown group-hover:text-zen-sand transition-colors duration-500 truncate">{m.client?.name}</h4>
-                                            <div className="flex items-center gap-2 mt-1">
-                                               <span className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[0.2em]">{m.client?.phone}</span>
-                                               <span className={`px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest border ${getStatusColor(m.status)}`}>
-                                                  {m.status}
-                                               </span>
-                                            </div>
-                                         </div>
-                                      </div>
-                                      {user?.role !== 'Client' && (
-                                        <div className="flex gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
-                                           <ZenIconButton icon={History} onClick={() => {
-                                                 setSelectedHistory(m);
-                                                 setIsHistoryModalOpen(true);
-                                              }} />
-                                           <ZenIconButton icon={Edit3} onClick={() => {
-                                                 openEditEnrollment(m);
-                                              }} />
-                                           <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteMembership(m._id)} />
-                                        </div>
-                                      )}
-                                   </div>
+                                       <div className="space-y-4">
+                                          <div className="p-6 rounded-[2rem] bg-zen-cream/40 border border-zen-stone/40 backdrop-blur-sm group-hover:bg-white/60 transition-all duration-700">
+                                             <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center gap-3">
+                                                   <Crown size={16} className="text-zen-sand" />
+                                                   <span className="text-[10px] font-black text-zen-brown uppercase tracking-[0.2em]">{m.plan?.name}</span>
+                                                </div>
+                                                <ZenBadge variant={m.status === 'Active' ? 'leaf' : 'sand'} className="!text-[8px] font-black tracking-widest px-3">
+                                                   {m.status.toUpperCase()}
+                                                </ZenBadge>
+                                             </div>
+                                             
+                                             <div className="flex items-baseline gap-2 mb-2">
+                                                <span className="text-3xl font-black tracking-tighter text-zen-brown">
+                                                   {m.remainingSessions} <span className="text-sm text-zen-brown/30">/ {m.totalSessions}</span>
+                                                </span>
+                                                <span className="text-[9px] font-black text-zen-brown/25 uppercase tracking-widest">Rituals Left</span>
+                                             </div>
 
-                                   <div className="space-y-4">
-                                      <div className="flex items-center justify-between p-5 bg-white border border-zen-brown/10 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-500 group/tier">
-                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-2xl bg-zen-sand/5 flex items-center justify-center text-zen-sand group-hover/tier:scale-110 transition-transform">
-                                               <ShieldCheck size={18} />
-                                            </div>
-                                            <div className="flex flex-col">
-                                               <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-[0.3em]">Service Tier</span>
-                                               <span className="text-xs font-black text-zen-brown uppercase tracking-widest">{m.plan?.name}</span>
-                                            </div>
-                                         </div>
-                                         <div className="flex flex-col items-end">
-                                            <span className="text-2xl font-black text-zen-brown tracking-tighter">
-                                               {Math.max(0, (m.totalSessions > 0 ? m.totalSessions : (m.plan?.maxSessions || 0)) - m.remainingSessions)}<span className="text-sm text-zen-brown/30 mx-1">/</span>{m.totalSessions > 0 ? m.totalSessions : (m.plan?.maxSessions || 0)}
-                                            </span>
+                                             <div className="w-full h-1.5 bg-zen-stone/50 rounded-full overflow-hidden">
+                                                <div 
+                                                   className="h-full bg-zen-sand transition-all duration-1000" 
+                                                   style={{ width: `${(m.remainingSessions / m.totalSessions) * 100}%` }}
+                                                />
+                                             </div>
+                                          </div>
 
-                                         </div>
-                                      </div>
-
-                                      <div className="flex items-center justify-between px-2 pt-2">
-                                         <div className="flex flex-col gap-1">
-                                            <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest">Record Cycle</span>
-                                            <div className="flex items-center gap-2 text-zen-brown/60">
-                                               <Calendar size={14} className="text-zen-sand" />
-                                               <span className="text-[10px] font-serif font-black">{new Date(m.startDate).toLocaleDateString()}</span>
-                                            </div>
-                                         </div>
-                                         <ZenBadge variant="leaf">Active Member</ZenBadge>
-                                      </div>
-                                   </div>
-                                </div>
-                             </div>
-                          ))}
-                       </div>
+                                          <div className="flex items-center justify-between px-2 pt-2 border-t border-zen-stone/50">
+                                             <div className="flex flex-col gap-1">
+                                                <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest">Renewal Date</span>
+                                                <div className="flex items-center gap-2 text-zen-brown/60">
+                                                   <Calendar size={12} className="text-zen-sand" />
+                                                   <span className="text-[10px] font-serif font-black">{dayjs(m.endDate).format('DD MMM YYYY')}</span>
+                                                </div>
+                                             </div>
+                                             <div className="flex flex-col items-end gap-1">
+                                                <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest">Branch</span>
+                                                <span className="text-[10px] font-black text-zen-brown uppercase">{getBranchName(m.branch)}</span>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
                     )}
                     <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
                  </div>
@@ -1367,10 +1374,10 @@ title="Membership Management"
                   label="Assign Branch"
                   options={(branches || []).map(b => b.name)}
                   value={(branches || []).find(b => b._id === enrollData.branchId)?.name || ''}
-	                  onChange={val => {
-	                     const branch = (branches || []).find(b => b.name === val);
-	                     if (branch) setEnrollData({...enrollData, branchId: branch._id});
-	                  }}
+                  onChange={val => {
+                     const branch = (branches || []).find(b => b.name === val);
+                     if (branch) setEnrollData({...enrollData, branchId: branch._id});
+                  }}
                     disabled={user?.role !== 'Admin'}
 	               />
             </div>
@@ -1406,14 +1413,33 @@ title="Membership Management"
             )}
 
             <ZenDropdown
-               label="Service"
-               options={(services || []).map((s: any) => s.name)}
-               value={(services || []).find((s: any) => s._id === redeemData.serviceId)?.name || ''}
-               onChange={(val: any) => {
-                  const s = (services || []).find((serv: any) => serv.name === val);
-                  if (s) setRedeemData({...redeemData, serviceId: s._id});
-               }}
-            />
+                label="Select Service"
+                placeholder="Which service ritual?"
+                options={(() => {
+                   const planApps = activeMembershipForRedeem?.plan?.applicableServices || [];
+                   const usageCounts = (activeMembershipForRedeem?.usageHistory || []).reduce((acc: any, usage: any) => {
+                      const sId = (usage.service?._id || usage.service || '').toString();
+                      if (sId) acc[sId] = (acc[sId] || 0) + 1;
+                      return acc;
+                   }, {});
+
+                   if (planApps.length === 0) return (services || []).map((s: any) => {
+                      const used = usageCounts[s._id.toString()] || 0;
+                      return used > 0 ? `${s.name} (Used ${used} times)` : s.name;
+                   });
+                   
+                   const appIds = planApps.map((s: any) => (s._id || s).toString());
+                   return (services || []).filter((s: any) => appIds.includes(s._id.toString())).map((s: any) => {
+                      const used = usageCounts[s._id.toString()] || 0;
+                      return used > 0 ? `${s.name} (Used ${used} times)` : s.name;
+                   });
+                })()}
+                value={(services || []).find((s: any) => s._id === redeemData.serviceId)?.name || ''}
+                onChange={(val: any) => {
+                   const s = (services || []).find((serv: any) => serv.name === val);
+                   if (s) setRedeemData({...redeemData, serviceId: s._id});
+                }}
+             />
 
             <ZenTextarea label="Notes" value={redeemData.notes} onChange={(e: any) => setRedeemData({...redeemData, notes: e.target.value})} />
          </form>
@@ -1428,20 +1454,26 @@ title="Membership Management"
          maxWidth="max-w-4xl"
          headerIcon={History}
          footer={
-            <div className="flex justify-between items-center">
-               <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Client</span>
-                  <p className="font-serif font-bold text-zen-brown">{selectedHistory?.client?.name}</p>
-               </div>
-               <ZenBadge variant="sand">{selectedHistory?.plan?.name}</ZenBadge>
+            <div className="flex justify-end w-full">
+               <ZenButton variant="secondary" onClick={() => setIsHistoryModalOpen(false)}>Close</ZenButton>
             </div>
          }
       >
-         <div className="space-y-10">
+         <div className="space-y-8 pb-4">
+            
+            <div className="flex items-center justify-between p-6 bg-zen-cream/30 rounded-3xl border border-zen-brown/15 shadow-sm">
+               <div className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Client Identity</span>
+                  <p className="text-xl font-serif font-black text-zen-brown">{selectedHistory?.client?.name}</p>
+               </div>
+               <div className="flex flex-col items-end gap-1">
+                  <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-widest">Subscribed Plan</span>
+                  <ZenBadge variant="sand" className="scale-100">{selectedHistory?.plan?.name}</ZenBadge>
+               </div>
+            </div>
 
-            <div className="bg-white/70 rounded-[2.5rem] border border-white overflow-hidden shadow-sm">
-               <div className="table-container">
-               <table className="w-full min-w-[760px]">
+            <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden table-container">
+               <table className="w-full min-w-[760px] text-center">
                   <thead>
                      <tr>
                         <th>S No</th>
@@ -1453,37 +1485,35 @@ title="Membership Management"
                   </thead>
                   <tbody>
                      {selectedHistory?.usageHistory?.length > 0 ? selectedHistory.usageHistory.map((usage: any, idx: number) => (
-                        <tr key={idx}>
-                           <td>{(idx + 1).toString().padStart(2, '0')}</td>
-                           <td>
+                        <tr key={idx} className="border-b border-black/[0.02] hover:bg-zen-cream/20">
+                           <td className="px-6 py-4">{(idx + 1).toString().padStart(2, '0')}</td>
+                           <td className="px-6 py-4">
                               <span className="zen-table-primary">{new Date(usage.usedAt).toLocaleDateString()}</span>
                            </td>
-                           <td>
-                              <div className="flex items-center gap-2">
-                                 <MapPin size={10} className="text-zen-sand" />
-                                 {usage.branch?.name || 'Main Branch'}
+                           <td className="px-6 py-4">
+                              <div className="flex items-center justify-center gap-2">
+                                 <MapPin size={12} className="text-zen-sand" />
+                                 <span className="text-xs font-bold text-zen-brown/70">{usage.branch?.name || 'Main Branch'}</span>
                               </div>
                            </td>
-                           <td>
+                           <td className="px-6 py-4">
                               <span className="zen-table-primary">{usage.service?.name || usage.serviceId}</span>
                            </td>
-                           <td>
+                           <td className="px-6 py-4">
                               <span className="zen-table-meta">{new Date(usage.usedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                            </td>
                         </tr>
                      )) : (
                         <tr>
-                           <td colSpan={5} className="py-12 text-center text-sm font-serif italic text-zen-brown/30">No redemption records found for this membership</td>
+                           <td colSpan={5} className="px-6 py-16 text-center text-[13px] font-sans text-gray-400 bg-gray-50/30">
+                              No redemption records found for this membership
+                           </td>
                         </tr>
                      )}
                   </tbody>
                </table>
-               </div>
             </div>
 
-            <div className="flex justify-center pt-4">
-               <ZenButton variant="secondary" onClick={() => setIsHistoryModalOpen(false)} className="px-12">Close History</ZenButton>
-            </div>
          </div>
       </Modal>
 

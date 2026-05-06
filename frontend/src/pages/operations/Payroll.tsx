@@ -259,17 +259,16 @@ const Payroll = () => {
       }}
       hideViewToggle
       hideAddButton
+      searchMaxWidth="lg:max-w-xs"
       headerActions={
         <>
-          <div className="flex items-center shrink-0 h-[52px]">
-            <ZenMonthPicker
-              value={selectedMonth}
-              onChange={setSelectedMonth}
-              className="w-[200px]"
-              hideLabel
-              variant="pill"
-            />
-          </div>
+          <ZenMonthPicker
+            value={selectedMonth}
+            onChange={setSelectedMonth}
+            className="w-[180px]"
+            hideLabel
+            variant="pill"
+          />
           <ExportPopup<PayrollRecord>
             data={payrollData}
             columns={payrollExportColumns}

@@ -52,6 +52,9 @@ const employeeSchema = new mongoose.Schema({
     unique: true,
     sparse: true
   },
+  currentSessionId: {
+    type: String
+  },
   createdAt: { type: Date, default: Date.now }
 });
 

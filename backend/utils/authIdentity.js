@@ -135,6 +135,9 @@ const getTokenPayload = (account, accountSource, role) => {
   };
 
   if (branchId) payload.branch = branchId.toString();
+  if (role === 'Admin' && account.currentSessionId) {
+    payload.currentSessionId = account.currentSessionId;
+  }
 
   return payload;
 };

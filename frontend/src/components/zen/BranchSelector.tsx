@@ -8,12 +8,14 @@ interface BranchSelectorProps {
   className?: string;
   variant?: 'line' | 'pill';
   hideLabel?: boolean;
+  disabled?: boolean;
 }
 
 export const BranchSelector = ({
   className = "",
   variant = "pill",
-  hideLabel = true
+  hideLabel = true,
+  disabled
 }: BranchSelectorProps) => {
   const { user } = useAuth();
   const { branches, selectedBranch, setSelectedBranch } = useBranches();
@@ -52,7 +54,7 @@ export const BranchSelector = ({
         options={branchOptions}
         value={currentValue || (isAdmin ? 'all' : '')}
         onChange={handleBranchChange}
-        disabled={!isAdmin}
+        disabled={disabled !== undefined ? disabled : !isAdmin}
       />
     </div>
   );

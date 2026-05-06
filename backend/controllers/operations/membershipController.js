@@ -140,14 +140,16 @@ exports.updateMembershipPlan = async (req, res) => {
   }
 };
 
-// @desc    Delete/Deactivate a membership plan
+// @desc    Delete a membership plan
 // @route   DELETE /api/memberships/plans/:id
 // @access  Private/Admin
 exports.deleteMembershipPlan = async (req, res) => {
   try {
-    // Instead of deleting, just deactivate
-    const plan = await MembershipPlan.findByIdAndUpdate(req.params.id, { isActive: false }, { returnDocument: 'after' });
-    res.json({ message: 'Plan deactivated' });
+    const plan = await MembershipPlan.findByIdAndDelete(req.params.id);
+    if (!plan) {
+      return res.status(404).json({ message: 'Plan not found' });
+    }
+    res.json({ message: 'Plan deleted successfully' });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -185,7 +187,7 @@ exports.enrollClient = async (req, res) => {
     if (!targetClient || targetClient.role !== 'Client') {
       return res.status(404).json({ message: 'Client not found' });
     }
-    if (!sameBranch(targetClient.branch, selectedBranch)) {
+    if (req.user.role !== 'Admin' && !sameBranch(targetClient.branch, selectedBranch)) {
       return res.status(403).json({ message: 'Access Denied: Selected client belongs to another branch.' });
     }
 

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutGrid, Users, CalendarClock, DoorOpen, Briefcase, CalendarOff,
   Gem, FileText, Landmark, Boxes, MessageCircle, TrendingUp,
-  LogOut, ChevronRight, Settings2, ShieldCheck,
+  LogOut, ChevronRight, ChevronDown, Settings2, ShieldCheck,
   MapPin, Award, Layers, CreditCard, Percent,
   Fingerprint, Timer, Shapes, Key, UserRound, Sparkles, Scissors, Clock, ArrowDownRight,
   History, Tag
@@ -26,6 +26,8 @@ const Sidebar = ({
   const { settings } = useSettings();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
+  const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+  const location = useLocation();
 
   const logoUrl = settings?.general?.logo
     ? getImageUrl(settings.general.logo)
@@ -70,7 +72,6 @@ const Sidebar = ({
         { name: 'Shifts', icon: Timer, path: '/shifts', permission: ['shifts', 'settings'] },
         { name: 'Payroll', icon: Landmark, path: '/payroll', permission: ['payroll', 'finance'] },
         { name: 'Leave History', icon: CalendarOff, path: '/leave', permission: 'leave' },
-        { name: 'Apply Leave', icon: Sparkles, path: '/leave/apply', permission: 'leave' },
       ]
     },
     {
@@ -92,9 +93,16 @@ const Sidebar = ({
       label: 'Admin',
       items: [
         { name: 'Branches', icon: MapPin, path: '/branches', permission: ['branches', 'settings'] },
-        { name: 'Room Category', icon: Layers, path: '/room-categories', permission: ['room-categories', 'settings'] },
-        { name: 'Service Category', icon: Shapes, path: '/service-categories', permission: ['service-categories', 'settings'] },
-        { name: 'Expense Category', icon: Tag, path: '/expense-categories', permission: ['expense-categories', 'settings', 'finance'] },
+        {
+          name: 'Categories',
+          icon: Shapes,
+          permission: ['room-categories', 'service-categories', 'expense-categories', 'settings', 'finance'],
+          children: [
+            { name: 'Room Category', icon: Layers, path: '/room-categories', permission: ['room-categories', 'settings'] },
+            { name: 'Service Category', icon: Shapes, path: '/service-categories', permission: ['service-categories', 'settings'] },
+            { name: 'Expense Category', icon: Tag, path: '/expense-categories', permission: ['expense-categories', 'settings', 'finance'] },
+          ]
+        },
         { name: 'Admins', icon: ShieldCheck, path: '/admins', permission: ['admins', 'roles'] },
         { name: 'Roles', icon: Key, path: '/roles', permission: 'roles' },
         { name: 'Settings', icon: Settings2, path: '/settings', permission: 'settings' },
@@ -110,6 +118,17 @@ const Sidebar = ({
     { name: 'History', icon: History, path: '/transactions', permission: ['history', 'transactions', 'finance'] },
   ];
 
+  // Auto-expand active submenus on location change
+  React.useEffect(() => {
+    menuGroups.forEach(group => {
+      group.items.forEach(item => {
+        if (item.children?.some(child => child.path === location.pathname)) {
+          setOpenSubMenus(prev => ({ ...prev, [item.name]: true }));
+        }
+      });
+    });
+  }, [location.pathname]);
+
   const canAccessItem = (permission: string | string[]) => (
     Array.isArray(permission)
       ? permission.some((perm) => hasPermission(perm))
@@ -122,11 +141,34 @@ const Sidebar = ({
         .map(group => ({
           ...group,
           items: group.items
-            .filter(item => canAccessItem(item.permission))
+            .map(item => {
+              if (item.children) {
+                const allowedChildren = item.children.filter(child => canAccessItem(child.permission));
+                return allowedChildren.length > 0 ? { ...item, children: allowedChildren } : null;
+              }
+              return canAccessItem(item.permission) ? item : null;
+            })
+            .filter((item): item is any => item !== null)
         }))
         .filter(group => group.items.length > 0);
 
-  const renderNavLink = (item: any) => (
+  const toggleSubMenu = (name: string) => {
+    setOpenSubMenus(prev => ({
+      ...prev,
+      [name]: !prev[name]
+    }));
+  };
+
+  const handleParentClick = (item: any) => {
+    if (isCollapsed && !isMobile) {
+      setIsCollapsed(false);
+      setOpenSubMenus(prev => ({ ...prev, [item.name]: true }));
+    } else {
+      toggleSubMenu(item.name);
+    }
+  };
+
+  const renderNavLink = (item: any, isChild = false) => (
     <NavLink
       key={item.name}
       to={item.path}
@@ -140,15 +182,16 @@ const Sidebar = ({
       })}
       className={({ isActive }) =>
         `flex items-center rounded-xl transition-all duration-300 group min-h-[36px] ${
-          isCollapsed ? 'justify-center p-2.5 mx-auto w-10 h-10' : 'px-3 py-2 hover:bg-zen-cream/60'
+          isCollapsed && !isMobile
+            ? 'justify-center p-2.5 mx-auto w-10 h-10'
+            : `${isChild ? 'pl-3 pr-2.5 py-1.5' : 'px-3 py-2'} hover:bg-zen-cream/60`
         } ${isActive ? 'text-white shadow-sm shadow-zen-sand/20' : 'text-zen-brown/50 hover:text-zen-brown'}`
       }
     >
-
       {({ isActive }) => (
         <>
-          <div className={`flex items-center justify-center shrink-0`}>
-            <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} className={isActive ? 'drop-shadow-none' : ''} />
+          <div className="flex items-center justify-center shrink-0">
+            <item.icon size={isChild ? 14 : 16} strokeWidth={isActive ? 2 : 1.5} />
           </div>
           {(!isCollapsed || isMobile) && (
             <span className={`ml-2.5 text-[12px] font-semibold tracking-wide flex-1 truncate ${isActive ? 'text-white' : 'text-zen-brown/60 group-hover:text-zen-brown'}`}>
@@ -160,6 +203,51 @@ const Sidebar = ({
     </NavLink>
   );
 
+  const renderParentItem = (item: any) => {
+    const isOpen = !!openSubMenus[item.name];
+    const isChildActive = item.children?.some((child: any) => location.pathname === child.path);
+
+    return (
+      <div key={item.name} className="space-y-1">
+        <button
+          onClick={() => handleParentClick(item)}
+          className={`w-full flex items-center rounded-xl transition-all duration-300 group min-h-[36px] ${
+            isCollapsed && !isMobile ? 'justify-center p-2.5 mx-auto w-10 h-10' : 'px-3 py-2 hover:bg-zen-cream/60'
+          } ${
+            isChildActive && !isOpen
+              ? 'text-zen-sand bg-zen-cream/30 font-bold'
+              : 'text-zen-brown/50 hover:text-zen-brown'
+          }`}
+        >
+          <div className="flex items-center justify-center shrink-0">
+            <item.icon size={16} strokeWidth={isChildActive ? 2 : 1.5} className={isChildActive ? 'text-zen-sand' : ''} />
+          </div>
+          {(!isCollapsed || isMobile) && (
+            <>
+              <span className={`ml-2.5 text-[12px] font-semibold tracking-wide flex-1 text-left truncate ${
+                isChildActive ? 'text-zen-sand font-bold' : 'text-zen-brown/60 group-hover:text-zen-brown'
+              }`}>
+                {item.name}
+              </span>
+              <ChevronDown
+                size={14}
+                className={`transform transition-transform duration-300 text-zen-brown/30 group-hover:text-zen-brown ${
+                  isOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </>
+          )}
+        </button>
+
+        {isOpen && (!isCollapsed || isMobile) && (
+          <div className="ml-[19px] pl-3 border-l border-zen-stone/40 space-y-1 mt-1">
+            {item.children.map((child: any) => renderNavLink(child, true))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-none ${isCollapsed ? 'lg:w-[68px] w-[min(84vw,16rem)]' : 'lg:w-[210px] w-[min(88vw,17rem)]'}`}>
 
@@ -168,10 +256,10 @@ const Sidebar = ({
         className={`flex items-center justify-center relative overflow-hidden transition-all duration-500 ${isCollapsed ? 'h-14 sm:h-16' : 'h-20 sm:h-24'}`}
       >
         {/* Glassy Layer Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-zen-sand/[0.08] via-transparent to-zen-sand/[0.05] backdrop-blur-xl z-0" />
+        <div className="absolute inset-0 bg-slate-50/50 backdrop-blur-xl z-0" />
 
         {/* Subtle decorative glow */}
-        <div className="absolute -top-10 -left-10 w-32 h-32 bg-zen-sand/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-10 -left-10 w-32 h-32 bg-slate-200/20 rounded-full blur-3xl pointer-events-none" />
 
         <div className={`relative z-10 transition-all duration-700 ${isCollapsed ? 'scale-90' : 'scale-100'}`}>
           {logoUrl ? (
@@ -200,7 +288,7 @@ const Sidebar = ({
         </div>
 
         {/* Bottom decorative line with subtle glow */}
-        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-zen-sand/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200/50 to-transparent" />
       </div>
 
       {/* Navigation Menu */}
@@ -218,7 +306,7 @@ const Sidebar = ({
               <div className="h-px bg-zen-stone/40 mx-2 mb-2" />
             )}
             <div className="space-y-1.5">
-              {group.items.map(renderNavLink)}
+              {group.items.map(item => item.children ? renderParentItem(item) : renderNavLink(item))}
             </div>
           </div>
         ))}
@@ -226,10 +314,10 @@ const Sidebar = ({
 
       <div className="p-3 relative group overflow-hidden mt-auto" onClick={() => setShowLogoutConfirm(true)}>
         {/* Glassy Background */}
-        <div className="absolute inset-0 bg-gradient-to-t from-zen-sand/[0.05] to-transparent backdrop-blur-md z-0" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-100/50 to-transparent backdrop-blur-md z-0" />
 
         {/* Top border line */}
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-zen-sand/10 to-transparent" />
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200/50 to-transparent" />
 
         <div className="relative z-10 flex items-center justify-between p-1.5 rounded-xl hover:bg-white/40 transition-all duration-500 cursor-pointer border border-transparent hover:border-white/60">
           <div className="flex items-center gap-2.5">
