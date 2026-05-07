@@ -41,7 +41,7 @@ interface Expense {
   _id: string;
   user?: string | UserRef;
   title: string;
-  category: string;
+  sectorCategory: string;
   amount: number;
   date: string;
   branch?: BranchRef | string;
@@ -88,10 +88,10 @@ const Expenses = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
   const { branches, selectedBranch } = useBranches();
-  const { getExpenseCategories } = useCategories();
+  const { getSectorCategories } = useCategories();
 
-  const dynamicCategories = useMemo(() => ['All', ...getExpenseCategories()], [getExpenseCategories]);
-  const activeCategories = useMemo(() => getExpenseCategories(), [getExpenseCategories]);
+  const dynamicCategories = useMemo(() => ['All', ...getSectorCategories()], [getSectorCategories]);
+  const activeCategories = useMemo(() => getSectorCategories(), [getSectorCategories]);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
   const PAGE_LIMIT = 12;
@@ -99,7 +99,7 @@ const Expenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>(() => getCachedJson('zen_page_expenses_list', []));
   const [loading, setLoading] = useState(() => getCachedJson<Expense[]>('zen_page_expenses_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [category, setCategory] = useState<string>('All');
+  const [sectorCategory, setSectorCategory] = useState<string>('All');
   const [dateRange, setDateRange] = useState<any>('All');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -112,7 +112,7 @@ const Expenses = () => {
 
   const [formData, setFormData] = useState({
     title: '',
-    category: '',
+    sectorCategory: '',
     amount: 0,
     date: dayjs().format('YYYY-MM-DD'),
     branch: selectedBranch !== 'all' ? selectedBranch : ''
@@ -154,7 +154,7 @@ const Expenses = () => {
       page: String(targetPage),
       limit: String(limit),
       search: searchTerm,
-      category: category !== 'All' ? category : '',
+      sectorCategory: sectorCategory !== 'All' ? sectorCategory : '',
       startDate: dateWindow.startDate,
       endDate: dateWindow.endDate
     });
@@ -202,11 +202,11 @@ const Expenses = () => {
     }, getPollIntervalMs(30000));
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, selectedBranch, user?.token, category, dateRange, searchTerm]);
+  }, [page, selectedBranch, user?.token, sectorCategory, dateRange, searchTerm]);
 
   useEffect(() => {
     setPage(1);
-  }, [selectedBranch, category, dateRange, searchTerm]);
+  }, [selectedBranch, sectorCategory, dateRange, searchTerm]);
 
   const totals = useMemo(() => {
     const total = expenses.reduce((acc, exp) => acc + (Number(exp.amount) || 0), 0);
@@ -259,7 +259,7 @@ const Expenses = () => {
       return [
         { header: 'Expense ID', accessor: (expense) => expense._id },
         { header: 'Title', accessor: (expense) => expense.title },
-        { header: 'Category', accessor: (expense) => expense.category },
+        { header: 'Sector', accessor: (expense) => expense.sectorCategory || (expense as any).category || 'General' },
         { header: 'Amount', accessor: (expense) => Number(expense.amount || 0) },
         { header: 'Display Amount', accessor: (expense) => `${currency} ${Number(expense.amount || 0)}` },
         { header: 'Currency', accessor: () => currency },
@@ -279,7 +279,7 @@ const Expenses = () => {
     setEditingExpense(null);
     setFormData({
       title: '',
-      category: '',
+      sectorCategory: '',
       amount: 0,
       date: dayjs().format('YYYY-MM-DD'),
       branch: selectedBranch !== 'all' ? selectedBranch : ''
@@ -291,7 +291,7 @@ const Expenses = () => {
     setEditingExpense(exp);
     setFormData({
       title: exp.title || '',
-      category: exp.category || '',
+      sectorCategory: exp.sectorCategory || '',
       amount: Number(exp.amount) || 0,
       date: exp.date ? dayjs(exp.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
       branch: getExpenseBranchId(exp) || (selectedBranch !== 'all' ? selectedBranch : '')
@@ -307,8 +307,8 @@ const Expenses = () => {
       notify('error', 'Missing Title', 'Please provide an expense title.');
       return;
     }
-    if (!formData.category) {
-      notify('error', 'Category Required', 'Please select an expense category.');
+    if (!formData.sectorCategory) {
+      notify('error', 'Sector Required', 'Please select a sector category.');
       return;
     }
     if (!Number.isFinite(Number(formData.amount)) || Number(formData.amount) <= 0) {
@@ -397,7 +397,7 @@ const Expenses = () => {
             },
             {
               label: 'Filter',
-              value: category === 'All' ? 'All Categories' : category,
+              value: sectorCategory === 'All' ? 'All Sectors' : sectorCategory,
               icon: Filter,
               color: 'text-sky-500',
               bg: 'bg-sky-500/10',
@@ -438,11 +438,11 @@ const Expenses = () => {
             </div>
 
             <div className="flex flex-col gap-2.5 w-full xl:w-auto">
-              <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Category</label>
+              <label className="text-[9px] font-black text-zen-brown/30 uppercase tracking-[.3em] ml-1.5">Sector</label>
               <ZenDropdown
-                label="Category"
-                value={category}
-                onChange={(v: any) => setCategory(v)}
+                label="Sector"
+                value={sectorCategory}
+                onChange={(v: any) => setSectorCategory(v)}
                 options={dynamicCategories}
                 className="w-full sm:min-w-[220px]"
                 hideLabel
@@ -473,7 +473,7 @@ const Expenses = () => {
               fileName="expenses"
               title="Expenses"
               triggerLabel="Download"
-              description="Choose format and export the complete expense sheet with title, category, amount, branch, date, user, and audit values."
+              description="Choose format and export the complete expense sheet with title, sector, amount, branch, date, user, and audit values."
               resolveData={fetchAllExpensesForExport}
               className="xl:w-auto"
             />
@@ -495,13 +495,13 @@ const Expenses = () => {
         <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
-              <tr>
-                <th>S No</th>
-                <th>Expense Identity</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Actions</th>
+              <tr className="bg-zen-brown/[0.02]">
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[80px]">S No</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-left border-b border-zen-brown/5">Expense Identity</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5">Sector</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5">Amount</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5">Date</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white/40">
@@ -526,14 +526,14 @@ const Expenses = () => {
                     <td className="text-center italic opacity-40">
                       {((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}
                     </td>
-                    <td>
-                      <div className="flex flex-col items-center justify-center leading-none">
-                        <span className="zen-table-primary">{exp.title}</span>
-                        <span className="zen-table-meta">{getExpenseBranchName(exp)} • {getExpenseUserLabel(exp)}</span>
+                    <td className="px-6 py-4 text-left">
+                      <div className="flex flex-col items-start justify-center leading-none">
+                        <span className="text-sm font-serif font-black text-zen-brown leading-tight">{exp.title}</span>
+                        <span className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest mt-1">{getExpenseBranchName(exp)} • {getExpenseUserLabel(exp)}</span>
                       </div>
                     </td>
                     <td>
-                      <ZenBadge variant="sand" className="scale-90 font-black tracking-widest">{exp.category}</ZenBadge>
+                      <ZenBadge variant="sand" className="scale-90 font-black tracking-widest">{exp.sectorCategory || (exp as any).category || 'General'}</ZenBadge>
                     </td>
                     <td>
                       <span className="text-base font-serif font-black text-zen-brown leading-none">
@@ -603,11 +603,11 @@ const Expenses = () => {
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <ZenDropdown
-              label="Category"
+              label="Sector"
               options={activeCategories}
-              value={formData.category}
-              onChange={(val) => setFormData({ ...formData, category: val })}
-              placeholder="Select Category"
+              value={formData.sectorCategory}
+              onChange={(val) => setFormData({ ...formData, sectorCategory: val })}
+              placeholder="Select Sector"
             />
             <ZenInput
               label="Amount"

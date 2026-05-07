@@ -170,6 +170,9 @@ const Navbar = ({
           </AnimatePresence>
         )}
       </div>
+      
+      {/* Middle section: Portal target for page-specific actions */}
+      <div id="navbar-middle-content" className="flex-1 flex justify-end px-4" />
 
       {/* Right section: Icons & Profile */}
       <div className="flex items-center gap-1.5 sm:gap-4">

@@ -77,10 +77,10 @@ const Sidebar = ({
     {
       label: 'Finance',
       items: [
-        { name: 'Finance', icon: Landmark, path: '/finance', permission: 'finance' },
+        // { name: 'Finance', icon: Landmark, path: '/finance', permission: 'finance' },
         { name: 'Expenses', icon: ArrowDownRight, path: '/expenses', permission: 'finance' },
         { name: 'Transactions', icon: FileText, path: '/transactions', permission: ['transactions', 'finance'] },
-        { name: 'Reports', icon: TrendingUp, path: '/reports', permission: 'reports' },
+        // { name: 'Reports', icon: TrendingUp, path: '/reports', permission: 'reports' },
       ]
     },
     {
@@ -96,14 +96,14 @@ const Sidebar = ({
         {
           name: 'Categories',
           icon: Shapes,
-          permission: ['room-categories', 'service-categories', 'expense-categories', 'settings', 'finance'],
+          permission: ['room-categories', 'service-categories', 'sector-categories', 'settings', 'finance'],
           children: [
             { name: 'Room Category', icon: Layers, path: '/room-categories', permission: ['room-categories', 'settings'] },
             { name: 'Service Category', icon: Shapes, path: '/service-categories', permission: ['service-categories', 'settings'] },
-            { name: 'Expense Category', icon: Tag, path: '/expense-categories', permission: ['expense-categories', 'settings', 'finance'] },
+            { name: 'Sector Category', icon: Tag, path: '/sector-categories', permission: ['sector-categories', 'settings', 'finance'] },
           ]
         },
-        { name: 'Admins', icon: ShieldCheck, path: '/admins', permission: ['admins', 'roles'] },
+        { name: 'Admin Users', icon: ShieldCheck, path: '/admins', permission: ['admins', 'roles'] },
         { name: 'Roles', icon: Key, path: '/roles', permission: 'roles' },
         { name: 'Settings', icon: Settings2, path: '/settings', permission: 'settings' },
       ]

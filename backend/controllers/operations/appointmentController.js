@@ -81,13 +81,50 @@ const normalizeAppointmentServices = async (Service, appointmentData) => {
     appointmentData.service = primaryService.name;
   }
 
-  const primaryPrice = Number(primaryService?.price || 0);
   const primaryDuration = Number(primaryService?.duration || 60);
   let totalQuantity = primaryQuantity;
   let totalDuration = primaryDuration * primaryQuantity;
-  let totalAmount = primaryPrice * primaryQuantity;
+  let totalAmount = 0; // Start at 0; membership-covered services stay free
+
+  // Resolve membership status for this client/service
+  const getMembershipForService = async (serviceId, clientId, branch) => {
+    const Membership = require('../../models/operations/Membership');
+    const membership = await Membership.findOne({
+      client: clientId,
+      branch: toObjectIdIfValid(branch),
+      status: 'Active',
+      remainingSessions: { $gt: 0 }
+    }).populate('plan').lean();
+
+    if (!membership) return null;
+
+    const applicableServices = Array.isArray(membership.plan?.applicableServices)
+      ? membership.plan.applicableServices
+      : [];
+    // Empty applicableServices = covers all services
+    const isCovered = applicableServices.length === 0 ||
+      applicableServices.some(id => id.toString() === serviceId.toString());
+
+    return isCovered ? membership : null;
+  };
+
+  const clientId = appointmentData.clientId;
+  let primaryMembership = null;
+  if (clientId && primaryService?._id) {
+    primaryMembership = await getMembershipForService(primaryService._id, clientId, branchId);
+  }
+
+  // Primary service price: ₹0 if membership covers it
+  const primaryPrice = primaryMembership ? 0 : Number(primaryService?.price || 0);
+  totalAmount += primaryPrice * primaryQuantity;
+
+  // Mark primary as membership-covered for downstream billing logic
+  appointmentData._primaryMembershipId = primaryMembership?._id || null;
+  appointmentData._primaryServiceCovered = !!primaryMembership;
 
   const normalizedAddOns = [];
+  let addOnMembership = null;
+
   for (const addOn of appointmentData.addOns || []) {
     const serviceName = addOn?.service || addOn?.name;
     const addOnServiceResult = await resolveServiceForAppointment(
@@ -109,15 +146,31 @@ const normalizeAppointmentServices = async (Service, appointmentData) => {
     }
 
     const quantity = normalizeQuantity(addOn?.quantity);
-    const price = Number(addOnService?.price ?? addOn?.price ?? 0) || 0;
+    const isCovered = addOn?.isMembershipCovered === true ||
+      addOn?.bookingType === 'Membership' ||
+      addOn?.price === 0;
+
+    // Price logic: respect explicit ₹0 / covered flag, otherwise use service price
+    const price = isCovered
+      ? 0
+      : (Number(addOn?.price ?? addOnService?.price ?? 0) || 0);
     const duration = Number(addOnService?.duration ?? addOn?.duration ?? 0) || 0;
+
+    // Track if ANY service is membership-covered (use same membership for all if client has one)
+    if (!addOnMembership && isCovered && clientId && addOnService?._id) {
+      addOnMembership = await getMembershipForService(addOnService._id, clientId, branchId);
+    }
 
     normalizedAddOns.push({
       serviceId: addOnService?._id || addOn?.serviceId,
       service: addOnService?.name || serviceName,
       price,
       duration,
-      quantity
+      quantity,
+      isMembershipCovered: isCovered,
+      membershipId: isCovered ? (addOn?.membershipId || addOnMembership?._id || appointmentData.membershipId || undefined) : undefined,
+      bookingType: isCovered ? 'Membership' : 'Normal',
+      membershipPlanName: addOn?.membershipPlanName || ''
     });
 
     totalQuantity += quantity;
@@ -129,6 +182,14 @@ const normalizeAppointmentServices = async (Service, appointmentData) => {
   appointmentData.totalQuantity = totalQuantity;
   appointmentData.totalDuration = totalDuration || primaryDuration;
   appointmentData.totalAmount = totalAmount;
+
+  // Auto-link the first found membershipId from any covered service
+  const linkedMembershipId = appointmentData._primaryMembershipId || addOnMembership?._id || null;
+  if (linkedMembershipId) {
+    appointmentData.membershipId = linkedMembershipId;
+    appointmentData.serviceType = 'MEMBERSHIP';
+    appointmentData.bookingType = 'Membership';
+  }
 
   return { appointmentData };
 };
@@ -561,6 +622,20 @@ const createAppointment = async (req, res) => {
       user: req.user._id
     };
 
+    // Sanitize optional ObjectIds to avoid Mongoose CastErrors
+    if (appointmentData.membershipId === '' || appointmentData.membershipId === 'None') {
+      delete appointmentData.membershipId;
+    }
+    if (appointmentData.serviceId === '' || appointmentData.serviceId === 'None') {
+      delete appointmentData.serviceId;
+    }
+    if (appointmentData.employeeId === '' || appointmentData.employeeId === 'None') {
+      delete appointmentData.employeeId;
+    }
+    if (appointmentData.roomId === '' || appointmentData.roomId === 'None') {
+      delete appointmentData.roomId;
+    }
+
     if (!appointmentData.branch) {
       return res.status(400).json({ message: 'Branch assignment required' });
     }
@@ -700,6 +775,7 @@ const createAppointment = async (req, res) => {
     } else {
       appointmentData.serviceType = 'REGULAR';
       appointmentData.bookingType = 'Normal';
+      delete appointmentData.membershipId;
     }
 
     // Membership Booking Validation
@@ -912,6 +988,7 @@ const updateAppointment = async (req, res) => {
       'time',
       'room',
       'roomId',
+      'membershipId',
       'bookingType',
       'status',
       'cancellationReason',
@@ -932,6 +1009,7 @@ const updateAppointment = async (req, res) => {
       'time',
       'room',
       'roomId',
+      'membershipId',
       'cancellationReason'
     ];
     const allowedForAdmin = [...allowedForStaff, 'branch', 'clientId', 'user'];
@@ -946,6 +1024,20 @@ const updateAppointment = async (req, res) => {
       if (Object.prototype.hasOwnProperty.call(incoming, field)) {
         updatePayload[field] = incoming[field];
       }
+    }
+
+    // Sanitize optional ObjectIds to avoid Mongoose CastErrors
+    if (updatePayload.membershipId === '' || updatePayload.membershipId === 'None') {
+      updatePayload.membershipId = undefined;
+    }
+    if (updatePayload.serviceId === '' || updatePayload.serviceId === 'None') {
+      updatePayload.serviceId = undefined;
+    }
+    if (updatePayload.employeeId === '' || updatePayload.employeeId === 'None') {
+      updatePayload.employeeId = undefined;
+    }
+    if (updatePayload.roomId === '' || updatePayload.roomId === 'None') {
+      updatePayload.roomId = undefined;
     }
 
     if (isOwnerOnly && Object.prototype.hasOwnProperty.call(updatePayload, 'status')) {

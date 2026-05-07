@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   UserPlus, Mail, Edit2, Trash2, User,
   UserCircle, Lock, Eye, EyeOff, Sparkles, X, Calendar, Info,
-  Shield, MapPin, Grid, List, Search
+  Shield, MapPin, Grid, List, Search, Zap
 } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 import { Modal } from '../../components/shared/Modal';
@@ -104,6 +104,7 @@ const Admins = () => {
   const [admins, setAdmins] = useState<Admin[]>(() => getCachedJson('zen_page_admins_list', []));
   const [loading, setLoading] = useState(() => getCachedJson<Admin[]>('zen_page_admins_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_admin_view') as 'grid' | 'table') || 'grid';
   });
@@ -153,6 +154,13 @@ const Admins = () => {
   }, [viewMode]);
 
   const PAGE_LIMIT = 12;
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchAdmins();
@@ -298,7 +306,7 @@ const Admins = () => {
         })
       });
       if (response.ok) {
-        notify('success', 'Updated', editingAdmin ? 'Administrator record updated' : 'Administrator access established');
+        notify('success', 'Updated', editingAdmin ? 'Admin User record updated' : 'Admin User access established');
         setIsModalOpen(false);
         fetchAdmins();
       } else {
@@ -314,8 +322,8 @@ const Admins = () => {
     if (id === user?._id) return notify('warning', 'Protection', 'Cannot remove your own account');
 
     openConfirm(
-      'Delete Administrator',
-      'Delete this administrator? This will remove the administrator from the workspace ecosystem.',
+      'Delete Admin User',
+      'Delete this admin user? This will remove the admin user from the workspace ecosystem.',
       async () => {
         try {
           const response = await fetch(`${API_URL}/admins/${id}`, {
@@ -323,7 +331,7 @@ const Admins = () => {
             headers: { 'Authorization': `Bearer ${user?.token}` }
           });
           if (response.ok) {
-            notify('success', 'Purged', 'Administrator access removed from workspace');
+            notify('success', 'Purged', 'Admin User access removed from workspace');
             fetchAdmins();
           }
         } catch (error) {
@@ -335,8 +343,8 @@ const Admins = () => {
 
 
   const filteredAdmins = useMemo(
-    () => admins.filter((admin) => adminMatchesSearch(admin, searchTerm)),
-    [admins, searchTerm]
+    () => admins.filter((admin) => adminMatchesSearch(admin, debouncedSearch)),
+    [admins, debouncedSearch]
   );
 
   const fetchAllAdminsForExport = async (): Promise<Admin[]> => {
@@ -373,7 +381,7 @@ const Admins = () => {
       if (admin?._id) unique.set(admin._id, admin);
     });
 
-    return Array.from(unique.values()).filter((admin) => adminMatchesSearch(admin, searchTerm));
+    return Array.from(unique.values()).filter((admin) => adminMatchesSearch(admin, debouncedSearch));
   };
 
   const adminExportColumns = useMemo<ExportColumn<Admin>[]>(
@@ -405,7 +413,7 @@ const Admins = () => {
 
   return (
     <ZenPageLayout
-      title="Admins"
+      title="Admin Users"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
@@ -417,17 +425,17 @@ const Admins = () => {
         <ExportPopup<Admin>
           data={filteredAdmins}
           columns={adminExportColumns}
-          fileName="admins"
-          title="Admins"
+          fileName="admin_users"
+          title="Admin Users"
           triggerLabel="Download"
-          description="Choose format and export the complete admin sheet with identity, role, branch, contact, status, security, and audit values."
+          description="Choose format and export the complete admin users sheet with identity, role, branch, contact, status, security, and audit values."
           resolveData={fetchAllAdminsForExport}
         />
       }
       topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
-            { label: 'Total Administrators', value: admins.length, icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', trend: 'Admin users' },
+            { label: 'Total Admin Users', value: admins.length, icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', trend: 'Admin Registry' },
             { label: 'High Command', value: admins.filter(a => a.role === 'Admin').length, icon: Sparkles, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Root access' },
             { label: 'Branch Officers', value: admins.filter(a => a.role !== 'Admin').length, icon: User, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', trend: 'Localized control' },
             { label: 'Registry Era', value: dayjs().format('YYYY'), icon: Info, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Current cycle' }
@@ -502,8 +510,9 @@ const Admins = () => {
           ))}
         </div>
       ) : (
-        <div className="w-full bg-white/80 backdrop-blur-xl rounded-[2rem] border border-zen-brown/15 shadow-none overflow-hidden table-container animate-in fade-in duration-700">
-          <table className="w-full text-center border-collapse min-w-[800px]">
+        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
+          <div className="table-container">
+            <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
               <tr>
                 <th>S NO</th>
@@ -526,48 +535,48 @@ const Admins = () => {
 
               {filteredAdmins.map((admin, index) => (
                 <tr key={admin._id} className={`transition-all group border-b border-black/[0.02] ${admin.status === 'Inactive' ? 'opacity-50 grayscale' : ''}`}>
-                  <td className="text-center italic opacity-40 text-[11px]">
-                    {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                    <span>{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
                   </td>
-                  <td>
-                     <div className="w-12 h-12 rounded-full overflow-hidden mx-auto bg-zen-cream border border-zen-brown/10 shadow-sm shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center text-zen-brown/10">
-                       <User size={24} />
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                     <div className="flex justify-center">
+                        <div className="w-10 lg:w-12 h-10 lg:h-12 zen-pointed-surface overflow-hidden bg-zen-cream border-2 border-white shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center text-zen-brown/10">
+                          <User size={24} />
+                        </div>
                      </div>
                   </td>
-                  <td>
-                    <div className="flex flex-col items-center px-6">
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                    <div className="flex flex-col items-center justify-center leading-none">
                       <span className="zen-table-primary">{admin.name}</span>
+                      <span className="zen-table-meta mt-1">Admin User</span>
                     </div>
                   </td>
-                  <td>
-                    <div className="flex flex-col items-center">
-                       <span className="text-[11px] font-bold text-zen-brown/60 lowercase tracking-wider">{admin.email}</span>
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                    <div className="flex flex-col items-center justify-center leading-none">
+                       <span className="zen-table-primary">{admin.email}</span>
+                       <span className="zen-table-meta mt-1">Security Hub</span>
                     </div>
                   </td>
-                  <td>
-                     <ZenBadge variant="sand">{admin.role}</ZenBadge>
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                     <ZenBadge variant="sand" className="text-[9px] uppercase tracking-widest">{admin.role}</ZenBadge>
                   </td>
-                  <td>
-                    <div className="flex items-center justify-center">
-                       <button
-                         onClick={() => toggleStatus(admin)}
-                         className={`flex items-center gap-2 px-5 py-2 rounded-full border transition-all duration-500 hover:scale-110 active:scale-95 shadow-sm ${
-                           admin.status === 'Active'
-                             ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/30 shadow-zen-leaf/5'
-                             : 'bg-rose-50 text-rose-500 border-rose-100'
-                         }`}
-                       >
-                          <div className={`w-1 h-1 rounded-full ${admin.status === 'Active' ? 'bg-zen-leaf' : 'bg-rose-500'}`} />
-                          <span className="text-[10px] font-black uppercase tracking-[0.15em] leading-none">
-                            {admin.status === 'Inactive' ? 'Suspended' : 'Operational'}
-                          </span>
-                       </button>
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                    <div className="flex justify-center">
+                       <ZenBadge variant={admin.status === 'Active' ? 'leaf' : 'sand'} className="text-[9px] uppercase tracking-widest">
+                          {admin.status === 'Inactive' ? 'Suspended' : 'Operational'}
+                       </ZenBadge>
                     </div>
                   </td>
-                  <td>
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex items-center justify-center gap-2">
-                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(admin)} />
-                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(admin._id)} />
+                       <ZenIconButton
+                         icon={Zap}
+                         variant={admin.status === 'Active' ? 'leaf' : 'sand'}
+                         onClick={() => toggleStatus(admin)}
+                         size="md"
+                       />
+                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(admin)} size="md" />
+                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(admin._id)} size="md" />
                     </div>
                   </td>
                 </tr>
@@ -575,6 +584,7 @@ const Admins = () => {
             </tbody>
           </table>
         </div>
+      </div>
       )}
 
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
@@ -592,7 +602,7 @@ const Admins = () => {
               </div>
               <div>
                 <h3 className="text-2xl font-serif font-black text-zen-brown tracking-tight">
-                  {editingAdmin ? 'Refine Administrator' : 'Establish Administrator'}
+                  {editingAdmin ? 'Refine Admin User' : 'Establish Admin User'}
                 </h3>
                 <p className="text-xs font-bold text-zen-brown/30 uppercase tracking-[0.4em] mt-1">Registry Management System</p>
               </div>
@@ -601,60 +611,35 @@ const Admins = () => {
           </div>
         }
         footer={
-          <div className="flex items-center justify-between px-10 py-6 bg-white border-t border-zen-brown/5">
-            <div className="flex items-center gap-3 text-zen-brown/40 italic">
-              <Info size={14} />
-              <p className="text-[11px] font-medium tracking-wide">
-                {editingAdmin ? 'Modifications will be synchronized across the ecosystem.' : 'Access credentials will be issued upon creation.'}
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zen-brown/50 hover:text-zen-brown hover:bg-zen-cream/50 transition-all"
-              >
-                Cancel
-              </button>
-              <ZenButton
-                type="submit"
-                form="admin-modal-form"
-                className="px-10 py-3.5 shadow-xl shadow-zen-brown/10"
-              >
-                {editingAdmin ? 'Sync Changes' : 'Confirm Access'}
-              </ZenButton>
-            </div>
+          <div className="flex items-center justify-end w-full gap-4">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zen-brown/50 hover:text-zen-brown hover:bg-zen-cream/50 transition-all whitespace-nowrap"
+            >
+              Cancel
+            </button>
+            <ZenButton
+              type="submit"
+              form="admin-modal-form"
+              className="px-10 py-3.5 shadow-xl shadow-zen-brown/10 whitespace-nowrap"
+            >
+              {editingAdmin ? 'Sync Changes' : 'Confirm Access'}
+            </ZenButton>
           </div>
         }
       >
-        <form id="admin-modal-form" onSubmit={handleSubmit} className="px-2 py-4">
-          <div className="space-y-12">
-            {/* Identity Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-              <div className="lg:col-span-4">
-                <div className="sticky top-0">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-lg bg-zen-sand/10 text-zen-sand flex items-center justify-center">
-                      <Shield size={16} />
-                    </div>
-                    <h4 className="text-lg font-serif font-black text-zen-brown">Identity Hub</h4>
-                  </div>
-                  <p className="text-sm text-zen-brown/50 leading-relaxed max-w-xs">
-                    Define the administrator's core identity, operational status, and hierarchical role within the workspace.
-                  </p>
+        <form id="admin-modal-form" onSubmit={handleSubmit} className="px-8 py-10">
+          <div className="bg-white rounded-[3rem] border border-zen-brown/10 p-12 shadow-2xl shadow-zen-brown/5 relative overflow-hidden">
+            {/* Ambient Background Elements */}
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-zen-brown/[0.03] rounded-full blur-3xl" />
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-zen-sand/[0.05] rounded-full blur-3xl" />
 
-                  <div className="mt-6">
-                    <ZenBadge variant={formData.status === 'Active' ? 'leaf' : 'inactive'} className="px-4 py-1.5 text-[10px] tracking-[0.2em]">
-                      STATUS: {formData.status.toUpperCase()}
-                    </ZenBadge>
-                  </div>
-                </div>
-              </div>
-
-              <div className="lg:col-span-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 bg-white/50 backdrop-blur-sm p-8 rounded-[2rem] border border-zen-brown/5 shadow-sm">
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+              <div className="space-y-10">
+                <div className="space-y-6">
                   <ZenInput
-                    label="Full name"
+                    label="Full Name"
                     placeholder="e.g. Alexander Pierce"
                     value={formData.name}
                     onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
@@ -662,13 +647,25 @@ const Admins = () => {
                     error={formErrors.name}
                   />
                   <ZenInput
-                    label="Email address"
+                    label="Email Address"
                     icon={Mail}
                     type="email"
+                    placeholder="alexander@workspace.com"
                     value={formData.email}
                     onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
                     variant="professional"
                     error={formErrors.email}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <ZenDropdown
+                    label="Role Access"
+                    options={['Admin', 'Manager']}
+                    value={formData.role}
+                    onChange={(val) => setFormData({ ...formData, role: val as 'Admin' | 'Manager' })}
+                    variant="pill"
+                    error={!!formErrors.role}
                   />
                   <ZenDropdown
                     label="Active Status"
@@ -678,47 +675,16 @@ const Admins = () => {
                     variant="pill"
                     error={!!formErrors.status}
                   />
-                  <ZenDropdown
-                    label="Role Access"
-                    options={['Admin', 'Manager']}
-                    value={formData.role}
-                    onChange={(val) => setFormData({ ...formData, role: val as 'Admin' | 'Manager' })}
-                    variant="pill"
-                    error={!!formErrors.role}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="h-px bg-gradient-to-r from-transparent via-zen-brown/10 to-transparent" />
-
-            {/* Security Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pb-6">
-              <div className="lg:col-span-4">
-                <div className="sticky top-0">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-lg bg-zen-leaf/10 text-zen-leaf flex items-center justify-center">
-                      <Lock size={16} />
-                    </div>
-                    <h4 className="text-lg font-serif font-black text-zen-brown">Security Keys</h4>
-                  </div>
-                  <p className="text-sm text-zen-brown/50 leading-relaxed max-w-xs">
-                    Establish secure login credentials. For existing accounts, leave blank to maintain current security profile.
-                  </p>
-
-                  <div className="mt-6 flex items-center gap-2 text-zen-brown/30 bg-zen-cream/30 p-4 rounded-xl border border-zen-brown/5">
-                    <Info size={16} className="shrink-0" />
-                    <span className="text-[11px] font-medium leading-tight">Password strength must comply with organizational security protocols.</span>
-                  </div>
                 </div>
               </div>
 
-              <div className="lg:col-span-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 bg-white/50 backdrop-blur-sm p-8 rounded-[2rem] border border-zen-brown/5 shadow-sm">
+              <div className="space-y-10">
+                <div className="space-y-6">
                   <ZenInput
                     label={`Security Key${editingAdmin ? ' (optional)' : ''}`}
                     icon={Lock}
                     type="password"
+                    placeholder="••••••••••••"
                     value={formData.password}
                     onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
                     variant="professional"
@@ -729,20 +695,22 @@ const Admins = () => {
                       label="Verify Key"
                       icon={Lock}
                       type="password"
+                      placeholder="••••••••••••"
                       value={formData.confirmPassword}
                       onChange={(e: any) => setFormData({ ...formData, confirmPassword: e.target.value })}
                       variant="professional"
                       error={formErrors.confirmPassword}
                     />
                   )}
-                  <div className="sm:col-span-2 mt-2">
-                    <div className="flex items-start gap-4 p-5 bg-zen-brown/[0.02] rounded-2xl border border-zen-brown/5">
-                      <Sparkles size={18} className="text-zen-sand mt-0.5 shrink-0" />
-                      <p className="text-xs text-zen-brown/60 leading-relaxed">
-                        Administrators hold significant authority. High-level accounts can manage operational scheduling, branch configurations, and financial reporting across the workspace ecosystem.
-                      </p>
-                    </div>
+                </div>
+
+                <div className="p-6 bg-zen-brown/[0.03] rounded-3xl border border-zen-brown/5 flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0">
+                    <Shield className="text-zen-brown/40" size={20} />
                   </div>
+                  <p className="text-[11px] leading-relaxed text-zen-brown/50 font-medium">
+                    Ensure credentials meet security standards. High-level accounts maintain significant authority across the workspace ecosystem.
+                  </p>
                 </div>
               </div>
             </div>

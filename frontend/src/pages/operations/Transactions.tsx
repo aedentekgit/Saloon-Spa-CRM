@@ -36,6 +36,9 @@ import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
+import { useData } from '../../context/DataContext';
+import { useBranches } from '../../context/BranchContext';
+import { useCategories } from '../../context/CategoryContext';
 
 dayjs.extend(isBetween);
 
@@ -82,13 +85,13 @@ interface Transaction {
   discount?: number;
   total?: number;
   expenseTitle?: string;
-  expenseCategory?: string;
+  sectorCategory?: string;
   expenseUserId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
-import { useData } from '../../context/DataContext';
+
 
 const PAYMENT_MODES = ['Cash', 'Card', 'UPI', 'GPay', 'Split'] as const;
 
@@ -201,7 +204,7 @@ const buildTransactionRows = (
           discount: inv.discount || 0,
           total: inv.total || 0,
           expenseTitle: '-',
-          expenseCategory: '-',
+          sectorCategory: '-',
           expenseUserId: '-',
           createdAt: inv.createdAt,
           updatedAt: inv.updatedAt
@@ -213,13 +216,14 @@ const buildTransactionRows = (
     ? expensesList.map((exp: any) => {
         const sourceId = exp._id || exp.id || '';
         const branchId = getEntityId(exp.branch);
+        const sectorCat = exp.sectorCategory || exp.category || 'General';
         return {
           id: sourceId,
           sourceModel: 'Expense',
           sourceId,
           type: 'Outflow',
           title: exp.title,
-          category: exp.category,
+          category: sectorCat,
           amount: exp.amount || 0,
           signedAmount: -(exp.amount || 0),
           date: exp.date,
@@ -240,7 +244,7 @@ const buildTransactionRows = (
           discount: 0,
           total: 0,
           expenseTitle: exp.title,
-          expenseCategory: exp.category,
+          sectorCategory: sectorCat,
           expenseUserId: getEntityId(exp.user) || '-',
           createdAt: exp.createdAt,
           updatedAt: exp.updatedAt
@@ -291,7 +295,7 @@ const filterTransactions = (
       t.discount,
       t.total,
       t.expenseTitle,
-      t.expenseCategory,
+      t.sectorCategory,
       t.expenseUserId,
       t.createdAt,
       t.updatedAt
@@ -321,11 +325,17 @@ const filterTransactions = (
 const Transactions = () => {
   const { user, hasPermission } = useAuth();
   const { settings } = useSettings();
-  const { branches } = useData();
+  const { branches, selectedBranch: globalBranchId } = useBranches();
+  const { getSectorCategories } = useCategories();
+  const activeSectorCategories = getSectorCategories().map(c => c.name);
   const [transactions, setTransactions] = useState<Transaction[]>(() => getCachedJson('zen_page_transactions_list', []));
   const [loading, setLoading] = useState(() => getCachedJson<Transaction[]>('zen_page_transactions_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [branchFilter, setBranchFilter] = useState<string>('All');
+  const [branchFilter, setBranchFilter] = useState<string>(() => {
+    if (globalBranchId === 'all') return 'All';
+    const b = branches.find(br => br._id === globalBranchId);
+    return b?.name || 'All';
+  });
   const [statusFilter, setStatusFilter] = useState<'All' | Transaction['status']>('All');
   const [dateRange, setDateRange] = useState<any>('All');
   const [page, setPage] = useState(1);
@@ -402,9 +412,9 @@ const Transactions = () => {
         const mockTransactions: Transaction[] = [
           { id: 'TX-8821', sourceModel: 'Invoice', sourceId: 'TX-8821', type: 'Inflow', title: 'Service: Fatima Al-Sayed', category: 'Service Revenue', amount: 450, signedAmount: 450, date: dayjs().subtract(0, 'day').format(), method: 'Cash', status: 'Completed', reference: 'INV-101', invoiceNumber: 'INV-101', clientName: 'Fatima Al-Sayed', paymentMode: 'Cash' },
           { id: 'TX-8822', sourceModel: 'Invoice', sourceId: 'TX-8822', type: 'Inflow', title: 'Service: Mohammed Rashid', category: 'Service Revenue', amount: 1200, signedAmount: 1200, date: dayjs().subtract(1, 'day').format(), method: 'Card', status: 'Completed', reference: 'INV-102', invoiceNumber: 'INV-102', clientName: 'Mohammed Rashid', paymentMode: 'Card' },
-          { id: 'TX-8823', sourceModel: 'Expense', sourceId: 'TX-8823', type: 'Outflow', title: 'Office Rent', category: 'Fixed Expense', amount: 5000, signedAmount: -5000, date: dayjs().subtract(2, 'day').format(), method: 'Bank', status: 'Completed', expenseTitle: 'Office Rent', expenseCategory: 'Fixed Expense' },
+          { id: 'TX-8823', sourceModel: 'Expense', sourceId: 'TX-8823', type: 'Outflow', title: 'Office Rent', category: 'Fixed Expense', amount: 5000, signedAmount: -5000, date: dayjs().subtract(2, 'day').format(), method: 'Bank', status: 'Completed', expenseTitle: 'Office Rent', sectorCategory: 'Fixed Expense' },
           { id: 'TX-8824', sourceModel: 'Invoice', sourceId: 'TX-8824', type: 'Inflow', title: 'Service: Sara Hamad', category: 'Service Revenue', amount: 850, signedAmount: 850, date: dayjs().subtract(3, 'day').format(), method: 'Transfer', status: 'Completed', reference: 'INV-103', invoiceNumber: 'INV-103', clientName: 'Sara Hamad', paymentMode: 'Transfer' },
-          { id: 'TX-8825', sourceModel: 'Expense', sourceId: 'TX-8825', type: 'Outflow', title: 'Botanical Supplies', category: 'Variable Expense', amount: 450, signedAmount: -450, date: dayjs().subtract(4, 'day').format(), method: 'Cash', status: 'Completed', expenseTitle: 'Botanical Supplies', expenseCategory: 'Variable Expense' },
+          { id: 'TX-8825', sourceModel: 'Expense', sourceId: 'TX-8825', type: 'Outflow', title: 'Botanical Supplies', category: 'Variable Expense', amount: 450, signedAmount: -450, date: dayjs().subtract(4, 'day').format(), method: 'Cash', status: 'Completed', expenseTitle: 'Botanical Supplies', sectorCategory: 'Variable Expense' },
           { id: 'TX-8826', sourceModel: 'Invoice', sourceId: 'TX-8826', type: 'Inflow', title: 'Service: Khalid Abdullah', category: 'Service Revenue', amount: 2100, signedAmount: 2100, date: dayjs().subtract(5, 'day').format(), method: 'Card', status: 'Completed', reference: 'INV-104', invoiceNumber: 'INV-104', clientName: 'Khalid Abdullah', paymentMode: 'Card' },
         ];
         setTransactions(mockTransactions);
@@ -420,7 +430,7 @@ const Transactions = () => {
        // Fallback logic also for fetch errors
        const mockTransactions: Transaction[] = [
           { id: 'TX-8821', sourceModel: 'Invoice', sourceId: 'TX-8821', type: 'Inflow', title: 'Service: Fatima Al-Sayed', category: 'Service Revenue', amount: 450, signedAmount: 450, date: dayjs().format(), method: 'Cash', status: 'Completed', reference: 'INV-101', invoiceNumber: 'INV-101', clientName: 'Fatima Al-Sayed', paymentMode: 'Cash' },
-          { id: 'TX-8823', sourceModel: 'Expense', sourceId: 'TX-8823', type: 'Outflow', title: 'Office Rent', category: 'Fixed Expense', amount: 5000, signedAmount: -5000, date: dayjs().subtract(2, 'day').format(), method: 'Bank', status: 'Completed', expenseTitle: 'Office Rent', expenseCategory: 'Fixed Expense' },
+          { id: 'TX-8823', sourceModel: 'Expense', sourceId: 'TX-8823', type: 'Outflow', title: 'Office Rent', category: 'Fixed Expense', amount: 5000, signedAmount: -5000, date: dayjs().subtract(2, 'day').format(), method: 'Bank', status: 'Completed', expenseTitle: 'Office Rent', sectorCategory: 'Fixed Expense' },
        ];
        setTransactions(mockTransactions);
        notify('warning', 'Offline Mode', 'Displaying local transaction cache.');
@@ -537,7 +547,7 @@ const Transactions = () => {
         { header: 'Discount', accessor: (transaction) => money(transaction.discount) },
         { header: 'Invoice Total', accessor: (transaction) => money(transaction.total) },
         { header: 'Expense Title', accessor: (transaction) => transaction.expenseTitle || '-' },
-        { header: 'Expense Category', accessor: (transaction) => transaction.expenseCategory || '-' },
+        { header: 'Sector Category', accessor: (transaction) => transaction.sectorCategory || '-' },
         { header: 'Expense User ID', accessor: (transaction) => transaction.expenseUserId || '-' },
         { header: 'Created At', accessor: (transaction) => formatExportDateTime(transaction.createdAt) },
         { header: 'Updated At', accessor: (transaction) => formatExportDateTime(transaction.updatedAt) }
@@ -584,7 +594,7 @@ const Transactions = () => {
             }
           : {
               title: selectedTransaction.title,
-              category: selectedTransaction.category,
+              sectorCategory: selectedTransaction.category,
               amount: selectedTransaction.amount,
               date: dayjs(selectedTransaction.date).format('YYYY-MM-DD')
             };
@@ -696,15 +706,15 @@ const Transactions = () => {
         <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
           <table className="w-full text-center border-collapse min-w-[1000px]">
             <thead>
-              <tr>
-                <th>S No</th>
-                <th>Visual</th>
-                <th>Transaction Identity</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Method</th>
-                <th>Status</th>
-                <th>Actions</th>
+              <tr className="bg-zen-brown/[0.02]">
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[80px]">S No</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[100px]">Visual</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-left border-b border-zen-brown/5">Transaction Identity</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5">Sector</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5">Amount</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[120px]">Method</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[150px]">Status</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[150px]">Actions</th>
               </tr>
             </thead>
                 <tbody>
@@ -749,7 +759,7 @@ const Transactions = () => {
                           <td>
                             <div className="flex justify-center">
                                <ZenBadge variant={t.type === 'Inflow' ? 'leaf' : 'sand'} className="text-[9px] font-black uppercase tracking-widest scale-90">
-                                 {t.category}
+                                {t.sectorCategory || t.category}
                                </ZenBadge>
                             </div>
                           </td>
@@ -837,7 +847,7 @@ const Transactions = () => {
               {selectedTransaction.type === 'Inflow' ? (
                 <>
                   <ZenInput label="Invoice" value={selectedTransaction.reference || selectedTransaction.id} disabled />
-                  <ZenInput label="Client" value={selectedTransaction.title.replace(/^Service:\\s*/i, '')} disabled />
+                  <ZenInput label="Client" value={selectedTransaction.title.replace(/^Service:\s*/i, '')} disabled />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                     <ZenDropdown
                       label="Payment Mode"
@@ -862,10 +872,10 @@ const Transactions = () => {
                   />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                     <ZenDropdown
-                      label="Category"
+                      label="Sector"
                       value={selectedTransaction.category}
                       onChange={(val: any) => setSelectedTransaction({ ...selectedTransaction, category: val })}
-                      options={['Inventory', 'Rent', 'Salary', 'Utilities', 'Marketing', 'Maintenance', 'Other']}
+                      options={activeSectorCategories.length > 0 ? activeSectorCategories : ['Inventory', 'Rent', 'Salary', 'Utilities', 'Marketing', 'Maintenance', 'Other']}
                     />
                     <ZenDatePicker
                       label="Expense Date"

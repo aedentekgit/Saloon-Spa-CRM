@@ -33,6 +33,18 @@ const parseTime = (t: string, d: string) => {
   }
   return null;
 };
+// ── Membership-Integrated Service Option ─────────────────────────────────────
+// Each option carries metadata to enable auto-linking on selection
+export interface ServiceOption {
+  label: string;          // displayed text
+  value: string;          // normalized service name (key for handleAddServiceLine)
+  serviceId: string;      // the service's _id
+  isMembershipCovered: boolean;
+  membershipId?: string;  // if covered, which membershipId to auto-link
+  membershipPlanName?: string; // display name like "Gold Membership"
+  normalPrice: number;    // original price
+}
+
 interface Appointment {
   _id: string;
   client: string;
@@ -260,6 +272,7 @@ const Appointments = () => {
   const [dayAppointments, setDayAppointments] = useState<Appointment[]>(() => getCachedJson('zen_page_day_appointments', []));
   const [loading, setLoading] = useState(() => getCachedJson<Appointment[]>('zen_page_appointments', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -276,6 +289,13 @@ const Appointments = () => {
 
   const PAGE_LIMIT = 12;
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
   // Raw data from backend
   const [rawClients, setRawClients] = useState<any[]>(() => getCachedJson('zen_page_appointment_clients', []));
   const [rawServices, setRawServices] = useState<any[]>(() => getCachedJson('zen_page_appointment_services', []));
@@ -288,6 +308,7 @@ const Appointments = () => {
     client: '',
     service: '',
     serviceId: '',
+    membershipPlanName: '',
     quantity: 1,
     employee: '',
     room: '',
@@ -319,16 +340,55 @@ const Appointments = () => {
     return getEntityId(entity?.branch) === selectedFormBranchId;
   };
 
-  const serviceOptions = useMemo(() => {
-    if (!selectedFormBranchId) return ['None'];
+  // Build enhanced service options that carry membership linkage metadata
+  const serviceOptions = useMemo((): ServiceOption[] => {
+    if (!selectedFormBranchId) return [];
 
-    // Default: All active services for the current branch
-    const branchServices = rawServices.filter(s =>
-      isInSelectedFormBranch(s) && (!s.status || s.status === 'Active')
-    );
+    const options: ServiceOption[] = [];
 
-    return ['None', ...branchServices.map(s => s.name)];
-  }, [rawServices, selectedFormBranchId]);
+    rawServices.forEach((s: any) => {
+      const isBranchActive = isInSelectedFormBranch(s) && (!s.status || s.status === 'Active');
+      if (!isBranchActive) return;
+
+      // Determine if this service is covered by any active membership
+      const coveringMembership = activeMemberships.find((membership: any) => {
+        const applicableIds = (membership.plan?.applicableServices || []).map((id: any) => getEntityId(id));
+        // Empty applicableServices = all services covered
+        return applicableIds.length === 0 || applicableIds.includes(getEntityId(s._id));
+      });
+
+      const isCovered = !!coveringMembership;
+      const planName = coveringMembership?.plan?.name || '';
+      const memId = coveringMembership?._id || '';
+
+      options.push({
+        serviceId: getEntityId(s._id),
+        label: isCovered
+          ? `${s.name} — ${planName}`
+          : s.name,
+        value: s.name,
+        isMembershipCovered: isCovered,
+        membershipId: isCovered ? memId : undefined,
+        membershipPlanName: isCovered ? planName : undefined,
+        normalPrice: Number(s.price || 0)
+      });
+    });
+
+    // Sort: membership-covered services first, then normal services, both alphabetically
+    options.sort((a, b) => {
+      if (a.isMembershipCovered !== b.isMembershipCovered) {
+        return a.isMembershipCovered ? -1 : 1;
+      }
+      return a.label.localeCompare(b.label);
+    });
+
+    return options;
+  }, [rawServices, selectedFormBranchId, activeMemberships]);
+
+  const servicePickerOptions = useMemo(() => serviceOptions.map(o => ({
+    label: o.label,
+    value: o.serviceId || o.value
+  })), [serviceOptions]);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -530,7 +590,7 @@ const Appointments = () => {
   };
 
   const appointmentMatchesSearch = (apt: Appointment) => {
-    const query = searchTerm.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     if (!query) return true;
 
     return [
@@ -560,7 +620,7 @@ const Appointments = () => {
 
   const filteredAppointments = useMemo(() => {
     return filterAppointmentsForCurrentView(appointments);
-  }, [appointments, selectedDate, viewType, selectedBranch, searchTerm, user]);
+  }, [appointments, selectedDate, viewType, selectedBranch, debouncedSearch, user]);
 
   const stats = useMemo(() => {
     const total = filteredAppointments.length;
@@ -672,36 +732,46 @@ const Appointments = () => {
       if (!serviceName || serviceName === 'None') return;
 
       const serviceId = getEntityId(entry?.serviceId);
-      const cleanServiceName = serviceName.replace(/\s\(Used \d+ times\)$/, '');
+      const cleanServiceName = serviceName.replace(/\s\(Used \d+ times\)$/, '').split(' — ')[0].trim();
       const catalogItem = (serviceId && serviceCatalog.byId.get(serviceId)) || serviceCatalog.byName.get(cleanServiceName);
       const quantity = normalizeServiceQuantity(entry?.quantity);
-      const price = Number(entry?.price ?? catalogItem?.price ?? 0) || 0;
+      const coveredOption = serviceOptions.find((option) =>
+        (serviceId && option.serviceId === serviceId) ||
+        option.value === cleanServiceName ||
+        option.label === serviceName
+      );
+      const isMembershipCovered = entry?.isMembershipCovered === true || coveredOption?.isMembershipCovered === true;
+      const price = isMembershipCovered ? 0 : (Number(entry?.price ?? catalogItem?.price ?? 0) || 0);
       const duration = Number(entry?.duration ?? catalogItem?.duration ?? 0) || 0;
 
       lines.push({
         key: isPrimary ? 'primary-service' : `addon-${addOnIndex}`,
         serviceId: serviceId || catalogItem?._id || '',
-        service: catalogItem?.name || serviceName,
+        service: catalogItem?.name || cleanServiceName,
         quantity,
         price,
         duration,
         lineTotal: price * quantity,
         lineDuration: duration * quantity,
         isPrimary,
-        addOnIndex
+        addOnIndex,
+        isMembershipCovered,
+        membershipPlanName: entry?.membershipPlanName || coveredOption?.membershipPlanName || ''
       });
     };
 
     appendLine({
       serviceId: formData.serviceId,
       service: formData.service,
-      quantity: formData.quantity
+      quantity: formData.quantity,
+      isMembershipCovered: formData.bookingType === 'Membership',
+      membershipPlanName: (formData as any).membershipPlanName || ''
     }, true);
 
     (formData.addOns || []).forEach((addOn: any, index: number) => appendLine(addOn, false, index));
 
     return lines;
-  }, [formData.service, formData.serviceId, formData.quantity, formData.addOns, serviceCatalog]);
+  }, [formData.service, formData.serviceId, formData.quantity, formData.addOns, formData.bookingType, serviceCatalog, serviceOptions]);
 
   const serviceTotals = useMemo(() => {
     return serviceLineItems.reduce((totals, item) => ({
@@ -711,13 +781,32 @@ const Appointments = () => {
     }), { quantity: 0, duration: 0, amount: 0 });
   }, [serviceLineItems]);
 
-  const servicePickerOptions = useMemo(() => serviceOptions.filter(option => option !== 'None'), [serviceOptions]);
   const currencySymbol = settings?.general?.currencySymbol || 'QR';
 
-  const handleAddServiceLine = (serviceName: string) => {
+  const handleAddServiceLine = (serviceOption: ServiceOption | string) => {
+    // Support both plain service name strings (back-compat) and ServiceOption objects
+    let option: ServiceOption | undefined;
+    let serviceName: string;
+
+    if (typeof serviceOption === 'string') {
+      option = serviceOptions.find(o =>
+        o.label === serviceOption ||
+        o.value === serviceOption ||
+        o.serviceId === serviceOption
+      );
+      serviceName = option?.value || serviceOption;
+    } else {
+      option = serviceOption;
+      serviceName = option.label;
+    }
+
     if (!serviceName || serviceName === 'None') return;
-    const cleanServiceName = serviceName.replace(/\s\(Used \d+ times\)$/, '');
+    const cleanServiceName = serviceName.replace(/\s\(Used \d+ times\)$/, '').split(' — ')[0].trim();
     const service = serviceCatalog.byName.get(cleanServiceName);
+
+    // Auto-link membership if this is a covered service
+    const autoMembershipId = option?.isMembershipCovered ? (option.membershipId || '') : '';
+    const autoBookingType = option?.isMembershipCovered ? 'Membership' : 'Normal';
 
     setFormData(prev => {
       if (prev.service === serviceName) {
@@ -743,8 +832,11 @@ const Appointments = () => {
       if (!prev.service || prev.service === 'None') {
         return {
           ...prev,
-          service: service?.name || serviceName,
-          serviceId: service?._id || '',
+          service: service?.name || cleanServiceName,
+          serviceId: option?.serviceId || service?._id || '',
+          membershipId: autoMembershipId || prev.membershipId,
+          membershipPlanName: option?.membershipPlanName || '',
+          bookingType: autoBookingType || prev.bookingType,
           quantity: 1,
           time: editingApt ? prev.time : ''
         };
@@ -755,11 +847,15 @@ const Appointments = () => {
         addOns: [
           ...addOns,
           {
-            serviceId: service?._id || '',
-            service: service?.name || serviceName,
-            price: Number(service?.price || 0),
+            serviceId: option?.serviceId || service?._id || '',
+            service: service?.name || cleanServiceName,
+            price: option?.isMembershipCovered ? 0 : Number(service?.price || 0),
             duration: Number(service?.duration || 0),
-            quantity: 1
+            quantity: 1,
+            isMembershipCovered: option?.isMembershipCovered || false,
+            membershipPlanName: option?.membershipPlanName || '',
+            membershipId: autoMembershipId || undefined,
+            bookingType: autoBookingType || 'Normal'
           }
         ],
         time: editingApt ? prev.time : ''
@@ -797,6 +893,9 @@ const Appointments = () => {
             ...prev,
             service: promoted.service || '',
             serviceId: promoted.serviceId || '',
+            membershipPlanName: promoted.membershipPlanName || '',
+            membershipId: promoted.membershipId || prev.membershipId,
+            bookingType: promoted.isMembershipCovered || promoted.bookingType === 'Membership' ? 'Membership' : 'Normal',
             quantity: normalizeServiceQuantity(promoted.quantity),
             addOns: remainingAddOns,
             time: editingApt ? prev.time : ''
@@ -807,6 +906,7 @@ const Appointments = () => {
           ...prev,
           service: '',
           serviceId: '',
+          membershipPlanName: '',
           quantity: 1,
           addOns: [],
           time: editingApt ? prev.time : ''
@@ -960,14 +1060,15 @@ const Appointments = () => {
         room: (apt.room as any)?.name || apt.room || '',
         time: apt.time,
         date: apt.date,
-        membershipId: '',
-        bookingType: 'Normal',
+        membershipId: getEntityId((apt as any).membershipId) || '',
+        bookingType: (apt as any).bookingType || ((apt as any).serviceType === 'MEMBERSHIP' ? 'Membership' : 'Normal'),
         branch: (apt.branch as any)?._id || apt.branch || '',
         status: apt.status || 'Confirmed',
         cancellationReason: apt.cancellationReason || '',
         addOns: (apt.addOns || []).map((addOn: any) => ({
           ...addOn,
-          quantity: normalizeServiceQuantity(addOn.quantity)
+          quantity: normalizeServiceQuantity(addOn.quantity),
+          isMembershipCovered: addOn.isMembershipCovered || (addOn as any).bookingType === 'Membership' || addOn.price === 0
         })),
         totalQuantity: apt.totalQuantity || 0,
         totalDuration: apt.totalDuration || 0,
@@ -979,6 +1080,7 @@ const Appointments = () => {
         client: user?.role === 'Client' ? user.name : '',
         service: '',
         serviceId: '',
+        membershipPlanName: '',
         quantity: 1,
         employee: '',
         room: '',
@@ -1005,6 +1107,7 @@ const Appointments = () => {
     // Validation
     const errors: any = {};
     if (!selectedFormBranchId) errors.branch = true;
+    if (!formData.client || formData.client === 'None') errors.client = true;
     if (serviceLineItems.length === 0) errors.service = true;
     if (!formData.employee || formData.employee === 'None') errors.employee = true;
     if (!formData.room || formData.room === 'None') errors.room = true;
@@ -1015,6 +1118,7 @@ const Appointments = () => {
       
       const missingFields = [];
       if (errors.branch) missingFields.push('Branch');
+      if (errors.client) missingFields.push('Client');
       if (errors.service) missingFields.push('Services');
       if (errors.employee) missingFields.push('Specialist');
       if (errors.room) missingFields.push('Room');
@@ -1027,17 +1131,31 @@ const Appointments = () => {
     setIsSubmitting(true);
     try {
       const primaryService = serviceLineItems[0];
+      const selectedClient = rawClients.find((client: any) => client.name === formData.client && isInSelectedFormBranch(client));
+      const selectedEmployee = rawStaff.find((employee: any) => employee.name === formData.employee && isInSelectedFormBranch(employee));
+      const selectedRoom = rawRooms.find((room: any) => room.name === formData.room && isInSelectedFormBranch(room));
       const payload = {
         ...formData,
+        branch: selectedFormBranchId,
+        client: user?.role === 'Client' ? (user.name || formData.client) : formData.client.trim(),
+        clientId: user?.role === 'Client' ? user._id : (selectedClient?._id || undefined),
+        clientPhone: user?.role === 'Client' ? (user as any).phone : (selectedClient?.phone || undefined),
+        clientEmail: user?.role === 'Client' ? user.email : (selectedClient?.email || undefined),
         service: primaryService.service,
         serviceId: primaryService.serviceId || undefined,
+        employeeId: selectedEmployee?._id || undefined,
+        roomId: selectedRoom?._id || undefined,
+        membershipId: (formData.membershipId && formData.membershipId !== 'None') ? formData.membershipId : undefined,
+        bookingType: formData.bookingType,
         quantity: primaryService.quantity,
         addOns: serviceLineItems.slice(1).map(item => ({
           serviceId: item.serviceId || undefined,
           service: item.service,
           price: item.price,
           duration: item.duration,
-          quantity: item.quantity
+          quantity: item.quantity,
+          isMembershipCovered: item.isMembershipCovered || false,
+          membershipPlanName: item.membershipPlanName || undefined
         })),
         totalQuantity: serviceTotals.quantity,
         totalDuration: serviceTotals.duration,
@@ -1594,6 +1712,7 @@ const Appointments = () => {
                           employee: '',
                           service: '',
                           serviceId: '',
+                          membershipPlanName: '',
                           quantity: 1,
                           addOns: [],
                           room: '',
@@ -1632,6 +1751,7 @@ const Appointments = () => {
                           bookingType: 'Normal',
                           service: '',
                           serviceId: '',
+                          membershipPlanName: '',
                           quantity: 1,
                           addOns: [],
                           time: ''
@@ -1645,63 +1765,35 @@ const Appointments = () => {
               </div>
 
               {formData.client && activeMemberships.length > 0 && (
-                <div className="p-6 sm:p-8">
+                <div className="p-6 sm:p-8 border-t border-zen-brown/5">
                   <div className="flex items-start justify-between gap-4 mb-6">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Membership usage</p>
-                      <h4 className="mt-1 text-lg font-semibold text-zen-brown">Apply a membership benefit</h4>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Membership status</p>
+                      <h4 className="mt-1 text-lg font-semibold text-zen-brown">Active memberships</h4>
                     </div>
-                    {activeMemberships.length > 0 && (
-                      <ZenBadge variant="sand">{activeMemberships.length} active</ZenBadge>
-                    )}
+                    <ZenBadge variant="sand">{activeMemberships.length} active</ZenBadge>
                   </div>
-
-                  {activeMemberships.length > 0 ? (
-                    <>
-                      <ZenDropdown
-                        label="Membership plan"
-                        options={['None', ...activeMemberships.map((m: any) => `${m.plan?.name || 'Plan'} (${m.remainingSessions} left)`)]}
-                        value={activeMemberships.find((m: any) => (m._id || m).toString() === formData.membershipId?.toString()) 
-                          ? `${activeMemberships.find((m: any) => (m._id || m).toString() === formData.membershipId?.toString())?.plan?.name || 'Plan'} (${activeMemberships.find((m: any) => (m._id || m).toString() === formData.membershipId?.toString())?.remainingSessions} left)` 
-                          : 'None'}
-                        onChange={val => {
-                          const m = activeMemberships.find((m: any) => `${m.plan?.name || 'Plan'} (${m.remainingSessions} left)` === val);
-                          setFormData({
-                            ...formData,
-                            membershipId: m?._id || '',
-                            service: '',
-                            serviceId: '',
-                            quantity: 1,
-                            addOns: [],
-                            bookingType: m ? 'Membership' : 'Normal',
-                            time: ''
-                          });
-                        }}
-                      />
-                      {formData.membershipId && (
-                        (() => {
-                          const sel = activeMemberships.find((m: any) => (m._id || m).toString() === formData.membershipId.toString());
-                          if (!sel) return null;
-                          return (
-                            <div className="mt-4 p-4 rounded-xl border border-zen-sand/20 bg-zen-sand/5 flex flex-col gap-2">
-                              <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-bold text-zen-sand uppercase tracking-wider">Remaining Sessions</span>
-                                <span className="text-sm font-bold text-zen-brown">{sel.remainingSessions} / {sel.totalSessions}</span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-bold text-zen-sand uppercase tracking-wider">Validity Period</span>
-                                <span className="text-xs text-zen-brown/70">{dayjs(sel.startDate).format('DD MMM YYYY')} – {dayjs(sel.endDate).format('DD MMM YYYY')}</span>
-                              </div>
-                            </div>
-                          );
-                        })()
-                      )}
-                    </>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-zen-brown/15 bg-zen-cream/20 p-5">
-                      <p className="text-sm font-semibold text-zen-brown">No active memberships found for this client.</p>
-                    </div>
-                  )}
+                  <div className="space-y-3">
+                    {activeMemberships.map((m: any) => (
+                      <div key={m._id} className="p-4 rounded-xl border border-zen-sand/20 bg-zen-sand/5 flex flex-col gap-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-bold text-zen-brown">{m.plan?.name || 'Membership Plan'}</span>
+                          <span className="text-[10px] font-black text-zen-sand uppercase tracking-wider">
+                            {m.remainingSessions} sessions left
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold text-zen-sand uppercase tracking-wider">Validity</span>
+                          <span className="text-xs text-zen-brown/70">
+                            {dayjs(m.startDate).format('DD MMM YYYY')} – {dayjs(m.endDate).format('DD MMM YYYY')}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-[10px] text-zen-brown/40 leading-relaxed">
+                    Membership-covered services appear in the service list with pricing automatically set to ₹0.
+                  </p>
                 </div>
               )}
 
@@ -1812,13 +1904,26 @@ const Appointments = () => {
                           {serviceLineItems.map((item) => (
                             <div key={item.key} className="grid gap-4 px-5 py-4 md:grid-cols-[1fr_8rem_7rem_8rem_3.5rem] md:items-center">
                               <div className="flex min-w-0 items-center gap-3">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zen-brown/[0.04] text-zen-brown/40">
+                                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-zen-brown/40 ${item.isMembershipCovered ? 'bg-zen-sand/10' : 'bg-zen-brown/[0.04]'}`}>
                                   <Sparkles size={15} />
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="truncate font-serif text-sm font-bold text-zen-brown">{item.service}</p>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="truncate font-serif text-sm font-bold text-zen-brown">{item.service}</p>
+                                    {item.isMembershipCovered && (
+                                      <span className="max-w-full truncate text-[8px] font-black bg-zen-sand/10 text-zen-sand px-1.5 py-0.5 rounded border border-zen-sand/20 uppercase tracking-widest">
+                                        Membership{item.membershipPlanName ? `: ${item.membershipPlanName}` : ''}
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className="mt-0.5 text-[10px] font-semibold text-zen-brown/35">
-                                    {currencySymbol} {item.price.toLocaleString()} / {item.duration || 0} min
+                                    {item.isMembershipCovered ? (
+                                      <span className="text-zen-sand font-bold">
+                                        Covered{item.membershipPlanName ? ` by ${item.membershipPlanName}` : ''}
+                                      </span>
+                                    ) : (
+                                      <>{currencySymbol} {item.price.toLocaleString()} / {item.duration || 0} min</>
+                                    )}
                                   </p>
                                 </div>
                               </div>

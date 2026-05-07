@@ -36,17 +36,17 @@ const Leave = React.lazy(() => import('./pages/operations/Leave'));
 const Services = React.lazy(() => import('./pages/resources/Services'));
 const Memberships = React.lazy(() => import('./pages/resources/Memberships'));
 const Billing = React.lazy(() => import('./pages/operations/Billing'));
-const Finance = React.lazy(() => import('./pages/operations/Finance'));
+// const Finance = React.lazy(() => import('./pages/operations/Finance'));
 const Inventory = React.lazy(() => import('./pages/resources/Inventory'));
 const WhatsApp = React.lazy(() => import('./pages/config/WhatsApp'));
-const Reports = React.lazy(() => import('./pages/dashboard/Reports'));
+// const Reports = React.lazy(() => import('./pages/dashboard/Reports'));
 const Settings = React.lazy(() => import('./pages/config/Settings'));
 const Roles = React.lazy(() => import('./pages/config/Roles'));
 const Branches = React.lazy(() => import('./pages/config/Branches'));
 const Admins = React.lazy(() => import('./pages/config/Admins'));
 const RoomCategories = React.lazy(() => import('./pages/config/RoomCategories'));
 const ServiceCategories = React.lazy(() => import('./pages/config/ServiceCategories'));
-const ExpenseCategories = React.lazy(() => import('./pages/config/ExpenseCategories'));
+const SectorCategories = React.lazy(() => import('./pages/config/SectorCategories'));
 const Payroll = React.lazy(() => import('./pages/operations/Payroll'));
 const Shifts = React.lazy(() => import('./pages/config/Shifts'));
 const Transactions = React.lazy(() => import('./pages/operations/Transactions'));
@@ -223,16 +223,16 @@ const AppRoutes = () => {
           <Route path="/services" element={guarded(<Services />)} />
           <Route path="/memberships" element={guarded(<Memberships />)} />
           <Route path="/billing" element={guarded(<Billing />)} />
-          <Route path="/finance" element={guarded(<Finance />)} />
+{/* <Route path="/finance" element={guarded(<Finance />)} /> */}
           <Route path="/inventory" element={guarded(<Inventory />)} />
           <Route path="/whatsapp" element={guarded(<WhatsApp />)} />
-          <Route path="/reports" element={guarded(<Reports />)} />
+{/* <Route path="/reports" element={guarded(<Reports />)} /> */}
           <Route path="/settings" element={guarded(<Settings />)} />
           <Route path="/roles" element={guarded(<Roles />)} />
           <Route path="/branches" element={guarded(<Branches />)} />
           <Route path="/room-categories" element={guarded(<RoomCategories />)} />
           <Route path="/service-categories" element={guarded(<ServiceCategories />)} />
-          <Route path="/expense-categories" element={guarded(<ExpenseCategories />)} />
+          <Route path="/sector-categories" element={guarded(<SectorCategories />)} />
           <Route path="/admins" element={guarded(<Admins />)} />
           <Route path="/payroll" element={guarded(<Payroll />)} />
           <Route path="/shifts" element={guarded(<Shifts />)} />

@@ -152,6 +152,7 @@ const remoteSteps = [
   `cd ${target.remoteRoot}/frontend && npm install && ${target.frontendBuildCmd}`,
   `pm2 restart ${target.pm2Name}`,
   'pm2 save',
+  'sleep 3',
   `curl -fsS ${target.healthUrl}`,
   `curl -fsS ${target.publicHealthUrl}`,
 ];

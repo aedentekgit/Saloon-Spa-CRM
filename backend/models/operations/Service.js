@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const serviceSchema = mongoose.Schema({
   name: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
   duration: {
     type: Number,
@@ -62,5 +61,8 @@ const serviceSchema = mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Compound index to ensure service name is unique per branch
+serviceSchema.index({ name: 1, branch: 1 }, { unique: true });
 
 module.exports = mongoose.model('Service', serviceSchema);

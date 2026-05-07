@@ -3,6 +3,9 @@ import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, Calendar, Sparkles, Eye, EyeOff, Clock } from 'lucide-react';
 import dayjs from 'dayjs';
 
+// Helper: returns true if an option label looks like a membership-covered service
+const isMembershipLabel = (label: string) => label.includes(' — ');
+
 interface DropdownProps {
   label: string;
   options: string[] | { label: string; value: string }[];
@@ -121,10 +124,10 @@ export const ZenDropdown = ({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={variant === 'pill'
           ? `h-[46px] sm:h-[50px] px-5 rounded-[1.35rem] border flex items-center justify-between gap-4 transition-all cursor-pointer shadow-sm relative ${
-              error ? 'bg-rose-50 border-rose-200' : 'bg-white border-zen-brown/10 group-hover:border-zen-gold/40'
+              error ? 'bg-rose-50 border-rose-200' : 'bg-slate-50/40 border-zen-brown/15 group-hover:border-zen-sand/30 group-focus-within:border-zen-sand/50'
             }`
           : `w-full px-1 pb-4 bg-transparent border-b-[2px] flex items-center justify-between cursor-pointer transition-all relative ${
-              error ? 'border-rose-400' : 'border-zen-brown/15 group-hover:border-zen-gold/40 group-focus-within:border-zen-brown'
+              error ? 'border-rose-400' : 'border-zen-brown/35 group-hover:border-zen-sand/50 group-focus-within:border-zen-brown'
             }`
         }
       >
@@ -176,6 +179,10 @@ export const ZenDropdown = ({
             {safeOptions.map((opt) => {
               const label = typeof opt === 'string' ? opt : opt.label;
               const optValue = typeof opt === 'string' ? opt : opt.value;
+              const memLabel = isMembershipLabel(label);
+              const [serviceLabel, membershipPlanLabel] = memLabel
+                ? label.split(' — ').map(part => part.trim())
+                : [label, ''];
               return (
                 <div
                   key={optValue}
@@ -184,10 +191,29 @@ export const ZenDropdown = ({
                     onChange(optValue);
                     setIsOpen(false);
                   }}
-                  className={`px-6 py-4 text-sm font-medium transition-all duration-300 cursor-pointer flex items-center justify-between group/opt ${value === optValue ? 'bg-zen-cream/60 text-zen-brown font-bold' : 'text-zen-brown/50 hover:bg-zen-cream/30 hover:text-zen-brown hover:translate-x-1'}`}
+                  className={`px-6 py-4 text-sm font-medium transition-all duration-300 cursor-pointer flex items-center justify-between group/opt ${value === optValue ? 'bg-zen-cream/60 text-zen-brown font-bold' : memLabel ? 'text-zen-brown hover:bg-zen-sand/10 hover:text-zen-brown hover:translate-x-1' : 'text-zen-brown/50 hover:bg-zen-cream/30 hover:text-zen-brown hover:translate-x-1'}`}
                   style={['Plus Jakarta Sans', 'Inter', 'Outfit', 'Roboto', 'Poppins', 'Montserrat'].includes(label) ? { fontFamily: label } : {}}
                 >
-                  <span>{label}</span>
+                  <div className="flex min-w-0 items-center gap-3">
+                    {memLabel && (
+                      <div className="w-7 h-7 rounded-lg bg-zen-sand/15 border border-zen-sand/25 flex items-center justify-center shrink-0">
+                        <Sparkles size={13} className="text-zen-sand" />
+                      </div>
+                    )}
+                    {memLabel ? (
+                      <div className="min-w-0">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="truncate font-semibold text-zen-brown">{serviceLabel}</span>
+                          <span className="shrink-0 text-[9px] font-black bg-zen-sand/15 text-zen-sand px-2 py-0.5 rounded-full border border-zen-sand/20 uppercase tracking-widest">MEMBERSHIP</span>
+                        </div>
+                        <p className="mt-1 truncate text-[10px] font-bold uppercase tracking-[0.18em] text-zen-sand/80">
+                          Membership: {membershipPlanLabel || 'Active plan'}
+                        </p>
+                      </div>
+                    ) : (
+                      <span>{label}</span>
+                    )}
+                  </div>
                   {value === optValue && <div className="w-1.5 h-1.5 rounded-full bg-zen-gold shadow-none" />}
                 </div>
               );
@@ -256,7 +282,7 @@ export const ZenAutocomplete = ({
   return (
     <div className={`space-y-1 relative group ${className} ${disabled ? 'opacity-40 pointer-events-none' : ''}`} ref={containerRef}>
       {!hideLabel && <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>}
-      <div className="w-full px-1 pb-3 bg-transparent border-b border-zen-brown/25 flex items-center justify-between group-hover:border-zen-brown/40 group-focus-within:border-zen-brown transition-all">
+      <div className="w-full px-1 pb-3 bg-transparent border-b border-zen-brown/40 flex items-center justify-between group-hover:border-zen-brown/60 group-focus-within:border-zen-brown transition-all">
         <div className="flex items-center gap-3 flex-1">
           {Icon && <Icon size={16} className="text-zen-brown/20 group-focus-within:text-zen-brown" />}
           <input
@@ -367,7 +393,7 @@ export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', 
               {...props}
               {...numberOverrides}
               type={isPassword ? (showPassword ? 'text' : 'password') : type}
-              className={`w-full ${compact ? 'py-2.5' : 'py-3 sm:py-3.5'} ${Icon ? (compact ? 'pl-9' : 'pl-10') : 'pl-4'} pr-4 bg-white border rounded-2xl outline-none transition-all font-serif ${compact ? 'text-xs' : 'text-sm sm:text-base'} ${error ? 'border-rose-300 bg-rose-50/30 text-rose-900 focus:border-rose-400 focus:ring-rose-400/5' : 'border-zen-brown/10 text-zen-brown placeholder:text-zen-brown/20 focus:border-zen-sand/40 focus:ring-4 focus:ring-zen-sand/5'} shadow-sm group-hover:border-zen-brown/20 ${props.className || ''}`}
+              className={`w-full ${compact ? 'py-2.5' : 'py-3 sm:py-3.5'} ${Icon ? (compact ? 'pl-9' : 'pl-10') : 'pl-4'} pr-4 bg-slate-50/40 border rounded-2xl outline-none transition-all font-serif ${compact ? 'text-xs' : 'text-sm sm:text-base'} ${error ? 'border-rose-300 bg-rose-50/30 text-rose-900 focus:border-rose-400 focus:ring-rose-400/5' : 'border-zen-brown/15 text-zen-brown placeholder:text-zen-brown/25 focus:border-zen-sand/50 focus:bg-white focus:ring-4 focus:ring-zen-sand/5'} shadow-sm group-hover:border-zen-sand/30 ${props.className || ''}`}
             />
             {isPassword && !error && (
               <button
@@ -441,7 +467,7 @@ export const ZenTextarea = ({ label, icon: Icon, ...props }: any) => (
       {Icon && <Icon className="absolute left-5 top-5 text-zen-brown/30 group-focus-within:text-zen-brown transition-colors" size={16} />}
       <textarea
         {...props}
-        className={`w-full ${Icon ? 'pl-12' : 'pl-4'} pr-4 py-4 bg-white border border-zen-brown/10 rounded-2xl outline-none transition-all font-serif text-sm sm:text-base text-zen-brown placeholder:text-zen-brown/20 focus:border-zen-sand/40 focus:ring-4 focus:ring-zen-sand/5 shadow-sm group-hover:border-zen-brown/20 h-28 sm:h-32 resize-none ${props.className || ''}`}
+        className={`w-full ${Icon ? 'pl-12' : 'pl-4'} pr-4 py-4 bg-slate-50/40 border border-zen-brown/15 rounded-2xl outline-none transition-all font-serif text-sm sm:text-base text-zen-brown placeholder:text-zen-brown/25 focus:border-zen-sand/50 focus:bg-white focus:ring-4 focus:ring-zen-sand/5 shadow-sm group-hover:border-zen-sand/30 h-28 sm:h-32 resize-none ${props.className || ''}`}
       />
     </div>
   </div>
@@ -557,8 +583,8 @@ export const ZenMasterCalendar = ({
       <div
         onClick={() => setIsOpen(!isOpen)}
         className={variant === 'pill'
-          ? "h-[50px] bg-white px-5 rounded-[1.35rem] border border-zen-brown/10 flex items-center justify-between gap-4 hover:border-zen-brown/20 transition-all cursor-pointer shadow-sm relative group/trigger"
-          : "w-full px-1 pb-4 bg-transparent border-b-[2px] border-zen-brown/15 hover:border-zen-gold/40 flex items-center justify-between cursor-pointer group/trigger transition-all"
+          ? "h-[50px] bg-slate-50/40 px-5 rounded-[1.35rem] border border-zen-brown/15 flex items-center justify-between gap-4 hover:border-zen-sand/30 transition-all cursor-pointer shadow-sm relative group/trigger"
+          : "w-full px-1 pb-4 bg-transparent border-b-[2px] border-zen-brown/35 hover:border-zen-sand/50 flex items-center justify-between cursor-pointer group/trigger transition-all"
         }
       >
         <div className="flex items-center gap-4 overflow-hidden">
@@ -1002,7 +1028,7 @@ export const ZenMultiSelect = ({
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={`w-full px-1 pb-4 bg-transparent border-b-[2px] flex items-center justify-between cursor-pointer transition-all relative ${
-          error ? 'border-rose-400' : 'border-zen-brown/15 group-hover:border-zen-gold/40 group-focus-within:border-zen-brown'
+          error ? 'border-rose-400' : 'border-zen-brown/35 group-hover:border-zen-gold/40 group-focus-within:border-zen-brown'
         }`}
       >
         <div className="flex items-center gap-4 overflow-hidden">

@@ -56,6 +56,7 @@ const ServiceCategories = () => {
   } = useCategories();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
     return (localStorage.getItem('zen_service_cat_view') as 'grid' | 'table') || 'grid';
   });
@@ -75,6 +76,13 @@ const ServiceCategories = () => {
   useEffect(() => {
     localStorage.setItem('zen_service_cat_view', viewMode);
   }, [viewMode]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const handleOpenModal = (cat: any = null) => {
     if (cat) {
@@ -133,9 +141,9 @@ const ServiceCategories = () => {
 
   const filteredCategories = useMemo<ServiceCategory[]>(() => {
     return (categories as ServiceCategory[]).filter(c =>
-      c.type === 'service' && categoryMatchesSearch(c, searchTerm)
+      c.type === 'service' && categoryMatchesSearch(c, debouncedSearch)
     );
-  }, [categories, searchTerm]);
+  }, [categories, debouncedSearch]);
 
   const fetchAllServiceCategoriesForExport = async (): Promise<ServiceCategory[]> => {
     if (!user?.token) return [];
@@ -171,7 +179,7 @@ const ServiceCategories = () => {
       if (category?._id) unique.set(category._id, category);
     });
 
-    return Array.from(unique.values()).filter((category) => categoryMatchesSearch(category, searchTerm));
+    return Array.from(unique.values()).filter((category) => categoryMatchesSearch(category, debouncedSearch));
   };
 
   const serviceCategoryExportColumns = useMemo<ExportColumn<ServiceCategory>[]>(
@@ -275,60 +283,60 @@ const ServiceCategories = () => {
           )}
         </div>
       ) : (
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
-          <table className="w-full text-center border-collapse min-w-[800px]">
-            <thead>
-              <tr>
-                <th>S No</th>
-                <th>Category Identity</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(!filteredCategories || filteredCategories.length === 0) && (
-                 <tr>
-                    <td colSpan={4}>
-                       <span className="text-[13px] font-sans text-gray-400 italic">No records available.</span>
-                    </td>
-                 </tr>
-              )}
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
+            <div className="table-container">
+              <table className="w-full text-center border-collapse min-w-[800px]">
+                <thead>
+                  <tr>
+                    <th>S No</th>
+                    <th>Category Identity</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(!filteredCategories || filteredCategories.length === 0) && (
+                     <tr>
+                        <td colSpan={4} className="px-6 py-16 text-center text-[13px] font-sans text-gray-400 bg-gray-50/30">No records available.</td>
+                     </tr>
+                  )}
 
-              {filteredCategories.map((cat, index) => (
-                <tr key={cat._id} className="transition-all group border-b border-black/[0.02]">
-                  <td className="text-center italic opacity-40 text-[11px]">
-                    {(index + 1).toString().padStart(2, '0')}
-                  </td>
-                  <td>
-                     <div className="flex flex-col items-center justify-center leading-none px-6">
-                        <span className="zen-table-primary">{cat.name}</span>
-                        <span className="zen-table-meta">Service Category</span>
-                     </div>
-                  </td>
-                  <td>
-                     <div className="flex justify-center">
-                        <button
-                          onClick={() => toggleStatus(cat)}
-                          className="group/status transition-transform active:scale-95"
-                        >
-                           <ZenBadge variant={cat.isActive ? 'leaf' : 'sand'}>
-                             <div className={`w-1 h-1 rounded-full mr-1.5 ${cat.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-zen-sand'}`}></div>
-                             {cat.isActive ? 'Active' : 'Paused'}
-                           </ZenBadge>
-                        </button>
-                     </div>
-                  </td>
-                  <td>
-                    <div className="flex items-center justify-center gap-3">
-                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(cat)} />
-                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteClick(cat._id)} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  {filteredCategories.map((cat, index) => (
+                    <tr key={cat._id} className="transition-all group border-b border-black/[0.02]">
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <span>{(index + 1).toString().padStart(2, '0')}</span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <div className="flex flex-col items-center justify-center leading-none px-6">
+                            <span className="zen-table-primary">{cat.name}</span>
+                            <span className="zen-table-meta mt-1">Service Category Registry</span>
+                         </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <div className="flex justify-center">
+                            <button
+                              onClick={() => toggleStatus(cat)}
+                              className="group/status transition-transform active:scale-95"
+                            >
+                               <ZenBadge variant={cat.isActive ? 'leaf' : 'sand'}>
+                                 <div className={`w-1 h-1 rounded-full mr-1.5 ${cat.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-zen-sand'}`}></div>
+                                 {cat.isActive ? 'Active' : 'Paused'}
+                               </ZenBadge>
+                            </button>
+                         </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <div className="flex items-center justify-center gap-3">
+                           <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(cat)} size="md" />
+                           <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteClick(cat._id)} size="md" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
       )}
 
       <Modal
@@ -355,73 +363,60 @@ const ServiceCategories = () => {
           </div>
         }
         footer={
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4">
-            <p className="text-xs text-zen-brown/40">
-              {editingCategory
-                ? 'Updates apply to all services using this category.'
-                : 'The new category will be available when creating services.'}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <ZenButton
-                type="button"
-                variant="secondary"
-                onClick={() => setIsModalOpen(false)}
-                className="w-full sm:w-auto"
-              >
-                Cancel
-              </ZenButton>
-              <ZenButton
-                type="submit"
-                form="service-category-modal-form"
-                className="w-full sm:w-auto"
-              >
-                {editingCategory ? 'Save category' : 'Create category'}
-              </ZenButton>
-            </div>
+          <div className="flex items-center justify-end w-full gap-4">
+            <ZenButton
+              type="button"
+              variant="secondary"
+              onClick={() => setIsModalOpen(false)}
+              className="rounded-full px-8 py-2.5 text-xs font-bold whitespace-nowrap"
+            >
+              Cancel
+            </ZenButton>
+            <ZenButton
+              type="submit"
+              form="service-category-modal-form"
+              className="rounded-full px-10 py-2.5 text-xs font-bold whitespace-nowrap"
+            >
+              {editingCategory ? 'Save Category' : 'Create Category'}
+            </ZenButton>
           </div>
         }
       >
-        <form id="service-category-modal-form" onSubmit={handleSubmit} className="space-y-6">
-          <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Category details</p>
-                <h4 className="mt-1 text-lg font-semibold text-zen-brown">Name and availability</h4>
-              </div>
-              <ZenBadge variant={formData.isActive ? 'leaf' : 'inactive'}>
-                {formData.isActive ? 'Active' : 'Inactive'}
-              </ZenBadge>
-            </div>
+        <form id="service-category-modal-form" onSubmit={handleSubmit} className="p-8">
+          <div className="bg-white rounded-[2.5rem] border border-zen-brown/10 p-10 shadow-2xl shadow-zen-brown/5 relative overflow-hidden">
+            <div className="absolute -top-16 -right-16 w-48 h-48 bg-zen-brown/[0.03] rounded-full blur-3xl" />
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-zen-sand/[0.05] rounded-full blur-3xl" />
 
-            <ZenInput
-              label="Category name"
-              placeholder="e.g. Holistic massages"
-              required
-              value={formData.name}
-              onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
-            />
-          </div>
+            <div className="relative z-10 space-y-8">
+              <ZenInput
+                label="Category Identity"
+                placeholder="e.g. Holistic massages"
+                required
+                value={formData.name}
+                onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
+                variant="professional"
+              />
 
-          <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Availability</p>
-                <h4 className="mt-1 text-lg font-semibold text-zen-brown">Category status</h4>
-                <p className="mt-2 text-sm text-zen-brown/55">
-                  {formData.isActive
-                    ? 'Visible in service creation and scheduling.'
-                    : 'Hidden from new service assignments until reactivated.'}
-                </p>
+              <div className="flex items-center justify-between p-6 bg-zen-brown/[0.02] rounded-3xl border border-zen-brown/5">
+                <div className="flex items-center gap-4">
+                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${formData.isActive ? 'bg-zen-leaf text-white shadow-zen-leaf/20' : 'bg-slate-100 text-slate-400'}`}>
+                      <Zap size={18} />
+                   </div>
+                   <div>
+                      <p className="text-xs font-bold text-zen-brown">Operational Status</p>
+                      <p className="text-[10px] text-zen-brown/40 uppercase tracking-widest font-black mt-0.5">{formData.isActive ? 'Active' : 'Inactive'}</p>
+                   </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+                  className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-sm ${
+                    formData.isActive ? 'bg-zen-leaf text-white shadow-zen-leaf/20' : 'bg-white text-zen-brown/30 border border-zen-brown/10'
+                  }`}
+                >
+                  {formData.isActive ? 'Enabled' : 'Disabled'}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
-                className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
-                  formData.isActive ? 'bg-zen-leaf text-white' : 'bg-slate-200 text-slate-600'
-                }`}
-              >
-                {formData.isActive ? 'Active' : 'Inactive'}
-              </button>
             </div>
           </div>
         </form>

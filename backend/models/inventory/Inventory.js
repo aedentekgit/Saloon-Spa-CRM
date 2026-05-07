@@ -10,7 +10,7 @@ const inventorySchema = mongoose.Schema({
     type: String,
     required: true
   },
-  category: {
+  sectorCategory: {
     type: String,
     default: 'Oils'
   },
@@ -53,7 +53,7 @@ inventorySchema.virtual('status').get(function() {
 inventorySchema.index({ branch: 1 });
 
 // Compound index for search optimization
-inventorySchema.index({ name: 'text', category: 'text' });
+inventorySchema.index({ name: 'text', sectorCategory: 'text' });
 
 // Index for stock monitoring performance
 inventorySchema.index({ stock: 1, lowStock: 1 });

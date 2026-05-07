@@ -20,8 +20,11 @@ import {
   Activity,
   ChevronRight,
   Target,
-  MapPin,
-  UserCheck
+  UserCheck,
+  TrendingDown,
+  Trash2,
+  FileText,
+  MapPin
 } from 'lucide-react';
 
 import {
@@ -48,6 +51,8 @@ import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { ZenMasterCalendar } from '../../components/zen/ZenInputs';
+import { HeaderPortal } from '../../components/shared/HeaderPortal';
+import { BranchSelector } from '../../components/zen/BranchSelector';
 
 const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRange: any }) => {
   const { user } = useAuth();
@@ -57,6 +62,8 @@ const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRa
   const navigate = useNavigate();
   const [stats, setStats] = React.useState<any>(() => getCachedJson('zen_dashboard_admin_stats', null));
   const [loading, setLoading] = React.useState(() => !getCachedJson('zen_dashboard_admin_stats', null));
+  const [invoices, setInvoices] = useState<any[]>(() => getCachedJson('zen_dashboard_admin_invoices', []));
+  const [expenses, setExpenses] = useState<any[]>(() => getCachedJson('zen_dashboard_admin_expenses', []));
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -91,6 +98,15 @@ const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRa
     return { startDate: '', endDate: '' };
   }, [dateRange]);
 
+  const formatName = (name: string) => {
+    if (!name) return 'Guest';
+    if (name.includes('authsec_')) {
+      const parts = name.split('_');
+      return parts[parts.length - 1] || 'Valued Client';
+    }
+    return name;
+  };
+
   const fetchStats = async (silent: boolean = false) => {
     try {
       if (!silent && !stats) setLoading(true);
@@ -115,13 +131,30 @@ const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRa
     }
   };
 
+  const fetchFinanceData = async () => {
+    try {
+      const [invRes, expRes] = await Promise.all([
+        fetch(`${API_URL.replace(/\/$/, '')}/invoices`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
+        fetch(`${API_URL.replace(/\/$/, '')}/expenses`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
+      ]);
+      const invData = await invRes.json();
+      const expData = await expRes.json();
+      setInvoices(Array.isArray(invData) ? invData : (invData.data || []));
+      setExpenses(Array.isArray(expData) ? expData : (expData.data || []));
+    } catch (error) {
+      console.error('Finance sync failure:', error);
+    }
+  };
+
   React.useEffect(() => {
     fetchStats();
+    fetchFinanceData();
 
     // Pulse polling for real-time dashboard data
     const interval = setInterval(() => {
       if (!shouldPollNow()) return;
       fetchStats(true);
+      fetchFinanceData();
     }, getPollIntervalMs(30000)); // default 30s
 
     return () => clearInterval(interval);
@@ -129,7 +162,37 @@ const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRa
 
   React.useEffect(() => {
     if (stats) setCachedJson('zen_dashboard_admin_stats', stats);
-  }, [stats]);
+    if (invoices) setCachedJson('zen_dashboard_admin_invoices', invoices);
+    if (expenses) setCachedJson('zen_dashboard_admin_expenses', expenses);
+  }, [stats, invoices, expenses]);
+
+  const ledgerRows = useMemo(() => {
+    const expenseRows = expenses.map((exp: any) => ({
+      id: `expense-${exp._id}`,
+      kind: 'Expense',
+      title: exp.title,
+      subtitle: exp.sectorCategory || exp.category || 'General',
+      date: exp.date,
+      amount: exp.amount || 0,
+      meta: 'Operational outflow',
+      sourceId: exp._id
+    }));
+
+    const invoiceRows = invoices.map((inv: any) => ({
+      id: `invoice-${inv._id}`,
+      kind: 'Income',
+      title: `Service ${inv.clientName}`,
+      subtitle: inv.paymentMode,
+      date: inv.date,
+      amount: inv.total || 0,
+      meta: 'Completed invoice',
+      sourceId: inv._id
+    }));
+
+    return [...expenseRows, ...invoiceRows].sort(
+      (a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()
+    ).slice(0, 10); // Show only top 10 in dashboard
+  }, [expenses, invoices]);
 
   // Fully dynamic metrics mapping
   const displayRevenue = stats?.revenue?.total || 0;
@@ -374,96 +437,131 @@ const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRa
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8">
+       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8 pb-10">
          {/* Recent Ceremonies - Classic Framing */}
-         <div className="lg:col-span-12 bg-white p-6 sm:p-8 lg:p-10 rounded-[2rem] border border-zen-stone shadow-sm zen-card-hover relative group overflow-hidden">
+         <div className="lg:col-span-6 bg-white p-6 sm:p-8 lg:p-10 rounded-[2rem] border border-zen-stone shadow-sm zen-card-hover relative group overflow-hidden">
             <div className="absolute inset-2 rounded-[1.6rem] border border-zen-gold/5 pointer-events-none group-hover:border-zen-gold/10 transition-colors duration-700" />
 
             <div className="flex items-center justify-between mb-10">
                <div>
-                  <h3 className="text-2xl font-serif font-black text-gray-900 tracking-tight">Recent Rituals</h3>
+                  <h3 className="text-2xl font-serif font-black text-zen-brown tracking-tight">Recent Rituals</h3>
                   <div className="w-12 h-1 bg-zen-gold/20 rounded-full mt-2"></div>
                </div>
-               <ZenButton size="sm" variant="ghost" icon={ChevronRight}>View All Directory</ZenButton>
+               <ZenButton size="sm" variant="ghost" icon={ChevronRight} onClick={() => navigate('/appointments')}>Directory</ZenButton>
             </div>
 
-            <div className="-mx-10 overflow-x-auto animate-in fade-in duration-700">
-               <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
+            <div className="overflow-x-auto -mx-6 sm:-mx-8 lg:-mx-10">
+               <table className="w-full border-collapse">
                   <thead>
-                    <tr>
-                      <th>S No</th>
-                      <th>Ritual Participant</th>
-                      <th>Sanctuary Role</th>
-                      <th>Service Scope</th>
-                      <th>Status</th>
-                      <th>Action</th>
+                    <tr className="border-b border-zen-stone/40">
+                      <th className="py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] text-zen-brown/40 pl-10">Registry</th>
+                      <th className="py-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-zen-brown/40">Ritual Type</th>
+                      <th className="py-4 text-right text-[10px] font-black uppercase tracking-[0.2em] text-zen-brown/40 pr-10">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(!stats?.appointments?.recent || stats.appointments.recent.length === 0) ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-20 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
+                        <td colSpan={3} className="px-6 py-20 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
                            <div className="flex flex-col items-center gap-4 opacity-10">
-                              <Activity size={60} strokeWidth={0.5} />
-                              <p className="italic font-serif text-xl">Sanctuary logs are currently quiet.</p>
+                              <Activity size={40} strokeWidth={1} />
+                              <p className="italic font-serif text-lg">No recent activity logged.</p>
                            </div>
                         </td>
                       </tr>
                     ) : (
-                      stats.appointments.recent.map((apt: any, i: number) => (
-                        <motion.tr
-                          key={apt._id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                          className="transition-all group border-b border-black/[0.02] hover:bg-black/[0.01]"
-                        >
-                          <td className="text-center italic opacity-40 text-[11px]">
-                            {(i + 1).toString().padStart(2, '0')}
-                          </td>
-                          <td>
-                             <div className="flex flex-row items-center justify-center gap-2 px-6">
-                                <span className="zen-table-primary">{apt.client}</span>
-                                <span className="text-zen-brown/20 px-1">|</span>
-                                <span className="zen-table-meta">Verified Client</span>
+                      stats.appointments.recent.slice(0, 6).map((apt: any, i: number) => (
+                        <tr key={apt._id} className="group border-b border-zen-stone/10 hover:bg-zen-cream/30 transition-all duration-300">
+                          <td className="py-5 pl-10">
+                             <div className="flex flex-col text-left">
+                                <span className="text-[14px] font-serif font-black text-zen-brown group-hover:text-zen-sand transition-colors">{formatName(apt.client)}</span>
+                                <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mt-0.5">Verified Client</span>
                              </div>
                           </td>
-                          <td>
-                             <div className="flex flex-row items-center justify-center gap-2">
-                                <span className="zen-table-primary font-accent italic !text-[18px] pr-2">{apt.employee}</span>
-                                <span className="text-zen-brown/20 px-1">|</span>
-                                <span className="zen-table-meta">Lead Artisan</span>
-                             </div>
+                          <td className="py-5 text-center">
+                             <span className="text-[11px] font-bold text-zen-brown/60 italic">{apt.service}</span>
                           </td>
-                          <td>
-                             <div className="flex flex-row items-center justify-center gap-2">
-                                <span className="zen-table-primary">{apt.service}</span>
-                                <span className="text-zen-brown/20 px-1">|</span>
-                                <span className="zen-table-meta">{apt.time || '60m Ritual'}</span>
-                             </div>
+                          <td className="py-5 text-right pr-10">
+                             <span className={`inline-flex px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all duration-500 ${
+                                apt.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                                apt.status === 'Cancelled' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                'bg-zen-sand/5 text-zen-sand border-zen-sand/10'
+                             }`}>
+                                {apt.status}
+                             </span>
                           </td>
-                          <td>
-                             <div className="flex items-center justify-center">
-                                <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${
-                                   apt.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' :
-                                   apt.status === 'Cancelled' ? 'bg-red-500/10 text-red-600' : 'bg-zen-sand/10 text-zen-sand'
-                                }`}>
-                                   {apt.status}
-                                </span>
-                             </div>
-                          </td>
-                          <td>
-                             <div className="flex items-center justify-center">
-                                <ZenIconButton icon={ChevronRight} onClick={() => navigate('/appointments')} />
-                             </div>
-                          </td>
-                        </motion.tr>
+                        </tr>
                       ))
                     )}
                   </tbody>
                </table>
             </div>
+         </div>
 
+         {/* Finance Ledger - Premium Refinement */}
+         <div className="lg:col-span-6 bg-white p-8 rounded-[2.5rem] border border-zen-stone/60 shadow-none zen-card-hover relative group overflow-hidden">
+            <div className="absolute inset-2 rounded-[2.1rem] border border-zen-gold/5 pointer-events-none" />
+
+            <div className="flex items-center justify-between mb-10">
+               <div>
+                  <h3 className="text-2xl font-serif font-black text-zen-brown tracking-tight">Finance Registry</h3>
+                  <div className="w-12 h-1 bg-zen-gold/20 rounded-full mt-2"></div>
+               </div>
+               <ZenButton size="sm" variant="ghost" icon={ChevronRight} onClick={() => navigate('/transactions')}>Full Ledger</ZenButton>
+            </div>
+
+            <div className="overflow-x-auto -mx-6 sm:-mx-8 lg:-mx-10">
+               <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-zen-stone/40">
+                      <th className="py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] text-zen-brown/40 pl-8">Entry</th>
+                      <th className="py-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-zen-brown/40">Timing</th>
+                      <th className="py-4 text-right text-[10px] font-black uppercase tracking-[0.2em] text-zen-brown/40 pr-8">Flow</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ledgerRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="px-6 py-20 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
+                           <div className="flex flex-col items-center gap-4 opacity-10">
+                              <Coins size={40} strokeWidth={1} />
+                              <p className="italic font-serif text-lg">Registry is empty.</p>
+                           </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      ledgerRows.slice(0, 6).map((row: any) => (
+                        <tr key={row.id} className="group border-b border-zen-stone/10 hover:bg-zen-cream/30 transition-all duration-300">
+                          <td className="py-5 pl-8">
+                             <div className="flex items-center gap-4 justify-start">
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center border shadow-sm transition-transform duration-500 group-hover:scale-110 ${
+                                   row.kind === 'Expense' ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-emerald-50 text-emerald-500 border-emerald-100'
+                                }`}>
+                                   {row.kind === 'Expense' ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
+                                </div>
+                                <div className="flex flex-col text-left">
+                                   <span className="text-[13px] font-bold text-zen-brown">{row.title}</span>
+                                   <span className="text-[9px] text-zen-brown/30 font-black uppercase tracking-widest">{row.subtitle}</span>
+                                </div>
+                             </div>
+                          </td>
+                          <td className="py-5 text-center">
+                             <div className="flex flex-col items-center">
+                                <span className="text-[12px] font-serif italic text-zen-brown/60">{dayjs(row.date).format('MMM DD')}</span>
+                                <span className="text-[8px] font-black text-zen-brown/20 uppercase tracking-tighter">Verified</span>
+                             </div>
+                          </td>
+                          <td className="py-5 text-right pr-8">
+                             <span className={`text-[14px] font-serif font-black ${row.kind === 'Expense' ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                {row.kind === 'Expense' ? '-' : '+'}{settings?.general?.currencySymbol || 'QR'} {row.amount?.toLocaleString()}
+                             </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+               </table>
+            </div>
          </div>
        </div>
       </div>
@@ -1005,44 +1103,26 @@ const Dashboard = () => {
 
   return (
     <ZenPageLayout
-      title="Dashboard Overview"
+      title="Dashboard & Finance"
       hideSearch
       hideAddButton
-      hideBranchSelector={false}
+      hideBranchSelector={true}
       hideViewToggle={true}
-      searchActions={
-        <div className="flex items-center justify-between w-full gap-6 lg:gap-10">
-          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide py-1 shrink-0">
-              {quickActions.map((action, i) => (
-               <motion.button
-                 key={action.label}
-                 initial={{ opacity: 0, x: -20 }}
-                 animate={{ opacity: 1, x: 0 }}
-                 transition={{ delay: i * 0.1 }}
-                 onClick={() => navigate(action.path)}
-                 className={`flex shrink-0 items-center justify-center gap-3 px-5 py-2.5 rounded-[0.85rem] text-[9px] font-bold uppercase tracking-[0.2em] shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 border ${action.color} relative overflow-hidden group h-[46px]`}
-               >
-                 <div className="absolute inset-0 bg-gradient-to-tr from-zen-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                 <action.icon size={12} className="relative z-10" />
-                 <span className="relative z-10">{action.label}</span>
-               </motion.button>
-             ))}
-          </div>
-
-          <div className="flex items-center gap-4 shrink-0">
-            <ZenMasterCalendar
-              label="Date Range"
-              value={dateRange}
-              onChange={(v: any) => setDateRange(v)}
-              selectionType="range"
-              variant="pill"
-              className="w-[200px]"
-              hideLabel
-            />
-          </div>
-        </div>
-      }
     >
+      <HeaderPortal>
+        <div className="flex items-center gap-4 py-1">
+          <ZenMasterCalendar
+            label="Date Range"
+            value={dateRange}
+            onChange={(v: any) => setDateRange(v)}
+            selectionType="range"
+            variant="pill"
+            className="w-[200px]"
+            hideLabel
+          />
+          <BranchSelector variant="pill" className="w-[200px]" />
+        </div>
+      </HeaderPortal>
       <div className="mt-0">
         {user?.role === 'Admin' && <AdminDashboard dateRange={dateRange} setDateRange={setDateRange} />}
         {user?.role === 'Manager' && <ManagerDashboard dateRange={dateRange} setDateRange={setDateRange} />}

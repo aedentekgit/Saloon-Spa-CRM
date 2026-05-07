@@ -1057,11 +1057,11 @@ const Memberships = () => {
                                               <ZenIconButton icon={History} onClick={() => {
                                                  setSelectedHistory(m);
                                                  setIsHistoryModalOpen(true);
-                                              }} />
+                                              }} size="md" />
                                               <ZenIconButton icon={Edit3} onClick={() => {
                                                  openEditEnrollment(m);
-                                              }} />
-                                              <ZenIconButton icon={Trash2} onClick={() => handleDeleteMembership(m._id)} />
+                                              }} size="md" />
+                                              <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteMembership(m._id)} size="md" />
                                            </div>
                                         </td>
                                      )}

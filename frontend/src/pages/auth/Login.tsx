@@ -142,8 +142,14 @@ const Login = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {error && (
-                      <motion.div variants={itemVariants} className="text-[10px] font-bold text-red-500 uppercase tracking-widest bg-red-50 p-4 rounded-2xl text-center">
-                        {error}
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="glass-dark border-red-500/20 text-red-600 p-4 rounded-[2rem] text-center flex items-center justify-center gap-3 relative overflow-hidden"
+                      >
+                        <div className="absolute inset-0 bg-red-500/5 pointer-events-none" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.25em]">{error}</span>
                       </motion.div>
                     )}
 

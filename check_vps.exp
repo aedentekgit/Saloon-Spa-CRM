@@ -1,0 +1,6 @@
+#!/usr/bin/expect -f
+set timeout 20
+spawn ssh -o StrictHostKeyChecking=no root@194.238.23.158 "pm2 status | head -n 20"
+expect "assword:"
+send "Aedentek@123#\r"
+expect eof

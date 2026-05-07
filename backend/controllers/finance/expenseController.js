@@ -27,9 +27,9 @@ const getExpenses = async (req, res) => {
       query.branch = toObjectIdIfValid(userBranchId);
     }
 
-    const { search, category, startDate, endDate } = req.query;
-    if (category) {
-      query.category = category;
+    const { search, sectorCategory, startDate, endDate } = req.query;
+    if (sectorCategory) {
+      query.sectorCategory = sectorCategory;
     }
 
     if (startDate || endDate) {
@@ -43,7 +43,7 @@ const getExpenses = async (req, res) => {
       const matchingBranches = await Branch.find({ name: rx }).select('_id').lean();
       const branchIds = matchingBranches.map(branch => branch._id);
 
-      query.$or = [{ title: rx }, { category: rx }, { date: rx }];
+      query.$or = [{ title: rx }, { sectorCategory: rx }, { date: rx }];
       if (branchIds.length > 0) {
         query.$or.push({ branch: { $in: branchIds } });
       }
@@ -68,7 +68,7 @@ const getExpenses = async (req, res) => {
 // @route   POST /api/expenses
 // @access  Private
 const createExpense = async (req, res) => {
-  const { title, category, amount, date, branch } = req.body;
+  const { title, sectorCategory, amount, date, branch } = req.body;
 
   try {
     const userBranchId = getBranchId(req.user.branch);
@@ -91,7 +91,7 @@ const createExpense = async (req, res) => {
     const expense = await Expense.create({
       user: req.user._id,
       title,
-      category,
+      sectorCategory,
       amount,
       date,
       branch: toObjectIdIfValid(requestedBranch)
@@ -164,10 +164,10 @@ const updateExpense = async (req, res) => {
       return res.status(403).json({ message: 'Access Denied: You cannot reassign expenses to another branch.' });
     }
 
-    const { title, category, amount, date } = req.body || {};
+    const { title, sectorCategory, amount, date } = req.body || {};
 
     if (title !== undefined) expense.title = title;
-    if (category !== undefined) expense.category = category;
+    if (sectorCategory !== undefined) expense.sectorCategory = sectorCategory;
     if (amount !== undefined) expense.amount = amount;
     if (date !== undefined) expense.date = date;
 

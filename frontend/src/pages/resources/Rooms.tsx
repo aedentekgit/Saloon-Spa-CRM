@@ -495,75 +495,82 @@ const Rooms = () => {
               })}
             </div>
           ) : (
-            <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
-              <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
-                <thead>
-                  <tr>
-                    <th>S No</th>
-                    <th>Visual</th>
-                    <th>Branch</th>
-                    <th>Room Name</th>
-                    <th>Category</th>
-                    <th>Cleaning</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRooms.length === 0 ? (
+            <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
+              <div className="table-container">
+                <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
+                  <thead>
                     <tr>
-                      <td colSpan={8} className="px-6 py-20 text-center text-sm font-serif italic text-zen-brown/20">No room data available in this sanctuary.</td>
+                      <th>S No</th>
+                      <th>Visual</th>
+                      <th>Branch</th>
+                      <th>Room Name</th>
+                      <th>Category</th>
+                      <th>Cleaning</th>
+                      <th>Status</th>
+                      <th>Actions</th>
                     </tr>
-                  ) : (
-                    filteredRooms.map((room, index) => {
-                      const roomImage = getDisplayImage(room);
-                      return (
-                        <tr key={room._id} onClick={() => handleOpenModal(room)} className="cursor-pointer group hover:bg-zen-cream/5 border-b border-gray-50 transition-colors last:border-0">
-                          <td>
-                            {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
-                          </td>
-                          <td className="py-4">
-                            <div className="flex justify-center">
-                              <div className="w-16 h-10 rounded-lg overflow-hidden bg-zen-cream border border-gray-100 shadow-sm group-hover:scale-105 transition-transform duration-500">
-                                <img src={roomImage.src} alt="" className="w-full h-full object-cover" style={{ objectPosition: roomImage.objectPosition }} />
+                  </thead>
+                  <tbody>
+                    {filteredRooms.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-20 text-center text-sm font-serif italic text-zen-brown/20">No room data available in this sanctuary.</td>
+                      </tr>
+                    ) : (
+                      filteredRooms.map((room, index) => {
+                        const roomImage = getDisplayImage(room);
+                        return (
+                          <tr key={room._id} onClick={() => handleOpenModal(room)} className="cursor-pointer group hover:bg-zen-cream/5 border-b border-gray-50 transition-colors last:border-0">
+                            <td className="px-4 lg:px-6 py-4 lg:py-6">
+                              <span>{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
+                            </td>
+                            <td className="px-4 lg:px-6 py-4 lg:py-6">
+                              <div className="flex justify-center">
+                                <div className="w-16 h-10 zen-pointed-surface overflow-hidden bg-zen-cream border border-gray-100 shadow-sm group-hover:scale-105 transition-transform duration-500">
+                                  <img src={roomImage.src} alt="" className="w-full h-full object-cover" style={{ objectPosition: roomImage.objectPosition }} />
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="py-4 text-[11px] font-bold text-zen-brown/60">{getRoomBranchName(room)}</td>
-                          <td className="py-4">
-                            <div className="flex flex-col items-center justify-center leading-none px-6">
-                              <span className="zen-table-primary">{room.name}</span>
-                              <span className="zen-table-meta">{getRoomBranchName(room)} • Active Space</span>
-                            </div>
-                          </td>
-                          <td className="py-4">
-                            <ZenBadge variant="sand" className="scale-90 font-black tracking-widest">{room.type}</ZenBadge>
-                          </td>
-                          <td className="py-4">
-                            <div className="flex flex-col items-center justify-center leading-none">
-                              <div className="flex items-center gap-1.5">
-                                <Clock size={10} className="text-zen-sand" />
-                                <span className="text-sm font-serif font-black text-zen-brown">{room.cleaningDuration || 0}m</span>
+                            </td>
+                            <td className="px-4 lg:px-6 py-4 lg:py-6">
+                              <div className="flex flex-col items-center justify-center leading-none">
+                                <span className="zen-table-primary text-[13px]">{getRoomBranchName(room)}</span>
+                                <span className="zen-table-meta mt-1">Operational Hub</span>
                               </div>
-                              <span className="zen-table-meta mt-1">Cleaning</span>
-                            </div>
-                          </td>
-                          <td className="py-4">
-                            <ZenBadge variant={room.status === 'Free' ? 'leaf' : room.status === 'Occupied' ? 'danger' : 'sand'} className="scale-90 font-black tracking-widest">{room.status}</ZenBadge>
-                          </td>
-                          <td className="py-4">
-                            <div className="flex items-center justify-center gap-3">
-                              <ZenIconButton icon={Sparkles} variant={room.isActive ? 'leaf' : 'sand'} onClick={(e) => { e.stopPropagation(); toggleIsActive(room); }} size="sm" />
-                              <ZenIconButton icon={Edit2} onClick={(e) => { e.stopPropagation(); handleOpenModal(room); }} size="sm" />
-                              <ZenIconButton icon={Trash2} variant="danger" onClick={(e) => { e.stopPropagation(); handleDelete(room._id); }} size="sm" />
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                            </td>
+                            <td className="px-4 lg:px-6 py-4 lg:py-6">
+                              <div className="flex flex-col items-center justify-center leading-none">
+                                <span className="zen-table-primary">{room.name}</span>
+                                <span className="zen-table-meta mt-1">{room.type} Suite • Active Space</span>
+                              </div>
+                            </td>
+                            <td className="px-4 lg:px-6 py-4 lg:py-6">
+                              <ZenBadge variant="sand" className="scale-90">{room.type}</ZenBadge>
+                            </td>
+                            <td className="px-4 lg:px-6 py-4 lg:py-6">
+                              <div className="flex flex-col items-center justify-center leading-none">
+                                <div className="flex items-center gap-1.5">
+                                  <Clock size={12} className="text-zen-sand" />
+                                  <span className="zen-table-primary">{room.cleaningDuration || 0}m</span>
+                                </div>
+                                <span className="zen-table-meta mt-1">Cleaning Buffer</span>
+                              </div>
+                            </td>
+                            <td className="px-4 lg:px-6 py-4 lg:py-6">
+                              <ZenBadge variant={room.status === 'Free' ? 'leaf' : room.status === 'Occupied' ? 'danger' : 'sand'} className="scale-90">{room.status}</ZenBadge>
+                            </td>
+                            <td className="px-4 lg:px-6 py-4 lg:py-6">
+                              <div className="flex items-center justify-center gap-3">
+                                <ZenIconButton icon={Sparkles} variant={room.isActive ? 'leaf' : 'sand'} onClick={(e) => { e.stopPropagation(); toggleIsActive(room); }} size="md" />
+                                <ZenIconButton icon={Edit2} onClick={(e) => { e.stopPropagation(); handleOpenModal(room); }} size="md" />
+                                <ZenIconButton icon={Trash2} variant="danger" onClick={(e) => { e.stopPropagation(); handleDelete(room._id); }} size="md" />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -752,7 +759,7 @@ const Rooms = () => {
                   <div className="flex items-center gap-8 sm:gap-12">
                     <div className="relative w-24 sm:w-40 h-24 sm:h-40 group cursor-pointer shrink-0">
                       <div className="w-full h-full zen-pointed-surface ring-4 ring-zen-sand/20 ring-offset-4 overflow-hidden bg-zen-cream flex items-center justify-center transition-all duration-700 group-hover:ring-zen-brown/20 shadow-xl relative">
-                        {(imagePreview || previewRoomImage) ? (
+                        {(imagePreview || (previewRoomImage && !previewRoomImage.isStatic)) ? (
                           <img
                             src={imagePreview || previewRoomImage?.src}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
@@ -783,7 +790,7 @@ const Rooms = () => {
                       <div className="absolute bottom-1 right-1 p-3 bg-zen-brown text-white rounded-full shadow-lg scale-90 group-hover:scale-100 transition-all ring-4 ring-white"><Edit2 size={16} /></div>
                     </div>
                     <div className="flex-1">
-                      <ZenInput label="Room Name" placeholder="E.g. Sapphire Suite" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-5xl border-none p-0 h-auto font-bold tracking-tighter" />
+                      <ZenInput label="Room Name" placeholder="E.g. Sapphire Suite" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-3xl font-bold tracking-tighter" />
                       <p className="mt-4 text-[11px] font-bold text-zen-brown/20 uppercase tracking-[0.5em]">Core identity</p>
                     </div>
                   </div>

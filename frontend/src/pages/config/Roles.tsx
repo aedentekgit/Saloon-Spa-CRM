@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Shield, Trash2, Edit, Lock, Key,
   CheckCircle2, Circle, Grid, Zap, X, Info
@@ -74,8 +74,16 @@ const Roles = () => {
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -90,8 +98,8 @@ const Roles = () => {
   };
 
   const filteredRoles = useMemo(() => {
-    return roles.filter(role => roleMatchesSearch(role, searchTerm));
-  }, [roles, searchTerm]);
+    return roles.filter(role => roleMatchesSearch(role, debouncedSearch));
+  }, [roles, debouncedSearch]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRoles.length / PAGE_LIMIT));
   const currentPage = Math.min(page, totalPages);
@@ -135,7 +143,7 @@ const Roles = () => {
       if (role?._id) unique.set(role._id, role);
     });
 
-    return Array.from(unique.values()).filter((role) => roleMatchesSearch(role, searchTerm));
+    return Array.from(unique.values()).filter((role) => roleMatchesSearch(role, debouncedSearch));
   };
 
   const roleExportColumns = useMemo<ExportColumn<Role>[]>(
@@ -377,8 +385,9 @@ const Roles = () => {
           ))}
         </div>
       ) : (
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
-          <table className="w-full text-center border-collapse min-w-[800px]">
+        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
+          <div className="table-container">
+            <table className="w-full text-center border-collapse min-w-[800px]">
             <thead>
               <tr>
                 <th>S NO</th>
@@ -399,21 +408,21 @@ const Roles = () => {
 
               {paginatedRoles.map((role, index) => (
                 <tr key={role._id} className="transition-all group border-b border-black/[0.02]">
-                  <td className="text-center italic opacity-40 text-[11px]">
-                    {((currentPage - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                    <span>{((currentPage - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
                   </td>
-                  <td>
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex items-center justify-center gap-4">
-                      <div className="p-3 bg-zen-cream/30 rounded-xl text-zen-sand">
+                      <div className="w-10 lg:w-12 h-10 lg:h-12 zen-pointed-surface overflow-hidden bg-zen-cream/30 border border-zen-brown/10 flex items-center justify-center text-zen-sand">
                         <Shield size={18} />
                       </div>
-                      <div>
-                        <p className="zen-table-primary">{role.name}</p>
-                        <p className="text-[8px] font-bold text-zen-brown/20 uppercase tracking-widest mt-0.5">ID_{role._id.slice(-6)}</p>
+                      <div className="flex flex-col items-start leading-none">
+                        <span className="zen-table-primary">{role.name}</span>
+                        <span className="zen-table-meta mt-1">ID_{role._id.slice(-6)}</span>
                       </div>
                     </div>
                   </td>
-                  <td>
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex items-center justify-center gap-3">
                       {role.name === 'Admin' ? (
                         <ZenBadge variant="leaf" className="bg-emerald-500/10 border-none text-emerald-600">Full Access</ZenBadge>
@@ -431,19 +440,21 @@ const Roles = () => {
                       )}
                     </div>
                   </td>
-                  <td>
-                    <button
-                      onClick={() => toggleStatus(role)}
-                      className={`px-6 py-2 rounded-full border transition-all duration-500 hover:scale-105 active:scale-95 shadow-sm whitespace-nowrap ${role.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20' : 'bg-red-50 text-red-400 border-red-100'}`}
-                    >
-                       <span className="text-[10px] font-bold uppercase tracking-widest">{role.status === 'Inactive' ? 'Inactive' : 'Active'}</span>
-                    </button>
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => toggleStatus(role)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 ${role.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-sm' : 'bg-red-50 text-red-400 border-red-100'}`}
+                      >
+                         <span className="text-[9px] font-bold uppercase tracking-widest">{role.status === 'Inactive' ? 'Inactive' : 'Active'}</span>
+                      </button>
+                    </div>
                   </td>
-                  <td>
+                  <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex items-center justify-center gap-2 transition-all duration-500">
-                       <ZenIconButton icon={Edit} onClick={() => handleOpenModal(role)} />
+                       <ZenIconButton icon={Edit} onClick={() => handleOpenModal(role)} size="md" />
                        {!['Admin', 'Manager', 'Client'].includes(role.name) && (
-                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} />
+                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} size="md" />
                        )}
                     </div>
                   </td>
@@ -452,6 +463,7 @@ const Roles = () => {
             </tbody>
           </table>
         </div>
+      </div>
       )}
 
 

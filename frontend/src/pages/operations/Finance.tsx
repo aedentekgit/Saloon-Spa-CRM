@@ -38,9 +38,10 @@ interface BranchRef {
 
 interface Expense {
   _id: string;
-  user?: string;
   title: string;
-  category: string;
+  sectorCategory: string;
+  category?: string;
+  user?: string | { _id: string; name?: string; email?: string };
   amount: number;
   date: string;
   branch?: BranchRef | string;
@@ -102,7 +103,7 @@ interface LedgerRow {
   discount: number;
   total: number;
   expenseTitle: string;
-  expenseCategory: string;
+  sectorCategory: string;
   expenseUserId: string;
   createdAt: string;
   updatedAt: string;
@@ -116,6 +117,17 @@ const getBranchId = (branch?: BranchRef | string) => {
 const getBranchName = (branch?: BranchRef | string) => {
   if (!branch) return 'Main Registry';
   return typeof branch === 'string' ? branch : branch.name || 'Main Registry';
+};
+
+const getExpenseUserId = (exp: Expense) => {
+  if (!exp.user) return '';
+  return typeof exp.user === 'string' ? exp.user : exp.user._id || '';
+};
+
+const getExpenseUserLabel = (exp: Expense) => {
+  if (!exp.user) return '-';
+  if (typeof exp.user === 'string') return exp.user;
+  return exp.user.name || exp.user.email || exp.user._id || '-';
 };
 
 const summarizeInvoiceItems = (items?: InvoiceItem[]) => {
@@ -155,7 +167,7 @@ const buildLedgerRows = (expenses: Expense[], invoices: Invoice[]): LedgerRow[] 
     sourceModel: 'Expense' as const,
     kind: 'Expense' as const,
     title: exp.title,
-    subtitle: exp.category,
+    subtitle: exp.sectorCategory || (exp as any).category || 'General',
     date: exp.date,
     amount: exp.amount || 0,
     signedAmount: -(exp.amount || 0),
@@ -175,8 +187,8 @@ const buildLedgerRows = (expenses: Expense[], invoices: Invoice[]): LedgerRow[] 
     discount: 0,
     total: 0,
     expenseTitle: exp.title,
-    expenseCategory: exp.category,
-    expenseUserId: exp.user || '',
+    sectorCategory: exp.sectorCategory || (exp as any).category || 'General',
+    expenseUserId: getExpenseUserId(exp),
     createdAt: exp.createdAt || '',
     updatedAt: exp.updatedAt || ''
   }));
@@ -206,7 +218,7 @@ const buildLedgerRows = (expenses: Expense[], invoices: Invoice[]): LedgerRow[] 
     discount: inv.discount || 0,
     total: inv.total || 0,
     expenseTitle: '-',
-    expenseCategory: '-',
+    sectorCategory: '-',
     expenseUserId: '-',
     createdAt: inv.createdAt || '',
     updatedAt: inv.updatedAt || ''
@@ -418,7 +430,7 @@ const Finance = () => {
         { header: 'Discount', accessor: (row) => money(row.discount) },
         { header: 'Invoice Total', accessor: (row) => money(row.total) },
         { header: 'Expense Title', accessor: (row) => row.expenseTitle || '-' },
-        { header: 'Expense Category', accessor: (row) => row.expenseCategory || '-' },
+        { header: 'Sector Category', accessor: (row) => row.sectorCategory || '-' },
         { header: 'Expense User ID', accessor: (row) => row.expenseUserId || '-' },
         { header: 'Created At', accessor: (row) => formatExportDateTime(row.createdAt) },
         { header: 'Updated At', accessor: (row) => formatExportDateTime(row.updatedAt) }

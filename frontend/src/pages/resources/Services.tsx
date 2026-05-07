@@ -113,7 +113,7 @@ const Services = () => {
 
   const fetchServices = async (silent: boolean = false) => {
     try {
-      if (!silent && services.length === 0) setLoading(true);
+      if (!silent) setLoading(true);
       const queryParams = new URLSearchParams({
         page: page.toString(),
         limit: PAGE_LIMIT.toString(),
@@ -153,6 +153,10 @@ const Services = () => {
     return () => clearInterval(interval);
   }, [page, debouncedSearch, selectedBranch, user?.token]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, selectedBranch]);
+
   const fetchInventory = async () => {
     try {
       const response = await fetch(`${API_URL}/inventory?limit=1000`, {
@@ -172,7 +176,15 @@ const Services = () => {
   useEffect(() => setCachedJson('zen_page_services_list', services), [services]);
   useEffect(() => setCachedJson('zen_page_services_inventory', inventoryList), [inventoryList]);
 
-  const filteredServices = services;
+  const filteredServices = useMemo(() => {
+    if (!searchTerm.trim()) return services;
+    const lowerSearch = searchTerm.toLowerCase().trim();
+    return services.filter(s => 
+      s.name.toLowerCase().includes(lowerSearch) ||
+      (s.category && s.category.toLowerCase().includes(lowerSearch)) ||
+      (s.description && s.description.toLowerCase().includes(lowerSearch))
+    );
+  }, [services, searchTerm]);
   const inventoryNameById = useMemo(() => {
     const map = new Map<string, string>();
     inventoryList.forEach((item: any) => {
@@ -569,80 +581,83 @@ const Services = () => {
             })}
           </div>
         ) : (
-          <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
-            <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
-              <thead>
-                <tr>
-                  <th>S No</th>
-                  <th>Visual</th>
-                  <th>Service Identity</th>
-                  <th>Pricing</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(!filteredServices || filteredServices.length === 0) && (
-                   <tr>
-                      <td colSpan={6} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">No services recorded in the workspace</td>
-                   </tr>
-                )}
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
+            <div className="table-container">
+              <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
+                <thead>
+                  <tr>
+                    <th>S No</th>
+                    <th>Visual</th>
+                    <th>Service Identity</th>
+                    <th>Pricing</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(!filteredServices || filteredServices.length === 0) && (
+                     <tr>
+                        <td colSpan={6} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">No services recorded in the workspace</td>
+                     </tr>
+                  )}
 
-                {filteredServices.map((service, index) => {
-                  const branchName = service.branch?.name || 'Main Registry';
-                  return (
-                    <tr key={service._id} className="transition-all group border-b border-black/[0.02]">
-                      <td>
-                        {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
-                      </td>
-                      <td>
-                        <div className="flex justify-center">
-                          <div className="w-12 h-10 zen-pointed-surface overflow-hidden bg-zen-cream border border-zen-stone shadow-sm shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center text-xs">
-                            {service.image ? (
-                              <img src={getImageUrl(service.image)} className="w-full h-full object-cover" />
-                            ) : (
-                              <Sparkles className="text-zen-brown/20" size={16} />
-                            )}
+                  {filteredServices.map((service, index) => {
+                    const branchName = service.branch?.name || 'Main Registry';
+                    return (
+                      <tr key={service._id} className="transition-all group border-b border-black/[0.02]">
+                        <td className="px-4 lg:px-6 py-4 lg:py-6">
+                          <span>{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 lg:py-6">
+                          <div className="flex justify-center">
+                            <div className="w-12 h-10 zen-pointed-surface overflow-hidden bg-zen-cream border border-zen-stone shadow-sm shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center text-xs">
+                              {service.image ? (
+                                <img src={getImageUrl(service.image)} className="w-full h-full object-cover" />
+                              ) : (
+                                <Sparkles className="text-zen-brown/20" size={16} />
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex flex-col items-center justify-center leading-none px-6">
-                          <span className="zen-table-primary">{service.name}</span>
-                          <span className="zen-table-meta">{branchName} • {service.category || 'General'}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex flex-col items-center justify-center leading-none">
-                          <span className="text-base font-serif font-black text-zen-brown leading-none">
-                            {settings?.general?.currencySymbol || 'QR'} {service.price}
-                          </span>
-                          <span className="zen-table-meta mt-1">{service.duration} MIN</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex justify-center">
-                          <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'}>
-                            {service.status}
-                          </ZenBadge>
-                        </div>
-                      </td>
-                        <td>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 lg:py-6">
+                          <div className="flex flex-col items-center justify-center leading-none px-6">
+                            <span className="zen-table-primary">{service.name}</span>
+                            <span className="zen-table-meta">{branchName} • {service.category || 'General'}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 lg:py-6">
+                          <div className="flex flex-col items-center justify-center leading-none">
+                            <span className="text-base font-serif font-black text-zen-brown leading-none">
+                              {settings?.general?.currencySymbol || 'QR'} {service.price}
+                            </span>
+                            <span className="zen-table-meta mt-1">{service.duration} MIN</span>
+                          </div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 lg:py-6">
+                          <div className="flex justify-center">
+                            <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'}>
+                              {service.status}
+                            </ZenBadge>
+                          </div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 lg:py-6">
                           <div className="flex items-center justify-center gap-2">
                             <ZenIconButton
                               icon={Zap}
                               variant={service.status === 'Active' ? 'leaf' : 'sand'}
                               onClick={() => toggleStatus(service)}
+                              size="md"
                             />
-                            <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} />
-                            <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} />
+                            <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} size="md" />
+                            <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} size="md" />
                           </div>
                         </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -735,7 +750,7 @@ const Services = () => {
                    </div>
 
                    <div className="flex-1">
-                      <ZenInput label="Service Name" placeholder="E.g. Himalayan Salt Therapy" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-5xl border-none p-0 h-auto font-bold tracking-tighter" />
+                      <ZenInput label="Service Name" placeholder="E.g. Himalayan Salt Therapy" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-2xl sm:text-3xl font-bold tracking-tighter" />
                       <p className="mt-4 text-[11px] font-bold text-zen-brown/20 uppercase tracking-[0.5em]">Core identity</p>
                    </div>
                 </div>

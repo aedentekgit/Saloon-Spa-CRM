@@ -6,7 +6,7 @@ import { getCachedJson, setCachedJson } from '../utils/localCache';
 interface Category {
   _id: string;
   name: string;
-  type: 'room' | 'inventory' | 'service' | 'expense';
+  type: 'room' | 'inventory' | 'service' | 'sector';
   description?: string;
   isActive: boolean;
 }
@@ -21,7 +21,7 @@ interface CategoryContextType {
   getRoomCategories: () => string[];
   getInventoryCategories: () => string[];
   getServiceCategories: () => string[];
-  getExpenseCategories: () => string[];
+  getSectorCategories: () => string[];
 }
 
 const CategoryContext = createContext<CategoryContextType | undefined>(undefined);
@@ -116,8 +116,8 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const getServiceCategories = () =>
     categories.filter(c => c.type === 'service' && c.isActive !== false).map(c => c.name);
 
-  const getExpenseCategories = () =>
-    categories.filter(c => c.type === 'expense' && c.isActive !== false).map(c => c.name);
+  const getSectorCategories = () =>
+    categories.filter(c => c.type === 'sector' && c.isActive !== false).map(c => c.name);
 
   useEffect(() => {
     if (user) {
@@ -147,7 +147,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       getRoomCategories,
       getInventoryCategories,
       getServiceCategories,
-      getExpenseCategories
+      getSectorCategories
     }}>
       {children}
     </CategoryContext.Provider>

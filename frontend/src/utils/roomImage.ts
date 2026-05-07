@@ -229,18 +229,26 @@ const buildRoomVisualSvg = (room: RoomImageSource) => {
   `;
 };
 
+const svgToDataUrl = (svgContent: string) => {
+  const encoded = encodeURIComponent(svgContent.trim().replace(/>\s+</g, '><'));
+  return `data:image/svg+xml;charset=utf-8,${encoded}`;
+};
+
 export const resolveRoomImageMeta = (room: RoomImageSource, baseUrl: string) => {
   const image = room.image?.trim();
   if (image && isCustomRoomImage(image)) {
     return {
       src: normalizeCustomRoomImage(image, baseUrl),
-      objectPosition: '50% 50%'
+      objectPosition: '50% 50%',
+      isStatic: false
     };
   }
 
+  // Fallback to dynamic SVG instead of static PNG pool
   return {
-    src: pickRoomImageSrc(room),
-    objectPosition: pickRoomObjectPosition(room)
+    src: svgToDataUrl(buildRoomVisualSvg(room)),
+    objectPosition: '50% 50%',
+    isStatic: true
   };
 };
 

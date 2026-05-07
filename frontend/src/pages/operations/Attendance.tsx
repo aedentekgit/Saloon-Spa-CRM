@@ -507,9 +507,37 @@ const Attendance = () => {
                      />
                   </div>
                   <ZenInput label="Record Date" type="date" icon={CalendarIcon} value={manualFormData.date} onChange={(e: any) => setManualFormData({...manualFormData, date: e.target.value})} disabled={!!editingRecord} />
-                  <ZenDropdown label="Presence Status" options={['Present', 'Absent', 'Half Day', 'On Leave']} value={manualFormData.status} onChange={(val) => setManualFormData({...manualFormData, status: val})} icon={Shield} />
-                  <ZenInput label="Clock In" placeholder="09:00 AM" icon={LogIn} value={manualFormData.checkIn} onChange={(e: any) => setManualFormData({...manualFormData, checkIn: e.target.value})} />
-                  <ZenInput label="Clock Out" placeholder="06:00 PM" icon={LogOut} value={manualFormData.checkOut} onChange={(e: any) => setManualFormData({...manualFormData, checkOut: e.target.value})} />
+                  <ZenDropdown 
+                    label="Presence Status" 
+                    options={['Present', 'Absent', 'Half Day', 'On Leave']} 
+                    value={manualFormData.status} 
+                    onChange={(val) => {
+                      const isOff = val === 'Absent' || val === 'On Leave';
+                      setManualFormData({
+                        ...manualFormData, 
+                        status: val,
+                        checkIn: isOff ? '--' : (manualFormData.checkIn === '--' ? '09:00 AM' : manualFormData.checkIn),
+                        checkOut: isOff ? '--' : (manualFormData.checkOut === '--' ? '06:00 PM' : manualFormData.checkOut)
+                      });
+                    }} 
+                    icon={Shield} 
+                  />
+                  <ZenInput 
+                    label="Clock In" 
+                    placeholder="09:00 AM" 
+                    icon={LogIn} 
+                    value={manualFormData.checkIn} 
+                    onChange={(e: any) => setManualFormData({...manualFormData, checkIn: e.target.value})} 
+                    disabled={manualFormData.status === 'Absent' || manualFormData.status === 'On Leave'}
+                  />
+                  <ZenInput 
+                    label="Clock Out" 
+                    placeholder="06:00 PM" 
+                    icon={LogOut} 
+                    value={manualFormData.checkOut} 
+                    onChange={(e: any) => setManualFormData({...manualFormData, checkOut: e.target.value})} 
+                    disabled={manualFormData.status === 'Absent' || manualFormData.status === 'On Leave'}
+                  />
                </div>
             </div>
          </form>

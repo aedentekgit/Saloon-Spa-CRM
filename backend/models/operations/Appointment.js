@@ -121,7 +121,21 @@ const appointmentSchema = mongoose.Schema({
       type: Number,
       default: 1,
       min: 1
-    }
+    },
+    isMembershipCovered: {
+      type: Boolean,
+      default: false
+    },
+    membershipId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Membership'
+    },
+    bookingType: {
+      type: String,
+      enum: ['Normal', 'Membership', 'Guest'],
+      default: 'Normal'
+    },
+    membershipPlanName: String
   }],
   totalQuantity: {
     type: Number,

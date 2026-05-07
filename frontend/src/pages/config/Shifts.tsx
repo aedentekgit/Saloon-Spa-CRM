@@ -332,12 +332,12 @@ const Shifts = () => {
       addButtonLabel="New Shift"
       onAddClick={() => handleOpenModal()}
       topContent={
-        <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+        <div className="zen-metrics-grid">
           {[
-            { label: 'Total Shifts', value: shifts.length, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Pattern count' },
-            { label: 'Active Patterns', value: shifts.filter(s => s.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live schedules' },
-            { label: 'System Inactive', value: shifts.filter(s => s.status !== 'Active').length, icon: X, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Offline patterns' },
-            { label: 'Avg. Duration', value: `${shifts.length > 0 ? (shifts.reduce((acc, s) => acc + s.durationHours, 0) / shifts.length).toFixed(1) : 0}h`, icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', trend: 'Cycle average' }
+            { label: 'Total Shifts', value: shifts.length, icon: Clock, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Pattern count' },
+            { label: 'Active Patterns', value: shifts.filter(s => s.status === 'Active').length, icon: Zap, color: 'text-zen-leaf', bg: 'bg-zen-leaf/10', glow: 'bg-zen-leaf/20', trend: 'Live schedules' },
+            { label: 'System Inactive', value: shifts.filter(s => s.status !== 'Active').length, icon: X, color: 'text-zen-brown/30', bg: 'bg-zen-brown/5', glow: 'bg-zen-brown/10', trend: 'Offline patterns' },
+            { label: 'Avg. Duration', value: `${shifts.length > 0 ? (shifts.reduce((acc, s) => acc + s.durationHours, 0) / shifts.length).toFixed(1) : 0}h`, icon: Calendar, color: 'text-zen-gold', bg: 'bg-zen-gold/10', glow: 'bg-zen-gold/20', trend: 'Cycle average' }
           ].map((stat, i) => (
             <ZenStatCard key={i} {...stat} delay={i * 0.05} />
           ))}
@@ -410,8 +410,9 @@ const Shifts = () => {
           )}
         </div>
       ) : (
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
-           <table className="w-full text-center border-collapse min-w-[800px]">
+        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
+          <div className="table-container">
+            <table className="w-full text-center border-collapse min-w-[800px]">
               <thead>
                  <tr>
                     <th>S No</th>
@@ -430,39 +431,49 @@ const Shifts = () => {
                  )}
 
                  {filteredShifts.map((shift, idx) => (
-                    <tr key={shift._id} className={`transition-all group ${shift.status === 'Inactive' ? 'opacity-60 saturate-0' : ''}`}>
-                       <td className="text-center italic opacity-40">
-                         {((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}
+                    <tr key={shift._id} className={`transition-all group border-b border-black/[0.02] ${shift.status === 'Inactive' ? 'opacity-50 grayscale' : ''}`}>
+                       <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <span>{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</span>
                        </td>
-                       <td>
-                          <div className="flex flex-col items-center">
+                       <td className="px-4 lg:px-6 py-4 lg:py-6">
+                          <div className="flex flex-col items-center justify-center leading-none">
                              <span className="zen-table-primary">{shift.name}</span>
-                             {shift.branch && <span className="zen-table-meta">{getShiftBranchName(shift)}</span>}
+                             <span className="zen-table-meta mt-1">{getShiftBranchName(shift)}</span>
                           </div>
                        </td>
-                       <td>
-                          <div className="flex items-center justify-center gap-2 text-[10px] text-zen-brown/40 font-black uppercase tracking-widest">
-                             {shift.startTime} - {shift.endTime}
+                       <td className="px-4 lg:px-6 py-4 lg:py-6">
+                          <div className="flex flex-col items-center justify-center leading-none">
+                             <span className="zen-table-primary">{shift.startTime} - {shift.endTime}</span>
+                             <span className="zen-table-meta mt-1">Working Window</span>
                           </div>
                        </td>
-                       <td className="text-sm font-serif italic text-zen-brown/60">
-                          {shift.durationHours} Hours
+                       <td className="px-4 lg:px-6 py-4 lg:py-6">
+                          <div className="flex flex-col items-center justify-center leading-none">
+                             <span className="zen-table-primary">{shift.durationHours} Hours</span>
+                             <span className="zen-table-meta mt-1">Cycle Length</span>
+                          </div>
                        </td>
-                       <td>
-                          <button onClick={() => toggleStatus(shift)} className="hover:scale-105 transition-transform">
-                             <ZenBadge variant={shift.status === 'Active' ? 'leaf' : 'inactive'}>{shift.status === 'Inactive' ? 'Deactive' : 'Active'}</ZenBadge>
-                          </button>
+                       <td className="px-4 lg:px-6 py-4 lg:py-6">
+                          <div className="flex justify-center">
+                            <button 
+                              onClick={() => toggleStatus(shift)} 
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 ${shift.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-sm' : 'bg-zen-brown/5 text-zen-brown/30 border-zen-brown/10'}`}
+                            >
+                               <span className="text-[9px] font-bold uppercase tracking-widest">{shift.status === 'Inactive' ? 'Deactive' : 'Active'}</span>
+                            </button>
+                          </div>
                        </td>
-                       <td>
-                          <div className="flex items-center justify-center gap-3">
-                             <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(shift)} />
-                             <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(shift._id)} />
+                       <td className="px-4 lg:px-6 py-4 lg:py-6">
+                          <div className="flex items-center justify-center gap-2">
+                             <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(shift)} size="md" />
+                             <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(shift._id)} size="md" />
                           </div>
                        </td>
                     </tr>
                  ))}
               </tbody>
            </table>
+         </div>
         </div>
       )}
 
@@ -477,76 +488,56 @@ const Shifts = () => {
         subtitle="Define the working window, duration, and status for a branch shift."
         headerIcon={Clock}
         footer={
-          <div className="flex items-center justify-between gap-8 px-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/25 whitespace-nowrap">
-              {editingShift
-                ? 'Changes update the shift schedule once saved.'
-                : 'Available for appointments immediately after creation.'}
-            </p>
-            <div className="flex items-center gap-4 shrink-0">
-              <ZenButton
-                type="button"
-                variant="secondary"
-                onClick={() => setIsModalOpen(false)}
-                className="w-full sm:w-auto px-8"
-              >
-                Cancel
-              </ZenButton>
-              <ZenButton
-                type="submit"
-                form="shift-modal-form"
-                disabled={isSubmitting}
-                className="w-full sm:w-auto px-8 bg-zen-brown text-white shadow-xl shadow-zen-brown/10"
-              >
-                {isSubmitting ? 'Saving...' : editingShift ? 'Save shift' : 'Create shift'}
-              </ZenButton>
-            </div>
+          <div className="flex items-center justify-end w-full gap-4">
+            <ZenButton
+              type="button"
+              variant="secondary"
+              onClick={() => setIsModalOpen(false)}
+              className="rounded-full px-8 py-2.5 text-xs font-bold whitespace-nowrap"
+            >
+              Cancel
+            </ZenButton>
+            <ZenButton
+              type="submit"
+              form="shift-modal-form"
+              disabled={isSubmitting}
+              className="rounded-full px-10 py-2.5 text-xs font-bold whitespace-nowrap"
+            >
+              {isSubmitting ? 'Syncing...' : editingShift ? 'Save Shift Pattern' : 'Create Shift Pattern'}
+            </ZenButton>
           </div>
         }
       >
-         <form id="shift-modal-form" onSubmit={handleSubmit} className="space-y-10 py-2">
-            {/* Identity Section */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 px-1">
-                <div className="w-8 h-8 rounded-lg bg-zen-brown/5 flex items-center justify-center text-zen-brown/40">
-                  <Shield size={16} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-zen-brown uppercase tracking-widest">General Identity</h4>
-                  <p className="text-[10px] text-zen-brown/30 font-medium uppercase tracking-[0.2em] mt-0.5">Define shift name and current status</p>
-                </div>
-              </div>
+        <form id="shift-modal-form" onSubmit={handleSubmit} className="p-8">
+          <div className="bg-white rounded-[2.5rem] border border-zen-brown/10 p-10 shadow-2xl shadow-zen-brown/5 relative overflow-hidden">
+            <div className="absolute -top-16 -right-16 w-48 h-48 bg-zen-brown/[0.03] rounded-full blur-3xl" />
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-zen-sand/[0.05] rounded-full blur-3xl" />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-zen-cream/10 p-8 rounded-[2rem] border border-zen-brown/5">
+            <div className="relative z-10 space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <ZenInput
-                  label="Shift Name"
+                  label="Shift Identity"
                   placeholder="e.g. Morning Shift"
+                  required
                   value={formData.name}
                   onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
+                  variant="professional"
                 />
                 <ZenDropdown
                   label="Operational Status"
                   options={['Active', 'Inactive']}
                   value={formData.status}
                   onChange={(val) => setFormData({ ...formData, status: val })}
+                  variant="pill"
                 />
               </div>
-            </div>
 
-            {/* Timing Section */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 px-1">
-                <div className="w-8 h-8 rounded-lg bg-zen-brown/5 flex items-center justify-center text-zen-brown/40">
-                  <Clock size={16} />
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 px-1">
+                   <div className="w-1.5 h-1.5 rounded-full bg-zen-brown/20" />
+                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zen-brown/30">Schedule Configuration</p>
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-zen-brown uppercase tracking-widest">Time Schedule</h4>
-                  <p className="text-[10px] text-zen-brown/30 font-medium uppercase tracking-[0.2em] mt-0.5">Configure working hours and duration</p>
-                </div>
-              </div>
-
-              <div className="bg-zen-cream/10 p-10 rounded-[2.5rem] border border-zen-brown/5">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <ZenTimePicker
                     label="Start Time"
                     value={formData.startTime}
@@ -559,18 +550,22 @@ const Shifts = () => {
                     variant="pill"
                     onChange={(val: string) => setFormData({ ...formData, endTime: val })}
                   />
-                  <ZenInput
-                    label="Calculated Duration"
-                    type="number"
-                    icon={Zap}
-                    disabled
-                    value={formData.durationHours}
-                    className="bg-zen-brown/[0.02]"
-                  />
+                  <div className="relative">
+                    <ZenInput
+                      label="Calculated Duration"
+                      type="number"
+                      icon={Zap}
+                      disabled
+                      value={formData.durationHours}
+                      className="bg-zen-brown/[0.02]"
+                    />
+                    <span className="absolute right-4 bottom-4 text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest">Hours</span>
+                  </div>
                 </div>
               </div>
             </div>
-         </form>
+          </div>
+        </form>
       </Modal>
 
       <ConfirmDialog

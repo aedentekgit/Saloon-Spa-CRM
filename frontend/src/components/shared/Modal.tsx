@@ -65,17 +65,17 @@ export const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 30, stiffness: 400 }}
-            className={`relative w-full ${maxWidth} bg-white/95 backdrop-blur-3xl rounded-[1.2rem] sm:rounded-[2rem] shadow-none overflow-hidden border border-white flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] ${className}`}
+            className={`relative w-full ${maxWidth} bg-white rounded-[1.2rem] sm:rounded-[2rem] shadow-none overflow-hidden border border-white flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] ${className}`}
           >
             {/* Glossy Top Edge */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent z-[60]" />
 
             {header ? (
-              <div className="shrink-0 relative z-50 border-b border-zen-brown/10 bg-white/40 backdrop-blur-3xl">
+              <div className="shrink-0 relative z-50 border-b border-zen-brown/10 bg-white">
                 {header}
               </div>
             ) : !hideHeader && (
-              <div className="flex items-center justify-between px-4 sm:px-8 lg:px-14 py-3 sm:py-6 lg:py-7 border-b border-zen-brown/10 shrink-0 bg-white/40 backdrop-blur-3xl relative z-50">
+              <div className="flex items-center justify-between px-4 sm:px-8 lg:px-14 py-3 sm:py-6 lg:py-7 border-b border-zen-brown/10 shrink-0 bg-white relative z-50">
                 <div className="flex items-center gap-3 sm:gap-6 min-w-0">
                    <div className="w-11 h-11 sm:w-16 sm:h-16 bg-zen-sand/10 rounded-[0.9rem] sm:rounded-[1rem] text-zen-sand flex items-center justify-center shadow-inner border border-zen-sand/5">
                       <HeaderIcon size={22} strokeWidth={1} />
@@ -103,7 +103,7 @@ export const Modal: React.FC<ModalProps> = ({
             </div>
 
             {footer && (
-              <div className="px-4 sm:px-8 lg:px-14 py-3 sm:py-4 lg:py-5 border-t border-zen-brown/10 bg-white/40 backdrop-blur-3xl shrink-0 relative z-50">
+              <div className="px-4 sm:px-8 lg:px-14 py-2 sm:py-3 lg:py-3.5 border-t border-zen-brown/10 bg-white shrink-0 relative z-50">
                 {footer}
               </div>
             )}

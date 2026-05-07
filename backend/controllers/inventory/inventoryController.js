@@ -29,7 +29,7 @@ const getInventory = async (req, res) => {
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { category: { $regex: search, $options: 'i' } },
+        { sectorCategory: { $regex: search, $options: 'i' } },
         { vendor: { $regex: search, $options: 'i' } }
       ];
     }
@@ -42,7 +42,7 @@ const getInventory = async (req, res) => {
     // Fetch metrics for the filtered view
     const totalItems = await Inventory.countDocuments(query);
     const lowStockItems = await Inventory.countDocuments({ ...query, $expr: { $lte: ['$stock', '$lowStock'] } });
-    const categories = await Inventory.distinct('category', query);
+    const categories = await Inventory.distinct('sectorCategory', query);
 
     res.json(pagination ? {
       data,
@@ -62,38 +62,68 @@ const getInventory = async (req, res) => {
 // @route   POST /api/inventory
 // @access  Private/Manager
 const createInventoryItem = async (req, res) => {
-  const { name, category, stock, lowStock, vendor, branch, unit } = req.body;
-  const userBranchId = getBranchId(req.user.branch);
-
-  // IDOR Check
-  const assignedBranch = getBranchId(branch) || userBranchId;
-  if (!assignedBranch) {
-    return res.status(400).json({ message: 'Branch assignment required' });
-  }
-  if (req.user.role !== 'Admin' && !sameBranch(assignedBranch, userBranchId)) {
-    return res.status(403).json({ message: 'Access Denied: Cannot create inventory for another branch.' });
-  }
-
-  let image = '';
-  if (req.file) {
-    image = getStoredFilePath(req.file);
-  }
-
   try {
-    const item = await Inventory.create({
-      user: req.user._id,
-      name,
-      category,
-      stock,
-      lowStock,
-      vendor,
-      unit,
-      branch: toObjectIdIfValid(assignedBranch),
-      image
-    });
+    const { name, sectorCategory, stock, lowStock, vendor, branch, unit, branches } = req.body;
+    const userBranchId = getBranchId(req.user.branch);
 
-    res.status(201).json(item);
+    // Parse branches if it's a string
+    let selectedBranches = [];
+    if (branches) {
+      try {
+        selectedBranches = typeof branches === 'string' ? JSON.parse(branches) : branches;
+      } catch (e) {
+        console.error('Failed to parse branches:', e);
+      }
+    }
+
+    if (req.user.role !== 'Admin') {
+      if (!userBranchId) {
+        if (req.file) await deleteFile(getStoredFilePath(req.file));
+        return res.status(400).json({ message: 'Branch assignment required' });
+      }
+      selectedBranches = [userBranchId.toString()];
+    } else {
+      if (selectedBranches.length === 0) {
+        const singleBranch = getBranchId(branch) || userBranchId;
+        if (!singleBranch) {
+          if (req.file) await deleteFile(getStoredFilePath(req.file));
+          return res.status(400).json({ message: 'Branch assignment required' });
+        }
+        selectedBranches = [singleBranch.toString()];
+      }
+    }
+
+    let image = '';
+    if (req.file) {
+      image = getStoredFilePath(req.file);
+    }
+
+    const createdItems = [];
+    for (const targetBranch of selectedBranches) {
+      const item = await Inventory.create({
+        user: req.user._id,
+        name,
+        sectorCategory,
+        stock,
+        lowStock,
+        vendor,
+        unit,
+        branch: toObjectIdIfValid(targetBranch),
+        image
+      });
+      createdItems.push(item);
+    }
+
+    if (createdItems.length === 1) {
+      res.status(201).json(createdItems[0]);
+    } else {
+      res.status(201).json({
+        message: `Successfully created inventory across ${createdItems.length} branches.`,
+        data: createdItems
+      });
+    }
   } catch (error) {
+    if (req.file) await deleteFile(getStoredFilePath(req.file));
     res.status(400).json({ message: error.message });
   }
 };
@@ -118,7 +148,7 @@ const updateInventoryItem = async (req, res) => {
     }
 
     item.name = req.body.name || item.name;
-    item.category = req.body.category || item.category;
+    item.sectorCategory = req.body.sectorCategory || item.sectorCategory;
     item.stock = req.body.stock !== undefined ? req.body.stock : item.stock;
     item.lowStock = req.body.lowStock !== undefined ? req.body.lowStock : item.lowStock;
     item.vendor = req.body.vendor || item.vendor;

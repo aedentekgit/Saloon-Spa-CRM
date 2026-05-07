@@ -111,21 +111,21 @@ app.use(helmet({
 }));
 
 // Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: isDev ? 100000 : 1000, // Very lenient in dev
-  message: { success: false, message: 'Too many requests from this IP, please try again after 15 minutes' }
-});
-app.use('/api', limiter);
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: isDev ? 100000 : 1000, // Very lenient in dev
+//   message: { success: false, message: 'Too many requests from this IP, please try again after 15 minutes' }
+// });
+// app.use('/api', limiter);
 
 // Specific rate limiter for login and password reset
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes instead of 1 hour
-  max: isDev ? 10000 : 20, // Much more lenient in dev, slightly more in prod
-  message: 'Too many authentication attempts, please try again after 15 minutes'
-});
-app.use('/api/users/login', authLimiter);
-app.use('/api/users/forgotpassword', authLimiter);
+// const authLimiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes instead of 1 hour
+//   max: isDev ? 10000 : 20, // Much more lenient in dev, slightly more in prod
+//   message: 'Too many authentication attempts, please try again after 15 minutes'
+// });
+// app.use('/api/users/login', authLimiter);
+// app.use('/api/users/forgotpassword', authLimiter);
 
 app.use(express.json({ limit: '10kb' })); // Limit body size to prevent DOS
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));

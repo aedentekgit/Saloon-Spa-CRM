@@ -81,6 +81,8 @@ interface CompletedAppointment {
   addOns?: any[];
   billedInvoiceId?: any;
   serviceType?: string;
+  membershipId?: any;
+  bookingType?: string;
 }
 
 const getEntityId = (value: any) => {
@@ -213,6 +215,15 @@ const Billing = () => {
     return invoiceItems.reduce((acc, item) => acc + (item.isRedeem ? 0 : ((item.price || 0) * normalizeQuantity(item.quantity))), 0);
   }, [invoiceItems]);
 
+  const membershipCoversService = (serviceId: string, entry: any = {}) => {
+    if (entry.isMembershipCovered === true || entry.bookingType === 'Membership' || entry.serviceType === 'MEMBERSHIP') {
+      return true;
+    }
+    if (!activeMembership) return false;
+    const applicableServices = (activeMembership.plan?.applicableServices || []).map((id: any) => getEntityId(id));
+    return applicableServices.length === 0 || (!!serviceId && applicableServices.includes(serviceId));
+  };
+
 
   const fetchCompletedAppointmentsForClient = async (clientId: string) => {
     if (!clientId) {
@@ -260,7 +271,7 @@ const Billing = () => {
 
       if (selectedEmployeeId !== 'all' && specialistId !== selectedEmployeeId) return;
 
-      const isMembership = appointment.serviceType === 'MEMBERSHIP';
+      const isMembership = membershipCoversService(serviceId || getEntityId(service), entry);
       const originalPrice = Number(entry.price ?? service?.price ?? 0) || 0;
       const price = isMembership ? 0 : originalPrice;
 
@@ -272,7 +283,9 @@ const Billing = () => {
         name: service?.name || serviceName,
         price,
         originalPrice,
-        serviceType: appointment.serviceType || 'REGULAR',
+        serviceType: isMembership ? 'MEMBERSHIP' : 'REGULAR',
+        isMembershipCovered: isMembership,
+        membershipPlanName: isMembership ? activeMembership?.plan?.name || entry.membershipPlanName || '' : '',
         duration: Number(entry.duration ?? service?.duration ?? 0) || 0,
         quantity: normalizeQuantity(entry.quantity ?? appointment.quantity),
         specialist: specialistId || '',
@@ -297,7 +310,7 @@ const Billing = () => {
     });
 
     return rows;
-  }, [completedAppointments, services, billedAppointmentIds, selectedEmployeeId]);
+  }, [completedAppointments, services, billedAppointmentIds, selectedEmployeeId, activeMembership]);
 
   useEffect(() => {
     setInvoiceItems(completedServiceItems);
@@ -355,6 +368,19 @@ const Billing = () => {
         }
 
         const isCurrentlyRedeeming = !item.isRedeem;
+        
+        // If they are trying to redeem, check if the service is applicable to this plan
+        if (isCurrentlyRedeeming) {
+          const applicableServices = (activeMembership.plan?.applicableServices || []).map((id: any) => getEntityId(id));
+          const serviceId = getEntityId(item.serviceId || item._id);
+          const isApplicable = applicableServices.length === 0 || applicableServices.includes(serviceId);
+          
+          if (!isApplicable) {
+            notify('error', 'Service Not Included', `The service "${item.name}" is not covered by the ${activeMembership.plan.name} plan.`);
+            return item;
+          }
+        }
+
         const totalRedeemedAlready = invoiceItems.filter(i => i.isRedeem && i.uniqueId !== uniqueId).length;
 
         if (isCurrentlyRedeeming && (totalRedeemedAlready >= activeMembership.remainingSessions)) {
@@ -410,6 +436,10 @@ const Billing = () => {
         serviceId: i.serviceId || i._id,
         name: i.name,
         price: i.price,
+        originalPrice: i.originalPrice,
+        serviceType: i.serviceType,
+        isMembershipCovered: i.isMembershipCovered || i.isRedeem || false,
+        membershipPlanName: i.membershipPlanName || undefined,
         duration: i.duration,
         quantity: normalizeQuantity(i.quantity),
         specialist: i.specialist || undefined,
@@ -743,10 +773,21 @@ const Billing = () => {
                             <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">Completed service</p>
                           </td>
                           <td className="px-8 py-6 text-right">
-                             <div className={`transition-all duration-500 ${item.isRedeem ? 'opacity-30 scale-95 origin-right line-through blur-[0.5px]' : 'opacity-100'}`}>
-                               <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">{settings?.general.currencySymbol || 'QR'}</p>
-                               <p className="font-serif text-2xl font-black text-zen-brown">{((item.price || 0) * normalizeQuantity(item.quantity)).toLocaleString()}</p>
-                             </div>
+                             {item.isRedeem ? (
+                               <div className="space-y-1">
+                                 <div className="opacity-35 line-through">
+                                   <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">{settings?.general.currencySymbol || 'QR'}</p>
+                                   <p className="font-serif text-xl font-black text-zen-brown">{((item.originalPrice || 0) * normalizeQuantity(item.quantity)).toLocaleString()}</p>
+                                 </div>
+                                 <p className="text-[9px] font-black text-zen-sand uppercase tracking-[0.2em]">Covered value</p>
+                                 <p className="font-serif text-lg font-black text-zen-sand">0 charged</p>
+                               </div>
+                             ) : (
+                               <div className="transition-all duration-500 opacity-100">
+                                 <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">{settings?.general.currencySymbol || 'QR'}</p>
+                                 <p className="font-serif text-2xl font-black text-zen-brown">{((item.price || 0) * normalizeQuantity(item.quantity)).toLocaleString()}</p>
+                               </div>
+                             )}
                           </td>
                           <td className="px-8 py-6">
                             <div className="flex justify-center">

@@ -145,6 +145,7 @@ const WhatsApp = () => {
       title="Messaging Center"
       hideSearch
       hideAddButton
+      hideViewToggle={true}
     >
       <div className="space-y-12">
         {/* Top Summary / Status */}

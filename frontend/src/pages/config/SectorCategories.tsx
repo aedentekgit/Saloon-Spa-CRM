@@ -13,10 +13,10 @@ import { useCategories } from '../../context/CategoryContext';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
 import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 
-interface ExpenseCategory {
+interface SectorCategory {
   _id: string;
   name: string;
-  type: 'room' | 'inventory' | 'service' | 'expense';
+  type: 'room' | 'inventory' | 'service' | 'sector';
   description?: string;
   isActive: boolean;
   createdAt?: string;
@@ -29,7 +29,7 @@ const formatExportDateTime = (value?: string) => {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString().slice(0, 16).replace('T', ' ');
 };
 
-const categoryMatchesSearch = (category: ExpenseCategory, searchTerm: string) => {
+const categoryMatchesSearch = (category: SectorCategory, searchTerm: string) => {
   const normalizedSearch = searchTerm.trim().toLowerCase();
   if (!normalizedSearch) return true;
 
@@ -42,7 +42,7 @@ const categoryMatchesSearch = (category: ExpenseCategory, searchTerm: string) =>
   ].some((value) => String(value ?? '').toLowerCase().includes(normalizedSearch));
 };
 
-const ExpenseCategories = () => {
+const SectorCategories = () => {
   const {
     categories,
     loading,
@@ -52,8 +52,9 @@ const ExpenseCategories = () => {
   } = useCategories();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
-    return (localStorage.getItem('zen_expense_cat_view') as 'grid' | 'table') || 'grid';
+    return (localStorage.getItem('zen_sector_cat_view') as 'grid' | 'table') || 'grid';
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
@@ -62,25 +63,32 @@ const ExpenseCategories = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    type: 'expense' as const,
+    type: 'sector' as const,
     isActive: true
   });
 
   useEffect(() => {
-    localStorage.setItem('zen_expense_cat_view', viewMode);
+    localStorage.setItem('zen_sector_cat_view', viewMode);
   }, [viewMode]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const handleOpenModal = (cat: any = null) => {
     if (cat) {
       setEditingCategory(cat);
       setFormData({
         name: cat.name,
-        type: 'expense',
+        type: 'sector',
         isActive: cat.isActive !== undefined ? cat.isActive : true
       });
     } else {
       setEditingCategory(null);
-      setFormData({ name: '', type: 'expense', isActive: true });
+      setFormData({ name: '', type: 'sector', isActive: true });
     }
     setIsModalOpen(true);
   };
@@ -95,7 +103,7 @@ const ExpenseCategories = () => {
     }
 
     if (success) {
-      notify('success', 'Category saved', editingCategory ? 'Expense category updated.' : 'New expense category created.');
+      notify('success', 'Category saved', editingCategory ? 'Sector category updated.' : 'New sector category created.');
       setIsModalOpen(false);
     } else {
       notify('error', 'Update Failed', 'Could not synchronize category records.');
@@ -125,13 +133,13 @@ const ExpenseCategories = () => {
     }
   };
 
-  const filteredCategories = useMemo<ExpenseCategory[]>(() => {
-    return (categories as ExpenseCategory[]).filter(c =>
-      c.type === 'expense' && categoryMatchesSearch(c, searchTerm)
+  const filteredCategories = useMemo<SectorCategory[]>(() => {
+    return (categories as SectorCategory[]).filter(c =>
+      c.type === 'sector' && categoryMatchesSearch(c, debouncedSearch)
     );
-  }, [categories, searchTerm]);
+  }, [categories, debouncedSearch]);
 
-  const expenseCategoryExportColumns = useMemo<ExportColumn<ExpenseCategory>[]>(
+  const sectorCategoryExportColumns = useMemo<ExportColumn<SectorCategory>[]>(
     () => [
       { header: 'Category ID', accessor: (category) => category._id },
       { header: 'Name', accessor: (category) => category.name },
@@ -147,30 +155,30 @@ const ExpenseCategories = () => {
 
   return (
     <ZenPageLayout
-      title="Expense Categories"
+      title="Sector Categories"
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
-      addButtonLabel="Add Expense Category"
+      addButtonLabel="Add Sector Category"
       onAddClick={() => handleOpenModal()}
       hideBranchSelector
       searchActions={
-        <ExportPopup<ExpenseCategory>
+        <ExportPopup<SectorCategory>
           data={filteredCategories}
-          columns={expenseCategoryExportColumns}
-          fileName="expense_categories"
-          title="Expense Categories"
+          columns={sectorCategoryExportColumns}
+          fileName="sector_categories"
+          title="Sector Categories"
           triggerLabel="Download"
-          description="Choose format and export the complete expense category sheet."
+          description="Choose format and export the complete sector category sheet."
         />
       }
       topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
-            { label: 'Total Categories', value: filteredCategories.length, icon: Sparkles, color: 'text-rose-600', bg: 'bg-rose-600/10', glow: 'bg-rose-600/20', trend: 'Finance types' },
+            { label: 'Total Categories', value: filteredCategories.length, icon: Sparkles, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Finance types' },
             { label: 'Active Types', value: filteredCategories.filter(c => c.isActive).length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Available' },
-            { label: 'System Inactive', value: filteredCategories.filter(c => !c.isActive).length, icon: X, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Disabled' },
+            { label: 'System Inactive', value: filteredCategories.filter(c => !c.isActive).length, icon: X, color: 'text-zen-brown/40', bg: 'bg-zen-brown/5', glow: 'bg-zen-brown/10', trend: 'Disabled' },
             { label: 'Registry Health', value: filteredCategories.length > 0 ? 'Verified' : 'None', icon: Sparkles, color: 'text-purple-500', bg: 'bg-purple-500/10', glow: 'bg-purple-500/20', trend: 'Operational' }
           ].map((stat, i) => (
             <ZenStatCard key={i} {...stat} delay={i * 0.05} />
@@ -187,12 +195,12 @@ const ExpenseCategories = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
           {filteredCategories.map((cat) => (
             <div key={cat._id} className="group relative bg-white rounded-[2rem] p-6 lg:p-8 shadow-sm border border-zen-brown/15 transition-all duration-700 hover:shadow-zen-brown/15 hover:-translate-y-2 h-full flex flex-col justify-between overflow-hidden">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
+               <div className="absolute top-0 right-0 w-32 h-32 bg-zen-sand/5 rounded-bl-full -z-0 pointer-events-none group-hover:scale-150 transition-transform duration-1000"></div>
 
                <div className="relative z-10">
                  <div className="flex items-start justify-between mb-6">
                     <div className="relative w-16 h-16 rounded-2xl overflow-hidden border-4 border-zen-cream bg-zen-cream flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-700 shadow-xl">
-                        <div className="w-full h-full flex items-center justify-center bg-rose-500/10 text-rose-600 font-serif text-2xl uppercase font-bold">
+                        <div className="w-full h-full flex items-center justify-center bg-zen-sand/10 text-zen-sand font-serif text-2xl uppercase font-bold">
                           {cat.name.charAt(0)}
                         </div>
                     </div>
@@ -226,65 +234,65 @@ const ExpenseCategories = () => {
           ))}
           {filteredCategories.length === 0 && (
              <div className="col-span-full py-32 text-center text-zen-brown/20 italic font-serif text-2xl border-2 border-dashed border-zen-brown/15 rounded-[3rem]">
-                No expense categories defined in the registry.
+                No sector categories defined in the registry.
              </div>
           )}
         </div>
       ) : (
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
-          <table className="w-full text-center border-collapse min-w-[800px]">
-            <thead>
-              <tr>
-                <th>S No</th>
-                <th>Category Identity</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(!filteredCategories || filteredCategories.length === 0) && (
-                 <tr>
-                    <td colSpan={4}>
-                       <span className="text-[13px] font-sans text-gray-400 italic">No records available.</span>
-                    </td>
-                 </tr>
-              )}
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
+            <div className="table-container">
+              <table className="w-full text-center border-collapse min-w-[800px]">
+                <thead>
+                  <tr>
+                    <th>S No</th>
+                    <th>Category Identity</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(!filteredCategories || filteredCategories.length === 0) && (
+                     <tr>
+                        <td colSpan={4} className="px-6 py-16 text-center text-[13px] font-sans text-gray-400 bg-gray-50/30">No records available.</td>
+                     </tr>
+                  )}
 
-              {filteredCategories.map((cat, index) => (
-                <tr key={cat._id} className="transition-all group border-b border-black/[0.02]">
-                  <td className="text-center italic opacity-40 text-[11px]">
-                    {(index + 1).toString().padStart(2, '0')}
-                  </td>
-                  <td>
-                     <div className="flex flex-col items-center justify-center leading-none px-6">
-                        <span className="zen-table-primary">{cat.name}</span>
-                        <span className="zen-table-meta">Expense Category</span>
-                     </div>
-                  </td>
-                  <td>
-                     <div className="flex justify-center">
-                        <button
-                          onClick={() => toggleStatus(cat)}
-                          className="group/status transition-transform active:scale-95"
-                        >
-                           <ZenBadge variant={cat.isActive ? 'leaf' : 'sand'}>
-                             <div className={`w-1 h-1 rounded-full mr-1.5 ${cat.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-zen-sand'}`}></div>
-                             {cat.isActive ? 'Active' : 'Paused'}
-                           </ZenBadge>
-                        </button>
-                     </div>
-                  </td>
-                  <td>
-                    <div className="flex items-center justify-center gap-3">
-                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(cat)} />
-                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteClick(cat._id)} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  {filteredCategories.map((cat, index) => (
+                    <tr key={cat._id} className="transition-all group border-b border-black/[0.02]">
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <span>{(index + 1).toString().padStart(2, '0')}</span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <div className="flex flex-col items-center justify-center leading-none px-6">
+                            <span className="zen-table-primary">{cat.name}</span>
+                            <span className="zen-table-meta mt-1">Sector Classification</span>
+                         </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <div className="flex justify-center">
+                            <button
+                              onClick={() => toggleStatus(cat)}
+                              className="group/status transition-transform active:scale-95"
+                            >
+                               <ZenBadge variant={cat.isActive ? 'leaf' : 'sand'}>
+                                 <div className={`w-1 h-1 rounded-full mr-1.5 ${cat.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-zen-sand'}`}></div>
+                                 {cat.isActive ? 'Active' : 'Paused'}
+                               </ZenBadge>
+                            </button>
+                         </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <div className="flex items-center justify-center gap-3">
+                           <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(cat)} size="md" />
+                           <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteClick(cat._id)} size="md" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
       )}
 
       <Modal
@@ -294,85 +302,74 @@ const ExpenseCategories = () => {
         header={
           <div className="flex items-center justify-between gap-6 px-6 sm:px-10 py-5 sm:py-6 border-b border-zen-brown/5">
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-sm shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-zen-brown text-white flex items-center justify-center shadow-sm shrink-0">
                 <Tag size={20} strokeWidth={2} />
               </div>
               <div className="flex items-baseline gap-3 min-w-0">
                 <h3 className="text-xl font-bold text-zen-brown truncate">
                   {editingCategory ? 'Edit Category' : 'New Category'}
                 </h3>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600/40 whitespace-nowrap">Expense Category</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zen-brown/40 whitespace-nowrap">Sector Category</span>
               </div>
             </div>
             <ZenIconButton icon={X} onClick={() => setIsModalOpen(false)} size="sm" />
           </div>
         }
         footer={
-          <div className="flex items-center justify-between w-full gap-8">
-            <p className="text-[11px] font-medium text-zen-brown/40 truncate max-w-[50%]">
-              {editingCategory
-                ? 'Updates apply to all related expenses.'
-                : 'New category available immediately.'}
-            </p>
-            <div className="flex items-center gap-3 shrink-0">
-              <ZenButton
-                type="button"
-                variant="secondary"
-                onClick={() => setIsModalOpen(false)}
-                className="rounded-full px-6"
-              >
-                Cancel
-              </ZenButton>
-              <ZenButton
-                type="submit"
-                form="expense-category-modal-form"
-                className="bg-rose-600 hover:bg-rose-700 rounded-full px-8 shadow-sm shadow-rose-600/20"
-              >
-                {editingCategory ? 'Save' : 'Create'}
-              </ZenButton>
-            </div>
+          <div className="flex items-center justify-end w-full gap-4">
+            <ZenButton
+              type="button"
+              variant="secondary"
+              onClick={() => setIsModalOpen(false)}
+              className="rounded-full px-8 py-2.5 text-xs font-bold whitespace-nowrap"
+            >
+              Cancel
+            </ZenButton>
+            <ZenButton
+              type="submit"
+              form="sector-category-modal-form"
+              className="rounded-full px-10 py-2.5 text-xs font-bold whitespace-nowrap"
+            >
+              {editingCategory ? 'Save Category' : 'Create Category'}
+            </ZenButton>
           </div>
         }
       >
-        <form id="expense-category-modal-form" onSubmit={handleSubmit} className="space-y-4">
-          <div className="rounded-2xl border border-zen-brown/10 bg-white p-5 sm:p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4 mb-5">
-              <div className="flex items-center gap-3">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zen-brown/30">Registry Details</span>
-                <h4 className="text-md font-bold text-zen-brown">Basic Configuration</h4>
-              </div>
-              <ZenBadge variant={formData.isActive ? 'leaf' : 'inactive'} className="scale-90">
-                {formData.isActive ? 'Active' : 'Inactive'}
-              </ZenBadge>
-            </div>
+        <form id="sector-category-modal-form" onSubmit={handleSubmit} className="p-8">
+          <div className="bg-white rounded-[2.5rem] border border-zen-brown/10 p-10 shadow-2xl shadow-zen-brown/5 relative overflow-hidden">
+            <div className="absolute -top-16 -right-16 w-48 h-48 bg-zen-brown/[0.03] rounded-full blur-3xl" />
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-zen-sand/[0.05] rounded-full blur-3xl" />
 
-            <ZenInput
-              label="Category Name"
-              placeholder="e.g. Utility Bills"
-              required
-              value={formData.name}
-              onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
-              hideLabel={false}
-            />
-          </div>
+            <div className="relative z-10 space-y-8">
+              <ZenInput
+                label="Category Identity"
+                placeholder="e.g. Utility Bills"
+                required
+                value={formData.name}
+                onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
+                variant="professional"
+              />
 
-          <div className="rounded-2xl border border-zen-brown/10 bg-white p-5 sm:p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zen-brown/30">Availability</span>
-                <p className="text-sm font-medium text-zen-brown/70 truncate">
-                  {formData.isActive ? 'Visible in logs' : 'Hidden from logs'}
-                </p>
+              <div className="flex items-center justify-between p-6 bg-zen-brown/[0.02] rounded-3xl border border-zen-brown/5">
+                <div className="flex items-center gap-4">
+                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${formData.isActive ? 'bg-zen-leaf text-white shadow-zen-leaf/20' : 'bg-slate-100 text-slate-400'}`}>
+                      <Zap size={18} />
+                   </div>
+                   <div>
+                      <p className="text-xs font-bold text-zen-brown">Operational Status</p>
+                      <p className="text-[10px] text-zen-brown/40 uppercase tracking-widest font-black mt-0.5">{formData.isActive ? 'Active' : 'Inactive'}</p>
+                   </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+                  className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-sm ${
+                    formData.isActive ? 'bg-zen-leaf text-white shadow-zen-leaf/20' : 'bg-white text-zen-brown/30 border border-zen-brown/10'
+                  }`}
+                >
+                  {formData.isActive ? 'Enabled' : 'Disabled'}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
-                className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ${
-                  formData.isActive ? 'bg-zen-leaf text-white shadow-zen-leaf/10' : 'bg-slate-100 text-slate-400'
-                }`}
-              >
-                {formData.isActive ? 'Active' : 'Inactive'}
-              </button>
             </div>
           </div>
         </form>
@@ -383,11 +380,11 @@ const ExpenseCategories = () => {
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={executeDelete}
         title="Delete category?"
-        message="Are you sure you want to delete this expense category?"
+        message="Are you sure you want to delete this sector category?"
       />
       </div>
     </ZenPageLayout>
   );
 };
 
-export default ExpenseCategories;
+export default SectorCategories;

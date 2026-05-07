@@ -628,7 +628,7 @@ const Employees = () => {
       setEditingEmp(null);
       setFormData({
         name: '',
-        role: roles.length > 0 ? roles[0].name : '',
+        role: (roles || []).filter(r => r.name !== 'Admin' && r.name !== 'Client')[0]?.name || '',
         email: '',
         phone: '',
         address: '',
@@ -819,8 +819,9 @@ const Employees = () => {
             ))}
           </div>
         ) : (
-          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden table-container animate-in fade-in duration-700">
-            <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
+            <div className="table-container">
+              <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
                <thead>
                   <tr>
                      <th>S No</th>
@@ -841,31 +842,33 @@ const Employees = () => {
 
                    {filteredEmployees.map((emp, idx) => (
                     <tr key={emp._id} className="transition-all group border-b border-black/[0.02]">
-                      <td>
-                        {((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <span>{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</span>
                       </td>
-                      <td>
-                         <div className="w-12 h-12 zen-pointed-surface overflow-hidden mx-auto bg-stone-50 border border-black/5 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
-                            {emp.profilePic ? (
-                               <img src={getImageUrl(emp.profilePic)} alt={emp.name} className="w-full h-full object-cover" />
-                            ) : (
-                               <User size={18} className="text-black/10" strokeWidth={1} />
-                            )}
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <div className="flex justify-center">
+                            <div className="w-10 lg:w-12 h-10 lg:h-12 zen-pointed-surface overflow-hidden bg-stone-50 border border-black/5 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
+                               {emp.profilePic ? (
+                                  <img src={getImageUrl(emp.profilePic)} alt={emp.name} className="w-full h-full object-cover" />
+                               ) : (
+                                  <User size={18} className="text-black/10" strokeWidth={1} />
+                               )}
+                            </div>
                          </div>
                       </td>
-                      <td>
-                         <div className="flex flex-col items-center justify-center leading-none px-6">
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <div className="flex flex-col items-center justify-center leading-none">
                             <span className="zen-table-primary">{emp.name}</span>
-                            <span className="zen-table-meta">{emp.role} • {getEmployeeBranchName(emp)}</span>
+                            <span className="zen-table-meta mt-1">{emp.role} • {getEmployeeBranchName(emp)}</span>
                          </div>
                       </td>
-                      <td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
                          <div className="flex flex-col items-center justify-center leading-none">
                             <span className="text-[10px] text-zen-brown/50 font-black uppercase tracking-widest">{emp.payroll?.type || 'Monthly'}</span>
                             <span className="zen-table-meta mt-1">{emp.shift || 'Flexible'} Record</span>
                          </div>
                       </td>
-                      <td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
                         <div className="flex flex-col items-center justify-center leading-none">
                            <span className="text-base font-serif font-black text-zen-brown leading-none">
                               {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
@@ -873,17 +876,23 @@ const Employees = () => {
                            <span className="zen-table-meta mt-1">Total Earnings</span>
                         </div>
                       </td>
-                      <td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
                         <div className="flex justify-center">
-                           <ZenBadge variant={emp.status === 'Active' ? 'leaf' : 'sand'}>
+                           <ZenBadge variant={emp.status === 'Active' ? 'leaf' : 'sand'} className="text-[9px] uppercase tracking-widest">
                               {emp.status}
                            </ZenBadge>
                         </div>
                       </td>
-                      <td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
                          <div className="flex items-center justify-center gap-2">
-                            <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} />
-                            <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} />
+                            <ZenIconButton
+                               icon={Zap}
+                               variant={emp.status === 'Active' ? 'leaf' : 'sand'}
+                               onClick={() => togglePayroll(emp)}
+                               size="md"
+                            />
+                            <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} size="md" />
+                            <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} size="md" />
                          </div>
                       </td>
                    </tr>
@@ -891,6 +900,7 @@ const Employees = () => {
                 </tbody>
             </table>
           </div>
+        </div>
         )}
 
 
@@ -940,9 +950,9 @@ const Employees = () => {
             </div>
 
             <div className="space-y-3 lg:pt-0.5">
-              <ZenInput label="Full Name" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-lg sm:text-2xl border-none p-0 h-auto font-bold tracking-tighter" />
+              <ZenInput label="Full Name" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-lg sm:text-2xl font-bold tracking-tighter" />
               <div className="w-full sm:w-72 mt-2">
-                <ZenDropdown label="Role" options={(roles || []).map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} variant="pill" />
+                <ZenDropdown label="Role" options={(roles || []).filter(r => r.name !== 'Admin' && r.name !== 'Client').map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} variant="pill" />
               </div>
               <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.4em]">Core identity</p>
             </div>

@@ -98,27 +98,18 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Initialize security fields if they don't exist
-    if (user.loginAttempts === undefined) user.loginAttempts = 0;
-
-    // Check if account is locked
-    if (user.lockUntil && user.lockUntil > Date.now()) {
-      const remainingMinutes = Math.ceil((user.lockUntil - Date.now()) / (60 * 1000));
-      return res.status(401).json({
-        message: `Account is temporarily locked. Try again in ${remainingMinutes} minutes.`
-    });
-    }
-
     // Match password
     const isMatch = await user.matchPassword(password);
 
     if (!isMatch) {
-      // Increment login attempts
+      // Increment login attempts (DISABLED per user request)
+      /*
       user.loginAttempts = (user.loginAttempts || 0) + 1;
       if (user.loginAttempts >= 5) {
         user.lockUntil = Date.now() + 60 * 60 * 1000; // Lock for 1 hour
       }
       await user.save();
+      */
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 

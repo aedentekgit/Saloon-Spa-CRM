@@ -79,6 +79,7 @@ const Branches = () => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -116,6 +117,13 @@ const Branches = () => {
   }, [viewMode]);
 
   const PAGE_LIMIT = 12;
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const fetchBranches = async () => {
     try {
@@ -268,8 +276,8 @@ const Branches = () => {
 
 
   const filteredBranches = useMemo(
-    () => branches.filter((branch) => branchMatchesSearch(branch, searchTerm)),
-    [branches, searchTerm]
+    () => branches.filter((branch) => branchMatchesSearch(branch, debouncedSearch)),
+    [branches, debouncedSearch]
   );
 
   const toggleBranchStatus = async (branch: Branch) => {
@@ -328,7 +336,7 @@ const Branches = () => {
       if (branch?._id) unique.set(branch._id, branch);
     });
 
-    return Array.from(unique.values()).filter((branch) => branchMatchesSearch(branch, searchTerm));
+    return Array.from(unique.values()).filter((branch) => branchMatchesSearch(branch, debouncedSearch));
   };
 
   const branchExportColumns = useMemo<ExportColumn<Branch>[]>(
@@ -455,8 +463,9 @@ const Branches = () => {
           ))}
         </div>
       ) : (
-        <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
-          <table className="w-full text-center border-collapse min-w-[800px]">
+        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
+          <div className="table-container">
+            <table className="w-full text-center border-collapse min-w-[800px]">
                <thead>
                   <tr>
                      <th>S No</th>
@@ -476,12 +485,12 @@ const Branches = () => {
 
                   {filteredBranches.map((branch, index) => (
                     <tr key={branch._id} className="transition-all group border-b border-black/[0.02]">
-                      <td className="text-center italic opacity-40 text-[11px]">
-                        {((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <span>{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
                       </td>
-                      <td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
                         <div className="flex justify-center">
-                          <div className="w-12 h-10 rounded-xl overflow-hidden bg-zen-cream border border-zen-brown/10 shadow-sm shrink-0 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                          <div className="w-10 lg:w-12 h-10 lg:h-12 zen-pointed-surface overflow-hidden bg-zen-cream border border-zen-stone shadow-sm shrink-0 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
                             {branch.logo ? (
                               <img src={getImageUrl(branch.logo)} className="w-full h-full object-cover" />
                             ) : (
@@ -490,35 +499,32 @@ const Branches = () => {
                           </div>
                         </div>
                       </td>
-                      <td>
-                         <div className="flex flex-col items-center justify-center leading-none px-6">
-                            <span className="zen-table-primary">{branch.name}</span>
-                            <span className="zen-table-meta">Active Space Registry</span>
-                         </div>
-                      </td>
-                      <td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
                          <div className="flex flex-col items-center justify-center leading-none">
-                            <span className="text-base font-serif font-black text-zen-brown leading-none">{branch.contactNumber}</span>
-                            <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest lowercase mt-1">{branch.email}</span>
+                            <span className="zen-table-primary">{branch.name}</span>
+                            <span className="zen-table-meta mt-1">Active Space Registry</span>
                          </div>
                       </td>
-                      <td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <div className="flex flex-col items-center justify-center leading-none">
+                            <span className="zen-table-primary leading-none">{branch.contactNumber}</span>
+                            <span className="zen-table-meta mt-1">{branch.email}</span>
+                         </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
                          <div className="flex justify-center">
                             <button
                               onClick={() => toggleBranchStatus(branch)}
-                              className="group/status transition-transform active:scale-95"
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 ${branch.isActive ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-sm' : 'bg-red-50 text-red-400 border-red-100'}`}
                             >
-                               <ZenBadge variant={branch.isActive ? 'leaf' : 'sand'}>
-                                 <div className={`w-1 h-1 rounded-full mr-1.5 ${branch.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-zen-sand'}`}></div>
-                                 {branch.isActive ? 'Active' : 'Paused'}
-                               </ZenBadge>
+                               <span className="text-[9px] font-bold uppercase tracking-widest">{branch.isActive ? 'Active' : 'Paused'}</span>
                             </button>
                          </div>
                       </td>
-                      <td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
                          <div className="flex items-center justify-center gap-2">
-                            <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(branch)} />
-                            <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(branch._id)} />
+                            <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(branch)} size="md" />
+                            <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(branch._id)} size="md" />
                          </div>
                       </td>
                     </tr>
@@ -526,6 +532,7 @@ const Branches = () => {
                </tbody>
           </table>
         </div>
+      </div>
       )}
 
       <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />

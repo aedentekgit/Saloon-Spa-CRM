@@ -222,13 +222,18 @@ const createInvoice = async (req, res) => {
             const inventoryItemId = usage.inventoryItem?._id || usage.inventoryItem;
             if (!inventoryItemId) continue;
             const inventoryItem = await Inventory.findById(inventoryItemId).select('branch');
-            if (!inventoryItem || !sameBranch(inventoryItem.branch, requestedBranch)) {
-              return res.status(403).json({ message: 'Access Denied: Service inventory belongs to another branch.' });
+            if (!inventoryItem) {
+              console.warn(`[Inventory Warning] Linked inventory item ${inventoryItemId} not found for service "${service.name}".`);
+              continue;
+            }
+            if (!sameBranch(inventoryItem.branch, requestedBranch)) {
+              console.warn(`[Inventory Warning] Service "${service.name}" uses inventory item "${inventoryItemId}" which belongs to another branch.`);
+              // Do not block invoice creation to maintain business flow, but skip depletion in depletion logic
             }
           }
         }
 
-        const isMembershipItem = linkedAppointment?.serviceType === 'MEMBERSHIP' || item.serviceType === 'MEMBERSHIP';
+        const isMembershipItem = item.isMembershipCovered === true || item.isRedeem === true || item.serviceType === 'MEMBERSHIP';
         const finalPrice = isMembershipItem ? 0 : Number(item.price ?? 0);
 
         normalizedItems.push({
@@ -238,7 +243,11 @@ const createInvoice = async (req, res) => {
           specialist: item.specialist || linkedAppointment?.completedByEmployeeId || linkedAppointment?.employeeId || undefined,
           specialistName: item.specialistName || linkedAppointment?.completedByName || linkedAppointment?.employee,
           quantity: normalizeQuantity(item.quantity),
-          price: finalPrice
+          price: finalPrice,
+          originalPrice: Number(item.originalPrice ?? item.price ?? 0) || 0,
+          serviceType: isMembershipItem ? 'MEMBERSHIP' : 'REGULAR',
+          isMembershipCovered: isMembershipItem,
+          membershipPlanName: item.membershipPlanName || ''
         });
       }
     }
@@ -305,10 +314,15 @@ const createInvoice = async (req, res) => {
               const consumptionQty = (usage.quantity || 0) * (item.quantity || 1);
               if (consumptionQty > 0) {
                  const inventoryItemId = usage.inventoryItem._id || usage.inventoryItem;
-                 await Inventory.findByIdAndUpdate(
-                    inventoryItemId,
-                    { $inc: { stock: -consumptionQty } }
-                 );
+                 const inventoryItem = await Inventory.findById(inventoryItemId).select('branch');
+                 if (inventoryItem && sameBranch(inventoryItem.branch, requestedBranch)) {
+                    await Inventory.findByIdAndUpdate(
+                       inventoryItemId,
+                       { $inc: { stock: -consumptionQty } }
+                    );
+                 } else {
+                    console.warn(`[Inventory Depletion Skipped] Mismatched branch or missing item for ${inventoryItemId} in service "${service.name}"`);
+                 }
               }
            }
         }

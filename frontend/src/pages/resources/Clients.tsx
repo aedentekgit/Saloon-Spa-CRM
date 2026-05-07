@@ -104,6 +104,7 @@ const Clients = () => {
   }));
   const [loading, setLoading] = useState(() => getCachedJson<Client[]>('zen_page_clients_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -121,7 +122,7 @@ const Clients = () => {
     dob: '',
     notes: '',
     status: 'Active',
-    role: '',
+    role: 'Client',
     password: '',
     confirmPassword: ''
   });
@@ -205,6 +206,13 @@ const Clients = () => {
   }, [selectedBranch]);
 
   const PAGE_LIMIT = 12;
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const fetchClients = async (silent: boolean = false) => {
     try {
@@ -338,11 +346,11 @@ const Clients = () => {
 
     // Filter by Search Term
     return filtered.filter(client =>
-      (client.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (client.phone || '').includes(searchTerm) ||
-      (client.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      (client.name?.toLowerCase() || '').includes(debouncedSearch.toLowerCase()) ||
+      (client.phone || '').includes(debouncedSearch) ||
+      (client.email?.toLowerCase() || '').includes(debouncedSearch.toLowerCase())
     );
-  }, [clients, searchTerm]);
+  }, [clients, debouncedSearch]);
 
   const branchNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -362,7 +370,7 @@ const Clients = () => {
   };
 
   const filterClientList = (rows: Client[]) => {
-    const query = searchTerm.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     if (!query) return rows;
     return rows.filter((client) =>
       (client.name?.toLowerCase() || '').includes(query) ||
@@ -559,7 +567,7 @@ const Clients = () => {
         dob: '',
         notes: '',
         status: 'Active',
-        role: roles.includes('Client') ? 'Client' : (roles[0] || ''),
+        role: 'Client',
         password: '',
         confirmPassword: ''
       });
@@ -966,220 +974,225 @@ const Clients = () => {
           </div>
 
           <AnimatePresence mode="wait">
-            {activeTab === 'profile' ? (
-              <motion.div
-                key="profile-tab"
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -12 }}
-                className="space-y-6"
-              >
-                <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)]">
-                  <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 shadow-sm">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Profile photo</p>
-                    <div className="relative mx-auto mt-5 aspect-square w-40 sm:w-48 group">
-                      <div className="absolute inset-0 rounded-full bg-zen-cream/30 blur-sm" />
-                      <div className="relative h-full w-full overflow-hidden zen-pointed-surface border-4 border-white bg-zen-cream flex items-center justify-center shadow-lg">
-                        {(imagePreview || (editingClient && editingClient.profilePic)) ? (
-                          <img
-                            src={imagePreview || getImageUrl(editingClient?.profilePic)}
-                            alt={formData.name || 'Client profile preview'}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-semibold text-4xl uppercase tracking-tighter">
-                            {formData.name.charAt(0) || <UserIcon size={40} strokeWidth={1} />}
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Camera className="text-white" size={28} />
-                        </div>
-                      </div>
-                      <input
-                        type="file"
-                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                        onChange={e => {
-                          const file = e.target.files?.[0] || null;
-                          setProfilePicFile(file);
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => setImagePreview(reader.result as string);
-                            reader.readAsDataURL(file);
-                          } else {
-                            setImagePreview(null);
-                          }
-                        }}
-                      />
-                      <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-zen-brown text-white flex items-center justify-center shadow-lg ring-4 ring-white">
-                        <Edit2 size={14} />
-                      </div>
-                    </div>
-                    <p className="mt-5 text-sm text-center text-zen-brown/55">
-                      Upload a clear portrait for the client card.
-                    </p>
-                  </div>
-
-                  <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
-                    <div className="flex items-start justify-between gap-4 mb-6">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-zen-brown/10 shadow-xl overflow-hidden p-8 sm:p-10 lg:p-12"
+            >
+              {activeTab === 'profile' ? (
+                <div className="space-y-12">
+                  <div className="grid gap-12 xl:grid-cols-[260px_minmax(0,1fr)]">
+                    {/* Left: Profile Photo Section */}
+                    <div className="space-y-6">
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Client details</p>
-                        <h4 className="mt-1 text-lg font-semibold text-zen-brown">Identity and contact information</h4>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Profile photo</p>
+                        <h4 className="mt-1 text-sm font-semibold text-zen-brown">Identity Visual</h4>
                       </div>
-                      <ZenBadge variant={formData.status === 'Active' ? 'leaf' : 'inactive'}>
-                        {formData.status}
-                      </ZenBadge>
-                    </div>
-
-                    <div className="grid gap-5 sm:grid-cols-2">
-                      <ZenInput
-                        label="Client name"
-                        placeholder="e.g. Maria Thompson"
-                        value={formData.name}
-                        onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
-                        containerClassName="sm:col-span-2"
-                      />
-
-                      <div className="sm:col-span-2 space-y-2">
-                        <ZenInput
-                          label="Phone number"
-                          icon={Phone}
-                          prefix={settings?.general?.dialingCode || '+974'}
-                          value={formData.phone}
-                          onChange={(e: any) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
+                      <div className="relative mx-auto aspect-square w-40 sm:w-48 group">
+                        <div className="absolute inset-0 rounded-full bg-zen-cream/30 blur-sm" />
+                        <div className="relative h-full w-full overflow-hidden zen-pointed-surface border-4 border-white bg-zen-cream flex items-center justify-center shadow-lg">
+                          {(imagePreview || (editingClient && editingClient.profilePic)) ? (
+                            <img
+                              src={imagePreview || getImageUrl(editingClient?.profilePic)}
+                              alt={formData.name || 'Client profile preview'}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-semibold text-4xl uppercase tracking-tighter">
+                              {formData.name.charAt(0) || <UserIcon size={40} strokeWidth={1} />}
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Camera className="text-white" size={28} />
+                          </div>
+                        </div>
+                        <input
+                          type="file"
+                          className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                          onChange={e => {
+                            const file = e.target.files?.[0] || null;
+                            setProfilePicFile(file);
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => setImagePreview(reader.result as string);
+                              reader.readAsDataURL(file);
+                            } else {
+                              setImagePreview(null);
+                            }
+                          }}
                         />
-                        <div className="flex items-center gap-2 px-1 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.25em]">
-                          <Info size={10} className="shrink-0" />
-                          <span>{getPhoneValidationProtocol(settings?.general?.countryIso || 'QA')}</span>
+                        <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-zen-brown text-white flex items-center justify-center shadow-lg ring-4 ring-white">
+                          <Edit2 size={14} />
                         </div>
                       </div>
+                      <p className="text-[11px] text-center text-zen-brown/40 italic">
+                        Upload a clear portrait for identification.
+                      </p>
+                    </div>
 
-                      <ZenInput
-                        label="Email address"
-                        icon={Mail}
-                        type="email"
-                        value={formData.email}
-                        onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
-                      />
+                    {/* Right: Client details Section */}
+                    <div>
+                      <div className="flex items-start justify-between gap-4 mb-8">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Client details</p>
+                          <h4 className="mt-1 text-xl font-semibold text-zen-brown">Identity and contact information</h4>
+                        </div>
+                        <ZenBadge variant={formData.status === 'Active' ? 'leaf' : 'inactive'}>
+                          {formData.status}
+                        </ZenBadge>
+                      </div>
 
-                      <ZenDatePicker
-                        label="Date of birth"
-                        value={formData.dob}
-                        onChange={val => setFormData({ ...formData, dob: val })}
-                      />
+                      <div className="grid gap-6 sm:grid-cols-2">
+                        <ZenInput
+                          label="Client name"
+                          placeholder="e.g. Maria Thompson"
+                          value={formData.name}
+                          onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
+                          containerClassName="sm:col-span-2"
+                        />
 
-                      <ZenDropdown
-                        label="Account Role"
-                        options={roles}
-                        value={formData.role}
-                        onChange={(val) => setFormData({ ...formData, role: val })}
-                        placeholder="Select Account Role"
-                      />
+                        <div className="sm:col-span-2 space-y-2">
+                          <ZenInput
+                            label="Phone number"
+                            icon={Phone}
+                            prefix={settings?.general?.dialingCode || '+974'}
+                            value={formData.phone}
+                            onChange={(e: any) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
+                          />
+                          <div className="flex items-center gap-2 px-1 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.25em]">
+                            <Info size={10} className="shrink-0" />
+                            <span>{getPhoneValidationProtocol(settings?.general?.countryIso || 'QA')}</span>
+                          </div>
+                        </div>
 
-                      <ZenDropdown
-                        label="Status"
-                        options={['Active', 'Inactive']}
-                        value={formData.status}
-                        onChange={(val) => setFormData({ ...formData, status: val })}
-                      />
+                        <ZenInput
+                          label="Email address"
+                          icon={Mail}
+                          type="email"
+                          value={formData.email}
+                          onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
+                        />
+
+                        <ZenDatePicker
+                          label="Date of birth"
+                          value={formData.dob}
+                          onChange={val => setFormData({ ...formData, dob: val })}
+                        />
+
+                        <ZenDropdown
+                          label="Account Role"
+                          options={['Client']}
+                          value="Client"
+                          onChange={() => {}}
+                          placeholder="Client Role"
+                          disabled={true}
+                        />
+
+                        <ZenDropdown
+                          label="Status"
+                          options={['Active', 'Inactive']}
+                          value={formData.status}
+                          onChange={(val) => setFormData({ ...formData, status: val })}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Account access</p>
-                    <h4 className="mt-1 text-lg font-semibold text-zen-brown">Security details</h4>
-                    <div className="mt-6 grid gap-5 sm:grid-cols-2">
-                      <ZenInput
-                        label="Password"
-                        icon={Lock}
-                        type="password"
-                        placeholder={editingClient ? 'Leave blank to keep current password' : 'Minimum 6 characters'}
-                        value={formData.password}
-                        onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
-                        containerClassName={editingClient ? 'sm:col-span-2' : ''}
-                      />
-                      {!editingClient && (
+                  <div className="h-px bg-gradient-to-r from-transparent via-zen-brown/10 to-transparent" />
+
+                  <div className="grid gap-12 lg:grid-cols-2">
+                    {/* Account Access */}
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Account access</p>
+                      <h4 className="mt-1 text-lg font-semibold text-zen-brown">Security details</h4>
+                      <div className="mt-8 grid gap-5 sm:grid-cols-2">
                         <ZenInput
-                          label="Confirm password"
+                          label="Password"
                           icon={Lock}
                           type="password"
-                          value={formData.confirmPassword}
-                          onChange={(e: any) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                          placeholder={editingClient ? 'Leave blank to keep current' : 'Min 6 characters'}
+                          value={formData.password}
+                          onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
+                          containerClassName={editingClient ? 'sm:col-span-2' : ''}
                         />
-                      )}
-                      {editingClient && (
-                        <div className="sm:col-span-2 rounded-2xl border border-zen-brown/10 bg-zen-cream/25 px-4 py-4 text-sm text-zen-brown/60">
-                          Leave the password blank to keep the current credential.
-                        </div>
-                      )}
+                        {!editingClient && (
+                          <ZenInput
+                            label="Confirm password"
+                            icon={Lock}
+                            type="password"
+                            value={formData.confirmPassword}
+                            onChange={(e: any) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                          />
+                        )}
+                        {editingClient && (
+                          <div className="sm:col-span-2 rounded-2xl border border-zen-brown/5 bg-zen-cream/20 px-5 py-4 text-[11px] text-zen-brown/50 italic font-medium">
+                            <Info size={12} className="inline mr-2 text-zen-sand" />
+                            Leave blank to keep existing credentials.
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Internal notes</p>
-                    <h4 className="mt-1 text-lg font-semibold text-zen-brown">Preferences and follow-up context</h4>
-                    <div className="mt-2">
-                      <ZenTextarea
-                        label="Client notes"
-                        placeholder="Add preferences, sensitivities, or follow-up context."
-                        value={formData.notes}
-                        onChange={(e: any) => setFormData({ ...formData, notes: e.target.value })}
-                        className="mt-0 h-40"
-                      />
+                    {/* Internal Notes */}
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Internal notes</p>
+                      <h4 className="mt-1 text-lg font-semibold text-zen-brown">Preferences and context</h4>
+                      <div className="mt-2">
+                        <ZenTextarea
+                          label="Client notes"
+                          placeholder="Add preferences, sensitivities, or follow-up context."
+                          value={formData.notes}
+                          onChange={(e: any) => setFormData({ ...formData, notes: e.target.value })}
+                          className="mt-0 h-40"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </motion.div>
-            ) : activeTab === 'membership' && editingClient ? (
-              <motion.div
-                key="membership-tab"
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -12 }}
-                className="space-y-6"
-              >
-                {selectedMembershipHistory ? (
-                  <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div className="flex items-start gap-4">
-                        <ZenIconButton
-                          icon={X}
-                          onClick={() => setSelectedMembershipHistory(null)}
-                          size="sm"
-                        />
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Membership detail</p>
-                          <h4 className="mt-1 text-xl font-semibold text-zen-brown">{selectedMembershipHistory.plan?.name}</h4>
-                          <p className="mt-1 text-sm text-zen-brown/55">Usage history for this membership plan.</p>
+              ) : activeTab === 'membership' && editingClient ? (
+                <div className="space-y-8">
+                  {selectedMembershipHistory ? (
+                    <div className="space-y-8">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zen-brown/5 pb-8">
+                        <div className="flex items-start gap-4">
+                          <ZenIconButton
+                            icon={X}
+                            onClick={() => setSelectedMembershipHistory(null)}
+                            size="md"
+                          />
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Membership detail</p>
+                            <h4 className="mt-1 text-xl font-semibold text-zen-brown">{selectedMembershipHistory.plan?.name}</h4>
+                            <p className="mt-1 text-xs text-zen-brown/55 italic">Detailed usage orchestration for this profile.</p>
+                          </div>
                         </div>
+                        <ZenBadge variant="sand" className="px-5 py-2">
+                          {(() => {
+                            const scheduledCount = (editingClient?.appointments || []).filter((apt: any) => 
+                              apt.membershipId?.toString() === selectedMembershipHistory._id?.toString() &&
+                              apt.status !== 'Cancelled' &&
+                              apt.status !== 'Completed' &&
+                              !selectedMembershipHistory.usageHistory?.some((u: any) => u.appointment?.toString() === apt._id?.toString())
+                            ).length;
+                            return Math.max(0, selectedMembershipHistory.remainingSessions - scheduledCount);
+                          })()} / {selectedMembershipHistory.totalSessions || selectedMembershipHistory.plan?.maxSessions || 0} sessions left
+                        </ZenBadge>
                       </div>
-                      <ZenBadge variant="sand">
-                        {(() => {
-                          const scheduledCount = (editingClient?.appointments || []).filter((apt: any) => 
-                            apt.membershipId?.toString() === selectedMembershipHistory._id?.toString() &&
-                            apt.status !== 'Cancelled' &&
-                            apt.status !== 'Completed' &&
-                            !selectedMembershipHistory.usageHistory?.some((u: any) => u.appointment?.toString() === apt._id?.toString())
-                          ).length;
-                          return Math.max(0, selectedMembershipHistory.remainingSessions - scheduledCount);
-                        })()} / {selectedMembershipHistory.totalSessions || selectedMembershipHistory.plan?.maxSessions || 0} sessions left
-                      </ZenBadge>
-                    </div>
 
-                    <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white shadow-sm overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full min-w-[640px] text-left">
+                      <div className="table-container rounded-2xl border border-zen-brown/5 overflow-hidden">
+                        <table className="w-full min-w-[640px] text-left border-collapse">
                           <thead>
-                            <tr className="border-b border-zen-brown/10 bg-zen-cream/30">
-                              <th>S No</th>
-                              <th>Date</th>
-                              <th>Branch</th>
-                              <th>Service</th>
-                              <th>Time</th>
+                            <tr className="bg-zen-cream/30">
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">S No</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Date</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Branch</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Service</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Time</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-zen-brown/5">
+                          <tbody className="divide-y divide-zen-brown/5 bg-white/40">
                             {membershipCombinedHistory.length > 0 ? membershipCombinedHistory.map((usage: any, idx: number) => (
                               <tr key={idx} className="group hover:bg-zen-cream/20 transition-colors duration-300">
                                 <td className="px-8 py-6 text-sm font-semibold text-zen-brown/30">{(idx + 1).toString().padStart(2, '0')}</td>
@@ -1225,133 +1238,132 @@ const Clients = () => {
                           </tbody>
                         </table>
                       </div>
-                    </div>
 
-                    <div className="flex justify-start">
-                      <ZenButton
-                        type="button"
-                        variant="secondary"
-                        onClick={() => setSelectedMembershipHistory(null)}
-                        className="!px-5 !py-3 !text-[10px]"
-                      >
-                        Back to memberships
-                      </ZenButton>
-                    </div>
-                  </div>
-                ) : editingClient?.memberships && editingClient.memberships.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Memberships</p>
-                      <ZenBadge variant="secondary">{editingClient.memberships.length} total</ZenBadge>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4">
-                      {editingClient.memberships.map((m: any) => (
-                        <div
-                          key={m._id}
-                          className={`rounded-[1.5rem] border p-6 sm:p-7 shadow-sm flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5 transition-colors ${
-                            m.status === 'Active'
-                              ? 'bg-white border-emerald-100'
-                              : 'bg-slate-50 border-slate-200'
-                          }`}
+                      <div className="flex justify-start pt-4">
+                        <ZenButton
+                          type="button"
+                          variant="secondary"
+                          onClick={() => setSelectedMembershipHistory(null)}
+                          className="!px-6 !py-4 !text-[10px] uppercase font-bold tracking-widest"
                         >
-                          <div className="flex items-start gap-4 sm:gap-5 min-w-0">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${m.status === 'Active' ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-white'}`}>
-                              <Sparkles size={22} />
-                            </div>
-                            <div className="min-w-0">
-                              <h4 className="text-lg sm:text-xl font-semibold text-zen-brown truncate">
-                                {m.plan?.name || 'Membership plan'}
-                              </h4>
-                              <div className="mt-2 flex flex-wrap items-center gap-2">
-                                <ZenBadge variant={m.status === 'Active' ? 'leaf' : 'inactive'}>
-                                  {m.status || 'Inactive'}
-                                </ZenBadge>
-                                <span className="text-[11px] text-zen-brown/45 uppercase tracking-[0.22em]">
-                                  Valid until {dayjs(m.endDate).format('DD MMM YYYY')}
-                                </span>
+                          Back to memberships
+                        </ZenButton>
+                      </div>
+                    </div>
+                  ) : editingClient?.memberships && editingClient.memberships.length > 0 ? (
+                    <div className="space-y-8">
+                      <div className="flex items-center justify-between border-b border-zen-brown/5 pb-6">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Memberships</p>
+                          <h4 className="mt-1 text-lg font-semibold text-zen-brown">Active Subscription Plans</h4>
+                        </div>
+                        <ZenBadge variant="secondary" className="px-4 py-1.5">{editingClient.memberships.length} plans</ZenBadge>
+                      </div>
+                      <div className="grid grid-cols-1 gap-6">
+                        {editingClient.memberships.map((m: any) => (
+                          <div
+                            key={m._id}
+                            className={`rounded-[1.5rem] border p-6 sm:p-8 shadow-sm flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 transition-all duration-500 hover:scale-[1.01] hover:shadow-md ${
+                              m.status === 'Active'
+                                ? 'bg-white/50 border-emerald-100'
+                                : 'bg-slate-50/50 border-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-start gap-5 min-w-0">
+                              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${m.status === 'Active' ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-white'}`}>
+                                <Sparkles size={24} />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-xl font-serif font-bold text-zen-brown truncate">
+                                  {m.plan?.name || 'Membership plan'}
+                                </h4>
+                                <div className="mt-3 flex flex-wrap items-center gap-3">
+                                  <ZenBadge variant={m.status === 'Active' ? 'leaf' : 'inactive'}>
+                                    {m.status || 'Inactive'}
+                                  </ZenBadge>
+                                  <span className="text-[11px] font-bold text-zen-brown/40 uppercase tracking-[0.2em]">
+                                    Valid until {dayjs(m.endDate).format('DD MMM YYYY')}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          <div className="flex items-center justify-between gap-5 sm:gap-8">
-                            <div className="text-right">
-                              <p className="text-2xl font-semibold text-zen-brown">
-                                {(() => {
-                                  const completedCount = m.usageHistory?.length || 0;
-                                  const scheduledCount = (editingClient?.appointments || []).filter((apt: any) => 
-                                    apt.membershipId?.toString() === m._id?.toString() &&
-                                    apt.status !== 'Cancelled' &&
-                                    apt.status !== 'Completed' &&
-                                    !m.usageHistory?.some((u: any) => u.appointment?.toString() === apt._id?.toString())
-                                  ).length;
-                                  return completedCount + scheduledCount;
-                                })()} / {m.totalSessions || m.plan?.maxSessions || 0}
-                              </p>
-                              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zen-brown/35">
-                                Sessions used
-                              </p>
+                            <div className="flex items-center justify-between gap-8 border-t xl:border-t-0 border-zen-brown/5 pt-6 xl:pt-0">
+                              <div className="text-right">
+                                <p className="text-3xl font-serif font-bold text-zen-brown">
+                                  {(() => {
+                                    const completedCount = m.usageHistory?.length || 0;
+                                    const scheduledCount = (editingClient?.appointments || []).filter((apt: any) => 
+                                      apt.membershipId?.toString() === m._id?.toString() &&
+                                      apt.status !== 'Cancelled' &&
+                                      apt.status !== 'Completed' &&
+                                      !m.usageHistory?.some((u: any) => u.appointment?.toString() === apt._id?.toString())
+                                    ).length;
+                                    return completedCount + scheduledCount;
+                                  })()} / {m.totalSessions || m.plan?.maxSessions || 0}
+                                </p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zen-brown/30 mt-1">
+                                  Sessions used
+                                </p>
+                              </div>
+
+                              <ZenButton
+                                variant="secondary"
+                                onClick={() => setSelectedMembershipHistory(m)}
+                                className="!px-6 !py-4 !text-[10px] uppercase font-bold tracking-widest shadow-sm"
+                              >
+                                View usage
+                                <ChevronRight size={14} className="ml-2" />
+                              </ZenButton>
                             </div>
-
-                            <ZenButton
-                              variant="secondary"
-                              onClick={() => setSelectedMembershipHistory(m)}
-                              className="!px-5 !py-3 !text-[10px]"
-                            >
-                              View usage
-                              <ChevronRight size={14} />
-                            </ZenButton>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-20 text-zen-brown/35 space-y-4 rounded-[1.5rem] border border-dashed border-zen-brown/10 bg-white">
-                    <div className="w-20 h-20 rounded-full border-2 border-dashed border-zen-brown/15 flex items-center justify-center">
-                      <Sparkles size={30} strokeWidth={1} />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-24 text-zen-brown/35 space-y-6 rounded-[2rem] border border-dashed border-zen-brown/10 bg-zen-cream/5">
+                      <div className="w-24 h-24 rounded-full border-2 border-dashed border-zen-brown/15 flex items-center justify-center bg-white/50">
+                        <Sparkles size={36} strokeWidth={1} className="text-zen-sand" />
+                      </div>
+                      <div className="text-center">
+                         <p className="text-lg font-serif font-bold text-zen-brown/60">No Subscriptions</p>
+                         <p className="text-sm text-zen-brown/40 mt-1">No memberships are linked to this profile yet.</p>
+                      </div>
                     </div>
-                    <p className="text-sm text-center">No memberships are linked to this client yet.</p>
-                  </div>
-                )}
-              </motion.div>
-            ) : activeTab === 'history' && editingClient ? (
-              <motion.div
-                key="history-tab"
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -12 }}
-                className="space-y-6"
-              >
-                <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Visit history</p>
-                    <h4 className="mt-1 text-lg font-semibold text-zen-brown">Filter by month</h4>
-                  </div>
-                  <div className="w-full sm:w-[260px]">
-                    <ZenMonthPicker
-                      label="Visit month"
-                      value={historyMonth}
-                      onChange={(val: string) => setHistoryMonth(val)}
-                    />
-                  </div>
+                  )}
                 </div>
+              ) : activeTab === 'history' && editingClient ? (
+                <div className="space-y-10">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-b border-zen-brown/5 pb-10">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Visit history</p>
+                      <h4 className="mt-1 text-xl font-semibold text-zen-brown">Filtered Logs</h4>
+                      <p className="mt-1 text-xs text-zen-brown/50 italic">Review chronological visit patterns for this client.</p>
+                    </div>
+                    <div className="w-full sm:w-[280px]">
+                      <ZenMonthPicker
+                        label="Filter by month"
+                        value={historyMonth}
+                        onChange={(val: string) => setHistoryMonth(val)}
+                      />
+                    </div>
+                  </div>
 
-                <div className="rounded-[1.5rem] border border-zen-brown/10 bg-white shadow-sm overflow-hidden">
-                  {(editingClient?.appointments?.filter((a: any) => dayjs(a.date).format('YYYY-MM') === historyMonth)?.length || 0) > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[720px] text-left">
+                  <div className="table-container rounded-2xl border border-zen-brown/5 overflow-hidden">
+                    {(editingClient?.appointments?.filter((a: any) => dayjs(a.date).format('YYYY-MM') === historyMonth)?.length || 0) > 0 ? (
+                      <table className="w-full min-w-[720px] text-left border-collapse">
                         <thead>
-                          <tr className="border-b border-zen-brown/10 bg-zen-cream/30">
-                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">S No</th>
-                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Date</th>
-                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Branch</th>
-                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Service</th>
-                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Staff</th>
-                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Time</th>
-                            <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zen-brown/60">Status</th>
+                          <tr className="bg-zen-cream/30">
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">S No</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Date</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Branch</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Service</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Staff</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Time</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Status</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-zen-brown/5">
+                        <tbody className="divide-y divide-zen-brown/5 bg-white/40">
                           {editingClient?.appointments
                             ?.filter((a: any) => dayjs(a.date).format('YYYY-MM') === historyMonth)
                             ?.map((apt: any, index: number) => (
@@ -1416,19 +1428,23 @@ const Clients = () => {
                             ))}
                         </tbody>
                       </table>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-24 text-zen-brown/35 space-y-4">
-                      <div className="w-20 h-20 rounded-full border-2 border-dashed border-zen-brown/15 flex items-center justify-center">
-                        <Calendar size={30} strokeWidth={1} />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-32 text-zen-brown/35 space-y-6 bg-zen-cream/5">
+                        <div className="w-24 h-24 rounded-full border-2 border-dashed border-zen-brown/15 flex items-center justify-center bg-white/50">
+                          <Calendar size={36} strokeWidth={1} className="text-zen-sand" />
+                        </div>
+                        <div className="text-center">
+                           <p className="text-lg font-serif font-bold text-zen-brown/60">No Visits Recorded</p>
+                           <p className="text-sm text-zen-brown/40 mt-1">No visits found for the selected month.</p>
+                        </div>
                       </div>
-                      <p className="text-sm text-center">No visits found for the selected month.</p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </motion.div>
-            ) : null}
+              ) : null}
+            </motion.div>
           </AnimatePresence>
+
         </form>
       </Modal>
 

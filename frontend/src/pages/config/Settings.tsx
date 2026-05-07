@@ -1636,7 +1636,7 @@ const Settings = () => {
 
                               <div className="px-4 sm:px-8 pb-12">
                                  <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
-                                    <div className="overflow-x-auto min-h-[300px] sm:min-h-[400px]">
+                                    <div className="table-container min-h-[300px] sm:min-h-[400px]">
                                        {taxLoading ? (
                                           <div className="p-20 text-center italic opacity-20">Syncing registry...</div>
                                        ) : (

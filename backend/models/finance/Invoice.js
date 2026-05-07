@@ -36,6 +36,17 @@ const invoiceSchema = mongoose.Schema({
       },
       specialistName: String,
       price: Number,
+      originalPrice: Number,
+      serviceType: {
+        type: String,
+        enum: ['REGULAR', 'MEMBERSHIP'],
+        default: 'REGULAR'
+      },
+      isMembershipCovered: {
+        type: Boolean,
+        default: false
+      },
+      membershipPlanName: String,
       duration: Number,
       quantity: {
         type: Number,

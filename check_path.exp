@@ -1,0 +1,6 @@
+#!/usr/bin/expect -f
+set timeout 20
+spawn ssh -o StrictHostKeyChecking=no root@194.238.23.158 "pm2 describe saloon-spa-crm-live-api | grep 'script path\\|exec cwd'"
+expect "assword:"
+send "Aedentek@123#\r"
+expect eof

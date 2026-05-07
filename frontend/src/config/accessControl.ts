@@ -21,11 +21,11 @@ export type PermissionId =
   | 'inventory'
   | 'billing'
   | 'whatsapp'
-  | 'reports'
+  // | 'reports'
   | 'branches'
   | 'room-categories'
   | 'service-categories'
-  | 'expense-categories'
+  | 'sector-categories'
   | 'admins'
   | 'roles'
   | 'settings';
@@ -50,12 +50,12 @@ export const PERMISSION_DEFINITIONS = [
   { id: 'inventory', name: 'Inventory' },
   { id: 'billing', name: 'Billing' },
   { id: 'whatsapp', name: 'WhatsApp' },
-  { id: 'reports', name: 'Reports' },
+  // { id: 'reports', name: 'Reports' },
   { id: 'branches', name: 'Branches' },
   { id: 'room-categories', name: 'Room Category' },
   { id: 'service-categories', name: 'Service Category' },
-  { id: 'expense-categories', name: 'Expense Category' },
-  { id: 'admins', name: 'Admins' },
+  { id: 'sector-categories', name: 'Sector Category' },
+  { id: 'admins', name: 'Admin Users' },
   { id: 'roles', name: 'Roles' },
   { id: 'settings', name: 'Settings' }
 ] as const;
@@ -79,11 +79,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, PermissionId[]> = {
     'transactions',
     'inventory',
     'whatsapp',
-    'reports',
+    // 'reports',
     'branches',
     'room-categories',
     'service-categories',
-    'expense-categories',
+    'sector-categories',
     'settings'
   ],
   Employee: ['dashboard', 'appointments', 'clients', 'services', 'attendance', 'leave'],
@@ -106,16 +106,16 @@ export const ROUTE_PERMISSION_MAP: Record<string, PermissionId[]> = {
   '/services': ['services'],
   '/memberships': ['memberships', 'billing'],
   '/billing': ['billing'],
-  '/finance': ['finance'],
+  // '/finance': ['finance'],
   '/inventory': ['inventory'],
   '/whatsapp': ['whatsapp'],
-  '/reports': ['reports'],
+  // '/reports': ['reports'],
   '/settings': ['settings'],
   '/roles': ['roles'],
   '/branches': ['branches', 'settings'],
   '/room-categories': ['room-categories', 'settings'],
   '/service-categories': ['service-categories', 'settings'],
-  '/expense-categories': ['expense-categories', 'settings'],
+  '/sector-categories': ['sector-categories', 'settings'],
   '/admins': ['admins', 'roles'],
   '/payroll': ['payroll', 'finance'],
   '/shifts': ['shifts', 'settings'],
@@ -138,15 +138,15 @@ const STAFF_ROUTE_ORDER = [
   '/payroll',
   '/leave',
   '/leave/apply',
-  '/finance',
+  // '/finance',
   '/expenses',
   '/transactions',
-  '/reports',
+  // '/reports',
   '/whatsapp',
   '/branches',
   '/room-categories',
   '/service-categories',
-  '/expense-categories',
+  '/sector-categories',
   '/admins',
   '/roles',
   '/settings',
