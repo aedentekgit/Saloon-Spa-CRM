@@ -249,16 +249,6 @@ const ServiceCategories = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all duration-500">
-                      <ZenIconButton
-                        icon={Sparkles}
-                        variant={cat.isActive ? 'leaf' : 'sand'}
-                        onClick={() => toggleStatus(cat)}
-                        className={cat.isActive ? 'text-zen-leaf' : 'text-zen-sand'}
-                      />
-                      <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(cat)} />
-                      <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteClick(cat._id)} />
-                    </div>
                  </div>
 
                  <div className="mb-6">
@@ -267,11 +257,15 @@ const ServiceCategories = () => {
                </div>
 
                <div className="relative z-10 pt-6 border-t border-zen-brown/15 flex items-center justify-between">
+                  <ZenBadge variant={cat.isActive ? 'leaf' : 'sand'}>{cat.isActive ? 'Active' : 'Inactive'}</ZenBadge>
                   <div className="flex items-center gap-2">
-                     <ZenBadge variant={cat.isActive ? 'leaf' : 'inactive'}>{cat.isActive ? 'Active' : 'Inactive'}</ZenBadge>
-                  </div>
-                  <div className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest font-sans">
-                     CODE: {cat._id.slice(-4).toUpperCase()}
+                     <ZenIconButton
+                        icon={Zap}
+                        variant={cat.isActive ? 'leaf' : 'sand'}
+                        onClick={() => toggleStatus(cat)}
+                     />
+                     <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(cat)} />
+                     <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteClick(cat._id)} />
                   </div>
                </div>
             </div>
@@ -327,7 +321,8 @@ const ServiceCategories = () => {
                       </td>
                       <td className="px-4 lg:px-6 py-4 lg:py-6">
                         <div className="flex items-center justify-center gap-3">
-                           <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(cat)} size="md" />
+                           <ZenIconButton icon={Zap} variant={cat.isActive ? 'leaf' : 'sand'} onClick={() => toggleStatus(cat)} size="md" />
+                           <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(cat)} size="md" />
                            <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteClick(cat._id)} size="md" />
                         </div>
                       </td>

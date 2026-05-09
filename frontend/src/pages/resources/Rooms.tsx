@@ -479,14 +479,12 @@ const Rooms = () => {
                         </ZenBadge>
                         <div className="flex items-center gap-2 sm:gap-3">
                           <ZenIconButton
-                            icon={Sparkles}
+                            icon={Zap}
                             variant={room.isActive ? 'leaf' : 'sand'}
                             onClick={(e) => { e.stopPropagation(); toggleIsActive(room); }}
-                            className={room.isActive ? 'text-zen-leaf' : 'text-zen-sand'}
-                            size="sm"
                           />
-                          <ZenIconButton icon={Edit2} onClick={(e) => { e.stopPropagation(); handleOpenModal(room); }} size="sm" />
-                          <ZenIconButton icon={Trash2} variant="danger" onClick={(e) => { e.stopPropagation(); handleDelete(room._id); }} size="sm" />
+                          <ZenIconButton icon={Edit2} variant="sky" onClick={(e) => { e.stopPropagation(); handleOpenModal(room); }} />
+                          <ZenIconButton icon={Trash2} variant="danger" onClick={(e) => { e.stopPropagation(); handleDelete(room._id); }} />
                         </div>
                       </div>
                     </div>
@@ -559,8 +557,8 @@ const Rooms = () => {
                             </td>
                             <td className="px-4 lg:px-6 py-4 lg:py-6">
                               <div className="flex items-center justify-center gap-3">
-                                <ZenIconButton icon={Sparkles} variant={room.isActive ? 'leaf' : 'sand'} onClick={(e) => { e.stopPropagation(); toggleIsActive(room); }} size="md" />
-                                <ZenIconButton icon={Edit2} onClick={(e) => { e.stopPropagation(); handleOpenModal(room); }} size="md" />
+                                <ZenIconButton icon={Zap} variant={room.isActive ? 'leaf' : 'sand'} onClick={(e) => { e.stopPropagation(); toggleIsActive(room); }} size="md" />
+                                <ZenIconButton icon={Edit2} variant="sky" onClick={(e) => { e.stopPropagation(); handleOpenModal(room); }} size="md" />
                                 <ZenIconButton icon={Trash2} variant="danger" onClick={(e) => { e.stopPropagation(); handleDelete(room._id); }} size="md" />
                               </div>
                             </td>

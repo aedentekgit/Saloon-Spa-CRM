@@ -329,16 +329,7 @@ const Roles = () => {
                         <p className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.4em]">Role ID_{role._id.slice(-4)}</p>
                      </div>
                  </div>
-                    <div className="flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
-                       <ZenIconButton icon={Edit} onClick={() => handleOpenModal(role)} />
-                       {!['Admin', 'Manager', 'Client'].includes(role.name) && (
-                         <ZenIconButton
-                           icon={Trash2}
-                           variant="danger"
-                           onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }}
-                         />
-                       )}
-                    </div>
+
                  </div>
               </div>
 
@@ -368,17 +359,26 @@ const Roles = () => {
                   )}
                </div>
 
-               <div className="relative z-10 mt-8 pt-6 border-t border-zen-brown/15">
-                  <div className="flex items-center justify-between">
-                     <button
-                       onClick={() => toggleStatus(role)}
-                       className={`flex items-center gap-2 px-6 py-2 rounded-full border transition-all duration-500 hover:scale-105 active:scale-95 shadow-sm ${role.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20' : 'bg-red-50 text-red-400 border-red-100'}`}
-                     >
-                       <span className="text-[10px] font-bold uppercase tracking-widest leading-none">{role.status === 'Inactive' ? 'Inactive' : 'Active'}</span>
-                     </button>
-                     <div className="flex items-center gap-2 text-zen-sand/40 italic text-[10px] font-medium uppercase tracking-[0.2em] transition-opacity duration-700 opacity-50 group-hover:opacity-100">
-                        Secured
-                     </div>
+               <div className="relative z-10 mt-8 pt-6 border-t border-zen-brown/15 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                     <ZenBadge variant={role.status === 'Active' ? 'leaf' : 'sand'}>
+                        {role.status === 'Inactive' ? 'Inactive' : 'Active'}
+                     </ZenBadge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <ZenIconButton
+                        icon={Zap}
+                        variant={role.status === 'Active' ? 'leaf' : 'sand'}
+                        onClick={() => toggleStatus(role)}
+                     />
+                     <ZenIconButton icon={Edit} variant="sky" onClick={() => handleOpenModal(role)} />
+                     {!['Admin', 'Manager', 'Client'].includes(role.name) && (
+                       <ZenIconButton
+                         icon={Trash2}
+                         variant="danger"
+                         onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }}
+                       />
+                     )}
                   </div>
                </div>
             </div>
@@ -451,12 +451,13 @@ const Roles = () => {
                     </div>
                   </td>
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
-                    <div className="flex items-center justify-center gap-2 transition-all duration-500">
-                       <ZenIconButton icon={Edit} onClick={() => handleOpenModal(role)} size="md" />
+                     <div className="flex items-center justify-center gap-2">
+                       <ZenIconButton icon={Zap} variant={role.status === 'Active' ? 'leaf' : 'sand'} onClick={() => toggleStatus(role)} size="md" />
+                       <ZenIconButton icon={Edit} variant="sky" onClick={() => handleOpenModal(role)} size="md" />
                        {!['Admin', 'Manager', 'Client'].includes(role.name) && (
                          <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setRoleToDelete(role._id); setIsConfirmOpen(true); }} size="md" />
                        )}
-                    </div>
+                     </div>
                   </td>
                 </tr>
               ))}

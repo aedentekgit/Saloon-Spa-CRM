@@ -12,47 +12,47 @@ const PublicFooter = () => {
   };
 
   return (
-    <footer className="bg-[#050506] text-white pt-40 pb-16 relative overflow-hidden">
+    <footer className="bg-[#050506] text-white pt-24 sm:pt-32 md:pt-40 pb-10 sm:pb-14 relative overflow-hidden">
       {/* Decorative Gradient Backgrounds */}
       <div className="absolute top-0 left-1/4 w-[60%] h-[40%] bg-zen-sand/5 blur-[160px] rounded-full -translate-y-1/2 opacity-40" />
       <div className="absolute bottom-0 right-0 w-[40%] h-[40%] bg-zen-primary/10 blur-[140px] rounded-full translate-y-1/3 opacity-30" />
-      
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-24 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 mb-32">
-          
+
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-24 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-24 mb-20 lg:mb-32">
+
           {/* Brand Vision */}
-          <div className="lg:col-span-5 space-y-12">
-             <div className="space-y-8">
-                <NavLink to="/" className="inline-flex items-center gap-5 group">
-                   <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-white/50 border border-white/10 group-hover:bg-zen-sand group-hover:text-white transition-all duration-700 shadow-2xl relative">
+          <div className="md:col-span-2 lg:col-span-5 space-y-8 sm:space-y-10 md:space-y-12">
+             <div className="space-y-6 sm:space-y-8">
+                <NavLink to="/" className="inline-flex items-center gap-3 sm:gap-4 group">
+                   <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/5 flex items-center justify-center text-white/50 border border-white/10 group-hover:bg-zen-sand group-hover:text-white transition-all duration-700 shadow-2xl relative">
                       <div className="absolute inset-0 rounded-full bg-zen-sand/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <Sparkles size={22} className="relative z-10" />
+                      <Sparkles size={18} className="relative z-10" />
                    </div>
-                   <span className="font-accent text-4xl font-bold tracking-tight text-white group-hover:text-zen-sand transition-colors duration-500">{siteName}</span>
+                   <span className="font-accent text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white group-hover:text-zen-sand transition-colors duration-500">{siteName}</span>
                 </NavLink>
-                <p className="text-xl text-white/40 font-light leading-relaxed max-w-md">
+                <p className="text-base sm:text-lg md:text-xl text-white/40 font-light leading-relaxed max-w-sm md:max-w-md">
                    Where profound stillness meets modern artistry. We curate experiences that restore the silhouette and nourish the spirit.
                 </p>
              </div>
-             
-             <div className="flex items-center gap-5">
+
+             <div className="flex items-center gap-3 sm:gap-4 md:gap-5">
                 {[
                   { Icon: Instagram, link: '#' },
                   { Icon: Facebook, link: '#' },
                   { Icon: Twitter, link: '#' }
                 ].map(({ Icon, link }, i) => (
-                  <a 
-                    key={i} 
+                  <a
+                    key={i}
                     href={link}
-                    className="w-12 h-12 rounded-full border border-white/5 bg-white/[0.02] flex items-center justify-center text-white/30 hover:text-white hover:border-zen-sand/50 hover:bg-zen-sand/10 transition-all duration-500 group"
+                    className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full border border-white/5 bg-white/[0.02] flex items-center justify-center text-white/30 hover:text-white hover:border-zen-sand/50 hover:bg-zen-sand/10 transition-all duration-500 group"
                   >
-                    <Icon size={18} strokeWidth={1.5} className="group-hover:scale-110 transition-transform" />
+                    <Icon size={16} strokeWidth={1.5} className="group-hover:scale-110 transition-transform" />
                   </a>
                 ))}
              </div>
           </div>
 
-          <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-3 gap-16">
+          <div className="md:col-span-2 lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-12 lg:gap-16">
             {/* Navigation Sections */}
             <div className="space-y-10">
               <h5 className="text-[10px] font-bold text-zen-sand uppercase tracking-[0.5em]">Explore</h5>
@@ -116,11 +116,11 @@ const PublicFooter = () => {
         </div>
 
         {/* Designer Bottom Bar */}
-        <div className="pt-20 border-t border-white/5 max-w-[1400px] mx-auto">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
-            <div className="flex flex-col md:flex-row items-center gap-12 text-[10px] font-bold uppercase tracking-[0.4em] text-white/20">
+        <div className="pt-12 sm:pt-16 md:pt-20 border-t border-white/5 max-w-[1400px] mx-auto">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8 md:gap-12">
+            <div className="flex flex-col md:flex-row items-center gap-6 sm:gap-8 md:gap-10 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] sm:tracking-[0.4em] text-white/20">
                <span className="hover:text-white/40 transition-colors">&copy; 2026 {siteName} Sanctuary</span>
-               <div className="flex items-center gap-10">
+               <div className="flex items-center gap-6 sm:gap-8 md:gap-10">
                   <button className="hover:text-white transition-colors relative group">
                     Privacy Policy
                     <span className="absolute bottom-[-4px] left-0 w-0 h-[1px] bg-white/20 group-hover:w-full transition-all" />
@@ -132,19 +132,19 @@ const PublicFooter = () => {
                </div>
             </div>
 
-            <div className="flex items-center gap-12">
+            <div className="hidden lg:flex items-center gap-12">
                <div className="hidden lg:block h-px w-24 bg-gradient-to-r from-transparent to-white/5" />
-               <div className="font-accent italic text-3xl text-white/10 group-hover:text-white/20 transition-all whitespace-nowrap">
+               <div className="hidden xl:flex font-accent italic text-2xl xl:text-3xl text-white/10 group-hover:text-white/20 transition-all whitespace-nowrap">
                   The Art of <span className="text-transparent bg-clip-text bg-gradient-to-r from-white/5 via-white/20 to-white/5">Profound Balance</span>
                </div>
                <div className="hidden lg:block h-px w-24 bg-gradient-to-l from-transparent to-white/5" />
             </div>
 
-            <button 
+            <button
               onClick={scrollToTop}
-              className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center text-white/30 hover:text-white hover:border-zen-sand hover:bg-zen-sand/10 transition-all duration-500 group"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-white/10 flex items-center justify-center text-white/30 hover:text-white hover:border-zen-sand hover:bg-zen-sand/10 transition-all duration-500 group"
             >
-              <ArrowUp size={20} className="group-hover:-translate-y-1 transition-transform" />
+              <ArrowUp size={18} className="group-hover:-translate-y-1 transition-transform" />
             </button>
           </div>
         </div>

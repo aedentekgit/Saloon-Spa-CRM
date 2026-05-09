@@ -6,7 +6,7 @@ import {
   LogOut, ChevronRight, ChevronDown, Settings2, ShieldCheck,
   MapPin, Award, Layers, CreditCard, Percent,
   Fingerprint, Timer, Shapes, Key, UserRound, Sparkles, Scissors, Clock, ArrowDownRight,
-  History, Tag
+  History, Tag, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
@@ -46,6 +46,7 @@ const Sidebar = ({
         { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard', permission: 'dashboard' },
         { name: 'Appointments', icon: CalendarClock, path: '/appointments', permission: 'appointments' },
         { name: 'Billing', icon: CreditCard, path: '/billing', permission: 'billing' },
+        { name: 'Transactions', icon: FileText, path: '/transactions', permission: ['transactions', 'finance'] },
       ]
     },
     {
@@ -79,7 +80,6 @@ const Sidebar = ({
       items: [
         // { name: 'Finance', icon: Landmark, path: '/finance', permission: 'finance' },
         { name: 'Expenses', icon: ArrowDownRight, path: '/expenses', permission: 'finance' },
-        { name: 'Transactions', icon: FileText, path: '/transactions', permission: ['transactions', 'finance'] },
         // { name: 'Reports', icon: TrendingUp, path: '/reports', permission: 'reports' },
       ]
     },
@@ -129,11 +129,12 @@ const Sidebar = ({
     });
   }, [location.pathname]);
 
-  const canAccessItem = (permission: string | string[]) => (
-    Array.isArray(permission)
+  const canAccessItem = (permission: string | string[]) => {
+    if (user?.role === 'Admin') return true;
+    return Array.isArray(permission)
       ? permission.some((perm) => hasPermission(perm))
-      : hasPermission(permission)
-  );
+      : hasPermission(permission);
+  };
 
   const filteredGroups = user?.role === 'Client'
     ? [{ label: 'Sanctuary', items: clientMenu.filter(item => canAccessItem(item.permission)) }]
@@ -249,11 +250,11 @@ const Sidebar = ({
   };
 
   return (
-    <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-none ${isCollapsed ? 'lg:w-[68px] w-[min(84vw,16rem)]' : 'lg:w-[210px] w-[min(88vw,17rem)]'}`}>
+    <aside className={`bg-white border-r border-zen-stone/50 h-full transition-all duration-300 ease-in-out flex flex-col z-50 rounded-none relative overflow-hidden shadow-none ${isCollapsed ? 'lg:w-[68px] w-[min(90vw,16rem)] sm:w-[min(84vw,16rem)]' : 'lg:w-[210px] w-[min(92vw,18rem)] sm:w-[min(88vw,17rem)]'}`}>
 
       {/* Top Logo Section — Professional Classic Branding */}
       <div
-        className={`flex items-center justify-center relative overflow-hidden transition-all duration-500 ${isCollapsed ? 'h-14 sm:h-16' : 'h-20 sm:h-24'}`}
+        className={`flex items-center px-4 sm:px-6 relative overflow-hidden transition-all duration-500 ${isCollapsed && !isMobile ? 'h-14 justify-center' : 'h-16 sm:h-20 justify-between'}`}
       >
         {/* Glassy Layer Background */}
         <div className="absolute inset-0 bg-slate-50/50 backdrop-blur-xl z-0" />
@@ -261,11 +262,11 @@ const Sidebar = ({
         {/* Subtle decorative glow */}
         <div className="absolute -top-10 -left-10 w-32 h-32 bg-slate-200/20 rounded-full blur-3xl pointer-events-none" />
 
-        <div className={`relative z-10 transition-all duration-700 ${isCollapsed ? 'scale-90' : 'scale-100'}`}>
+        <div className={`relative z-10 flex items-center gap-3 transition-all duration-700 ${isCollapsed && !isMobile ? 'scale-90' : 'scale-100'}`}>
           {logoUrl ? (
             <div className={`
               relative p-1 bg-white/80 backdrop-blur-sm classic-shine-effect
-              ${isCollapsed ? 'w-10 h-10 sm:w-12 sm:h-12 rounded-[1rem] sm:rounded-[1.2rem] border-[2px]' : 'w-14 h-14 sm:w-16 sm:h-16 rounded-[1.2rem] sm:rounded-[2rem] border-[3px]'}
+              ${isCollapsed && !isMobile ? 'w-10 h-10 sm:w-12 sm:h-12 rounded-[1rem] sm:rounded-[1.2rem] border-[2px]' : 'w-12 h-12 sm:w-14 sm:h-14 rounded-[1.2rem] sm:rounded-[1.5rem] border-[3px]'}
               border-white/60 transition-all duration-500
               shadow-none
               hover:shadow-none hover:scale-105 cursor-pointer
@@ -278,14 +279,29 @@ const Sidebar = ({
             </div>
           ) : (
             <div className={`
-              ${isCollapsed ? 'w-10 h-10 rounded-lg' : 'w-16 h-16 rounded-xl'}
+              ${isCollapsed && !isMobile ? 'w-10 h-10 rounded-lg' : 'w-12 h-12 rounded-xl'}
               professional-frame classic-shine-effect bg-white/60 backdrop-blur-md border border-white/40 flex items-center justify-center
               shadow-none
             `}>
-              <Sparkles className="text-zen-sand" size={isCollapsed ? 18 : 24} />
+              <Sparkles className="text-zen-sand" size={isCollapsed && !isMobile ? 18 : 24} />
             </div>
           )}
+          
+          {(!isCollapsed || isMobile) && (
+            <span className="font-serif text-lg font-black tracking-[0.1em] uppercase text-zen-brown truncate">
+              {settings?.general?.siteName || 'Zen Spa'}
+            </span>
+          )}
         </div>
+
+        {isMobile && onClose && (
+          <button
+            onClick={onClose}
+            className="relative z-20 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md border border-zen-stone/20 flex items-center justify-center text-zen-brown shadow-sm active:scale-95 transition-all"
+          >
+            <X size={20} />
+          </button>
+        )}
 
         {/* Bottom decorative line with subtle glow */}
         <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200/50 to-transparent" />

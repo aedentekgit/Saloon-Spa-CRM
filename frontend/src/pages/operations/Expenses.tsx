@@ -549,6 +549,7 @@ const Expenses = () => {
                       <div className="flex items-center justify-center gap-3">
                         <ZenIconButton
                           icon={Edit2}
+                          variant="sky"
                           onClick={() => openEditModal(exp)}
                         />
                         <ZenIconButton

@@ -25,9 +25,12 @@ export const ZenIconButton = ({ icon: Icon, variant = 'outline', className = '',
   const variants: any = {
     outline: "bg-white text-zen-brown border border-zen-brown/15 hover:bg-zen-sand hover:text-white",
     cream: "bg-zen-cream text-zen-brown hover:bg-zen-sand hover:text-white",
-    danger: "bg-white text-red-500 border border-zen-brown/15 hover:bg-red-500 hover:text-white",
+    danger: "bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white",
     leaf: "bg-zen-leaf/10 text-zen-leaf border border-zen-leaf/20 hover:bg-zen-leaf hover:text-white",
-    sand: "bg-zen-sand/10 text-zen-brown border border-zen-sand/20 hover:bg-zen-sand hover:text-white"
+    sand: "bg-zen-sand/10 text-zen-brown border border-zen-sand/20 hover:bg-zen-sand hover:text-white",
+    sky: "bg-sky-50 text-sky-600 border border-sky-100 hover:bg-sky-600 hover:text-white",
+    violet: "bg-violet-50 text-violet-600 border border-violet-100 hover:bg-violet-600 hover:text-white",
+    emerald: "bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-600 hover:text-white"
   };
 
   const sizes: any = {

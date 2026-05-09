@@ -20,7 +20,8 @@ import {
   FileText,
   Upload,
   ExternalLink,
-  MapPin
+  MapPin,
+  Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
@@ -297,10 +298,9 @@ const Memberships = () => {
        try {
           const formData = new FormData();
 
-          // Prepare benefits array
-          const benefitsArr = typeof planFormData.benefits === 'string'
-            ? (planFormData.benefits as string).split('\n').filter(b => b.trim())
-            : planFormData.benefits;
+          const benefitsArr = typeof planFormData.benefits === 'string' 
+             ? planFormData.benefits.split('\n').filter(b => b.trim() !== '')
+             : planFormData.benefits;
 
           Object.entries(planFormData).forEach(([key, value]) => {
              if (key === 'benefits') {
@@ -317,29 +317,32 @@ const Memberships = () => {
           if (planDocumentFile) formData.append('document', planDocumentFile);
           if (removePlanDocument) formData.append('removeDocument', 'true');
 
-          const url = editingPlan
-             ? `${API_URL}/memberships/plans/${editingPlan._id}`
-             : `${API_URL}/memberships/plans`;
+          const url = editingPlan ? `${API_URL}/memberships/plans/${editingPlan._id}` : `${API_URL}/memberships/plans`;
           const method = editingPlan ? 'PUT' : 'POST';
 
           const response = await fetch(url, {
              method,
-             headers: {
-                'Authorization': `Bearer ${user?.token}`
-             },
+             headers: { 'Authorization': `Bearer ${user?.token}` },
              body: formData
           });
 
           if (response.ok) {
+             notify('success', editingPlan ? 'Plan Refined' : 'Plan Manifested', `Successfully ${editingPlan ? 'updated' : 'created'} the membership tier.`);
              setIsPlanModalOpen(false);
              setEditingPlan(null);
              fetchData();
-             notify('success', 'Plan Saved', 'Membership plan successfully synchronized');
           }
        } catch (error) {
-          console.error('Error saving plan:', error);
-          notify('error', 'Creation Error', 'Failed to create new tier');
+          notify('error', 'Execution Failed', 'System encountered an error while processing the plan configuration.');
        }
+    };
+
+    const toggleService = (id: string) => {
+        const currentServices = planFormData.applicableServices || [];
+        const newServices = currentServices.includes(id)
+            ? currentServices.filter(s => s !== id)
+            : [...currentServices, id];
+        setPlanFormData({ ...planFormData, applicableServices: newServices });
     };
 
     const handleEnroll = async (e: React.FormEvent) => {
@@ -403,6 +406,27 @@ const Memberships = () => {
        }
     };
 
+    const toggleMembershipStatus = async (membership: any) => {
+        try {
+            const newStatus = membership.status === 'Active' ? 'Expired' : 'Active';
+            const response = await fetch(`${API_URL}/memberships/${membership._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token}`
+                },
+                body: JSON.stringify({ ...membership, status: newStatus })
+            });
+            if (response.ok) {
+                fetchData(true);
+                notify('success', 'Status Updated', `Membership status changed to ${newStatus}`);
+            }
+        } catch (error) {
+            console.error('Error toggling membership status:', error);
+            notify('error', 'Update Failed', 'Failed to change membership status');
+        }
+    };
+
     const deleteMembershipConfirmed = async (id: string) => {
        try {
           const response = await fetch(`${API_URL}/memberships/${id}`, {
@@ -464,16 +488,6 @@ const Memberships = () => {
           case 'Active': return 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-none';
           case 'Expired': return 'bg-zen-brown/10 text-zen-brown/40 border-zen-brown/25';
           default: return 'bg-gray-100 text-gray-400 border-gray-200';
-       }
-    };
-
-    const toggleService = (serviceId: string) => {
-       const current = [...planFormData.applicableServices];
-       const index = current.indexOf(serviceId);
-       if (index > -1) {
-          setPlanFormData({ ...planFormData, applicableServices: current.filter(id => id !== serviceId) });
-       } else {
-          setPlanFormData({ ...planFormData, applicableServices: [...current, serviceId] });
        }
     };
 
@@ -828,24 +842,13 @@ const Memberships = () => {
                                         <Crown size={24} strokeWidth={1.5} />
                                      </div>
                                      <div className="flex items-center gap-2">
-                                        <div className="flex flex-col items-end gap-2">
-                                           <ZenBadge variant={plan.isActive ? 'sand' : 'default'} className="!text-[9px] font-black tracking-widest px-3">
-                                              {plan.isActive ? 'OPERATIONAL' : 'RETIRED'}
-                                           </ZenBadge>
-                                           <div className="flex items-center gap-1.5 pt-1">
-                                              <ZenIconButton icon={Edit3} onClick={() => {
-                                                 setEditingPlan(plan);
-                                                 setPlanFormData({
-                                                    ...plan as any,
-                                                    applicableServices: plan.applicableServices?.map((s: any) => typeof s === 'string' ? s : s._id) || [],
-                                                    isUnlimited: plan.durationDays >= 36500
-                                                 });
-                                                 setIsPlanModalOpen(true);
-                                              }} />
-                                              <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeletePlan(plan._id)} />
-                                           </div>
-                                        </div>
-                                     </div>
+                                      <div className="flex items-center gap-2">
+                                         <div className="flex flex-col items-end gap-2">
+                                            <ZenBadge variant={plan.isActive ? 'sand' : 'default'} className="!text-[9px] font-black tracking-widest px-3">
+                                               {plan.isActive ? 'OPERATIONAL' : 'RETIRED'}
+                                            </ZenBadge>
+                                         </div>
+                                      </div></div>
                                   </div>
 
                                   <div className="space-y-1 mb-6">
@@ -887,26 +890,41 @@ const Memberships = () => {
                                   </div>
                                </div>
 
-                               <div className="grid grid-cols-2 gap-4 pt-8 border-t border-zen-stone relative z-10">
-                                  <div className="flex flex-col gap-2">
-                                     <span className="text-[9px] font-black text-zen-brown/25 uppercase tracking-[0.3em]">Usage Capacity</span>
-                                     <div className="flex items-center gap-3">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-zen-sand shadow-[0_0_8px_rgba(139,92,246,0.3)]" />
-                                        <span className="text-sm font-black text-zen-brown tracking-tight">
-                                           {plan.maxSessions} <span className="text-zen-brown/40 font-normal">Rituals</span>
-                                        </span>
-                                     </div>
-                                  </div>
-                                  <div className="flex flex-col gap-2 border-l border-zen-stone pl-6">
-                                     <span className="text-[9px] font-black text-zen-brown/25 uppercase tracking-[0.3em]">Validity Window</span>
-                                     <div className="flex items-center gap-3">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
-                                        <span className="text-sm font-black text-zen-brown tracking-tight">
-                                           {plan.durationDays >= 36500 ? 'Infinite' : `${plan.durationDays} Days`}
-                                        </span>
-                                     </div>
-                                  </div>
-                               </div>
+                                <div className="grid grid-cols-2 gap-4 pt-8 border-t border-zen-stone relative z-10 flex items-center justify-between">
+                                   <div className="flex items-center gap-2">
+                                      <ZenIconButton
+                                         icon={Zap}
+                                         variant={plan.isActive ? 'leaf' : 'sand'}
+                                         onClick={() => {
+                                            const newStatus = !plan.isActive;
+                                            fetch(`${API_URL}/memberships/plans/${plan._id}`, {
+                                               method: 'PUT',
+                                               headers: {
+                                                  'Content-Type': 'application/json',
+                                                  'Authorization': `Bearer ${user?.token}`
+                                               },
+                                               body: JSON.stringify({ ...plan, isActive: newStatus })
+                                            }).then(() => fetchData(true));
+                                         }}
+                                      />
+                                      <ZenIconButton icon={Edit3} variant="sky" onClick={() => {
+                                         setEditingPlan(plan);
+                                         setPlanFormData({
+                                            ...plan as any,
+                                            applicableServices: (plan.applicableServices || []).map((s: any) => typeof s === 'string' ? s : s._id),
+                                            isUnlimited: plan.durationDays >= 36500
+                                         });
+                                         setIsPlanModalOpen(true);
+                                      }} />
+                                      <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeletePlan(plan._id)} />
+                                   </div>
+                                   <div className="flex flex-col gap-1 items-end">
+                                      <span className="text-[9px] font-black text-zen-brown/25 uppercase tracking-[0.3em]">Usage Capacity</span>
+                                      <span className="text-sm font-black text-zen-brown tracking-tight">
+                                         {plan.maxSessions} <span className="text-zen-brown/40 font-normal">Rituals</span>
+                                      </span>
+                                   </div>
+                                </div>
                             </div>
                          </div>
                       ))}
@@ -969,18 +987,34 @@ const Memberships = () => {
                                    </div>
                                 </td>
                                 <td>
-                                   <div className="flex items-center justify-center gap-2">
-                                      <ZenIconButton icon={Edit3} onClick={() => {
-                                         setEditingPlan(plan);
-                                         setPlanFormData({
-                                            ...plan as any,
-                                            applicableServices: plan.applicableServices?.map((s: any) => typeof s === 'string' ? s : s._id) || [],
-                                            isUnlimited: plan.durationDays >= 36500
-                                         });
-                                         setIsPlanModalOpen(true);
-                                      }} />
-                                      <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeletePlan(plan._id)} />
-                                   </div>
+                                      <div className="flex items-center justify-center gap-2">
+                                         <ZenIconButton
+                                            icon={Zap}
+                                            variant={plan.isActive ? 'leaf' : 'sand'}
+                                            onClick={() => {
+                                               const newStatus = !plan.isActive;
+                                               fetch(`${API_URL}/memberships/plans/${plan._id}`, {
+                                                  method: 'PUT',
+                                                  headers: {
+                                                     'Content-Type': 'application/json',
+                                                     'Authorization': `Bearer ${user?.token}`
+                                                  },
+                                                  body: JSON.stringify({ ...plan, isActive: newStatus })
+                                               }).then(() => fetchData(true));
+                                            }}
+                                            size="md"
+                                         />
+                                         <ZenIconButton icon={Edit3} variant="sky" onClick={() => {
+                                            setEditingPlan(plan);
+                                            setPlanFormData({
+                                               ...plan as any,
+                                               applicableServices: (plan.applicableServices || []).map((s: any) => typeof s === 'string' ? s : s._id),
+                                               isUnlimited: plan.durationDays >= 36500
+                                            });
+                                            setIsPlanModalOpen(true);
+                                         }} size="md" />
+                                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeletePlan(plan._id)} size="md" />
+                                      </div>
                                 </td>
                              </tr>
                           ))}
@@ -1054,11 +1088,12 @@ const Memberships = () => {
                                      {user?.role !== 'Client' && (
                                         <td>
                                            <div className="flex items-center justify-center gap-2">
-                                              <ZenIconButton icon={History} onClick={() => {
+                                              <ZenIconButton icon={Zap} variant={m.status === 'Active' ? 'leaf' : 'sand'} onClick={() => toggleMembershipStatus(m)} size="md" />
+                                              <ZenIconButton icon={History} variant="violet" onClick={() => {
                                                  setSelectedHistory(m);
                                                  setIsHistoryModalOpen(true);
                                               }} size="md" />
-                                              <ZenIconButton icon={Edit3} onClick={() => {
+                                              <ZenIconButton icon={Edit3} variant="sky" onClick={() => {
                                                  openEditEnrollment(m);
                                               }} size="md" />
                                               <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteMembership(m._id)} size="md" />
@@ -1094,18 +1129,7 @@ const Memberships = () => {
                                                 </div>
                                              </div>
                                           </div>
-                                          <div className="flex items-center gap-1.5">
-                                             <ZenIconButton icon={History} onClick={() => {
-                                                setSelectedHistory(m);
-                                                setIsHistoryModalOpen(true);
-                                             }} />
-                                             {user?.role !== 'Client' && (
-                                                <>
-                                                   <ZenIconButton icon={Edit3} onClick={() => openEditEnrollment(m)} />
-                                                   <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteMembership(m._id)} />
-                                                </>
-                                             )}
-                                          </div>
+
                                        </div>
 
                                        <div className="space-y-4">
@@ -1135,19 +1159,33 @@ const Memberships = () => {
                                              </div>
                                           </div>
 
-                                          <div className="flex items-center justify-between px-2 pt-2 border-t border-zen-stone/50">
-                                             <div className="flex flex-col gap-1">
-                                                <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest">Renewal Date</span>
-                                                <div className="flex items-center gap-2 text-zen-brown/60">
-                                                   <Calendar size={12} className="text-zen-sand" />
-                                                   <span className="text-[10px] font-serif font-black">{dayjs(m.endDate).format('DD MMM YYYY')}</span>
-                                                </div>
-                                             </div>
-                                             <div className="flex flex-col items-end gap-1">
-                                                <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest">Branch</span>
-                                                <span className="text-[10px] font-black text-zen-brown uppercase">{getBranchName(m.branch)}</span>
-                                             </div>
-                                          </div>
+                                           <div className="flex items-center justify-between px-2 pt-2 border-t border-zen-stone/50">
+                                              <div className="flex items-center gap-2">
+                                                 <ZenIconButton
+                                                    icon={Zap}
+                                                    variant={m.status === 'Active' ? 'leaf' : 'sand'}
+                                                    onClick={() => toggleMembershipStatus(m)}
+                                                 />
+                                                 <ZenIconButton
+                                                    icon={History}
+                                                    variant="violet"
+                                                    onClick={() => {
+                                                       setSelectedHistory(m);
+                                                       setIsHistoryModalOpen(true);
+                                                    }}
+                                                 />
+                                                 {user?.role !== 'Client' && (
+                                                    <>
+                                                       <ZenIconButton icon={Edit3} variant="sky" onClick={() => openEditEnrollment(m)} />
+                                                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteMembership(m._id)} />
+                                                    </>
+                                                 )}
+                                              </div>
+                                              <div className="flex flex-col items-end gap-1">
+                                                 <span className="text-[9px] font-black text-zen-brown/20 uppercase tracking-widest">Branch</span>
+                                                 <span className="text-[10px] font-black text-zen-brown uppercase">{getBranchName(m.branch)}</span>
+                                              </div>
+                                           </div>
                                        </div>
                                     </div>
                                  </div>
@@ -1497,7 +1535,7 @@ const Memberships = () => {
                               </div>
                            </td>
                            <td className="px-6 py-4">
-                              <span className="zen-table-primary">{usage.service?.name || usage.serviceId}</span>
+                              <span className="zen-table-primary">{(usage.service?.name || usage.serviceId || 'Service').replace(/service\s*:\s*/i, '')}</span>
                            </td>
                            <td className="px-6 py-4">
                               <span className="zen-table-meta">{new Date(usage.usedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>

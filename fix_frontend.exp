@@ -1,6 +1,0 @@
-#!/usr/bin/expect -f
-set timeout 60
-spawn ssh -o StrictHostKeyChecking=no root@194.238.23.158 "echo 'VITE_BASE_URL=/staging_saloon_spa_crm/' >> /staginger/apps/staging_saloon_spa_crm/frontend/.env && cd /staginger/apps/staging_saloon_spa_crm/frontend && npm run build"
-expect "assword:"
-send "Aedentek@123#\r"
-expect eof

@@ -325,7 +325,7 @@ const Attendance = () => {
 
                    {isAdminOrManager && (
                       <div className="mt-8 pt-6 border-t border-zen-stone/20 flex justify-end gap-2">
-                         <ZenIconButton icon={Edit2} onClick={() => handleEditRecord(row)} />
+                         <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleEditRecord(row)} />
                          <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteRecord(row._id)} />
                       </div>
                    )}
@@ -398,7 +398,7 @@ const Attendance = () => {
                               {isAdminOrManager && (
                                  <td className="px-6">
                                     <div className="flex justify-center gap-2">
-                                       <ZenIconButton icon={Edit2} onClick={() => handleEditRecord(row)} />
+                                       <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleEditRecord(row)} />
                                        <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteRecord(row._id)} />
                                     </div>
                                  </td>

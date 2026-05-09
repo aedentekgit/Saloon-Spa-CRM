@@ -76,137 +76,129 @@ const Login = () => {
        />
 
        {/* Overall Animated Container Card */}
-       <motion.div 
-          initial={{ opacity: 0, y: 50, scale: 0.96 }}
-          animate={{ 
-            opacity: 1, 
-            y: [50, 0, -4, 0],
-            scale: 1 
-          }}
-          transition={{ 
-            y: {
-              times: [0, 0.4, 0.7, 1],
-              duration: 1.6,
-              ease: [0.16, 1, 0.3, 1]
-            },
-            opacity: { duration: 1.0 },
-            scale: { duration: 1.4, ease: [0.16, 1, 0.3, 1] }
-          }}
-          whileHover={{
-            y: -6,
-            shadow: "0 30px 80px -15px rgba(101,78,65,0.12)",
-          }}
-          className="w-full max-w-[1000px] bg-white rounded-[1.75rem] sm:rounded-[3rem] shadow-[0_20px_50px_-12px_rgba(101,78,65,0.06)] flex flex-col lg:flex-row-reverse min-h-[460px] sm:min-h-[600px] border-2 sm:border-[4px] border-zen-stone/30 relative overflow-hidden transition-shadow duration-500 z-10"
-       >
+        <motion.div 
+           initial={{ opacity: 0, y: 50, scale: 0.98 }}
+           animate={{ 
+             opacity: 1, 
+             y: 0,
+             scale: 1 
+           }}
+           transition={{ 
+             duration: 1.2,
+             ease: [0.16, 1, 0.3, 1]
+           }}
+           className="w-full max-w-[1000px] bg-white rounded-[2rem] sm:rounded-[3.5rem] shadow-[0_40px_100px_-20px_rgba(43,36,64,0.12)] flex flex-col lg:flex-row-reverse min-h-[500px] sm:min-h-[640px] relative overflow-hidden transition-all duration-500 z-10"
+        >
 
-          {/* Branding Image with soft zoom/scale Ken Burns effect */}
-          <motion.div 
-             initial={{ opacity: 0, x: 20 }}
-             animate={{ opacity: 1, x: 0 }}
-             transition={{ delay: 0.4, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-             className="hidden lg:block w-1/2 p-3 relative"
-          >
-             <div className="w-full h-full rounded-[2.5rem] overflow-hidden relative shadow-inner group/img cursor-pointer">
-                <motion.img
-                  initial={{ scale: 1.12 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
-                  src={withBase('/login-bg.png')}
-                  alt="Sanctuary"
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover/img:scale-105"
-                />
-             </div>
-          </motion.div>
+           {/* Branding Image - Flush to edges */}
+           <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+              className="hidden lg:block w-1/2 relative overflow-hidden"
+           >
+              <div className="w-full h-full relative group/img cursor-pointer">
+                 <motion.img
+                   initial={{ scale: 1.15 }}
+                   animate={{ scale: 1 }}
+                   transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1] }}
+                   src={withBase('/login-bg.png')}
+                   alt="Sanctuary"
+                   className="w-full h-full object-cover transition-transform duration-1000 group-hover/img:scale-105"
+                 />
+                 <div className="absolute inset-0 bg-gradient-to-l from-transparent to-white/10" />
+              </div>
+           </motion.div>
 
-          {/* Right side Form with stagger items animation */}
-          <div className="w-full lg:w-1/2 flex items-center justify-center p-5 sm:p-8 lg:p-16 relative">
-             <motion.div 
-                initial="hidden"
-                animate="visible"
-                variants={{
-                  hidden: { opacity: 0 },
-                  visible: {
-                    opacity: 1,
-                    transition: {
-                      staggerChildren: 0.08,
-                      delayChildren: 0.2
-                    }
-                  }
-                }}
-                className="w-full max-w-sm space-y-8"
-             >
-                <motion.div variants={itemVariants} className="space-y-3">
-                   <h1 className="text-[2.75rem] font-black text-zen-brown tracking-tight leading-none">Let's sign you in.</h1>
-                   <p className="text-sm font-medium text-zen-brown/40 italic mt-2">Hello, welcome back to your account</p>
-                </motion.div>
+           {/* Left side Form */}
+           <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-20 relative">
+              <motion.div 
+                 initial="hidden"
+                 animate="visible"
+                 variants={{
+                   hidden: { opacity: 0 },
+                   visible: {
+                     opacity: 1,
+                     transition: {
+                       staggerChildren: 0.1,
+                       delayChildren: 0.3
+                     }
+                   }
+                 }}
+                 className="w-full max-w-sm space-y-10"
+              >
+                 <motion.div variants={itemVariants} className="space-y-4">
+                    <h1 className="text-[3rem] font-black text-zen-brown tracking-tighter leading-[0.9] sm:leading-none">Let's sign you in.</h1>
+                    <p className="text-sm font-medium text-zen-brown/30 italic">Hello, welcome back to your account</p>
+                 </motion.div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {error && (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="glass-dark border-red-500/20 text-red-600 p-4 rounded-[2rem] text-center flex items-center justify-center gap-3 relative overflow-hidden"
-                      >
-                        <div className="absolute inset-0 bg-red-500/5 pointer-events-none" />
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.25em]">{error}</span>
-                      </motion.div>
-                    )}
-
-                    <motion.div variants={itemVariants} className="space-y-4">
-                       <div className="relative group">
-                          <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Mail id"
-                            className="w-full bg-white text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-4 focus:ring-zen-sand/10 focus:border-zen-sand/40 transition-all border border-zen-brown/15 shadow-sm group-hover:border-zen-sand/40"
-                            required
-                          />
-                          <Mail size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30 group-focus-within:text-zen-sand transition-colors" />
-                       </div>
-
-                       <div className="relative group">
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Password"
-                            className="w-full bg-white text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-6 py-4 rounded-3xl outline-none focus:ring-4 focus:ring-zen-sand/10 focus:border-zen-sand/40 transition-all border border-zen-brown/15 shadow-sm group-hover:border-zen-sand/40"
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-6 top-1/2 -translate-y-1/2 text-zen-brown/30 hover:text-zen-sand transition-colors"
-                          >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                          </button>
-                       </div>
-                    </motion.div>
-
-                    <motion.div variants={itemVariants} className="flex justify-start">
-                       <Link to="/forgot-password" className="text-[11px] font-bold text-zen-brown/35 hover:text-zen-sand cursor-pointer transition-colors block -mt-2">Forget password?</Link>
-                    </motion.div>
-
-                    <motion.div variants={itemVariants} className="pt-2">
-                       <button
-                         type="submit"
-                         className="w-full py-4 bg-zen-sand hover:opacity-90 text-white text-[13px] font-bold shadow-none rounded-3xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
+                 <form onSubmit={handleSubmit} className="space-y-8">
+                     {error && (
+                       <motion.div 
+                         initial={{ opacity: 0, scale: 0.95 }}
+                         animate={{ opacity: 1, scale: 1 }}
+                         className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl text-center flex items-center justify-center gap-3 relative"
                        >
-                         Sign in now
-                       </button>
-                    </motion.div>
+                         <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                         <span className="text-[10px] font-black uppercase tracking-[0.25em]">{error}</span>
+                       </motion.div>
+                     )}
 
-                    <motion.div variants={itemVariants} className="text-center pt-2">
-                       <p className="text-[11px] font-bold text-zen-brown/35">
-                          Not registered? <Link to="/signup" className="text-zen-sand hover:underline">Sign up</Link>
-                       </p>
-                    </motion.div>
-                </form>
-             </motion.div>
-          </div>
-       </motion.div>
+                     <motion.div variants={itemVariants} className="space-y-5">
+                        <div className="relative group">
+                           <input
+                             type="email"
+                             value={email}
+                             onChange={(e) => setEmail(e.target.value)}
+                             placeholder="Mail id"
+                             className="w-full bg-zen-cream/30 text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-8 py-5 rounded-[2rem] outline-none focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/30 transition-all border border-zen-brown/5 shadow-sm group-hover:border-zen-sand/20"
+                             required
+                           />
+                           <Mail size={18} className="absolute right-8 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" />
+                        </div>
+
+                        <div className="relative group">
+                           <input
+                             type={showPassword ? "text" : "password"}
+                             value={password}
+                             onChange={(e) => setPassword(e.target.value)}
+                             placeholder="Password"
+                             className="w-full bg-zen-cream/30 text-zen-brown text-sm font-bold placeholder:text-zen-brown/30 placeholder:font-medium px-8 py-5 rounded-[2rem] outline-none focus:ring-4 focus:ring-zen-sand/5 focus:border-zen-sand/30 transition-all border border-zen-brown/5 shadow-sm group-hover:border-zen-sand/20"
+                             required
+                           />
+                           <button
+                             type="button"
+                             onClick={() => setShowPassword(!showPassword)}
+                             className="absolute right-8 top-1/2 -translate-y-1/2 text-zen-brown/20 hover:text-zen-sand transition-colors"
+                           >
+                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                           </button>
+                        </div>
+                     </motion.div>
+
+                     <motion.div variants={itemVariants} className="flex justify-start">
+                        <Link to="/forgot-password" title="Recover access" className="text-[11px] font-bold text-zen-brown/25 hover:text-zen-sand cursor-pointer transition-colors block -mt-4 ml-4">Forget password?</Link>
+                     </motion.div>
+
+                     <motion.div variants={itemVariants} className="pt-4">
+                        <button
+                          type="submit"
+                          className="w-full py-5 bg-zen-brown hover:bg-zen-brown/95 text-white text-[13px] font-black uppercase tracking-[0.2em] shadow-xl shadow-zen-brown/10 rounded-[2rem] transition-all flex items-center justify-center gap-3 group active:scale-[0.98]"
+                        >
+                          <span>Sign in now</span>
+                          <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                     </motion.div>
+
+                     <motion.div variants={itemVariants} className="text-center pt-4">
+                        <p className="text-[11px] font-bold text-zen-brown/30 uppercase tracking-widest">
+                           Not registered? <Link to="/signup" className="text-zen-sand hover:underline font-black">Sign up</Link>
+                        </p>
+                     </motion.div>
+                 </form>
+              </motion.div>
+           </div>
+        </motion.div>
     </div>
   );
 };

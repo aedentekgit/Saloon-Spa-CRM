@@ -470,10 +470,6 @@ const Admins = () => {
                        </div>
                     </div>
 
-                   <div className="flex items-center gap-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all duration-500">
-                      <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(admin)} />
-                      <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(admin._id)} />
-                   </div>
                 </div>
 
                 <div className="flex flex-col gap-3 mb-8">
@@ -484,28 +480,22 @@ const Admins = () => {
                 </div>
               </div>
 
-              <div className="relative z-10 pt-6 border-t border-zen-brown/15">
-                 <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => toggleStatus(admin)}
-                      className={`flex items-center gap-2.5 px-5 py-2 rounded-full border transition-all duration-500 hover:scale-110 active:scale-95 shadow-sm ${
-                        admin.status === 'Active'
-                          ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/30 shadow-zen-leaf/5'
-                          : 'bg-rose-50 text-rose-500 border-rose-100'
-                      }`}
-                    >
-                       <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${admin.status === 'Active' ? 'bg-zen-leaf' : 'bg-rose-500'}`} />
-                       <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">
-                          {admin.status === 'Inactive' ? 'Suspended' : 'Operational'}
-                       </span>
-                    </button>
-
-                    <div className="flex items-center gap-2 text-zen-brown/20 italic text-[10px] font-medium">
-                       <Calendar size={14} strokeWidth={1.5} />
-                       Created {new Date(admin.createdAt).toLocaleDateString()}
-                    </div>
-                 </div>
-              </div>
+              <div className="relative z-10 pt-6 border-t border-zen-brown/15 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                     <ZenBadge variant={admin.status === 'Active' ? 'leaf' : 'sand'}>
+                        {admin.status === 'Inactive' ? 'Suspended' : 'Operational'}
+                     </ZenBadge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <ZenIconButton
+                        icon={Zap}
+                        variant={admin.status === 'Active' ? 'leaf' : 'sand'}
+                        onClick={() => toggleStatus(admin)}
+                     />
+                     <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(admin)} />
+                     <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(admin._id)} />
+                  </div>
+               </div>
             </div>
           ))}
         </div>
@@ -575,7 +565,7 @@ const Admins = () => {
                          onClick={() => toggleStatus(admin)}
                          size="md"
                        />
-                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(admin)} size="md" />
+                       <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(admin)} size="md" />
                        <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(admin._id)} size="md" />
                     </div>
                   </td>

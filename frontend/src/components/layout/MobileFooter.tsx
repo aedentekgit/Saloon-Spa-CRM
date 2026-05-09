@@ -82,8 +82,8 @@ const MobileFooter: React.FC = () => {
   return (
     <>
       {/* Main Navigation Bar */}
-      <div className="lg:hidden fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-4 right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700">
-        <nav className="bg-white/95 backdrop-blur-2xl rounded-[1rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/20 p-1.5 flex items-center justify-around relative ring-1 ring-black/5">
+      <div className="lg:hidden fixed bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-2 sm:left-4 right-2 sm:right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700">
+        <nav className="bg-white/95 backdrop-blur-2xl rounded-2xl sm:rounded-[1rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/20 p-1 sm:p-1.5 flex items-center justify-around relative ring-1 ring-black/5">
           {filteredFooter.map((item) => (
             <NavLink
               key={item.name}
@@ -135,12 +135,12 @@ const MobileFooter: React.FC = () => {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 bg-zen-cream z-[120] lg:hidden rounded-t-[3rem] shadow-none max-h-[85vh] overflow-hidden flex flex-col border-t border-white"
+              className="fixed bottom-0 left-0 right-0 bg-zen-cream z-[120] lg:hidden rounded-t-[2rem] sm:rounded-t-[3rem] shadow-none max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col border-t border-white"
             >
-              <div className="p-5 border-b border-zen-brown/15 flex items-center justify-between shrink-0 bg-white/50">
+              <div className="p-4 sm:p-5 border-b border-zen-brown/15 flex items-center justify-between shrink-0 bg-white/50">
                 <div>
-                  <h3 className="text-xl font-serif font-bold text-zen-brown tracking-tight">All Sections</h3>
-                  <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Explore all sectors</p>
+                  <h3 className="text-lg sm:text-xl font-serif font-bold text-zen-brown tracking-tight">All Sections</h3>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-zen-brown/40 uppercase tracking-[0.3em]">Explore all sectors</p>
                 </div>
                 <button
                   onClick={() => setIsMoreOpen(false)}
@@ -150,8 +150,8 @@ const MobileFooter: React.FC = () => {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-                 <div className="grid grid-cols-3 gap-4">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 custom-scrollbar pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4">
                   {filteredSheet.map((item) => (
                     <NavLink
                       key={item.name}

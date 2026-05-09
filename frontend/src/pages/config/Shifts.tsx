@@ -360,10 +360,6 @@ const Shifts = () => {
                  <div className="absolute -right-6 -bottom-6 opacity-[0.03] text-zen-brown group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-1000">
                     <Clock size={150} />
                  </div>
-                 <div className="absolute top-0 right-0 p-6 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20">
-                    <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(shift)} className="bg-white/80 shadow-sm" />
-                    <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(shift._id)} className="bg-white/80 shadow-sm" />
-                 </div>
 
                  <div className="flex items-center gap-6 mb-8">
                     <div className="w-16 h-16 rounded-[1.5rem] bg-zen-cream/50 flex items-center justify-center text-zen-brown shadow-inner">
@@ -384,17 +380,26 @@ const Shifts = () => {
                        <span className="font-serif font-bold text-zen-brown">{shift.startTime} - {shift.endTime}</span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2">
-                       {shift.branch ? (
-                          <div className="flex items-center gap-2 text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest pl-2">
-                             <MapPin size={12} />
-                             {getShiftBranchName(shift)}
-                          </div>
-                       ) : <div />}
-                       <button onClick={() => toggleStatus(shift)}>
-                          <ZenBadge variant={shift.status === 'Active' ? 'leaf' : 'inactive'}>{shift.status === 'Inactive' ? 'Deactive' : 'Active'}</ZenBadge>
-                       </button>
-                    </div>
+                     <div className="flex items-center justify-between pt-4 border-t border-zen-brown/15">
+                        <div className="flex items-center gap-2">
+                           <ZenBadge variant={shift.status === 'Active' ? 'leaf' : 'sand'}>{shift.status === 'Inactive' ? 'Deactive' : 'Active'}</ZenBadge>
+                           {shift.branch && (
+                              <div className="flex items-center gap-2 text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest pl-2">
+                                 <MapPin size={12} />
+                                 {getShiftBranchName(shift)}
+                              </div>
+                           )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <ZenIconButton
+                              icon={Zap}
+                              variant={shift.status === 'Active' ? 'leaf' : 'sand'}
+                              onClick={() => toggleStatus(shift)}
+                           />
+                           <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(shift)} />
+                           <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(shift._id)} />
+                        </div>
+                     </div>
                  </div>
               </motion.div>
             ))}
@@ -465,7 +470,8 @@ const Shifts = () => {
                        </td>
                        <td className="px-4 lg:px-6 py-4 lg:py-6">
                           <div className="flex items-center justify-center gap-2">
-                             <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(shift)} size="md" />
+                             <ZenIconButton icon={Zap} variant={shift.status === 'Active' ? 'leaf' : 'sand'} onClick={() => toggleStatus(shift)} size="md" />
+                             <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(shift)} size="md" />
                              <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(shift._id)} size="md" />
                           </div>
                        </td>

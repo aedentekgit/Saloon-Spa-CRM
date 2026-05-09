@@ -425,11 +425,7 @@ const Branches = () => {
                         </div>
                      </div>
 
-                    <div className="flex flex-col sm:flex-row gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
-                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(branch)} />
-                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(branch._id)} />
-                    </div>
-                 </div>
+                  </div>
 
                  <div className="flex flex-col gap-2 mb-4">
                      <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
@@ -447,18 +443,21 @@ const Branches = () => {
                  </div>
                </div>
 
-                <div className="relative z-10 pt-4 border-t border-zen-brown/15">
-                       <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => toggleBranchStatus(branch)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm ${branch.isActive ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20' : 'bg-red-50 text-red-500 border-red-100'}`}
-                          >
-                             <div className={`w-1.5 h-1.5 rounded-full ${branch.isActive ? 'bg-zen-leaf animate-pulse' : 'bg-red-500'}`}></div>
-                             <span className="text-[10px] font-bold uppercase tracking-widest">{branch.isActive ? 'Active' : 'Paused'}</span>
-                          </button>
-                          <ZenBadge variant="sand">Operational Hub</ZenBadge>
-                       </div>
-                </div>
+               <div className="relative z-10 pt-4 border-t border-zen-brown/15 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                     <ZenBadge variant={branch.isActive ? 'leaf' : 'sand'}>{branch.isActive ? 'Active' : 'Paused'}</ZenBadge>
+                     <ZenBadge variant="sand">Operational Hub</ZenBadge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <ZenIconButton
+                        icon={Zap}
+                        variant={branch.isActive ? 'leaf' : 'sand'}
+                        onClick={() => toggleBranchStatus(branch)}
+                     />
+                     <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(branch)} />
+                     <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(branch._id)} />
+                  </div>
+               </div>
             </div>
           ))}
         </div>
@@ -523,7 +522,8 @@ const Branches = () => {
                       </td>
                       <td className="px-4 lg:px-6 py-4 lg:py-6">
                          <div className="flex items-center justify-center gap-2">
-                            <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(branch)} size="md" />
+                            <ZenIconButton icon={Zap} variant={branch.isActive ? 'leaf' : 'sand'} onClick={() => toggleBranchStatus(branch)} size="md" />
+                            <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(branch)} size="md" />
                             <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(branch._id)} size="md" />
                          </div>
                       </td>
@@ -640,8 +640,8 @@ const Branches = () => {
                   <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Branch details</p>
                   <h4 className="mt-1 text-lg font-semibold text-zen-brown">Identity and contact information</h4>
                 </div>
-                <ZenBadge variant={formData.isActive ? 'leaf' : 'inactive'}>
-                  {formData.isActive ? 'Active' : 'Inactive'}
+                <ZenBadge variant={formData.isActive ? 'leaf' : 'sand'}>
+                  {formData.isActive ? 'Operating' : 'Paused'}
                 </ZenBadge>
               </div>
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, Link, useNavigate, NavLink } from 'react-router-dom';
-import { Bell, PanelLeftClose, PanelLeftOpen, Settings, LogOut, UserRound, LayoutGrid, CalendarClock, History } from 'lucide-react';
+import { Bell, PanelLeftClose, PanelLeftOpen, Settings, LogOut, UserRound, LayoutGrid, CalendarClock, History, Menu } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
 import { notify } from '../../components/shared/ZenNotification';
@@ -110,19 +110,28 @@ const Navbar = ({
   };
 
   return (
-    <header className="h-16 sm:h-[72px] bg-white/80 backdrop-blur-xl border-b border-zen-stone/40 flex items-center justify-between px-3 sm:px-6 lg:px-10 sticky top-0 z-40 shadow-none overflow-visible">
+    <header className="h-14 sm:h-16 md:h-[72px] bg-white/80 backdrop-blur-xl border-b border-zen-stone/40 flex items-center justify-between px-3 sm:px-4 md:px-6 lg:px-10 sticky top-0 z-40 shadow-none overflow-visible">
 
       {/* Left section: Breadcrumb & Title */}
       <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-        {/* Hide sidebar toggle for Client role */}
+        {/* Sidebar Toggle/Menu for Admin Roles */}
         {user?.role !== 'Client' && (
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex text-zen-brown/40 hover:text-zen-brown transition-colors p-1.5 rounded-lg hover:bg-zen-stone/30"
-            aria-label="Toggle Menu"
-          >
-            {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
-          </button>
+          <>
+            <button
+              onClick={onMenuClick}
+              className="lg:hidden text-zen-brown/40 hover:text-zen-brown transition-colors p-1.5 rounded-lg hover:bg-zen-stone/30"
+              aria-label="Open Menu"
+            >
+              <Menu size={20} />
+            </button>
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="hidden lg:flex text-zen-brown/40 hover:text-zen-brown transition-colors p-1.5 rounded-lg hover:bg-zen-stone/30"
+              aria-label="Toggle Menu"
+            >
+              {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+            </button>
+          </>
         )}
 
         <div className="h-5 w-px bg-zen-stone hidden sm:block"></div>
@@ -192,26 +201,30 @@ const Navbar = ({
            <AnimatePresence>
              {isNotifOpen && (
                <motion.div
-                 initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                 initial={{ opacity: 0, y: 8, scale: 0.98 }}
                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                 exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                 className="absolute right-0 mt-3 w-[calc(100vw-1.5rem)] max-w-80 bg-white rounded-3xl border-2 border-zen-sand/40 shadow-2xl overflow-hidden z-[9999] ring-1 ring-zen-stone/20"
+                 exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                 transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                 className="absolute right-0 top-full mt-3 w-[min(22rem,calc(100vw-1.5rem))] bg-white rounded-xl border border-zen-stone/70 shadow-xl overflow-hidden z-[9999]"
                >
-                 <div className="p-5 border-b border-zen-stone/20 flex items-center justify-between bg-gradient-to-r from-stone-50/50 to-white">
-                     <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zen-brown/40">Communications</h4>
+                 <div className="px-4 py-3 border-b border-zen-stone/30 flex items-center justify-between bg-white">
+                     <div>
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.22em] text-zen-brown/45">Notifications</h4>
+                        <p className="text-[10px] font-bold text-zen-brown/30 mt-0.5">{unreadCount} unread</p>
+                     </div>
                      {notifications.length > 0 && (
                         <button
                            onClick={handleClearAll}
-                           className="text-[10px] font-bold text-zen-sand hover:underline"
+                           className="text-[10px] font-black text-zen-sand hover:text-zen-brown transition-colors"
                         >
-                           Clear all
+                           Clear
                         </button>
                      )}
                   </div>
-                  <div className="max-h-[350px] overflow-y-auto scrollbar-hide py-2">
+                  <div className="max-h-[min(24rem,calc(100vh-9rem))] overflow-y-auto py-1">
                      {notifications.length === 0 ? (
                         <div className="py-12 px-6 text-center">
-                           <div className="w-12 h-12 bg-zen-cream rounded-2xl flex items-center justify-center mx-auto mb-4 text-zen-brown/20">
+                           <div className="w-10 h-10 bg-zen-cream rounded-xl flex items-center justify-center mx-auto mb-4 text-zen-brown/20">
                               <Bell size={20} strokeWidth={1} />
                            </div>
                            <p className="text-[11px] font-black uppercase tracking-widest text-zen-brown/30">Your sanctuary is quiet</p>
@@ -222,24 +235,24 @@ const Navbar = ({
                            <div
                               key={notif._id}
                               onClick={() => handleNotifClick(notif)}
-                              className={`px-6 py-4 hover:bg-zen-cream/50 transition-colors cursor-pointer group ${!notif.isRead ? 'bg-zen-primary/[0.02]' : ''}`}
+                              className={`px-4 py-3 hover:bg-zen-cream/45 transition-colors cursor-pointer group border-b border-zen-stone/20 last:border-b-0 ${!notif.isRead ? 'bg-zen-sand/[0.04]' : ''}`}
                            >
-                              <div className="flex items-start gap-3">
-                                 <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${notif.isRead ? 'bg-transparent border border-zen-stone' : 'bg-zen-sand'}`} />
-                                 <div className="flex-1">
-                                    <div className="flex justify-between items-center bg">
-                                       <p className="text-xs font-bold text-zen-brown leading-tight">{notif.title}</p>
-                                       <span className="text-[8px] font-bold text-zen-brown/30 uppercase">{new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              <div className="flex items-start gap-3 min-w-0">
+                                 <div className={`mt-2 w-2 h-2 rounded-full shrink-0 ${notif.isRead ? 'bg-zen-stone/70' : 'bg-zen-sand'}`} />
+                                 <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-3">
+                                       <p className="text-[12px] font-black text-zen-brown leading-snug truncate">{notif.title}</p>
+                                       <span className="text-[9px] font-bold text-zen-brown/30 uppercase shrink-0 pt-0.5">{new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                     </div>
-                                    <p className="text-[11px] text-zen-brown/50 mt-1 line-clamp-2 leading-relaxed">{notif.message}</p>
+                                    <p className="text-[11px] text-zen-brown/55 mt-1 line-clamp-2 leading-relaxed break-words">{notif.message}</p>
                                  </div>
                               </div>
                            </div>
                         ))
                      )}
                   </div>
-                  <div className="p-4 border-t border-zen-stone/20 text-center">
-                     <button className="text-[10px] font-black uppercase tracking-widest text-zen-brown/30 hover:text-zen-brown transition-colors">View all updates</button>
+                  <div className="px-4 py-3 border-t border-zen-stone/30 text-center bg-white">
+                     <button className="text-[10px] font-black uppercase tracking-[0.18em] text-zen-brown/35 hover:text-zen-brown transition-colors">View all updates</button>
                   </div>
                </motion.div>
              )}

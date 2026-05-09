@@ -163,19 +163,19 @@ const PublicNavbar = () => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-0 z-[200] bg-zen-cream lg:hidden flex flex-col shadow-2xl overflow-y-auto"
+            className="fixed inset-0 z-[200] bg-white lg:hidden flex flex-col shadow-2xl h-screen w-screen overflow-y-auto scrollbar-hide"
           >
             {/* Elegant Header Area */}
-            <div className="flex h-24 shrink-0 items-center justify-between px-8 bg-zen-cream border-b border-zen-primary/5">
-              <NavLink to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zen-primary text-zen-contrast shadow-xl shadow-zen-primary/20">
+            <div className="flex h-16 sm:h-20 shrink-0 items-center justify-between px-4 sm:px-6 bg-white border-b border-zen-primary/5">
+              <NavLink to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-full bg-zen-primary text-zen-contrast shadow-xl shadow-zen-primary/20">
                   {logoUrl ? (
                     <img src={logoUrl} alt={siteName} className="h-full w-full rounded-full object-cover" />
                   ) : (
-                    <Sparkles size={20} />
+                    <Sparkles size={18} />
                   )}
                 </div>
-                <span className="font-serif text-xl font-bold tracking-[0.2em] uppercase text-zen-brown">{siteName}</span>
+                <span className="font-serif text-base sm:text-xl font-bold tracking-[0.2em] uppercase text-zen-brown">{siteName}</span>
               </NavLink>
               <button
                 onClick={() => setIsOpen(false)}
@@ -186,42 +186,42 @@ const PublicNavbar = () => {
             </div>
 
             {/* Links Area - Staggered & Refined */}
-            <div className="flex-1 flex flex-col justify-center px-10 relative">
+            <div className="flex-1 flex flex-col justify-start pt-6 sm:pt-10 px-4 sm:px-8 md:px-12 relative bg-white z-10">
               {/* Subtle background decoration */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] -z-10 pointer-events-none">
                 <Sparkles size={400} />
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {navLinks.map((link, i) => (
                   <motion.div
                     key={link.name}
-                    initial={{ opacity: 0, x: 30 }}
+                    initial={{ opacity: 1, x: 0 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 + 0.2, ease: "easeOut" }}
+                    transition={{ ease: "easeOut" }}
                   >
                     {link.isDropdown ? (
-                      <div className="space-y-4">
-                        <button 
+                      <div className="space-y-3 sm:space-y-4">
+                        <button
                           onClick={() => setActiveSubMenu(activeSubMenu === link.name ? null : link.name)}
                           className="w-full flex items-center justify-between text-zen-brown/40 hover:text-zen-brown transition-all"
                         >
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-3 sm:gap-4">
                             <span className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40">0{i + 1}</span>
-                            <span className="font-serif text-5xl sm:text-6xl font-black leading-none tracking-tight">
+                            <span className="font-serif text-3xl sm:text-4xl md:text-5xl font-black leading-none tracking-tight">
                               {link.name}
                             </span>
                           </div>
-                          <ChevronDown size={32} className={`transition-transform duration-500 ${activeSubMenu === link.name ? 'rotate-180 text-zen-primary' : 'opacity-20'}`} />
+                          <ChevronDown size={24} className={`transition-transform duration-500 ${activeSubMenu === link.name ? 'rotate-180 text-zen-primary' : 'opacity-20'}`} />
                         </button>
-                        
+
                         <AnimatePresence>
                           {activeSubMenu === link.name && (
-                            <motion.div 
+                            <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: 'auto', opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden space-y-4 pl-12"
+                              className="overflow-hidden space-y-3 sm:space-y-4 pl-8 sm:pl-12"
                             >
                               {link.items?.map((item) => (
                                 <NavLink
@@ -229,7 +229,7 @@ const PublicNavbar = () => {
                                   to={item.path}
                                   onClick={() => setIsOpen(false)}
                                   className={({ isActive }) => `
-                                    block font-serif text-3xl font-black transition-all
+                                    block font-serif text-xl sm:text-2xl md:text-3xl font-black transition-all
                                     ${isActive ? 'text-zen-primary italic' : 'text-zen-brown/30'}
                                   `}
                                 >
@@ -246,21 +246,21 @@ const PublicNavbar = () => {
                         onClick={() => setIsOpen(false)}
                         className={({ isActive }) => `
                           group relative flex flex-col transition-all duration-500
-                          ${isActive ? 'text-zen-primary' : 'text-zen-brown/40 hover:text-zen-brown'}
+                          ${isActive ? 'text-zen-primary' : 'text-zen-brown hover:text-zen-primary'}
                         `}
                       >
                         {({ isActive }) => (
                           <>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3 sm:gap-4">
                               <span className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40">0{i + 1}</span>
-                              <span className={`font-serif text-5xl sm:text-6xl font-black leading-none tracking-tight transition-transform duration-500 group-hover:translate-x-4 ${isActive ? 'italic' : ''}`}>
+                              <span className={`font-serif text-3xl sm:text-4xl md:text-5xl font-black leading-none tracking-tight transition-transform duration-500 group-hover:translate-x-2 sm:group-hover:translate-x-4 ${isActive ? 'italic' : ''}`}>
                                 {link.name}
                               </span>
                             </div>
                             {isActive && (
-                              <motion.div 
+                              <motion.div
                                 layoutId="mobile-link-dot"
-                                className="absolute -left-6 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-zen-sand"
+                                className="absolute -left-4 sm:-left-6 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-zen-sand"
                               />
                             )}
                           </>
@@ -273,7 +273,7 @@ const PublicNavbar = () => {
             </div>
 
             {/* Footer Area - Premium CTA */}
-            <div className="p-10 pb-12 space-y-8 bg-zen-cream border-t border-zen-primary/5">
+            <div className="p-10 pb-12 space-y-8 bg-white border-t border-zen-primary/5 z-20">
               <div className="flex flex-col gap-4">
                 <Link
                   to="/login"

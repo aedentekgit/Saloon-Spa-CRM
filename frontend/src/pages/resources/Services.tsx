@@ -569,7 +569,7 @@ const Services = () => {
                                    variant={service.status === 'Active' ? 'leaf' : 'sand'}
                                    onClick={() => toggleStatus(service)}
                                 />
-                                <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} />
+                                <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(service)} />
                                 <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} />
                              </div>
                           )}
@@ -648,7 +648,7 @@ const Services = () => {
                               onClick={() => toggleStatus(service)}
                               size="md"
                             />
-                            <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(service)} size="md" />
+                            <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(service)} size="md" />
                             <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(service._id)} size="md" />
                           </div>
                         </td>

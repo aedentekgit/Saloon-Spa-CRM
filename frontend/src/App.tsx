@@ -99,7 +99,7 @@ const Layout = () => {
       <div className={`
         fixed inset-y-0 left-0 z-[100] transform lg:relative lg:translate-x-0 transition-all duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        ${isCollapsed ? 'lg:w-[68px] w-[min(84vw,16rem)]' : 'lg:w-[210px] w-[min(88vw,17rem)]'}
+        ${isCollapsed ? 'lg:w-[68px] w-[min(90vw,16rem)] sm:w-[min(84vw,16rem)]' : 'lg:w-[210px] w-[min(92vw,18rem)] sm:w-[min(88vw,17rem)]'}
       `}>
         <Sidebar
           isCollapsed={isCollapsed}

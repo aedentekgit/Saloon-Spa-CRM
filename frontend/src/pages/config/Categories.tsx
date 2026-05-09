@@ -167,7 +167,7 @@ const Categories = () => {
                   </td>
                   <td className="px-4 lg:px-6 py-4 lg:py-6">
                     <div className="flex items-center justify-center gap-2">
-                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(cat)} size="md" />
+                       <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(cat)} size="md" />
                        <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteClick(cat._id)} size="md" />
                     </div>
                   </td>

@@ -1,6 +1,0 @@
-#!/usr/bin/expect -f
-set timeout 20
-spawn ssh -o StrictHostKeyChecking=no root@194.238.23.158 "cat /etc/nginx/sites-enabled/* | grep -i 'saloon\\|crm\\|staging'"
-expect "assword:"
-send "Aedentek@123#\r"
-expect eof

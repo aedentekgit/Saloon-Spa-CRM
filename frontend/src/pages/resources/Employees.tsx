@@ -529,7 +529,7 @@ const Employees = () => {
       return [
         { header: 'EMP ID', accessor: (employee) => employee.employeeId || '-' },
         { header: 'System ID', accessor: (employee) => employee._id },
-        { header: 'Operational ID', accessor: (employee) => employee.employeeId ? `#${employee.employeeId}` : `#${employee._id.slice(-6).toUpperCase()}` },
+        { header: 'Staff ID', accessor: (employee) => employee.employeeId ? `#${employee.employeeId}` : `#${employee._id.slice(-6).toUpperCase()}` },
         { header: 'Full Name', accessor: (employee) => employee.name },
         { header: 'Role', accessor: (employee) => employee.role || '-' },
         { header: 'Branch ID', accessor: (employee) => getEmployeeBranchId(employee) || '-' },
@@ -786,7 +786,6 @@ const Employees = () => {
                     <div className="min-w-0">
                        <h3 className="text-xl font-serif font-black text-zen-brown truncate leading-tight mb-1 flex items-center gap-2">
                           {emp.name}
-                          {emp.employeeId && <span className="text-[10px] font-sans font-bold text-zen-sand tracking-widest opacity-70">{emp.employeeId}</span>}
                        </h3>
                        <p className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest">{emp.role}</p>
                     </div>
@@ -794,7 +793,7 @@ const Employees = () => {
 
                  <div className="space-y-4 mb-6">
                     <div className="flex items-center justify-between text-[10px]">
-                       <span className="text-zen-brown/40 font-bold uppercase tracking-wider">Operational ID</span>
+                       <span className="text-zen-brown/40 font-bold uppercase tracking-wider">Staff ID</span>
                        <span className="font-serif italic font-medium text-zen-brown/60">{emp.employeeId || emp._id.slice(-6).toUpperCase()}</span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -810,8 +809,13 @@ const Employees = () => {
                        </span>
                        <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Total Earnings</span>
                     </div>
-                    <div className="flex items-center gap-1.5 font-bold">
-                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} />
+                    <div className="flex items-center gap-2 font-bold">
+                       <ZenIconButton
+                          icon={Zap}
+                          variant={emp.status === 'Active' ? 'leaf' : 'sand'}
+                          onClick={() => togglePayroll(emp)}
+                       />
+                       <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(emp)} />
                        <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} />
                     </div>
                  </div>
@@ -891,7 +895,7 @@ const Employees = () => {
                                onClick={() => togglePayroll(emp)}
                                size="md"
                             />
-                            <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(emp)} size="md" />
+                            <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(emp)} size="md" />
                             <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} size="md" />
                          </div>
                       </td>
@@ -1068,7 +1072,7 @@ const Employees = () => {
                       <button
                         type="button"
                         onClick={() => setFormData({...formData, payroll: {...formData.payroll, commissionBasis: !formData.payroll.commissionBasis}})}
-                        className={`w-12 h-6 rounded-full transition-all duration-500 relative ${formData.payroll.commissionBasis ? 'bg-amber-400' : 'bg-zen-brown/10'}`}
+                        className={`w-12 h-6 rounded-full transition-all duration-500 ${formData.payroll.commissionBasis ? 'bg-amber-400' : 'bg-zen-brown/10'}`}
                       >
                         <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-500 ${formData.payroll.commissionBasis ? 'left-7' : 'left-1'}`} />
                       </button>
@@ -1452,27 +1456,28 @@ const Employees = () => {
                                             </div>
                                          </td>
                                          <td className="px-8 py-5 text-right">
-                                            <div className="flex items-center justify-end gap-2 transition-opacity">
-                                               <ZenIconButton
-                                                  icon={Edit2}
-                                                  size="sm"
-                                                  onClick={(e) => {
-                                                     e.stopPropagation();
-                                                     setEditingAttendance(log);
-                                                     setAttendanceFormData({ checkIn: log.checkIn, checkOut: log.checkOut });
-                                                     setIsAttendanceModalOpen(true);
-                                                  }}
-                                               />
-                                               <ZenIconButton
-                                                  icon={Trash2}
-                                                  size="sm"
-                                                  variant="danger"
-                                                  onClick={(e) => {
-                                                     e.stopPropagation();
-                                                     deleteAttendance(log._id);
-                                                  }}
-                                               />
-                                            </div>
+                                             <div className="flex items-center justify-end gap-2 transition-opacity">
+                                                <ZenIconButton
+                                                   icon={Edit2}
+                                                   variant="sky"
+                                                   size="sm"
+                                                   onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setEditingAttendance(log);
+                                                      setAttendanceFormData({ checkIn: log.checkIn, checkOut: log.checkOut });
+                                                      setIsAttendanceModalOpen(true);
+                                                   }}
+                                                />
+                                                <ZenIconButton
+                                                   icon={Trash2}
+                                                   size="sm"
+                                                   variant="danger"
+                                                   onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      deleteAttendance(log._id);
+                                                   }}
+                                                />
+                                             </div>
                                          </td>
                                       </tr>
                                    ))}

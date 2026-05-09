@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import dayjs from 'dayjs';
 import {
   CreditCard,
@@ -100,6 +101,7 @@ const normalizeQuantity = (value: any) => {
 
 const Billing = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const { settings } = useSettings();
   const { invoices, clients: rawClients, services: rawServices, employees: rawEmployees, appointments: rawAppointments, refreshData } = useData();
   const { selectedBranch, setSelectedBranch, branches } = useBranches();
@@ -120,6 +122,27 @@ const Billing = () => {
     });
     return ids;
   }, [invoices]);
+
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [originalInvoiceNumber, setOriginalInvoiceNumber] = useState<string | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('all');
+  const [completedAppointments, setCompletedAppointments] = useState<CompletedAppointment[]>([]);
+  const [loadingCompletedAppointments, setLoadingCompletedAppointments] = useState(false);
+  const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
+  const [discount, setDiscount] = useState(0);
+  const [discountType, setDiscountType] = useState('Fixed');
+  const [paymentMode, setPaymentMode] = useState('Card');
+  const [payments, setPayments] = useState<any[]>([
+    { mode: 'Cash', amount: 0 },
+    { mode: 'Card', amount: 0 },
+    { mode: 'UPI', amount: 0 },
+    { mode: 'GPay', amount: 0 }
+  ]);
+  const [loading, setLoading] = useState(false);
+  const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
+  const [gstRates, setGstRates] = useState<any[]>([]);
+  const [selectedGSTRate, setSelectedGSTRate] = useState<any>(null);
 
   const clients = useMemo(() => {
     // Collect client IDs and names from completed and unbilled appointments
@@ -143,7 +166,10 @@ const Billing = () => {
     });
 
     // Return active clients that have at least one completed, unbilled appointment
+    // OR the currently selected client (to ensure it stays visible during editing)
     return rawClients.filter((c: any) => {
+      if (selectedClient && c._id === selectedClient._id) return true;
+      
       const isActive = c.status === 'Active';
       if (!isActive) return false;
 
@@ -151,30 +177,12 @@ const Billing = () => {
                            completedUnbilledClientKeys.has(String(c.name || '').trim().toLowerCase());
       return hasCompleted;
     });
-  }, [rawClients, rawAppointments, billedAppointmentIds]);
+  }, [rawClients, rawAppointments, billedAppointmentIds, selectedClient]);
+
   const services = useMemo(() => rawServices.filter((s: any) => s.status === 'Active' && isInBillingBranch(s)), [rawServices, effectiveBranchId]);
   const branchEmployees = useMemo(() => rawEmployees.filter((e: EmployeeRecord) =>
     (!e.status || e.status === 'Active') && isInBillingBranch(e)
   ), [rawEmployees, effectiveBranchId]);
-
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState('all');
-  const [completedAppointments, setCompletedAppointments] = useState<CompletedAppointment[]>([]);
-  const [loadingCompletedAppointments, setLoadingCompletedAppointments] = useState(false);
-  const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
-  const [discount, setDiscount] = useState(0);
-  const [discountType, setDiscountType] = useState('Fixed');
-  const [paymentMode, setPaymentMode] = useState('Card');
-  const [payments, setPayments] = useState<any[]>([
-    { mode: 'Cash', amount: 0 },
-    { mode: 'Card', amount: 0 },
-    { mode: 'UPI', amount: 0 },
-    { mode: 'GPay', amount: 0 }
-  ]);
-  const [loading, setLoading] = useState(false);
-  const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
-  const [gstRates, setGstRates] = useState<any[]>([]);
-  const [selectedGSTRate, setSelectedGSTRate] = useState<any>(null);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -196,6 +204,106 @@ const Billing = () => {
       setSelectedEmployeeId('all');
     }
   }, [branchEmployees, selectedEmployeeId]);
+
+  useEffect(() => {
+    const { clientId, invoiceId } = location.state || {};
+    
+    if (invoiceId) {
+      // Prioritize loading the invoice first
+      fetchInvoiceDetails(invoiceId);
+    }
+
+    if (clientId && clientId !== '-' && rawClients.length > 0) {
+      const targetClient = rawClients.find((c: any) => c._id === clientId);
+      if (targetClient) {
+        setSelectedClient(targetClient);
+        fetchCompletedAppointmentsForClient(targetClient._id);
+      }
+    }
+
+    if (location.state) {
+      // Clear state to avoid re-triggering on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, rawClients]);
+
+  const fetchInvoiceDetails = async (invoiceId: string) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/invoices/${invoiceId}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const inv = data.data || data;
+        
+        setEditingInvoiceId(inv._id);
+        setOriginalInvoiceNumber(inv.invoiceNumber);
+        setDiscount(inv.discount || 0);
+        setPaymentMode(inv.paymentMode || 'Card');
+        
+        // If client is not set yet (e.g. Walk-in), try to resolve it from the invoice
+        if (!selectedClient && inv.clientId) {
+           const invClientId = typeof inv.clientId === 'string' ? inv.clientId : inv.clientId._id;
+           const targetClient = rawClients.find((c: any) => c._id === invClientId);
+           if (targetClient) {
+             setSelectedClient(targetClient);
+             fetchCompletedAppointmentsForClient(targetClient._id);
+           } else {
+             // Fallback to name if ID not in current list
+             setSelectedClient({ _id: invClientId, name: inv.clientName, phone: '' });
+           }
+        } else if (!selectedClient) {
+           // Pure Walk-in
+           setSelectedClient({ _id: '', name: inv.clientName || 'Walk-in Client', phone: '' });
+        }
+        
+        if (inv.branch) {
+          const bId = typeof inv.branch === 'string' ? inv.branch : inv.branch._id;
+          if (bId) setSelectedBranch(bId);
+        }
+        
+        if (inv.gstName && gstRates.length > 0) {
+          const percentage = parseFloat(inv.gstName);
+          const rate = gstRates.find(r => r.percentage === percentage);
+          if (rate) setSelectedGSTRate(rate);
+        }
+        if (inv.paymentMode === 'Split' && Array.isArray(inv.payments)) {
+          const nextPayments = payments.map(p => {
+            const found = inv.payments.find((ip: any) => ip.mode === p.mode);
+            return found ? { ...p, amount: found.amount } : p;
+          });
+          setPayments(nextPayments);
+        }
+
+        // Map items to the format expected by the state
+        const mappedItems = (inv.items || []).map((item: any, idx: number) => ({
+          uniqueId: Date.now() + idx, // New unique ID for local tracking
+          appointmentId: item.appointmentId,
+          serviceId: item.serviceId,
+          _id: item.serviceId,
+          name: item.name,
+          price: item.price,
+          originalPrice: item.originalPrice || item.price,
+          serviceType: item.serviceType || 'REGULAR',
+          isMembershipCovered: item.isMembershipCovered || false,
+          membershipPlanName: item.membershipPlanName || '',
+          duration: item.duration || 0,
+          quantity: item.quantity || 1,
+          specialist: item.specialist,
+          specialistName: item.specialistName || 'Unassigned',
+          branch: inv.branch,
+          isRedeem: item.serviceType === 'MEMBERSHIP' || item.isMembershipCovered
+        }));
+        
+        setInvoiceItems(mappedItems);
+      }
+    } catch (e) {
+      notify('error', 'Load Error', 'Could not retrieve invoice details.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchGSTRates = async () => {
     try {
@@ -313,19 +421,23 @@ const Billing = () => {
   }, [completedAppointments, services, billedAppointmentIds, selectedEmployeeId, activeMembership]);
 
   useEffect(() => {
-    setInvoiceItems(completedServiceItems);
-  }, [completedServiceItems]);
+    if (!editingInvoiceId) {
+      setInvoiceItems(completedServiceItems);
+    }
+  }, [completedServiceItems, editingInvoiceId]);
 
   useEffect(() => {
     if (selectedClient?._id && selectedClient._id.length === 24) {
       fetchClientMembership(selectedClient._id);
       fetchCompletedAppointmentsForClient(selectedClient._id);
     } else {
-      setActiveMembership(null);
-      setDiscount(0);
-      setCompletedAppointments([]);
+      if (!editingInvoiceId) {
+        setActiveMembership(null);
+        setDiscount(0);
+        setCompletedAppointments([]);
+      }
     }
-  }, [selectedClient, effectiveBranchId]);
+  }, [selectedClient, effectiveBranchId, editingInvoiceId]);
 
   const fetchClientMembership = async (clientId: string) => {
     try {
@@ -337,13 +449,15 @@ const Billing = () => {
       const active = memberships.find((m: any) => m.status === 'Active');
       if (active) {
         setActiveMembership(active);
-        if (active.plan.discountValue > 0) {
+        if (active.plan.discountValue > 0 && !editingInvoiceId) {
           setDiscount(active.plan.discountValue);
           setDiscountType(active.plan.discountType);
         }
       } else {
         setActiveMembership(null);
-        setDiscount(0);
+        if (!editingInvoiceId) {
+          setDiscount(0);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch membership');
@@ -425,7 +539,9 @@ const Billing = () => {
     }
 
     setLoading(true);
-    const nextNumber = `INV-${dayjs().year()}-${String(invoices.length + 1).padStart(3, '0')}`;
+    const nextNumber = editingInvoiceId && originalInvoiceNumber 
+      ? originalInvoiceNumber 
+      : `INV-${dayjs().year()}-${String(invoices.length + 1).padStart(3, '0')}`;
 
     const newInvoice = {
       invoiceNumber: nextNumber,
@@ -457,8 +573,11 @@ const Billing = () => {
     };
 
     try {
-      const response = await fetch(`${API_URL}/invoices`, {
-        method: 'POST',
+      const url = editingInvoiceId ? `${API_URL}/invoices/${editingInvoiceId}` : `${API_URL}/invoices`;
+      const method = editingInvoiceId ? 'PATCH' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user?.token}`
@@ -487,8 +606,10 @@ const Billing = () => {
            }
         }
 
-        notify('success', 'Billing Updated', 'Billing records have been synchronized successfully.');
+        notify('success', 'Billing Updated', editingInvoiceId ? 'Invoice has been harmonized successfully.' : 'Billing records have been synchronized successfully.');
         setSelectedClient(null);
+        setEditingInvoiceId(null);
+        setOriginalInvoiceNumber(null);
         setSelectedEmployeeId('all');
         setCompletedAppointments([]);
         setInvoiceItems([]);
@@ -965,22 +1086,24 @@ const Billing = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { name: 'Cash', icon: Wallet, color: 'text-emerald-500' },
-                { name: 'Card', icon: CreditCard, color: 'text-sky-500' },
-                { name: 'UPI', icon: Smartphone, color: 'text-violet-500' },
-                { name: 'Split', icon: Split, color: 'text-zen-gold' }
+                { name: 'Cash', icon: Wallet, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+                { name: 'Card', icon: CreditCard, color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-200' },
+                { name: 'UPI', icon: Smartphone, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200' },
+                { name: 'Split', icon: Split, color: 'text-zen-gold', bg: 'bg-zen-gold/5', border: 'border-zen-gold/20' }
               ].map((mode) => (
                 <button
                   key={mode.name}
                   onClick={() => setPaymentMode(mode.name)}
                   className={`relative group flex flex-col items-center justify-center gap-4 p-5 rounded-3xl border transition-all duration-700 ${paymentMode === mode.name
                     ? 'bg-white border-zen-gold shadow-xl ring-1 ring-zen-gold/10 scale-[1.02]'
-                    : 'bg-transparent border-zen-brown/5 hover:border-zen-brown/20 text-zen-brown/30 hover:text-zen-brown/60'}`}
+                    : 'bg-transparent border-zen-brown/5 hover:border-zen-brown/20'}`}
                 >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-700 ${paymentMode === mode.name ? 'bg-zen-gold text-white scale-110 shadow-lg shadow-zen-gold/20' : 'bg-white border border-zen-brown/10 group-hover:scale-110 shadow-sm'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-700 ${paymentMode === mode.name 
+                    ? 'bg-zen-gold text-white scale-110 shadow-lg shadow-zen-gold/20' 
+                    : `${mode.bg} ${mode.border} ${mode.color} group-hover:scale-110 shadow-sm`}`}>
                     <mode.icon size={18} strokeWidth={1.5} />
                   </div>
-                  <span className={`text-[9px] font-bold uppercase tracking-[0.2em] transition-colors ${paymentMode === mode.name ? 'text-zen-brown' : 'text-inherit'}`}>{mode.name}</span>
+                  <span className={`text-[9px] font-bold uppercase tracking-[0.2em] transition-colors ${paymentMode === mode.name ? 'text-zen-brown' : 'text-zen-brown/40'}`}>{mode.name}</span>
 
                   {paymentMode === mode.name && (
                     <motion.div

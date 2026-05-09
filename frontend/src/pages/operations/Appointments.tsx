@@ -1592,6 +1592,7 @@ const Appointments = () => {
                                {canManageAppointmentStatus(apt) && (
                                  <ZenIconButton 
                                    icon={Edit2} 
+                                   variant="sky"
                                    onClick={() => handleOpenModal(apt)} 
                                    size="md" 
                                    disabled={statusLoading === apt._id}

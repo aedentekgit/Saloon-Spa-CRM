@@ -462,7 +462,7 @@ const Inventory = () => {
                          <div className="flex items-center justify-between gap-2 pt-4 border-t border-black/[0.03]">
                             <span className="text-[10px] font-bold text-zen-brown/40 uppercase tracking-wider">{item.vendor || 'Inventory'}</span>
                             <div className="flex items-center gap-2">
-                               <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(item)} />
+                               <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(item)} />
                                <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setItemToDelete(item._id); setIsConfirmOpen(true); }} />
                             </div>
                          </div>
@@ -548,7 +548,7 @@ const Inventory = () => {
                                  </td>
                                  <td className="px-4 lg:px-6 py-4 lg:py-6">
                                     <div className="flex items-center justify-center gap-2">
-                                       <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(item)} size="md" />
+                                       <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(item)} size="md" />
                                        <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setItemToDelete(item._id); setIsConfirmOpen(true); }} size="md" />
                                     </div>
                                  </td>

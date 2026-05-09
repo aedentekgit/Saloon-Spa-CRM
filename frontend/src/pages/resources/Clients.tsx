@@ -142,7 +142,8 @@ const Clients = () => {
       _id: usage._id,
       date: usage.usedAt,
       branchName: usage.branch?.name || 'Main branch',
-      serviceName: usage.service?.name || 'Service',
+      serviceName: (usage.service?.name || 'Service').replace(/service\s*:\s*/i, ''),
+      invoiceNumber: usage.invoiceId?.invoiceNumber || usage.invoiceNumber || '-',
       time: dayjs(usage.usedAt).format('hh:mm A'),
       status: 'Completed'
     }));
@@ -761,51 +762,39 @@ const Clients = () => {
                            </p>
                         </div>
                     </div>
-
-                   <div className="flex flex-col sm:flex-row gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all lg:translate-x-4 lg:group-hover:translate-x-0 duration-500">
-                      <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(client)} size="sm" />
-                      <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(client._id)} size="sm" />
-                   </div>
                 </div>
 
                 <div className="flex flex-col gap-2 mb-4">
                     <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
-                       <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Phone size={14} /></div>
+                       <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 group-hover/contact:bg-emerald-500 group-hover/contact:text-white transition-all"><Phone size={14} /></div>
                        <span className="text-xs text-zen-brown/70 italic font-medium">{client.phone}</span>
                     </div>
                     {client.email && (
                       <div className="flex items-center gap-3 p-3 bg-zen-cream/10 rounded-[1.2rem] border border-zen-brown/15 group/contact hover:bg-white hover:shadow-lg transition-all">
-                        <div className="w-8 h-8 rounded-xl bg-white border border-zen-brown/15 flex items-center justify-center text-zen-brown/30 group-hover/contact:text-zen-brown transition-colors"><Mail size={14} /></div>
+                        <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-500 group-hover/contact:bg-sky-500 group-hover/contact:text-white transition-all"><Mail size={14} /></div>
                         <span className="text-xs text-zen-brown/70 italic font-medium truncate">{client.email}</span>
                       </div>
                     )}
                 </div>
               </div>
 
-              <div className="relative z-10 pt-4 border-t border-zen-brown/15">
-                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => toggleClientStatus(client)}
-                              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 ${client.status === 'Active' ? 'bg-zen-leaf/10 text-zen-leaf border-zen-leaf/20 shadow-sm' : 'bg-red-50 text-red-400 border-red-100'}`}
-                            >
-                               <span className="text-[9px] font-bold uppercase tracking-widest">{client.status}</span>
-                            </button>
-                            {client.membership ? (
-                              <ZenBadge variant="sand" className="text-[9px] sm:text-[10px]">
-                                {client.membership.remainingSessions}/{client.membership.totalSessions} Sessions
-                              </ZenBadge>
-                            ) : (
-                              <ZenBadge variant="leaf" className="text-[9px] sm:text-[10px]">{client.visits} Visits</ZenBadge>
-                            )}
-                        </div>
-                        {client.role && (
-                           <span className="text-[8px] sm:text-[9px] font-bold text-zen-sand/70 uppercase tracking-widest px-2 py-0.5 bg-zen-sand/10 rounded-md">
-                              {client.role}
-                           </span>
-                        )}
-                     </div>
-              </div>
+               <div className="relative z-10 pt-6 border-t border-zen-brown/15 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                     <ZenBadge variant={client.status === 'Active' ? 'leaf' : 'sand'}>
+                        {client.status === 'Inactive' ? 'Suspended' : 'Operational'}
+                     </ZenBadge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <ZenIconButton
+                        icon={Zap}
+                        variant={client.status === 'Active' ? 'leaf' : 'sand'}
+                        onClick={() => toggleClientStatus(client)}
+                        size="md"
+                     />
+                     <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(client)} size="md" />
+                     <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(client._id)} size="md" />
+                  </div>
+               </div>
             </div>
           ))}
         </div>
@@ -873,7 +862,7 @@ const Clients = () => {
                           </span>
                         </div>
                       ) : (
-                        <ZenBadge variant="inactive" className="scale-90">None</ZenBadge>
+                        <ZenBadge variant="sand" className="scale-90">None</ZenBadge>
                       )}
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
@@ -884,17 +873,13 @@ const Clients = () => {
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
                       <div className="flex justify-center">
-                        <button
-                          onClick={() => toggleClientStatus(client)}
-                          className="transition-transform active:scale-95"
-                        >
                           <ZenBadge variant={client.status === 'Active' ? 'leaf' : 'danger'}>{client.status}</ZenBadge>
-                        </button>
                       </div>
                     </td>
                     <td className="px-4 lg:px-6 py-4 lg:py-6">
-                      <div className="flex items-center justify-center gap-2 lg:gap-3">
-                        <ZenIconButton icon={Edit2} onClick={() => handleOpenModal(client)} size="md" />
+                      <div className="flex items-center justify-center gap-2">
+                        <ZenIconButton icon={Zap} variant={client.status === 'Active' ? 'leaf' : 'sand'} onClick={() => toggleClientStatus(client)} size="md" />
+                        <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(client)} size="md" />
                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(client._id)} size="md" />
                       </div>
                     </td>
@@ -1039,7 +1024,7 @@ const Clients = () => {
                           <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Client details</p>
                           <h4 className="mt-1 text-xl font-semibold text-zen-brown">Identity and contact information</h4>
                         </div>
-                        <ZenBadge variant={formData.status === 'Active' ? 'leaf' : 'inactive'}>
+                        <ZenBadge variant={formData.status === 'Active' ? 'leaf' : 'sand'}>
                           {formData.status}
                         </ZenBadge>
                       </div>
@@ -1186,6 +1171,7 @@ const Clients = () => {
                           <thead>
                             <tr className="bg-zen-cream/30">
                               <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">S No</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Invoice</th>
                               <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Date</th>
                               <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Branch</th>
                               <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Service</th>
@@ -1196,6 +1182,9 @@ const Clients = () => {
                             {membershipCombinedHistory.length > 0 ? membershipCombinedHistory.map((usage: any, idx: number) => (
                               <tr key={idx} className="group hover:bg-zen-cream/20 transition-colors duration-300">
                                 <td className="px-8 py-6 text-sm font-semibold text-zen-brown/30">{(idx + 1).toString().padStart(2, '0')}</td>
+                                <td className="px-8 py-6 text-xs font-black text-zen-sand tracking-widest uppercase">
+                                  {usage.invoiceNumber}
+                                </td>
                                 <td className="px-8 py-6">
                                   <div className="flex flex-col">
                                     <span className="text-sm font-semibold text-zen-brown">{dayjs(usage.date).format('MMM DD, YYYY')}</span>
@@ -1278,7 +1267,7 @@ const Clients = () => {
                                   {m.plan?.name || 'Membership plan'}
                                 </h4>
                                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                                  <ZenBadge variant={m.status === 'Active' ? 'leaf' : 'inactive'}>
+                                  <ZenBadge variant={m.status === 'Active' ? 'leaf' : 'sand'}>
                                     {m.status || 'Inactive'}
                                   </ZenBadge>
                                   <span className="text-[11px] font-bold text-zen-brown/40 uppercase tracking-[0.2em]">

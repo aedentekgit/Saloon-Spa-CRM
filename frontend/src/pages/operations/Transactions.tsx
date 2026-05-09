@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import {
@@ -14,14 +15,14 @@ import {
   Smartphone,
   CheckCircle2,
   Clock,
-  ExternalLink,
   ChevronRight,
   FilterX,
   Edit2,
   Trash2,
   X,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Printer
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
@@ -34,6 +35,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { notify } from '../../components/shared/ZenNotification';
 import { Modal } from '../../components/shared/Modal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { printInvoice } from '../../utils/printInvoice';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import { useData } from '../../context/DataContext';
@@ -89,6 +91,7 @@ interface Transaction {
   expenseUserId?: string;
   createdAt?: string;
   updatedAt?: string;
+  items?: any[];
 }
 
 
@@ -110,7 +113,8 @@ const summarizeInvoiceItems = (items?: InvoiceItem[]) => {
   if (!items || items.length === 0) return '-';
   return items
     .map((item) => {
-      const bits = [item.name || 'Item'];
+      const name = (item.name || 'Item').replace(/service\s*:\s*/i, '');
+      const bits = [name];
       if (typeof item.price === 'number') bits.push(`${item.price}`);
       if (typeof item.duration === 'number') bits.push(`${item.duration}m`);
       return bits.join(' / ');
@@ -182,7 +186,7 @@ const buildTransactionRows = (
           sourceModel: 'Invoice',
           sourceId,
           type: 'Inflow',
-          title: `Service: ${inv.clientName || '-'}`,
+          title: inv.clientName || '-',
           category: 'Service Revenue',
           amount: inv.total || 0,
           signedAmount: inv.total || 0,
@@ -207,7 +211,8 @@ const buildTransactionRows = (
           sectorCategory: '-',
           expenseUserId: '-',
           createdAt: inv.createdAt,
-          updatedAt: inv.updatedAt
+          updatedAt: inv.updatedAt,
+          items: inv.items
         };
       })
     : [];
@@ -324,6 +329,7 @@ const filterTransactions = (
 
 const Transactions = () => {
   const { user, hasPermission } = useAuth();
+  const navigate = useNavigate();
   const { settings } = useSettings();
   const { branches, selectedBranch: globalBranchId } = useBranches();
   const { getSectorCategories } = useCategories();
@@ -336,13 +342,11 @@ const Transactions = () => {
     const b = branches.find(br => br._id === globalBranchId);
     return b?.name || 'All';
   });
-  const [statusFilter, setStatusFilter] = useState<'All' | Transaction['status']>('All');
   const [dateRange, setDateRange] = useState<any>('All');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
@@ -389,33 +393,26 @@ const Transactions = () => {
     try {
       if (transactions.length === 0) setLoading(true);
       const canViewExpenses = user?.role !== 'Client' && hasPermission('finance');
-      const [invRes, expRes] = await Promise.all([
-        fetch(`${API_URL}/invoices`, { headers: { 'Authorization': `Bearer ${user?.token}` } }),
-        canViewExpenses
-          ? fetch(`${API_URL}/expenses`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
-          : Promise.resolve(null)
+      const [invRes] = await Promise.all([
+        fetch(`${API_URL}/invoices`, { headers: { 'Authorization': `Bearer ${user?.token}` } })
       ]);
 
       const invData = await invRes.json();
-      const expData = expRes ? await expRes.json() : [];
       const invoicesList = Array.isArray(invData) ? invData : (invData?.data || []);
-      const expensesList = Array.isArray(expData) ? expData : (expData?.data || []);
 
       const combined = buildTransactionRows(
         invoicesList,
-        user?.role !== 'Client' ? expensesList : [],
+        [],
         branchNameById
       );
 
       // Fallback to high-quality mock data if backend returns empty
       if (combined.length === 0 && user?.role !== 'Client') {
         const mockTransactions: Transaction[] = [
-          { id: 'TX-8821', sourceModel: 'Invoice', sourceId: 'TX-8821', type: 'Inflow', title: 'Service: Fatima Al-Sayed', category: 'Service Revenue', amount: 450, signedAmount: 450, date: dayjs().subtract(0, 'day').format(), method: 'Cash', status: 'Completed', reference: 'INV-101', invoiceNumber: 'INV-101', clientName: 'Fatima Al-Sayed', paymentMode: 'Cash' },
-          { id: 'TX-8822', sourceModel: 'Invoice', sourceId: 'TX-8822', type: 'Inflow', title: 'Service: Mohammed Rashid', category: 'Service Revenue', amount: 1200, signedAmount: 1200, date: dayjs().subtract(1, 'day').format(), method: 'Card', status: 'Completed', reference: 'INV-102', invoiceNumber: 'INV-102', clientName: 'Mohammed Rashid', paymentMode: 'Card' },
-          { id: 'TX-8823', sourceModel: 'Expense', sourceId: 'TX-8823', type: 'Outflow', title: 'Office Rent', category: 'Fixed Expense', amount: 5000, signedAmount: -5000, date: dayjs().subtract(2, 'day').format(), method: 'Bank', status: 'Completed', expenseTitle: 'Office Rent', sectorCategory: 'Fixed Expense' },
-          { id: 'TX-8824', sourceModel: 'Invoice', sourceId: 'TX-8824', type: 'Inflow', title: 'Service: Sara Hamad', category: 'Service Revenue', amount: 850, signedAmount: 850, date: dayjs().subtract(3, 'day').format(), method: 'Transfer', status: 'Completed', reference: 'INV-103', invoiceNumber: 'INV-103', clientName: 'Sara Hamad', paymentMode: 'Transfer' },
-          { id: 'TX-8825', sourceModel: 'Expense', sourceId: 'TX-8825', type: 'Outflow', title: 'Botanical Supplies', category: 'Variable Expense', amount: 450, signedAmount: -450, date: dayjs().subtract(4, 'day').format(), method: 'Cash', status: 'Completed', expenseTitle: 'Botanical Supplies', sectorCategory: 'Variable Expense' },
-          { id: 'TX-8826', sourceModel: 'Invoice', sourceId: 'TX-8826', type: 'Inflow', title: 'Service: Khalid Abdullah', category: 'Service Revenue', amount: 2100, signedAmount: 2100, date: dayjs().subtract(5, 'day').format(), method: 'Card', status: 'Completed', reference: 'INV-104', invoiceNumber: 'INV-104', clientName: 'Khalid Abdullah', paymentMode: 'Card' },
+          { id: 'TX-8821', sourceModel: 'Invoice', sourceId: 'TX-8821', type: 'Inflow', title: 'Fatima Al-Sayed', category: 'Service Revenue', amount: 450, signedAmount: 450, date: dayjs().subtract(0, 'day').format(), method: 'Cash', status: 'Completed', reference: 'INV-101', invoiceNumber: 'INV-101', clientName: 'Fatima Al-Sayed', paymentMode: 'Cash' },
+          { id: 'TX-8822', sourceModel: 'Invoice', sourceId: 'TX-8822', type: 'Inflow', title: 'Mohammed Rashid', category: 'Service Revenue', amount: 1200, signedAmount: 1200, date: dayjs().subtract(1, 'day').format(), method: 'Card', status: 'Completed', reference: 'INV-102', invoiceNumber: 'INV-102', clientName: 'Mohammed Rashid', paymentMode: 'Card' },
+          { id: 'TX-8824', sourceModel: 'Invoice', sourceId: 'TX-8824', type: 'Inflow', title: 'Sara Hamad', category: 'Service Revenue', amount: 850, signedAmount: 850, date: dayjs().subtract(3, 'day').format(), method: 'Transfer', status: 'Completed', reference: 'INV-103', invoiceNumber: 'INV-103', clientName: 'Sara Hamad', paymentMode: 'Transfer' },
+          { id: 'TX-8826', sourceModel: 'Invoice', sourceId: 'TX-8826', type: 'Inflow', title: 'Khalid Abdullah', category: 'Service Revenue', amount: 2100, signedAmount: 2100, date: dayjs().subtract(5, 'day').format(), method: 'Card', status: 'Completed', reference: 'INV-104', invoiceNumber: 'INV-104', clientName: 'Khalid Abdullah', paymentMode: 'Card' },
         ];
         setTransactions(mockTransactions);
       } else {
@@ -428,10 +425,9 @@ const Transactions = () => {
          return;
        }
        // Fallback logic also for fetch errors
-       const mockTransactions: Transaction[] = [
-          { id: 'TX-8821', sourceModel: 'Invoice', sourceId: 'TX-8821', type: 'Inflow', title: 'Service: Fatima Al-Sayed', category: 'Service Revenue', amount: 450, signedAmount: 450, date: dayjs().format(), method: 'Cash', status: 'Completed', reference: 'INV-101', invoiceNumber: 'INV-101', clientName: 'Fatima Al-Sayed', paymentMode: 'Cash' },
-          { id: 'TX-8823', sourceModel: 'Expense', sourceId: 'TX-8823', type: 'Outflow', title: 'Office Rent', category: 'Fixed Expense', amount: 5000, signedAmount: -5000, date: dayjs().subtract(2, 'day').format(), method: 'Bank', status: 'Completed', expenseTitle: 'Office Rent', sectorCategory: 'Fixed Expense' },
-       ];
+        const mockTransactions: Transaction[] = [
+          { id: 'TX-8821', sourceModel: 'Invoice', sourceId: 'TX-8821', type: 'Inflow', title: 'Fatima Al-Sayed', category: 'Service Revenue', amount: 450, signedAmount: 450, date: dayjs().format(), method: 'Cash', status: 'Completed', reference: 'INV-101', invoiceNumber: 'INV-101', clientName: 'Fatima Al-Sayed', paymentMode: 'Cash' },
+        ];
        setTransactions(mockTransactions);
        notify('warning', 'Offline Mode', 'Displaying local transaction cache.');
     } finally {
@@ -442,8 +438,8 @@ const Transactions = () => {
   useEffect(() => setCachedJson('zen_page_transactions_list', transactions), [transactions]);
 
   const filteredTransactions = useMemo(() => {
-    return filterTransactions(transactions, searchTerm, branchFilter, statusFilter, dateRange);
-  }, [transactions, searchTerm, branchFilter, statusFilter, dateRange]);
+    return filterTransactions(transactions, searchTerm, branchFilter, 'All', dateRange);
+  }, [transactions, searchTerm, branchFilter, dateRange]);
 
   const stats = useMemo(() => {
     const inflow = filteredTransactions.filter(t => t.type === 'Inflow').reduce((acc, t) => acc + t.amount, 0);
@@ -511,7 +507,7 @@ const Transactions = () => {
     ]);
 
     const rows = buildTransactionRows(invoicesList, expensesList, branchNameById);
-    return filterTransactions(rows, searchTerm, branchFilter, statusFilter, dateRange);
+    return filterTransactions(rows, searchTerm, branchFilter, 'All', dateRange);
   };
 
   const transactionExportColumns = useMemo<ExportColumn<Transaction>[]>(
@@ -557,11 +553,10 @@ const Transactions = () => {
   );
 
   const handleDelete = async () => {
-    if (!selectedTransaction) return;
+    if (!transactionToDelete) return;
     try {
       setIsSubmitting(true);
-      const endpoint = selectedTransaction.type === 'Inflow' ? 'invoices' : 'expenses';
-      const response = await fetch(`${API_URL}/${endpoint}/${selectedTransaction.id}`, {
+      const response = await fetch(`${API_URL}/transactions/${transactionToDelete}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
@@ -580,60 +575,18 @@ const Transactions = () => {
     }
   };
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTransaction) return;
-    try {
-      setIsSubmitting(true);
-      const endpoint = selectedTransaction.type === 'Inflow' ? 'invoices' : 'expenses';
-      const payload =
-        selectedTransaction.type === 'Inflow'
-          ? {
-              paymentMode: selectedTransaction.method,
-              date: dayjs(selectedTransaction.date).format('YYYY-MM-DD')
-            }
-          : {
-              title: selectedTransaction.title,
-              sectorCategory: selectedTransaction.category,
-              amount: selectedTransaction.amount,
-              date: dayjs(selectedTransaction.date).format('YYYY-MM-DD')
-            };
-      const response = await fetch(`${API_URL}/${endpoint}/${selectedTransaction.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${user?.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        notify('success', 'Registry Updated', 'Transaction details have been harmonized.');
-        fetchData();
-        setIsEditModalOpen(false);
-      } else {
-        throw new Error('Update failed');
-      }
-    } catch (error) {
-      notify('error', 'Sync Error', 'Failed to synchronize transaction updates.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const statusColors: any = {
     'Completed': 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
     'Pending': 'bg-amber-500/10 text-amber-600 border-amber-500/20',
     'Failed': 'bg-rose-500/10 text-rose-600 border-rose-500/20'
   };
 
-  const getMethodIcon = (method: string) => {
-    switch (method.toLowerCase()) {
-      case 'card': return CreditCard;
-      case 'cash': return Banknote;
-      case 'online': return Smartphone;
-      default: return Receipt;
-    }
+  const getMethodConfig = (method: string) => {
+    const m = method.toLowerCase();
+    if (m === 'card') return { icon: CreditCard, color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-100' };
+    if (m === 'cash') return { icon: Banknote, color: 'text-emerald-500', bg: 'bg-emerald-50', border: 'border-emerald-100' };
+    if (m === 'online' || m === 'upi' || m === 'gpay') return { icon: Smartphone, color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-100' };
+    return { icon: Receipt, color: 'text-zen-brown/30', bg: 'bg-zen-brown/[0.03]', border: 'border-zen-brown/5' };
   };
 
   return (
@@ -645,15 +598,8 @@ const Transactions = () => {
       hideAddButton
       hideViewToggle
       searchActions={
-        <div className="flex items-center gap-3 flex-wrap">
-          <ZenDropdown
-            label="Status"
-            value={statusFilter}
-            onChange={(value: any) => setStatusFilter(value)}
-            options={['All', 'Completed', 'Pending', 'Failed']}
-            className="w-[150px]"
-            hideLabel
-          />
+        <div className="flex items-center justify-end gap-3 flex-wrap">
+
           <ZenMasterCalendar
             label="Date Range"
             value={dateRange}
@@ -685,11 +631,9 @@ const Transactions = () => {
       }
       topContent={
         user?.role !== 'Client' ? (
-          <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
+          <div className="flex overflow-x-auto overflow-y-visible pt-2 pb-4 gap-6 lg:grid lg:grid-cols-2 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
             {[
               { label: 'Total Inflow', value: stats.inflow, icon: ArrowUpRight, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Revenue stream' },
-              { label: 'Total Outflow', value: stats.outflow, icon: ArrowDownRight, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Expenses' },
-              { label: 'Net Balance', value: stats.net, icon: Receipt, color: 'text-sky-500', bg: 'bg-sky-500/10', glow: 'bg-sky-500/20', trend: 'Balance' },
               { label: 'Avg. Transfer', value: stats.avg, icon: CheckCircle2, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Mean value' }
             ].map((stat, i) => (
               <ZenStatCard key={i} {...stat} value={`${settings?.general.currencySymbol || 'QR'} ${stat.value.toLocaleString()}`} delay={i * 0.2} />
@@ -707,10 +651,9 @@ const Transactions = () => {
           <table className="w-full text-center border-collapse min-w-[1000px]">
             <thead>
               <tr className="bg-zen-brown/[0.02]">
-                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[80px]">S No</th>
-                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[100px]">Visual</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[90px]">S No</th>
+                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[150px]">Invoice No</th>
                 <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-left border-b border-zen-brown/5">Transaction Identity</th>
-                <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5">Sector</th>
                 <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5">Amount</th>
                 <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[120px]">Method</th>
                 <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[150px]">Status</th>
@@ -721,7 +664,7 @@ const Transactions = () => {
                   <AnimatePresence mode="popLayout">
                     {filteredTransactions.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-6 py-32 text-center text-[10px] uppercase font-black tracking-[0.4em] text-zen-brown/30 bg-gray-50/30">
+                        <td colSpan={7} className="px-6 py-32 text-center text-[10px] uppercase font-black tracking-[0.4em] text-zen-brown/30 bg-gray-50/30">
                           No transactions found for the current filters.
                         </td>
                       </tr>
@@ -734,35 +677,23 @@ const Transactions = () => {
                           exit={{ opacity: 0 }}
                           className="transition-all group border-b border-black/[0.02]"
                         >
-                          <td className="text-center italic opacity-40 text-[11px]">
+                          <td className="px-6 py-4 text-center italic opacity-40 text-[11px] font-black">
                             {((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}
                           </td>
-                          <td>
-                            <div className="flex justify-center">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform duration-500 shrink-0 ${
-                                t.type === 'Inflow' ? 'bg-emerald-50 text-emerald-500 border-emerald-100' : 'bg-rose-50 text-rose-500 border-rose-100'
-                              }`}>
-                                {t.type === 'Inflow' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
-                              </div>
-                            </div>
+                          <td className="px-6 py-4">
+                             <div className="flex justify-center text-[11px] font-black text-zen-sand tracking-widest uppercase bg-zen-sand/5 py-1.5 px-3 rounded-lg border border-zen-sand/10">
+                                {t.invoiceNumber !== '-' ? t.invoiceNumber : (t.reference !== '-' ? t.reference : '-')}
+                             </div>
                           </td>
                           <td>
                             <div className="flex flex-col items-center justify-center gap-1 px-6">
                               <span className="zen-table-primary leading-none">{t.title}</span>
                               <div className="flex items-center gap-2">
-                                 <span className="zen-table-meta">{t.id}</span>
-                                 <span className="w-1 h-1 rounded-full bg-zen-brown/10" />
                                  <span className="zen-table-meta">{dayjs(t.date).format('MMM DD, YYYY')}</span>
                               </div>
                             </div>
                           </td>
-                          <td>
-                            <div className="flex justify-center">
-                               <ZenBadge variant={t.type === 'Inflow' ? 'leaf' : 'sand'} className="text-[9px] font-black uppercase tracking-widest scale-90">
-                                {t.sectorCategory || t.category}
-                               </ZenBadge>
-                            </div>
-                          </td>
+
                           <td>
                             <p className={`text-base font-serif font-black ${t.type === 'Inflow' ? 'text-emerald-500' : 'text-rose-500'}`}>
                               {t.type === 'Inflow' ? '+' : '-'}{settings?.general.currencySymbol || 'QR'} {t.amount.toLocaleString()}
@@ -770,9 +701,14 @@ const Transactions = () => {
                           </td>
                           <td>
                              <div className="flex justify-center">
-                                <div className="w-9 h-9 rounded-xl bg-zen-brown/[0.03] border border-zen-brown/5 flex items-center justify-center text-zen-brown/30 group-hover:bg-white group-hover:scale-110 transition-all duration-500">
-                                  {React.createElement(getMethodIcon(t.method), { size: 14 })}
-                                </div>
+                                {(() => {
+                                  const config = getMethodConfig(t.method);
+                                  return (
+                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center border group-hover:scale-110 transition-all duration-500 ${config.bg} ${config.border} ${config.color}`}>
+                                      {React.createElement(config.icon, { size: 14 })}
+                                    </div>
+                                  );
+                                })()}
                              </div>
                           </td>
                           <td>
@@ -787,15 +723,33 @@ const Transactions = () => {
                              </div>
                           </td>
                           <td>
-                             <div className="flex justify-center items-center gap-2">
-                                <ZenIconButton icon={ExternalLink} onClick={() => notify('info', 'Protocol Report', `Preparing comprehensive report for ${t.id}`)} />
-                                {user?.role !== 'Client' && (
-                                  <>
-                                    <ZenIconButton icon={Edit2} onClick={() => { setSelectedTransaction(t); setIsEditModalOpen(true); }} />
-                                    <ZenIconButton icon={Trash2} variant="danger" onClick={() => { setSelectedTransaction(t); setIsConfirmOpen(true); }} />
-                                  </>
-                                )}
-                             </div>
+                            <div className="flex items-center justify-center gap-3">
+                              <ZenIconButton
+                                icon={Edit2}
+                                variant="sky"
+                                onClick={() => {
+                                  navigate('/billing', {
+                                    state: {
+                                      clientId: t.clientId,
+                                      invoiceId: t.sourceId
+                                    }
+                                  });
+                                }}
+                              />
+                              <ZenIconButton
+                                icon={Printer}
+                                variant="violet"
+                                onClick={() => printInvoice(t, settings)}
+                              />
+                              <ZenIconButton
+                                icon={Trash2}
+                                variant="danger"
+                                onClick={() => {
+                                  setTransactionToDelete(t.sourceId);
+                                  setIsConfirmOpen(true);
+                                }}
+                              />
+                            </div>
                           </td>
                         </motion.tr>
                       ))
@@ -812,100 +766,16 @@ const Transactions = () => {
           onPageChange={setPage}
         />
 
-        {/* Update Protocol Modal */}
-        <Modal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          title="Harmonize Protocol"
-          subtitle={`Adjusting Registry ${selectedTransaction?.id}`}
-          headerIcon={Receipt}
-          footer={
-            <div className="flex gap-6">
-              <ZenButton
-                variant="secondary"
-                className="flex-1 text-[10px] tracking-[0.2em] font-black"
-                onClick={() => setIsEditModalOpen(false)}
-                type="button"
-              >
-                CANCEL
-              </ZenButton>
-              <ZenButton
-                variant="primary"
-                className="flex-[2] bg-zen-sand hover:bg-zen-sand/90 shadow-lg shadow-zen-sand/20 flex items-center justify-center gap-3 text-[10px] tracking-[0.2em] font-black"
-                type="submit"
-                form="update-transaction-form"
-                disabled={isSubmitting}
-              >
-                <span>{isSubmitting ? 'SYNCHRONIZING...' : 'UPDATE REGISTRY'}</span>
-                <Sparkles size={16} className="opacity-80" />
-              </ZenButton>
-            </div>
-          }
-        >
-          {selectedTransaction && (
-            <form id="update-transaction-form" onSubmit={handleUpdate} className="space-y-8">
-              {selectedTransaction.type === 'Inflow' ? (
-                <>
-                  <ZenInput label="Invoice" value={selectedTransaction.reference || selectedTransaction.id} disabled />
-                  <ZenInput label="Client" value={selectedTransaction.title.replace(/^Service:\s*/i, '')} disabled />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                    <ZenDropdown
-                      label="Payment Mode"
-                      value={selectedTransaction.method}
-                      onChange={(val: any) => setSelectedTransaction({ ...selectedTransaction, method: val })}
-                      options={[...PAYMENT_MODES]}
-                    />
-                    <ZenDatePicker
-                      label="Invoice Date"
-                      value={dayjs(selectedTransaction.date).format('YYYY-MM-DD')}
-                      onChange={(val: string) => setSelectedTransaction({ ...selectedTransaction, date: val })}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <ZenInput
-                    label="Expense Title"
-                    value={selectedTransaction.title}
-                    onChange={(e) => setSelectedTransaction({...selectedTransaction, title: e.target.value})}
-                    placeholder="e.g., Inventory Purchase"
-                  />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                    <ZenDropdown
-                      label="Sector"
-                      value={selectedTransaction.category}
-                      onChange={(val: any) => setSelectedTransaction({ ...selectedTransaction, category: val })}
-                      options={activeSectorCategories.length > 0 ? activeSectorCategories : ['Inventory', 'Rent', 'Salary', 'Utilities', 'Marketing', 'Maintenance', 'Other']}
-                    />
-                    <ZenDatePicker
-                      label="Expense Date"
-                      value={dayjs(selectedTransaction.date).format('YYYY-MM-DD')}
-                      onChange={(val: string) => setSelectedTransaction({ ...selectedTransaction, date: val })}
-                    />
-                  </div>
-                  <ZenInput
-                    label="Amount"
-                    type="number"
-                    value={selectedTransaction.amount}
-                    onChange={(e) => setSelectedTransaction({...selectedTransaction, amount: parseFloat(e.target.value) || 0})}
-                  />
-                </>
-              )}
-            </form>
-          )}
-        </Modal>
-
         {/* Confirmation Purge Modal */}
         <ConfirmDialog
           isOpen={isConfirmOpen}
           onClose={() => setIsConfirmOpen(false)}
           onConfirm={handleDelete}
-          title="Purge Transaction?"
-          message={`This action will permanently remove ${selectedTransaction?.id} from the sanctuary ledger. This cannot be undone.`}
+          title="Remove Transaction?"
+          message="This will permanently delete this revenue record from the registry."
           confirmText="CONFIRM PURGE"
           cancelText="CANCEL"
-          variant="danger"
-          isLoading={isSubmitting}
+          type="danger"
         />
       </div>
     </ZenPageLayout>
