@@ -1,5 +1,45 @@
 const mongoose = require('mongoose');
 
+const inventoryUsageSchema = new mongoose.Schema({
+  inventoryItem: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Inventory',
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+  unit: {
+    type: String,
+    required: true
+  }
+}, { _id: false });
+
+const serviceBranchSchema = new mongoose.Schema({
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Branch',
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['Active', 'Inactive']
+  },
+  commissionType: {
+    type: String,
+    enum: ['Percentage', 'Fixed']
+  },
+  commissionValue: {
+    type: Number
+  },
+  inventoryUsage: {
+    type: [inventoryUsageSchema],
+    default: undefined
+  }
+}, { _id: true });
+
 const serviceSchema = mongoose.Schema({
   name: {
     type: String,
@@ -22,6 +62,7 @@ const serviceSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Branch'
   },
+  branches: [serviceBranchSchema],
   image: {
     type: String
   },
@@ -42,27 +83,12 @@ const serviceSchema = mongoose.Schema({
   description: {
     type: String
   },
-  inventoryUsage: [{
-    inventoryItem: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Inventory',
-      required: true
-    },
-    quantity: {
-      type: Number,
-      required: true,
-      default: 0
-    },
-    unit: {
-      type: String,
-      required: true
-    }
-  }]
+  inventoryUsage: [inventoryUsageSchema]
 }, {
   timestamps: true
 });
 
-// Compound index to ensure service name is unique per branch
-serviceSchema.index({ name: 1, branch: 1 }, { unique: true });
+serviceSchema.index({ name: 1 });
+serviceSchema.index({ 'branches.branch': 1 });
 
 module.exports = mongoose.model('Service', serviceSchema);

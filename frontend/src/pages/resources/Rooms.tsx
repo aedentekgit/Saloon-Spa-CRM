@@ -13,9 +13,15 @@ dayjs.extend(customParseFormat);
 
 const parseTime = (t: string, d: string) => {
   if (!t) return null;
-  const formats = ['HH:mm', 'h:mm A', 'hh:mm A', 'H:mm'];
+  // Support more flexible formats including no-space AM/PM and single-digit hours
+  const formats = [
+    'HH:mm', 'h:mm A', 'hh:mm A', 'H:mm',
+    'h:mm a', 'h:mma', 'h:mmA',
+    'ha', 'hA', 'h a', 'h A',
+    'h.mm A', 'h.mm a'
+  ];
   for (const f of formats) {
-    const p = dayjs(`${d} ${t}`, `YYYY-MM-DD ${f}`, true);
+    const p = dayjs(`${d} ${t.trim()}`, `YYYY-MM-DD ${f}`, true);
     if (p.isValid()) return p;
   }
   return null;
@@ -672,7 +678,7 @@ const Rooms = () => {
                     </div>
                   ) : (
                     <div className="grid gap-3">
-                      {Array.from({ length: 24 }).map((_, i) => {
+                      {Array.from({ length: 30 }).map((_, i) => {
                         const hour = Math.floor(i / 2) + 9;
                         const min = (i % 2) * 30;
                         const slotTime = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;

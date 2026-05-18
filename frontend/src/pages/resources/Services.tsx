@@ -35,6 +35,23 @@ interface Service {
   duration: number;
   price: number;
   branch?: Branch;
+  branches?: (Branch | {
+    branch?: Branch;
+    status?: 'Active' | 'Inactive';
+    commissionType?: 'Percentage' | 'Fixed';
+    commissionValue?: number;
+    inventoryUsage?: {
+      inventoryItem: any;
+      quantity: number;
+      unit: string;
+    }[];
+  })[];
+  branchStatuses?: {
+    branch?: Branch;
+    status: 'Active' | 'Inactive';
+    serviceId: string;
+  }[];
+  serviceIds?: string[];
   image?: string;
   category?: string;
   description?: string;
@@ -176,15 +193,146 @@ const Services = () => {
   useEffect(() => setCachedJson('zen_page_services_list', services), [services]);
   useEffect(() => setCachedJson('zen_page_services_inventory', inventoryList), [inventoryList]);
 
+  const displayServices = useMemo(() => (
+    selectedBranch === 'all' ? groupServicesByBranch(services) : services
+  ), [services, selectedBranch, branches]);
+
   const filteredServices = useMemo(() => {
-    if (!searchTerm.trim()) return services;
+    if (!searchTerm.trim()) return displayServices;
     const lowerSearch = searchTerm.toLowerCase().trim();
-    return services.filter(s => 
+    return displayServices.filter(s => 
       s.name.toLowerCase().includes(lowerSearch) ||
       (s.category && s.category.toLowerCase().includes(lowerSearch)) ||
       (s.description && s.description.toLowerCase().includes(lowerSearch))
     );
-  }, [services, searchTerm]);
+  }, [displayServices, searchTerm]);
+
+  function getBranchId(branch?: Branch | string | null) {
+    if (!branch) return '';
+    return typeof branch === 'string' ? branch : branch._id || '';
+  }
+
+  function getBranchName(branch?: Branch | string | null) {
+    if (!branch) return '';
+    if (typeof branch === 'string') {
+      return branches.find(item => item._id === branch)?.name || branch;
+    }
+    return branch.name || branch._id || '';
+  }
+
+  function groupServicesByBranch(rows: Service[]) {
+    const grouped = new Map<string, Service>();
+
+    rows.forEach((service) => {
+      if (service.branches?.some((entry: any) => entry?.branch)) {
+        grouped.set(service._id, service);
+        return;
+      }
+
+      const key = [
+        service.name.trim().toLowerCase(),
+        service.category || '',
+        service.duration,
+        service.price
+      ].join('|');
+
+      const branchId = getBranchId(service.branch);
+      const branchName = getBranchName(service.branch);
+      const branch = branchId || branchName
+        ? { _id: branchId || branchName, name: branchName || 'Main Registry' }
+        : undefined;
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          ...service,
+          branches: branch ? [branch] : [],
+          branchStatuses: [{
+            branch,
+            status: service.status,
+            serviceId: service._id
+          }],
+          serviceIds: [service._id]
+        });
+        return;
+      }
+
+      const current = grouped.get(key)!;
+      const nextBranches = [...(current.branches || [])];
+      if (branch && !nextBranches.some(item => item._id === branch._id)) {
+        nextBranches.push(branch);
+      }
+
+      const nextStatuses = [
+        ...(current.branchStatuses || []),
+        { branch, status: service.status, serviceId: service._id }
+      ];
+
+      grouped.set(key, {
+        ...current,
+        branches: nextBranches,
+        branchStatuses: nextStatuses,
+        serviceIds: Array.from(new Set([...(current.serviceIds || []), service._id])),
+        status: nextStatuses.every(item => item.status === 'Active') ? 'Active' : 'Inactive'
+      });
+    });
+
+    return Array.from(grouped.values());
+  }
+
+  const getServiceBranches = (service: Service) => {
+    if (service.branches?.length) {
+      return service.branches
+        .map((entry: any) => entry?.branch || entry)
+        .filter(Boolean);
+    }
+    const name = getBranchName(service.branch);
+    const id = getBranchId(service.branch) || name;
+    return id || name ? [{ _id: id, name: name || 'Main Registry' }] : [];
+  };
+
+  const getServiceBranchIds = (service: Service) => (
+    getServiceBranches(service).map(branch => getBranchId(branch)).filter(Boolean)
+  );
+
+  const getPrimaryBranchId = (service: Service) => (
+    getBranchId(service.branch) || getServiceBranchIds(service)[0] || ''
+  );
+
+  const getPrimaryBranchEntry = (service: Service) => (
+    (service.branches || []).find((entry: any) => getBranchId(entry?.branch || entry) === getPrimaryBranchId(service)) as any
+  );
+
+  const getEditableInventoryUsage = (service: Service) => (
+    service.inventoryUsage?.length
+      ? service.inventoryUsage
+      : ((service.branches || []).find((entry: any) => entry?.inventoryUsage?.length) as any)?.inventoryUsage || []
+  );
+
+  const getBranchInitialsLabel = (service: Service) => {
+    const branchList = getServiceBranches(service);
+    if (selectedBranch !== 'all') return branchList[0]?.name || 'Main Registry';
+    if (branchList.length === 0) return 'MAIN';
+    return branchList
+      .map(branch => branch.name?.trim()?.charAt(0)?.toUpperCase())
+      .filter(Boolean)
+      .join('  ');
+  };
+
+  const getBranchInitials = (service: Service) => (
+    getServiceBranches(service)
+      .map(branch => branch.name?.trim()?.charAt(0)?.toUpperCase())
+      .filter(Boolean)
+  );
+
+  const getBranchTitle = (service: Service) => {
+    if (selectedBranch === 'all' && service.branchStatuses?.length) {
+      return service.branchStatuses
+        .map(item => `${item.branch?.name || 'Main Registry'}: ${item.status}`)
+        .join(', ');
+    }
+    const names = getServiceBranches(service).map(branch => branch.name).filter(Boolean);
+    return names.length ? names.join(', ') : 'Main Registry';
+  };
   const inventoryNameById = useMemo(() => {
     const map = new Map<string, string>();
     inventoryList.forEach((item: any) => {
@@ -282,7 +430,7 @@ const Services = () => {
     () => [
       { header: 'Service Name', accessor: (service) => service.name },
       { header: 'Category', accessor: (service) => service.category || 'General Service' },
-      { header: 'Branch', accessor: (service) => service.branch?.name || 'Main Registry' },
+      { header: 'Branch', accessor: (service) => getBranchTitle(service) },
       { header: 'Duration (Min)', accessor: (service) => service.duration },
       {
         header: `Price (${settings?.general?.currencySymbol || 'QR'})`,
@@ -301,7 +449,7 @@ const Services = () => {
         accessor: (service) => getInventoryUsageDetails(service).details
       }
     ],
-    [settings?.general?.currencySymbol, inventoryNameById]
+    [settings?.general?.currencySymbol, inventoryNameById, branches, selectedBranch]
   );
 
   const [formData, setFormData] = useState({
@@ -327,7 +475,8 @@ const Services = () => {
     if (!formData.price || formData.price <= 0) errors.price = true;
     if (!formData.duration || formData.duration <= 0) errors.duration = true;
     if (!editingService && formData.branches.length === 0) errors.branches = true;
-    if (editingService && !formData.branch) errors.branch = true;
+    if (editingService && selectedBranch === 'all' && getServiceBranchIds(editingService).length > 1 && formData.branches.length === 0) errors.branches = true;
+    if (editingService && !formData.branch && formData.branches.length === 0) errors.branch = true;
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -342,24 +491,30 @@ const Services = () => {
     setImagePreview(null);
     setFormErrors({});
     if (service) {
+      const branchIds = getServiceBranchIds(service);
+      const primaryBranchId = getPrimaryBranchId(service);
+      const primaryBranchEntry = getPrimaryBranchEntry(service);
+      const editableInventoryUsage = getEditableInventoryUsage(service);
       setEditingService(service);
       setFormData({
         name: service.name,
         duration: service.duration,
         price: service.price,
-        branch: service.branch?._id || '',
+        branch: primaryBranchId,
         category: service.category || 'None',
         description: service.description || '',
         image: service.image || '',
-        status: service.status || 'Active',
-        commissionType: service.commissionType || 'Percentage',
-        commissionValue: service.commissionValue || 0,
-        inventoryUsage: service.inventoryUsage?.map(usage => ({
+        status: primaryBranchEntry?.status || service.status || 'Active',
+        commissionType: primaryBranchEntry?.commissionType || service.commissionType || 'Percentage',
+        commissionValue: primaryBranchEntry?.commissionValue ?? service.commissionValue ?? 0,
+        inventoryUsage: editableInventoryUsage.map(usage => ({
           inventoryItem: usage.inventoryItem?._id || usage.inventoryItem,
           quantity: usage.quantity,
           unit: usage.unit
         })) || [],
-        branches: service.branch?._id ? [service.branch._id] : []
+        branches: selectedBranch === 'all'
+          ? (branchIds.length ? branchIds : (primaryBranchId ? [primaryBranchId] : []))
+          : (primaryBranchId ? [primaryBranchId] : [])
       });
     } else {
       setEditingService(null);
@@ -398,8 +553,8 @@ const Services = () => {
         }
       });
 
-      // For single update or creation in specific branch
-      if (editingService || formData.branches.length === 1) {
+      // Branch omitted on multi-branch edit so the API updates every branch entry in the service document.
+      if ((!editingService && formData.branches.length === 1) || (editingService && formData.branches.length <= 1)) {
         data.append('branch', editingService ? formData.branch : formData.branches[0]);
       }
 
@@ -429,18 +584,29 @@ const Services = () => {
   };
 
   const handleDelete = async (id: string) => {
+    const service = filteredServices.find(item => item._id === id);
+    const idsToDelete = selectedBranch === 'all' && service?.serviceIds?.length ? service.serviceIds : [id];
+    const branchDeleteSuffix = selectedBranch !== 'all' ? `?branch=${encodeURIComponent(selectedBranch)}` : '';
     openConfirm(
       'Remove Service',
-      'Are you sure you want to remove this service? This will delete the service from the system.',
+      selectedBranch !== 'all'
+        ? 'Are you sure you want to remove this service from the selected branch only? Other branches will keep it.'
+        : idsToDelete.length > 1
+        ? `Are you sure you want to remove this service from ${idsToDelete.length} branches? This will delete each branch copy from the system.`
+        : 'Are you sure you want to remove this service? This will delete the service from the system.',
       async () => {
         try {
-          const response = await fetch(`${API_URL}/services/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${user?.token}` }
-          });
-          if (response.ok) {
+          const responses = await Promise.all(idsToDelete.map(serviceId =>
+            fetch(`${API_URL}/services/${serviceId}${branchDeleteSuffix}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${user?.token}` }
+            })
+          ));
+          if (responses.every(response => response.ok)) {
             notify('success', 'Removed', 'Service delisted');
             fetchServices();
+          } else {
+            notify('error', 'Error', 'Some branch copies could not be removed');
           }
         } catch (error) {
           notify('error', 'Error', 'Action failed');
@@ -451,17 +617,22 @@ const Services = () => {
   const toggleStatus = async (service: Service) => {
     try {
       const newStatus = service.status === 'Active' ? 'Inactive' : 'Active';
-      const response = await fetch(`${API_URL}/services/${service._id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${user?.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (response.ok) {
+      const idsToUpdate = service.serviceIds?.length ? service.serviceIds : [service._id];
+      const responses = await Promise.all(idsToUpdate.map(serviceId =>
+        fetch(`${API_URL}/services/${serviceId}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${user?.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status: newStatus })
+        })
+      ));
+      if (responses.every(response => response.ok)) {
         notify('success', 'Status Switched', `Service is now ${newStatus}`);
         fetchServices();
+      } else {
+        notify('error', 'Error', 'Some branch copies could not be updated');
       }
     } catch (error) {
       notify('error', 'Error', 'Failed to update status');
@@ -493,9 +664,9 @@ const Services = () => {
       topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2">
           {[
-            { label: 'Total Services', value: services.length, icon: Sparkles, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Catalog size' },
-            { label: 'Active Presence', value: services.filter(s => s.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live services' },
-            { label: 'System Inactive', value: services.filter(s => s.status !== 'Active').length, icon: X, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Offline services' },
+            { label: 'Total Services', value: displayServices.length, icon: Sparkles, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Catalog size' },
+            { label: 'Active Presence', value: displayServices.filter(s => s.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live services' },
+            { label: 'System Inactive', value: displayServices.filter(s => s.status !== 'Active').length, icon: X, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Offline services' },
             { label: 'Service Categories', value: serviceCategories.length, icon: Info, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Service groups' }
           ].map((stat, i) => (
             <ZenStatCard key={i} {...stat} delay={i * 0.05} />
@@ -513,7 +684,9 @@ const Services = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredServices.map((service, i) => {
               const imgUrl = getImageUrl(service.image);
-              const branchName = service.branch?.name || 'Main Registry';
+              const branchName = getBranchInitialsLabel(service);
+              const branchInitials = getBranchInitials(service);
+              const branchTitle = getBranchTitle(service);
 
               return (
                 <div
@@ -557,7 +730,26 @@ const Services = () => {
                              </span>
                              <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Rate</span>
                           </div>
-                          <ZenBadge variant={service.status === 'Active' ? 'leaf' : 'sand'} className="text-[8px] font-bold uppercase py-1">{branchName}</ZenBadge>
+                          {selectedBranch === 'all' ? (
+                            <div className="flex items-center justify-end gap-1.5" title={branchTitle}>
+                              {(branchInitials.length ? branchInitials : ['M']).map((initial, idx) => (
+                                <span
+                                  key={`${service._id}-${initial}-${idx}`}
+                                  className="w-7 h-7 rounded-full bg-zen-leaf/10 text-zen-leaf border border-zen-leaf/20 flex items-center justify-center text-[10px] font-black uppercase shadow-sm"
+                                >
+                                  {initial}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <ZenBadge
+                              variant={service.status === 'Active' ? 'leaf' : 'sand'}
+                              className="text-[8px] font-bold uppercase py-1"
+                              title={branchTitle}
+                            >
+                              {branchName}
+                            </ZenBadge>
+                          )}
                        </div>
 
                        <div className="flex items-center justify-between gap-2 pt-4 border-t border-black/[0.03]">
@@ -602,7 +794,7 @@ const Services = () => {
                   )}
 
                   {filteredServices.map((service, index) => {
-                    const branchName = service.branch?.name || 'Main Registry';
+                    const branchName = getBranchTitle(service);
                     return (
                       <tr key={service._id} className="transition-all group border-b border-black/[0.02]">
                         <td className="px-4 lg:px-6 py-4 lg:py-6">
@@ -775,13 +967,13 @@ const Services = () => {
                      error={formErrors.duration}
                    />
 
-                   {!editingService && user?.role === 'Admin' ? (
+                   {user?.role === 'Admin' && (!editingService || (selectedBranch === 'all' && getServiceBranchIds(editingService).length > 1)) ? (
                      <ZenMultiSelect
-                       label="Target Branches"
+                       label={editingService ? "Assigned Branches" : "Target Branches"}
                        icon={MapPin}
                        options={(branches || []).map(b => ({ label: b.name, value: b._id }))}
                        value={formData.branches}
-                       onChange={(vals) => setFormData({ ...formData, branches: vals })}
+                       onChange={(vals) => setFormData({ ...formData, branches: vals, branch: vals[0] || '' })}
                        error={!!formErrors.branches}
                        placeholder="Select branches..."
                      />

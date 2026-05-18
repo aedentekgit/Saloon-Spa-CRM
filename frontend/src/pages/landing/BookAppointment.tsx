@@ -47,9 +47,16 @@ const getEntityId = (value: any) => {
 
 const parseTime = (time: string, date: string) => {
   if (!time) return null;
+  // Support more flexible formats including no-space AM/PM and single-digit hours
+  const formats = [
+    'HH:mm', 'h:mm A', 'hh:mm A', 'H:mm',
+    'h:mm a', 'h:mma', 'h:mmA',
+    'ha', 'hA', 'h a', 'h A',
+    'h.mm A', 'h.mm a'
+  ];
 
-  for (const format of ['HH:mm', 'h:mm A', 'hh:mm A', 'H:mm']) {
-    const parsed = dayjs(`${date} ${time}`, `YYYY-MM-DD ${format}`, true);
+  for (const format of formats) {
+    const parsed = dayjs(`${date} ${time.trim()}`, `YYYY-MM-DD ${format}`, true);
     if (parsed.isValid()) return parsed;
   }
 
@@ -395,7 +402,7 @@ const BookAppointment = () => {
   const availableSlots = useMemo(() => {
     if (!formData.branch || !formData.date || !formData.service || !formData.employee) return [];
 
-    const serviceDuration = serviceTotals.duration || selectedService?.duration || 60;
+    const serviceDuration = serviceTotals.duration || selectedService?.duration || 30;
     const now = dayjs();
     const isToday = dayjs(formData.date).isSame(now, 'day');
     const dayName = dayjs(formData.date).format('dddd').toLowerCase() as keyof NonNullable<typeof settings.workingHours>;
@@ -414,27 +421,28 @@ const BookAppointment = () => {
       if (!shift?.startTime || !shift?.endTime) return [];
 
       let start = parseTime(shift.startTime, formData.date) || dayjs(`${formData.date} 09:00`, 'YYYY-MM-DD HH:mm');
-      let end = parseTime(shift.endTime, formData.date) || dayjs(`${formData.date} 21:00`, 'YYYY-MM-DD HH:mm');
+      let end = parseTime(shift.endTime, formData.date) || dayjs(`${formData.date} 23:00`, 'YYYY-MM-DD HH:mm');
       if (end.isBefore(start)) end = end.add(1, 'day');
 
       let shopStart = parseTime(shopOpenTimeStr, formData.date) || dayjs(`${formData.date} 09:00`, 'YYYY-MM-DD HH:mm');
       let shopEnd = parseTime(shopCloseTimeStr, formData.date) || dayjs(`${formData.date} 21:00`, 'YYYY-MM-DD HH:mm');
       if (shopEnd.isBefore(shopStart)) shopEnd = shopEnd.add(1, 'day');
 
-      if (start.isBefore(shopStart)) start = shopStart;
-      if (end.isAfter(shopEnd)) end = shopEnd;
+      // Shift is the primary authority; we don't cap it strictly by shop hours
+      // to allow for early starts (e.g. 8am) or late finishes assigned to staff.
       if (!end.isAfter(start)) return [];
 
       const slots: any[] = [];
       let current = start;
 
-      while (current.isBefore(end)) {
+      while (current.isBefore(end) || current.isSame(end)) {
         const selectedRoom = branchRooms.find(room => room.name === formData.room);
         const cleaningDuration = selectedRoom?.cleaningDuration || 20;
         const totalNewOccupancy = serviceDuration + cleaningDuration;
         const slotOccupancyEnd = current.add(totalNewOccupancy, 'minute');
 
-        if (slotOccupancyEnd.isAfter(end)) break;
+        // Allow slots to start exactly at the end time to permit overtime/extra work
+        if (current.isAfter(end)) break;
 
         const isPastTime = isToday && current.isBefore(now.add(30, 'minute'));
         const isEmployeeBooked = appointments.some(appointment => {

@@ -4,28 +4,36 @@ const Notification = require('../../models/core/Notification');
 const crypto = require('crypto');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
+const { findServiceForBranch, hasServiceBranch } = require('../../utils/serviceBranches');
 const mongoose = require('mongoose');
 
 const ANY_SPECIALIST = 'Any available specialist';
 
 // Helper: convert "YYYY-MM-DD" + "HH:mm" into minutes since midnight for overlap math
+// Helper: convert "YYYY-MM-DD" + "HH:mm" into minutes since midnight for overlap math
 const parseTime = (date, time) => {
-  const [h, m] = (time || '00:00').split(':').map(Number);
-  return h * 60 + (m || 0);
-};
+  if (!time) return 0;
+  
+  // Try 24h format HH:mm
+  const match24 = String(time).trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (match24) {
+    return parseInt(match24[1], 10) * 60 + parseInt(match24[2], 10);
+  }
 
-const parseTime12ToMinutes = (time = '') => {
-  const match = String(time).trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
-  if (!match) return null;
+  // Try 12h format (8am, 9 PM, 8:30 PM, etc)
+  const match12 = String(time).trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (match12) {
+    let hours = parseInt(match12[1], 10);
+    const minutes = parseInt(match12[2] || '0', 10);
+    const period = match12[3]?.toUpperCase();
 
-  let hours = Number.parseInt(match[1], 10);
-  const minutes = Number.parseInt(match[2], 10);
-  const period = match[3]?.toUpperCase();
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
 
-  if (period === 'PM' && hours !== 12) hours += 12;
-  if (period === 'AM' && hours === 12) hours = 0;
+    return (hours * 60) + minutes;
+  }
 
-  return (hours * 60) + minutes;
+  return 0;
 };
 
 const normalizeQuantity = (value) => {
@@ -40,17 +48,14 @@ const resolveServiceForAppointment = async (Service, branchId, serviceId, servic
   const id = rawId && /^[0-9a-fA-F]{24}$/.test(String(rawId)) ? rawId : null;
 
   if (id) {
-    const service = await Service.findById(id);
-    if (!service) return { error: 'Selected service was not found.' };
-    if (!sameBranch(service.branch, branch)) {
-      return { error: 'Access Denied: Selected service belongs to another branch.', status: 403 };
-    }
+    const service = await findServiceForBranch(Service, branch, id, null);
+    if (!service) return { error: 'Selected service was not found in the appointment branch.', status: 403 };
     return { service };
   }
 
   if (!serviceName) return { service: null };
 
-  const service = await Service.findOne({ name: serviceName, branch });
+  const service = await findServiceForBranch(Service, branch, null, serviceName);
   return { service };
 };
 
@@ -456,7 +461,7 @@ const validateConflictAtomically = async ({
   branchId,
   date,
   time,
-  employee,
+  employee: employeeName,
   room,
   serviceDuration,
   cleaningDuration
@@ -469,38 +474,74 @@ const validateConflictAtomically = async ({
     const newStart = parseTime(date, time);
     const newEnd = newStart + totalNewOccupancy;
 
-    // Use find with session for consistent read within transaction
+    // 1. Shift & Working Hours Validation (The "Is it open?" check)
+    const Employee = connection.model('Employee');
+    const Shift = connection.model('Shift');
+    const Settings = connection.model('Settings');
+    const Room = connection.model('Room');
+
+    const employeeObj = await Employee.findOne({ branch: branchId, name: employeeName }).session(session);
+    const settings = await Settings.findOne({}).session(session);
+    
+    // Day of week check
+    const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const workingHours = settings?.workingHours?.[dayName];
+
+    if (workingHours && !workingHours.isOpen) {
+      await session.abortTransaction();
+      return { conflict: true, message: `The branch is closed on ${dayName}.` };
+    }
+
+    // Shift check
+    if (employeeObj?.shift) {
+      const shift = await Shift.findOne({ name: employeeObj.shift }).session(session);
+      if (shift?.startTime && shift?.endTime) {
+        let shiftStart = parseTime(date, shift.startTime);
+        let shiftEnd = parseTime(date, shift.endTime);
+        if (shiftEnd < shiftStart) shiftEnd += 1440; // overnight
+
+        // Allow starting exactly at the end time for "extra work"
+        if (newStart < shiftStart || newStart > shiftEnd) {
+          await session.abortTransaction();
+          return { conflict: true, message: `${employeeName} is not on shift at this time (${shift.startTime}-${shift.endTime}).` };
+        }
+      }
+    }
+
+    // 2. Overlap Validation
     const existingApts = await Appointment.find({
       branch: branchId,
       date: date,
       status: { $in: ATOMIC_CONFLICT_STATES }
     }).session(session);
 
-    // Lock the documents by reading them within transaction
-    // Any concurrent transaction trying to modify these will be serialized
-
     let occupiedRoomCount = 0;
-    const branchRooms = await connection.db.collection('rooms')
-      .find({ branch: new mongoose.Types.ObjectId(branchId) })
-      .project({ _id: 1 })
-      .toArray();
+    const branchRooms = await Room.find({ branch: branchId }).session(session);
     const roomCapacity = branchRooms.length || 999;
 
     for (const apt of existingApts) {
       const existingDuration = apt.totalDuration || 60;
-      const aptRoom = apt.room;
-      const aptCleaning = 0; // Will fetch if needed
+      
+      // Fetch cleaning duration for the room used in the existing appointment
+      let existingCleaning = 0;
+      if (apt.roomId || apt.room) {
+        const aptRoom = branchRooms.find(r => 
+          (apt.roomId && String(r._id) === String(apt.roomId)) || 
+          (apt.room && r.name === apt.room)
+        );
+        existingCleaning = aptRoom?.cleaningDuration || 0;
+      }
 
       const existingStart = parseTime(apt.date, apt.time);
-      const existingEnd = existingStart + existingDuration;
+      const existingEnd = existingStart + existingDuration + existingCleaning;
 
       const overlaps = newStart < existingEnd && newEnd > existingStart;
 
       if (overlaps) {
         // Employee conflict check
-        if (apt.employee === employee) {
+        if (apt.employee === employeeName) {
           await session.abortTransaction();
-          return { conflict: true, message: `${employee} is already booked at this time (including cleaning buffer).` };
+          return { conflict: true, message: `${employeeName} is already booked at this time.` };
         }
 
         // Specific room conflict
@@ -522,14 +563,11 @@ const validateConflictAtomically = async ({
       return { conflict: true, message: `All rooms in this branch are occupied or cleaning during this period.` };
     }
 
-    // No conflicts - commit the read-only validation transaction
-    // We don't actually write anything, just validate
     await session.commitTransaction();
     return { conflict: false };
 
   } catch (error) {
     await session.abortTransaction();
-    // If transaction failed due to write conflict, treat as conflict
     if (error.code === 112 || error.code === 20) {
       return { conflict: true, message: 'Booking conflict detected. Please choose a different time slot.' };
     }
@@ -645,8 +683,8 @@ const createAppointment = async (req, res) => {
     const Room = require('../../models/operations/Room');
 
     if (appointmentData.serviceId) {
-      const targetService = await Service.findById(appointmentData.serviceId).select('branch name');
-      if (!targetService || !sameBranch(targetService.branch, appointmentData.branch)) {
+      const targetService = await findServiceForBranch(Service, appointmentData.branch, appointmentData.serviceId, null);
+      if (!targetService) {
         return res.status(403).json({ message: 'Access Denied: Selected service belongs to another branch.' });
       }
       appointmentData.service = appointmentData.service || targetService.name;
@@ -704,13 +742,7 @@ const createAppointment = async (req, res) => {
     // --- ATOMIC CONFLICT VALIDATION (Race Condition Prevention) ---
     const { date, time, employee, room } = appointmentData;
     if (date && time && employee) {
-      const selectedService = await Service.findOne({
-        $or: [
-          { _id: appointmentData.serviceId || null },
-          { name: appointmentData.service }
-        ],
-        branch: toObjectIdIfValid(appointmentData.branch)
-      }).catch(() => null);
+      const selectedService = await findServiceForBranch(Service, appointmentData.branch, appointmentData.serviceId, appointmentData.service).catch(() => null);
       const serviceDuration = appointmentData.totalDuration || selectedService?.duration || 60;
 
       const selectedRoom = room ? await Room.findOne({
@@ -1078,8 +1110,8 @@ const updateAppointment = async (req, res) => {
     const Room = require('../../models/operations/Room');
 
     if (updatePayload.serviceId) {
-      const targetService = await Service.findById(updatePayload.serviceId).select('branch name');
-      if (!targetService || !sameBranch(targetService.branch, checkBranch)) {
+      const targetService = await findServiceForBranch(Service, checkBranch, updatePayload.serviceId, null);
+      if (!targetService) {
         return res.status(403).json({ message: 'Access Denied: Selected service belongs to another branch.' });
       }
       if (!updatePayload.service) updatePayload.service = targetService.name;
@@ -1160,10 +1192,7 @@ const updateAppointment = async (req, res) => {
 
     if (checkDate && checkTime && checkEmployee) {
       const updatedService = updatePayload.service || appointment.service;
-      const selectedService = await Service.findOne({
-        name: updatedService,
-        branch: toObjectIdIfValid(checkBranch)
-      });
+      const selectedService = await findServiceForBranch(Service, checkBranch, updatePayload.serviceId, updatedService);
       const serviceDuration = updatePayload.totalDuration || selectedService?.duration || 60;
 
       const existingApts = await Appointment.find({
@@ -1448,9 +1477,7 @@ const createGuestAppointment = async (req, res) => {
 
     Object.assign(rest, serviceSummary.appointmentData);
 
-    const selectedService = rest.serviceId
-      ? await Service.findById(rest.serviceId).catch(() => null)
-      : await Service.findOne({ name: rest.service, branch: appointmentBranch });
+    const selectedService = await findServiceForBranch(Service, appointmentBranch, rest.serviceId, rest.service).catch(() => null);
     const serviceDuration = rest.totalDuration || selectedService?.duration || 60;
 
     // ============================================================

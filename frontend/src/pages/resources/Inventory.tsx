@@ -485,7 +485,7 @@ const Inventory = () => {
                         <tr className="bg-zen-brown/[0.02]">
                            <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[80px]">S No</th>
                            <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[100px]">Visual</th>
-                           <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-left border-b border-zen-brown/5">Resource Identity</th>
+                           <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5">Resource Identity</th>
                            <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5">Sector</th>
                            <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[150px]">Branch</th>
                            <th className="px-6 py-5 text-[10px] uppercase font-black tracking-[0.2em] text-zen-brown/40 text-center border-b border-zen-brown/5 w-[150px]">Stock Level</th>
@@ -515,8 +515,8 @@ const Inventory = () => {
                                        </div>
                                     </div>
                                  </td>
-                                 <td className="px-4 lg:px-6 py-4 lg:py-6 text-left">
-                                     <div className="flex flex-col items-start justify-center leading-none">
+                                 <td className="px-4 lg:px-6 py-4 lg:py-6 text-center">
+                                     <div className="flex flex-col items-center justify-center leading-none">
                                         <span className="text-sm font-serif font-black text-zen-brown leading-tight">{item.name}</span>
                                         <span className="zen-table-meta mt-1">{item.vendor || 'Inventory'}</span>
                                      </div>

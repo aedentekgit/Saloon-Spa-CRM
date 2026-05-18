@@ -6,6 +6,7 @@ const Branch = require('../../models/operations/Branch');
 const Appointment = require('../../models/operations/Appointment');
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
+const { findServiceForBranch } = require('../../utils/serviceBranches');
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -212,10 +213,7 @@ const createInvoice = async (req, res) => {
           }
         }
 
-        const service = await Service.findOne({
-          name: item.name,
-          branch: toObjectIdIfValid(requestedBranch)
-        }).populate('inventoryUsage.inventoryItem');
+        const service = await findServiceForBranch(Service, requestedBranch, item.serviceId, item.name, 'branches.inventoryUsage.inventoryItem inventoryUsage.inventoryItem');
 
         if (service?.inventoryUsage?.length) {
           for (const usage of service.inventoryUsage) {
@@ -281,10 +279,7 @@ const createInvoice = async (req, res) => {
     if (invoiceItems && Array.isArray(invoiceItems)) {
       const Inventory = require('../../models/inventory/Inventory');
       for (const item of invoiceItems) {
-        const service = await Service.findOne({
-          name: item.name,
-          branch: toObjectIdIfValid(requestedBranch)
-        }).populate('inventoryUsage.inventoryItem');
+        const service = await findServiceForBranch(Service, requestedBranch, item.serviceId, item.name, 'branches.inventoryUsage.inventoryItem inventoryUsage.inventoryItem');
 
         // 1. Commission Logic
         if (item.specialist) {

@@ -26,9 +26,15 @@ dayjs.extend(customParseFormat);
 
 const parseTime = (t: string, d: string) => {
   if (!t) return null;
-  const formats = ['HH:mm', 'h:mm A', 'hh:mm A', 'H:mm'];
+  // Support more flexible formats including no-space AM/PM and single-digit hours
+  const formats = [
+    'HH:mm', 'h:mm A', 'hh:mm A', 'H:mm',
+    'h:mm a', 'h:mma', 'h:mmA',
+    'ha', 'hA', 'h a', 'h A',
+    'h.mm A', 'h.mm a'
+  ];
   for (const f of formats) {
-    const p = dayjs(`${d} ${t}`, `YYYY-MM-DD ${f}`, true);
+    const p = dayjs(`${d} ${t.trim()}`, `YYYY-MM-DD ${f}`, true);
     if (p.isValid()) return p;
   }
   return null;
@@ -922,15 +928,17 @@ const Appointments = () => {
   };
 
   const availableSlots = useMemo(() => {
-    if (!formData.date || !formData.employee || formData.employee === 'None') return [];
+    if (!formData.date) return [];
 
-    const serviceDuration = serviceTotals.duration || 60;
+    const serviceDuration = serviceTotals.duration || 30;
 
     const selectedRoom = rawRooms.find(r => r.name === formData.room && isInSelectedFormBranch(r));
-    const roomCleaningDuration = selectedRoom?.cleaningDuration || 0;
+    const roomCleaningDuration = selectedRoom ? (selectedRoom.cleaningDuration || 0) : 15;
     const totalRoomOccupancy = serviceDuration + roomCleaningDuration;
 
-    // Business hours
+    // Employee shifts define staff availability. Branch hours still close the
+    // day and cap the end time, but they should not hide an earlier employee
+    // start such as an 08:00 AM shift.
     const dayName = dayjs(formData.date).format('dddd').toLowerCase() as keyof NonNullable<SettingsData['workingHours']>;
     const dayHours = settings?.workingHours?.[dayName];
     if (dayHours && !dayHours.isOpen) return [];
@@ -967,11 +975,11 @@ const Appointments = () => {
       if (!shift?.startTime || !shift?.endTime) return [];
 
       let start = parseTime(shift.startTime, formData.date) || dayjs(`${formData.date} 09:00`, 'YYYY-MM-DD HH:mm');
-      let end = parseTime(shift.endTime, formData.date) || dayjs(`${formData.date} 21:00`, 'YYYY-MM-DD HH:mm');
+      let end = parseTime(shift.endTime, formData.date) || dayjs(`${formData.date} 23:00`, 'YYYY-MM-DD HH:mm');
       if (end.isBefore(start)) end = end.add(1, 'day');
 
-      if (start.isBefore(shopStart)) start = shopStart;
-      if (end.isAfter(shopEnd)) end = shopEnd;
+      // Shift is the primary authority; we don't cap it by shop hours here
+      // unless specifically requested, to allow for prep/extended sessions.
       if (!end.isAfter(start)) return [];
 
       const employeeApts = dayAppointments.filter(a => {
@@ -982,8 +990,11 @@ const Appointments = () => {
       const slots: { time: string; display: string; isBooked: boolean }[] = [];
       let current = start;
 
-      while (current.isBefore(end)) {
+      while (current.isBefore(end) || current.isSame(end)) {
         const slotEnd = current.add(serviceDuration, 'minute');
+        // Allow slots to start exactly at the end time to permit overtime/extra work
+        if (current.isAfter(end)) break;
+
         const roomOccupancyEnd = current.add(totalRoomOccupancy, 'minute');
         const isPastTime = isToday && current.isBefore(now);
 
