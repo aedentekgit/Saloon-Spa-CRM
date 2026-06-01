@@ -1191,26 +1191,6 @@ const Billing = () => {
                     <Search size={18} className="text-zen-brown/20" />
                   </div>
                 </div>
-
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-                  <div className="w-full sm:w-[220px]">
-                    <BranchSelector variant="pill" className="!w-full shadow-sm" disabled={true} />
-                  </div>
-                  <div className="w-full sm:w-[220px]">
-                    <ZenDropdown
-                      label=""
-                      hideLabel
-                      variant="pill"
-                      disabled={true}
-                      options={[
-                        { label: 'All completed staff', value: 'all' },
-                        ...branchEmployees.map((employee: EmployeeRecord) => ({ label: employee.name, value: employee._id }))
-                      ]}
-                      value={selectedEmployeeId}
-                      onChange={setSelectedEmployeeId}
-                    />
-                  </div>
-                </div>
               </div>
 
               <AnimatePresence mode="wait">
