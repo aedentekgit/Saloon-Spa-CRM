@@ -163,7 +163,7 @@ const createService = async (req, res) => {
     }
 
     const duplicate = await Service.findOne({
-      name,
+      name: { $regex: new RegExp(`^${name}$`, 'i') },
       $or: [
         { 'branches.branch': { $in: selectedBranches.map(toObjectIdIfValid) } },
         { branch: { $in: selectedBranches.map(toObjectIdIfValid) } }
@@ -172,7 +172,7 @@ const createService = async (req, res) => {
 
     if (duplicate) {
       if (req.file) await deleteFile(getStoredFilePath(req.file));
-      return res.status(400).json({ message: 'Service already exists in one or more selected branches.' });
+      return res.status(400).json({ message: 'Already this service was added for that branch.' });
     }
 
     const image = req.file ? getStoredFilePath(req.file) : req.body.image;
@@ -231,7 +231,22 @@ const updateService = async (req, res) => {
       return res.status(403).json({ message: 'Access Denied: You cannot update services of other branches.' });
     }
 
-    service.name = req.body.name || service.name;
+    const newName = req.body.name || service.name;
+    const duplicate = await Service.findOne({
+      _id: { $ne: service._id },
+      name: { $regex: new RegExp(`^${newName}$`, 'i') },
+      $or: [
+        { 'branches.branch': { $in: branchTargets.map(toObjectIdIfValid) } },
+        { branch: { $in: branchTargets.map(toObjectIdIfValid) } }
+      ]
+    });
+
+    if (duplicate) {
+      if (req.file) await deleteFile(getStoredFilePath(req.file));
+      return res.status(400).json({ message: 'Already this service was added for that branch.' });
+    }
+
+    service.name = newName;
     service.duration = req.body.duration || service.duration;
     service.price = req.body.price || service.price;
     service.category = req.body.category || service.category;
@@ -242,6 +257,13 @@ const updateService = async (req, res) => {
       service.image = getStoredFilePath(req.file);
     } else if (req.body.image) {
       service.image = req.body.image;
+    }
+
+    if (isAdmin && selectedBranches.length > 0) {
+      service.branches = service.branches.filter(entry => {
+        const entryBranchId = getBranchId(entry.branch);
+        return selectedBranches.map(String).includes(entryBranchId ? entryBranchId.toString() : '');
+      });
     }
 
     for (const branchId of branchTargets) {

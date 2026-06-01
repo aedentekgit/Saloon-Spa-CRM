@@ -572,7 +572,11 @@ const Appointments = () => {
   const appointmentMatchesViewer = (apt: Appointment) => {
     const role = user?.role?.toLowerCase();
     if (role === 'admin' || role === 'manager') return true;
-    if (user?.role === 'Employee') return apt.employee === user.name || apt.employeeId?.name === user.name;
+    if (user?.role === 'Employee') {
+      const isAssigned = apt.employee === user.name || apt.employeeId?.name === user.name;
+      const isApproved = apt.status && apt.status !== 'Pending';
+      return isAssigned && isApproved;
+    }
     if (user?.role === 'Client') {
       return apt.client === user.name || apt.clientId?.name === user.name || getEntityId(apt.clientId) === user._id;
     }

@@ -3,6 +3,7 @@ const { deleteFile, getStoredFilePath } = require('../../middleware/uploadMiddle
 const { paginateModelQuery } = require('../../utils/pagination');
 const { getUserBranchId, toObjectIdIfValid } = require('../../utils/branch');
 
+const normalizeRestrictionMode = (mode) => (mode === 'ip' ? 'ip' : 'geofence');
 
 // @desc    Get public branches
 // @route   GET /api/branches/public
@@ -72,7 +73,7 @@ const createBranch = async (req, res) => {
       lat: req.body.lat,
       lng: req.body.lng,
       radius: req.body.radius,
-      restrictionMode: req.body.restrictionMode || 'geofence',
+      restrictionMode: normalizeRestrictionMode(req.body.restrictionMode),
       allowedIPs: req.body.allowedIPs ? (typeof req.body.allowedIPs === 'string' ? JSON.parse(req.body.allowedIPs) : req.body.allowedIPs) : []
     });
 
@@ -98,7 +99,7 @@ const updateBranch = async (req, res) => {
       branch.lat = req.body.lat !== undefined ? req.body.lat : branch.lat;
       branch.lng = req.body.lng !== undefined ? req.body.lng : branch.lng;
       branch.radius = req.body.radius !== undefined ? req.body.radius : branch.radius;
-      branch.restrictionMode = req.body.restrictionMode || branch.restrictionMode;
+      branch.restrictionMode = normalizeRestrictionMode(req.body.restrictionMode || branch.restrictionMode);
       if (req.body.allowedIPs) {
          branch.allowedIPs = typeof req.body.allowedIPs === 'string' ? JSON.parse(req.body.allowedIPs) : req.body.allowedIPs;
       }

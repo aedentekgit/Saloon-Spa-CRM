@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useSettings } from '../../context/SettingsContext';
 import { getImageUrl } from '../../utils/imageUrl';
+import { getAttendanceRouteForRole, DEFAULT_ROLE_PERMISSIONS } from '../../config/accessControl';
 
 const Sidebar = ({
   isCollapsed,
@@ -68,7 +69,7 @@ const Sidebar = ({
       label: 'Team',
       items: [
         { name: 'Employees', icon: Briefcase, path: '/employees', permission: 'employees' },
-        { name: 'Attendance Ritual', icon: Clock, path: user?.role === 'Employee' ? '/staff-attendance' : '/attendance', permission: 'attendance' },
+        { name: 'Attendance Ritual', icon: Clock, path: getAttendanceRouteForRole(user?.role), permission: 'attendance' },
 
         { name: 'Shifts', icon: Timer, path: '/shifts', permission: ['shifts', 'settings'] },
         { name: 'Payroll', icon: Landmark, path: '/payroll', permission: ['payroll', 'finance'] },
@@ -131,6 +132,13 @@ const Sidebar = ({
 
   const canAccessItem = (permission: string | string[]) => {
     if (user?.role === 'Admin') return true;
+    // Managers always get full default role access regardless of what's stored in DB
+    if (user?.role === 'Manager') {
+      const managerPerms = DEFAULT_ROLE_PERMISSIONS['Manager'] as string[];
+      return Array.isArray(permission)
+        ? permission.some((perm) => managerPerms.includes(perm) || hasPermission(perm))
+        : managerPerms.includes(permission) || hasPermission(permission);
+    }
     return Array.isArray(permission)
       ? permission.some((perm) => hasPermission(perm))
       : hasPermission(permission);

@@ -88,7 +88,7 @@ const cspDirectives = {
   imgSrc: ["'self'", 'data:', 'https:'],
   fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com', 'https:'],
   styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https:'],
-  scriptSrc: ["'self'"],
+  scriptSrc: ["'self'", 'https://maps.googleapis.com', 'https://maps.gstatic.com'],
   connectSrc: ["'self'", 'https:', 'http:']
 };
 
@@ -104,6 +104,7 @@ app.use(helmet({
   crossOriginOpenerPolicy: enforceHttps ? { policy: 'same-origin' } : false,
   originAgentCluster: enforceHttps,
   crossOriginResourcePolicy: false,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   hsts: enforceHttps ? undefined : false,
   contentSecurityPolicy: isDev ? false : {
     directives: cspDirectives

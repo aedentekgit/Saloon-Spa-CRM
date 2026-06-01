@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { 
   Fingerprint, MapPin, ShieldCheck, Clock, History, 
@@ -33,6 +33,7 @@ const StaffAttendance: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [punchLoading, setPunchLoading] = useState(false);
+  const punchInFlightRef = useRef(false);
   const [myHistory, setMyHistory] = useState<any[]>([]);
   const [stats, setStats] = useState({
     visitsToday: 0,
@@ -65,6 +66,7 @@ const StaffAttendance: React.FC = () => {
   });
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+  const isLocalApiUrl = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?\/api/i.test(API_URL);
 
   useEffect(() => {
     const init = async () => {
@@ -183,35 +185,15 @@ const StaffAttendance: React.FC = () => {
   const isCheckedOut = !!todayRecord && todayRecord.checkOut && todayRecord.checkOut !== '--';
   const isCheckedIn = !!todayRecord && todayRecord.checkIn && todayRecord.checkIn !== '--' && !isCheckedOut;
 
-  const isTooEarly = (() => {
-    if (loading || isCheckedIn || isCheckedOut || !assignedShift || !assignedShift.startTime) return false;
-    
-    try {
-      const startTimeStr = assignedShift.startTime.trim(); // e.g. "12:20 AM"
-      const match = startTimeStr.match(/^(\d+):(\d+)\s+(AM|PM)$/i);
-      if (!match) return false;
-
-      let hours = parseInt(match[1]);
-      const minutes = parseInt(match[2]);
-      const modifier = match[3].toUpperCase();
-
-      if (modifier === 'PM' && hours < 12) hours += 12;
-      if (modifier === 'AM' && hours === 12) hours = 0;
-
-      const now = dayjs();
-      const shiftStart = now.clone().hour(hours).minute(minutes).second(0).millisecond(0);
-      
-      // Allow check-in 5 mins before
-      return now.isBefore(shiftStart.subtract(5, 'minute'));
-    } catch (e) {
-      return false;
-    }
-  })();
-
   const handleDigitalPunch = async () => {
-    if (punchLoading) return;
+    if (punchLoading || punchInFlightRef.current) return;
+    punchInFlightRef.current = true;
     setPunchLoading(true);
-    notify('info', 'Presence Verification', 'Acquiring sanctuary coordinates...');
+    notify(
+      'info',
+      'Presence Verification',
+      isCheckedIn || isLocalApiUrl ? 'Synchronizing attendance...' : 'Acquiring sanctuary coordinates...'
+    );
 
     const performPunch = async (latitude?: number, longitude?: number) => {
       try {
@@ -244,10 +226,12 @@ const StaffAttendance: React.FC = () => {
       } catch (error) {
         notify('error', 'Sync Failure', 'Connection failed.');
       } finally {
+        punchInFlightRef.current = false;
         setPunchLoading(false);
       }
     };
 
+    if (isCheckedIn || isLocalApiUrl) return performPunch();
     if (!navigator.geolocation) return performPunch();
 
     navigator.geolocation.getCurrentPosition(
@@ -438,15 +422,13 @@ const StaffAttendance: React.FC = () => {
                   <p className="text-zen-brown/50 text-sm max-w-[340px] mb-12 font-medium leading-relaxed">
                     {isCheckedOut 
                       ? "Your ritual for today has concluded. Peace be with you."
-                      : isTooEarly 
-                        ? `Check-in for ${assignedShift?.name} starts at ${dayjs(`${dayjs().format('YYYY-MM-DD')} ${assignedShift?.startTime}`, 'YYYY-MM-DD hh:mm A').subtract(5, 'minute').format('hh:mm A')}.`
-                        : isCheckedIn 
-                          ? `Authenticated since ${todayRecord.checkIn}. Your energy is synchronized with the sanctuary.` 
-                          : 'Establish your presence by verifying your spatial coordinates within the sanctuary boundaries.'}
+                      : isCheckedIn 
+                        ? `Authenticated since ${todayRecord.checkIn}. Your energy is synchronized with the sanctuary.` 
+                        : 'Establish your presence by verifying your spatial coordinates within the sanctuary boundaries.'}
                   </p>
 
                   <AnimatePresence mode="wait">
-                    {isCheckedOut || isTooEarly ? (
+                    {isCheckedOut ? (
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }} 
                         animate={{ opacity: 1, y: 0 }} 
@@ -455,7 +437,7 @@ const StaffAttendance: React.FC = () => {
                       >
                         {isCheckedOut ? <CheckCircle2 className="text-emerald-500" size={20} /> : <Clock className="text-zen-gold" size={20} />}
                         <span className="text-xs font-bold text-zen-brown uppercase tracking-widest">
-                          {isCheckedOut ? 'Attendance Completed' : 'Awaiting Shift Window'}
+                          Attendance Completed
                         </span>
                       </motion.div>
                     ) : (

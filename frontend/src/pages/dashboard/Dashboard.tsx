@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { getAttendanceRouteForRole } from '../../config/accessControl';
 import { useData } from '../../context/DataContext';
 import dayjs from 'dayjs';
 import {
@@ -630,7 +631,12 @@ const EmployeeDashboard = () => {
     { label: 'Zen Score', value: `${stats?.performance?.score || 0}`, icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', trend: 'Harmony Metric', delay: 0.6 },
   ];
 
-  const nextRitual = stats?.recentRituals?.find((apt: any) => apt.status === 'Confirmed' || apt.status === 'In Service' || apt.status === 'Pending');
+  const filteredRecentRituals = useMemo(() => {
+    if (!stats?.recentRituals) return [];
+    return stats.recentRituals.filter((apt: any) => apt.status !== 'Pending');
+  }, [stats?.recentRituals]);
+
+  const nextRitual = filteredRecentRituals.find((apt: any) => apt.status === 'Confirmed' || apt.status === 'In Service');
 
    return (
     <div className="space-y-12 sm:space-y-16 pb-20 max-w-[1600px] mx-auto animate-in fade-in duration-1000">
@@ -850,8 +856,8 @@ const EmployeeDashboard = () => {
             {/* Elegant Vertical Line */}
             <div className="zen-timeline-line" />
 
-            {stats?.recentRituals?.length > 0 ? (
-              stats.recentRituals.map((apt: any, idx: number) => (
+            {filteredRecentRituals.length > 0 ? (
+              filteredRecentRituals.map((apt: any, idx: number) => (
                 <motion.div 
                   key={apt._id} 
                   initial={{ opacity: 0, x: 30 }}
@@ -1096,7 +1102,7 @@ const Dashboard = () => {
   const [dateRange, setDateRange] = useState<any>('All');
   const quickActions = [
     { label: 'Book Ritual', icon: Sparkles, color: 'bg-zen-brown text-white', path: hasPermission('appointments') ? '/appointments' : '/book', permissions: ['appointments', 'book'] },
-    { label: 'Digital Punch', icon: Clock, color: 'bg-white text-zen-brown border-zen-gold/20', path: user?.role === 'Employee' ? '/staff-attendance' : '/attendance', permissions: ['attendance'] },
+    { label: 'Digital Punch', icon: Clock, color: 'bg-white text-zen-brown border-zen-gold/20', path: getAttendanceRouteForRole(user?.role), permissions: ['attendance'] },
     { label: 'New Artisan', icon: Users, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/employees', permissions: ['employees'] },
     { label: 'Inventory Restock', icon: Target, color: 'bg-white text-zen-brown border-zen-gold/20', path: '/inventory', permissions: ['inventory'] },
   ].filter((action) => action.permissions.some((permission) => hasPermission(permission)));

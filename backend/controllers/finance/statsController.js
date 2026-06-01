@@ -66,6 +66,7 @@ exports.getDashboardStats = async (req, res) => {
     if (req.user.role === 'Employee') {
       const myAppointments = await Appointment.find({
         employeeId: req.user._id,
+        status: { $ne: 'Pending' },
         ...(userBranchId ? { branch: toObjectIdIfValid(userBranchId) } : {})
       }).populate('clientId').sort({ date: -1 }).lean();
       const completed = myAppointments.filter(a => a.status === 'Completed').length;

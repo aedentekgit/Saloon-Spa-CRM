@@ -282,56 +282,65 @@ const Attendance = () => {
                <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
              </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 px-4 lg:px-2">
-             {filteredAttendance.map((row, index) => (
-                <div key={row._id} className="group relative bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-zen-brown/15 flex flex-col transition-all duration-500 hover:shadow-xl hover:translate-y-[-4px]">
-                   <div className="flex justify-between items-start mb-6">
-                      <div className="flex items-center gap-4">
-                         <div className="w-14 h-14 rounded-2xl bg-zen-cream border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-                            <span className="font-serif text-xl text-zen-brown uppercase">{row.employeeName?.charAt(0)}</span>
-                         </div>
-                         <div>
-                            <h4 className="text-lg font-black text-zen-brown tracking-tight">{row.employeeName}</h4>
-                            <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">{row.shift || 'Standard'} Artisan</p>
-                         </div>
-                      </div>
-                      <ZenBadge variant={row.status === 'Present' && row.checkOut !== '--' ? 'leaf' : 'sand'} className="text-[8px] font-black">
-                         {row.status === 'Present' && row.checkOut !== '--' ? 'COMPLETED' : row.status.toUpperCase()}
-                      </ZenBadge>
-                   </div>
-
-                   <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 bg-zen-cream/30 rounded-2xl border border-zen-stone/40">
-                         <div>
-                            <p className="text-[8px] font-bold text-zen-brown/40 uppercase tracking-widest mb-1">Ritual Date</p>
-                            <p className="text-xs font-bold text-zen-brown">{dayjs(row.date).format('DD MMM, YYYY')}</p>
-                         </div>
-                         <div className="text-right">
-                            <p className="text-[8px] font-bold text-zen-brown/40 uppercase tracking-widest mb-1">Time Span</p>
-                            <p className="text-xs font-bold text-zen-brown">{row.checkIn} — {row.checkOut}</p>
-                         </div>
-                      </div>
-
-                      <div className="flex items-center justify-between px-2">
-                         <div className="flex items-center gap-2">
-                            <Clock size={14} className="text-zen-sand" />
-                            <span className="text-sm font-serif font-bold italic">{Math.floor((row.duration || 0) / 60)}h {(row.duration || 0) % 60}m</span>
-                         </div>
-                         <div className="text-right">
-                            <p className="text-lg font-black text-zen-brown">{settings?.general?.currencySymbol} {row.dailyEarnings?.toLocaleString()}</p>
-                         </div>
-                      </div>
-                   </div>
-
-                   {isAdminOrManager && (
-                      <div className="mt-8 pt-6 border-t border-zen-stone/20 flex justify-end gap-2">
-                         <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleEditRecord(row)} />
-                         <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteRecord(row._id)} />
-                      </div>
-                   )}
+          !filteredAttendance || filteredAttendance.length === 0 ? (
+             <div className="w-full bg-white rounded-[2rem] border border-zen-brown/15 p-24 text-center flex flex-col items-center justify-center min-h-[400px] mx-4 lg:mx-2">
+                <div className="flex flex-col items-center gap-6 opacity-[0.5]">
+                   <Shield size={100} strokeWidth={0.5} className="text-zen-sand" />
+                   <p className="italic font-serif text-2xl tracking-tight text-zen-brown">The registry remains undisturbed.</p>
                 </div>
-             ))}
-          </div>
+             </div>
+          ) : (
+             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 px-4 lg:px-2">
+                {filteredAttendance.map((row, index) => (
+                   <div key={row._id} className="group relative bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-zen-brown/15 flex flex-col transition-all duration-500 hover:shadow-xl hover:translate-y-[-4px]">
+                      <div className="flex justify-between items-start mb-6">
+                         <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-zen-cream border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                               <span className="font-serif text-xl text-zen-brown uppercase">{row.employeeName?.charAt(0)}</span>
+                            </div>
+                            <div>
+                               <h4 className="text-lg font-black text-zen-brown tracking-tight">{row.employeeName}</h4>
+                               <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">{row.shift || 'Standard'} Artisan</p>
+                            </div>
+                         </div>
+                         <ZenBadge variant={row.status === 'Present' && row.checkOut !== '--' ? 'leaf' : 'sand'} className="text-[8px] font-black">
+                            {row.status === 'Present' && row.checkOut !== '--' ? 'COMPLETED' : row.status.toUpperCase()}
+                         </ZenBadge>
+                      </div>
+
+                      <div className="space-y-4">
+                         <div className="flex items-center justify-between p-4 bg-zen-cream/30 rounded-2xl border border-zen-stone/40">
+                            <div>
+                               <p className="text-[8px] font-bold text-zen-brown/40 uppercase tracking-widest mb-1">Ritual Date</p>
+                               <p className="text-xs font-bold text-zen-brown">{dayjs(row.date).format('DD MMM, YYYY')}</p>
+                            </div>
+                            <div className="text-right">
+                               <p className="text-[8px] font-bold text-zen-brown/40 uppercase tracking-widest mb-1">Time Span</p>
+                               <p className="text-xs font-bold text-zen-brown">{row.checkIn} — {row.checkOut}</p>
+                            </div>
+                         </div>
+
+                         <div className="flex items-center justify-between px-2">
+                            <div className="flex items-center gap-2">
+                               <Clock size={14} className="text-zen-sand" />
+                               <span className="text-sm font-serif font-bold italic">{Math.floor((row.duration || 0) / 60)}h {(row.duration || 0) % 60}m</span>
+                            </div>
+                            <div className="text-right">
+                               <p className="text-lg font-black text-zen-brown">{settings?.general?.currencySymbol} {row.dailyEarnings?.toLocaleString()}</p>
+                            </div>
+                         </div>
+                      </div>
+
+                      {isAdminOrManager && (
+                         <div className="mt-8 pt-6 border-t border-zen-stone/20 flex justify-end gap-2">
+                            <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleEditRecord(row)} />
+                            <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDeleteRecord(row._id)} />
+                         </div>
+                      )}
+                   </div>
+                ))}
+             </div>
+          )
         ) : (
           <>
             <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700 mx-4 lg:mx-2">
@@ -350,10 +359,10 @@ const Attendance = () => {
                      <tbody>
                         {(!filteredAttendance || filteredAttendance.length === 0) && (
                            <tr>
-                              <td colSpan={isAdminOrManager ? 7 : 6} className="py-32 text-center text-[11px] font-sans text-gray-400">
-                                 <div className="flex flex-col items-center gap-6 opacity-[0.08]">
-                                    <Shield size={100} strokeWidth={0.5} />
-                                    <p className="italic font-serif text-2xl tracking-tight">The registry remains undisturbed.</p>
+                              <td colSpan={isAdminOrManager ? 7 : 6} className="py-32 text-center text-[11px] font-sans">
+                                 <div className="flex flex-col items-center gap-6 opacity-[0.6]">
+                                    <Shield size={100} strokeWidth={0.5} className="text-zen-sand" />
+                                    <p className="italic font-serif text-2xl tracking-tight text-zen-brown">The registry remains undisturbed.</p>
                                  </div>
                               </td>
                            </tr>

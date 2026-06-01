@@ -26,6 +26,12 @@ async function deploy() {
   try {
     console.log('🚀 SALOON CRM LIVE DEPLOYMENT STARTING...');
     
+    console.log('📦 Building Frontend for Live...');
+    execSync('VITE_API_URL=/saloon_spa_crm/api npm run build', {
+      cwd: path.join(__dirname, '../frontend'),
+      stdio: 'inherit'
+    });
+
     // Create directories if not exist
     runRemote(`mkdir -p ${config.remoteRoot}/backend ${config.remoteRoot}/frontend/dist`);
 
@@ -55,11 +61,7 @@ async function deploy() {
     }
 
     console.log('🔄 Installing production dependencies and restarting PM2...');
-    runRemote(`cd ${config.remoteRoot}/backend && npm install --production`);
-    
-    // Restart PM2
-    runRemote(`pm2 restart saloon-spa-crm-live-api`);
-    runRemote(`pm2 save`);
+    runRemote(`cd ${config.remoteRoot}/backend && npm install --production && pm2 restart saloon-spa-crm-live-api && pm2 save`);
 
     console.log('✨ LIVE DEPLOYMENT FINISHED SUCCESSFULLY!');
     process.exit(0);

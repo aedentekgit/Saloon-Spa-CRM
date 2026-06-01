@@ -6,6 +6,15 @@ export const printInvoice = (transaction: any, settings: any) => {
 
   const logoUrl = settings?.general?.logo ? getImageUrl(settings.general.logo) : '';
   const currency = settings?.general?.currencySymbol || 'QR';
+  const paymentMode = transaction.paymentMode || transaction.method || '-';
+  const paymentDetails = Array.isArray(transaction.payments) && transaction.payments.length > 0
+    ? transaction.payments
+        .filter((payment: any) => Number(payment?.amount) > 0)
+        .map((payment: any) => `${payment.mode}: ${currency} ${Number(payment.amount || 0).toLocaleString()}`)
+        .join(', ')
+    : transaction.paymentsSummary && transaction.paymentsSummary !== '-'
+      ? transaction.paymentsSummary
+      : '';
 
   const windowUrl = 'about:blank';
   const uniqueName = new Date().getTime();
@@ -267,6 +276,10 @@ export const printInvoice = (transaction: any, settings: any) => {
                 <div class="detail-group">
                   <span class="detail-label">Invoice Nº:</span>
                   <span class="detail-value">${transaction.invoiceNumber || transaction.id}</span>
+                </div>
+                <div class="detail-group">
+                  <span class="detail-label">Payment Mode:</span>
+                  <span class="detail-value">${paymentMode}${paymentDetails ? `<br><small>${paymentDetails}</small>` : ''}</span>
                 </div>
               </div>
             </div>

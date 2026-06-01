@@ -258,7 +258,7 @@ const Services = () => {
 
       const current = grouped.get(key)!;
       const nextBranches = [...(current.branches || [])];
-      if (branch && !nextBranches.some(item => item._id === branch._id)) {
+      if (branch && !nextBranches.some((item: any) => getBranchId(item?.branch || item) === branch._id)) {
         nextBranches.push(branch);
       }
 
@@ -483,6 +483,20 @@ const Services = () => {
       notify('error', 'Validation Error', 'Please complete all required fields correctly.');
       return false;
     }
+
+    const targetBranches = formData.branches.length > 0 ? formData.branches : (formData.branch ? [formData.branch] : []);
+    const duplicate = displayServices.find(s => {
+      if (editingService && s._id === editingService._id) return false;
+      if (s.name.trim().toLowerCase() !== formData.name.trim().toLowerCase()) return false;
+      const sBranches = getServiceBranchIds(s);
+      return targetBranches.some(b => sBranches.includes(b));
+    });
+
+    if (duplicate) {
+      notify('error', 'Duplicate Service', 'Already this service was added for that branch');
+      return false;
+    }
+
     return true;
   };
 
@@ -731,15 +745,34 @@ const Services = () => {
                              <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Rate</span>
                           </div>
                           {selectedBranch === 'all' ? (
-                            <div className="flex items-center justify-end gap-1.5" title={branchTitle}>
-                              {(branchInitials.length ? branchInitials : ['M']).map((initial, idx) => (
-                                <span
-                                  key={`${service._id}-${initial}-${idx}`}
-                                  className="w-7 h-7 rounded-full bg-zen-leaf/10 text-zen-leaf border border-zen-leaf/20 flex items-center justify-center text-[10px] font-black uppercase shadow-sm"
-                                >
-                                  {initial}
-                                </span>
-                              ))}
+                            <div className="flex items-center justify-end -space-x-2.5" title={branchTitle}>
+                              {(() => {
+                                const list = branchInitials.length ? branchInitials : ['M'];
+                                const limit = 3;
+                                const visible = list.slice(0, limit);
+                                const extra = list.length - limit;
+                                return (
+                                  <>
+                                    {visible.map((initial, idx) => (
+                                      <span
+                                        key={`${service._id}-${initial}-${idx}`}
+                                        className="relative w-7 h-7 rounded-full bg-[#e7f8f2] text-zen-leaf border-2 border-white flex items-center justify-center text-[10px] font-black uppercase shadow-sm"
+                                        style={{ zIndex: list.length - idx }}
+                                      >
+                                        {initial}
+                                      </span>
+                                    ))}
+                                    {extra > 0 && (
+                                      <span
+                                        className="relative w-7 h-7 rounded-full bg-[#fbf7ee] text-zen-gold border-2 border-white flex items-center justify-center text-[9px] font-black shadow-sm"
+                                        style={{ zIndex: 0 }}
+                                      >
+                                        +{extra}
+                                      </span>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </div>
                           ) : (
                             <ZenBadge
@@ -967,7 +1000,7 @@ const Services = () => {
                      error={formErrors.duration}
                    />
 
-                   {user?.role === 'Admin' && (!editingService || (selectedBranch === 'all' && getServiceBranchIds(editingService).length > 1)) ? (
+                   {user?.role === 'Admin' && (!editingService || selectedBranch === 'all') ? (
                      <ZenMultiSelect
                        label={editingService ? "Assigned Branches" : "Target Branches"}
                        icon={MapPin}

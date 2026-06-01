@@ -27,7 +27,9 @@ import {
   BadgeDollarSign,
   Plus,
   MessageSquare,
-  Layout
+  Layout,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
@@ -40,6 +42,7 @@ import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { countries } from '../../utils/countries';
 import { validatePhoneNumber, getPhoneValidationProtocol } from '../../utils/validation';
 import { useSettings } from '../../context/SettingsContext';
+import { useMaps } from '../../context/MapsContext';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { getImageUrl } from '../../utils/imageUrl';
 
@@ -134,6 +137,7 @@ type SettingsSection = 'foundations' | 'hours' | 'storage' | 'visuals' | 'alerts
 const Settings = () => {
   const { user } = useAuth();
   const { refreshSettings } = useSettings();
+  const mapsStatus = useMaps();
   const defaultSettings: SettingsData = {
     general: { siteName: '', logo: '', email: '', address: '', contactNumber: '', country: '', countryIso: '', dialingCode: '', currency: '', currencySymbol: '', dateTimeFormat: 'DD/MM/YYYY' },
     theme: { primaryColor: '#2D1622', darkMode: false, headingFont: '', bodyFont: '' },
@@ -175,6 +179,20 @@ const Settings = () => {
   const [testTargetEmail, setTestTargetEmail] = useState('');
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+  const mapsStateLabel = mapsStatus.status === 'ready'
+    ? 'Connected'
+    : mapsStatus.status === 'loading'
+      ? 'Validating'
+      : mapsStatus.status === 'error'
+        ? 'Failed'
+        : 'Offline';
+  const mapsStateClass = mapsStatus.status === 'ready'
+    ? 'text-emerald-600'
+    : mapsStatus.status === 'loading'
+      ? 'text-zen-sand'
+      : mapsStatus.status === 'error'
+        ? 'text-red-500'
+        : 'text-zen-brown/40';
 
   useEffect(() => {
     fetchSettings();
@@ -961,7 +979,7 @@ const Settings = () => {
                                <div className="flex items-center gap-6 p-4 bg-zen-cream/30 rounded-3xl border border-zen-brown/10 backdrop-blur-md">
                                  <div className="flex flex-col items-end">
                                     <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">MAPS ENGINE</p>
-                                    <p className="text-sm font-serif font-bold text-zen-sand">{settings.maps.enabled ? 'Synchronized' : 'Offline'}</p>
+                                    <p className={`text-sm font-serif font-bold ${mapsStateClass}`}>{mapsStateLabel}</p>
                                  </div>
                                  <button
                                     onClick={() => setSettings(prev => prev ? {...prev, maps: {...prev.maps, enabled: !prev.maps.enabled}} : null)}
@@ -981,6 +999,26 @@ const Settings = () => {
                                      value={settings.maps.googleMapsApiKey}
                                      onChange={(e: any) => setSettings(prev => prev ? {...prev, maps: {...prev.maps, googleMapsApiKey: e.target.value}} : null)}
                                   />
+
+                                  <div className={`p-4 rounded-xl border flex items-start gap-3 ${
+                                    mapsStatus.status === 'ready'
+                                      ? 'bg-emerald-50/70 border-emerald-100 text-emerald-700'
+                                      : mapsStatus.status === 'error'
+                                        ? 'bg-red-50/70 border-red-100 text-red-600'
+                                        : 'bg-zen-cream/30 border-zen-brown/10 text-zen-brown/50'
+                                  }`}>
+                                    {mapsStatus.status === 'loading' ? (
+                                      <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin" />
+                                    ) : mapsStatus.status === 'ready' ? (
+                                      <Check size={16} className="mt-0.5 shrink-0" />
+                                    ) : (
+                                      <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                                    )}
+                                    <div>
+                                      <p className="text-[10px] font-black uppercase tracking-[0.2em]">{mapsStateLabel}</p>
+                                      <p className="text-xs font-medium leading-relaxed mt-1">{mapsStatus.statusMessage}</p>
+                                    </div>
+                                  </div>
 
                                    <div className="p-6 bg-white/50 rounded-xl border border-zen-brown/5 space-y-4">
                                       <div className="flex items-center justify-between">
@@ -1010,7 +1048,7 @@ const Settings = () => {
                                       </ul>
                                       <div className="mt-4 p-4 bg-red-50/50 rounded-xl border border-red-100/50">
                                          <p className="text-[10px] text-red-600/70 font-medium leading-relaxed">
-                                            <b>Note:</b> If you see "Oops! Something went wrong" on the map, ensure your API key is restricted to the correct domain (e.g. localhost) and that the "Maps JavaScript API" is enabled.
+                                            <b>Note:</b> If the branch map says connection failed, the key is saved but Google rejected the script load. Ensure the Maps JavaScript API and Places API are enabled, billing is active, and the HTTP referrer restriction includes this exact domain.
                                          </p>
                                       </div>
                                    </div>

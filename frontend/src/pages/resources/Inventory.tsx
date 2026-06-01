@@ -280,12 +280,6 @@ const Inventory = () => {
 
     if (!formData.name.trim()) {
       errors.name = 'Resource Name Required';
-    } else {
-      const isDuplicate = inventory.some(item =>
-        item.name.toLowerCase() === formData.name.trim().toLowerCase() &&
-        item._id !== editingItem?._id
-      );
-      if (isDuplicate) errors.name = 'Duplicate Resource Name';
     }
 
     if (formData.sectorCategory === 'None') {
@@ -311,6 +305,20 @@ const Inventory = () => {
       notify('error', 'Validation Failure', 'Please refine the highlighted resource fields.');
       return false;
     }
+
+    const targetBranches = formData.branches.length > 0 ? formData.branches : (formData.branch ? [formData.branch] : []);
+    const duplicate = inventory.find(i => {
+      if (editingItem && i._id === editingItem._id) return false;
+      if (i.name.trim().toLowerCase() !== formData.name.trim().toLowerCase()) return false;
+      const iBranchId = (i as any).branch?._id || (i as any).branch;
+      return targetBranches.includes(iBranchId);
+    });
+
+    if (duplicate) {
+      notify('error', 'Duplicate Item', 'Already this inventory item was added for that branch');
+      return false;
+    }
+
     return true;
   };
 
@@ -675,7 +683,7 @@ const Inventory = () => {
                   }}
                   options={(branches || []).map(b => b.name)}
                   error={!!formErrors.branch}
-                  disabled={user?.role !== 'Admin'}
+                  disabled={!!editingItem || user?.role !== 'Admin'}
                 />
               )}
            </div>

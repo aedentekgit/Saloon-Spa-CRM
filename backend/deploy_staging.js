@@ -27,6 +27,12 @@ async function deploy() {
   try {
     console.log('🚀 SALOON CRM STAGING DEPLOYMENT STARTING...');
     
+    console.log('📦 Building Frontend for Staging...');
+    execSync('VITE_API_URL=/staging_saloon_spa_crm/api VITE_BASE_URL=/staging_saloon_spa_crm/ npm run build', {
+      cwd: path.join(__dirname, '../frontend'),
+      stdio: 'inherit'
+    });
+
     // Create directories if not exist
     runRemote(`mkdir -p ${config.remoteRoot}/backend ${config.remoteRoot}/frontend/dist`);
 
@@ -58,11 +64,7 @@ async function deploy() {
     }
 
     console.log('🔄 Installing production dependencies and restarting PM2...');
-    runRemote(`cd ${config.remoteRoot}/backend && npm install --production`);
-    
-    // Restart PM2
-    runRemote(`pm2 restart ${config.pm2Name}`);
-    runRemote(`pm2 save`);
+    runRemote(`cd ${config.remoteRoot}/backend && npm install --production && pm2 restart ${config.pm2Name} && pm2 save`);
 
     console.log('✨ STAGING DEPLOYMENT FINISHED SUCCESSFULLY!');
     process.exit(0);

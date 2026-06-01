@@ -616,6 +616,9 @@ const getAppointments = async (req, res) => {
         return res.status(403).json({ message: 'Access Denied: Cannot view appointments for another branch.' });
       }
       query.branch = toObjectIdIfValid(userBranchId);
+      if (req.user.role === 'Employee') {
+        query.status = { $ne: 'Pending' };
+      }
     }
 
     // Optional dynamic filters

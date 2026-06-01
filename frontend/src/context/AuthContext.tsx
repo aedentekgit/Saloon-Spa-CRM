@@ -67,8 +67,11 @@ const parseResponseBody = async (response: Response) => {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Use a unique storage key for staging to prevent token collision with live
+  const storageKey = API_URL.includes('staging_saloon_spa_crm') ? 'zen_spa_user_staging' : 'zen_spa_user';
+
   const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('zen_spa_user');
+    const savedUser = localStorage.getItem(storageKey);
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
@@ -77,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error('Failed to parse saved user:', error);
-        localStorage.removeItem('zen_spa_user');
+        localStorage.removeItem(storageKey);
       }
     }
     return null;
@@ -105,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const userData = normalizeAuthUser(data);
         setUser(userData);
-        localStorage.setItem('zen_spa_user', JSON.stringify(userData));
+        localStorage.setItem(storageKey, JSON.stringify(userData));
         return {
           success: true,
           redirectPath: getInitialRouteForUser(userData.role, userData.permissions)
@@ -123,18 +126,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('zen_')) {
-        localStorage.removeItem(key);
-      }
-    });
+    localStorage.removeItem(storageKey);
+    // Don't clear all zen_ keys, as they might belong to the other environment (live/staging)
   };
 
   const updateUser = (userData: Partial<User>) => {
     setUser(prev => {
       if (!prev) return null;
       const updated = { ...prev, ...userData };
-      localStorage.setItem('zen_spa_user', JSON.stringify(updated));
+      localStorage.setItem(storageKey, JSON.stringify(updated));
       return updated;
     });
   };

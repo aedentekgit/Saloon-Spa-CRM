@@ -67,7 +67,14 @@ const MembershipTiers = React.lazy(() => import('./pages/landing/MembershipTiers
 
 import { ZenLoadingBarrier } from './components/zen/ZenLoading';
 import { useData } from './context/DataContext';
-import { getInitialRouteForUser, getRoutePermissions, isAuthenticatedOnlyRoute } from './config/accessControl';
+import {
+  getAttendanceRouteForRole,
+  getInitialRouteForUser,
+  getRoutePermissions,
+  isAdminAttendanceRoute,
+  isAuthenticatedOnlyRoute,
+  isStaffAttendanceRoute
+} from './config/accessControl';
 
 const Layout = () => {
   const { user, loading: authLoading } = useAuth();
@@ -171,6 +178,14 @@ const ProtectedPage = ({ children }: { children: React.ReactElement }) => {
   const { hasPermission, user } = useAuth();
   const location = useLocation();
   const required = getRoutePermissions(location.pathname);
+
+  if (isAdminAttendanceRoute(location.pathname) && user?.role !== 'Admin') {
+    return <Navigate to={hasPermission('attendance') ? '/staff-attendance' : getInitialRouteForUser(user?.role, user?.permissions)} replace />;
+  }
+
+  if (isStaffAttendanceRoute(location.pathname) && user?.role === 'Admin') {
+    return <Navigate to={getAttendanceRouteForRole(user.role)} replace />;
+  }
 
   if (isAuthenticatedOnlyRoute(location.pathname)) {
     return children;

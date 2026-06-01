@@ -32,7 +32,7 @@ const branchSchema = new mongoose.Schema({
   allowedIPs: [{ type: String }],
   restrictionMode: {
     type: String,
-    enum: ['geofence', 'ip', 'none'],
+    enum: ['geofence', 'ip'],
     default: 'geofence'
   }
 }, {

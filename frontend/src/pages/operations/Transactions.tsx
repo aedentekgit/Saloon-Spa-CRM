@@ -342,7 +342,7 @@ const Transactions = () => {
     const b = branches.find(br => br._id === globalBranchId);
     return b?.name || 'All';
   });
-  const [dateRange, setDateRange] = useState<any>('All');
+  const [dateRange, setDateRange] = useState<any>('Today');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -603,7 +603,13 @@ const Transactions = () => {
           <ZenMasterCalendar
             label="Date Range"
             value={dateRange}
-            onChange={(value: any) => setDateRange(value)}
+            onChange={(value: any) => {
+              if (!value || (typeof value === 'object' && !value.from && !value.to)) {
+                setDateRange('Today');
+                return;
+              }
+              setDateRange(value);
+            }}
             selectionType="range"
             variant="pill"
             className="w-[180px]"
@@ -616,6 +622,7 @@ const Transactions = () => {
             options={branchOptions}
             className="w-[150px]"
             hideLabel
+            variant="pill"
             disabled={user?.role !== 'Admin'}
           />
           <ExportPopup<Transaction>

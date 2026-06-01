@@ -191,6 +191,7 @@ const createFixtures = async () => {
     user: managerB._id,
     title: `${FIXTURE_TAG}_Expense_B`,
     category: 'Marketing',
+    sectorCategory: 'Marketing',
     amount: 777,
     date: today,
     branch: branchB._id

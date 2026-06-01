@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { GoogleMap, MarkerF, CircleF, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, CircleF } from '@react-google-maps/api';
 import { useMaps } from '../../context/MapsContext';
 import { useSettings } from '../../context/SettingsContext';
 import { MapPinOff, Loader2, Search } from 'lucide-react';
@@ -9,23 +9,6 @@ const mapContainerStyle = {
   height: '100%',
   borderRadius: '1.5rem',
 };
-
-// Premium Zen-themed Map Styles (Dark/Plum tones)
-const zenMapStyles = [
-  { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#7c93a3" }, { "lightness": "-10" }] },
-  { "featureType": "all", "elementType": "labels.text.stroke", "stylers": [{ "visibility": "on" }, { "color": "#2D1622" }, { "lightness": 16 }] },
-  { "featureType": "all", "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
-  { "featureType": "administrative", "elementType": "geometry.fill", "stylers": [{ "color": "#2D1622" }, { "lightness": 20 }] },
-  { "featureType": "administrative", "elementType": "geometry.stroke", "stylers": [{ "color": "#2D1622" }, { "lightness": 17 }, { "weight": 1.2 }] },
-  { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#2D1622" }, { "lightness": 20 }] },
-  { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#2D1622" }, { "lightness": 21 }] },
-  { "featureType": "road.highway", "elementType": "geometry.fill", "stylers": [{ "color": "#2D1622" }, { "lightness": 17 }] },
-  { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#2D1622" }, { "lightness": 29 }, { "weight": 0.2 }] },
-  { "featureType": "road.arterial", "elementType": "geometry", "stylers": [{ "color": "#2D1622" }, { "lightness": 18 }] },
-  { "featureType": "road.local", "elementType": "geometry", "stylers": [{ "color": "#2D1622" }, { "lightness": 16 }] },
-  { "featureType": "transit", "elementType": "geometry", "stylers": [{ "color": "#2D1622" }, { "lightness": 19 }] },
-  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#2D1622" }, { "lightness": 17 }] }
-];
 
 interface ZenMapProps {
   center: { lat: number; lng: number };
@@ -47,7 +30,7 @@ export const ZenMap: React.FC<ZenMapProps> = ({
   className = ""
 }) => {
   const { settings } = useSettings();
-  const { isLoaded, loadError } = useMaps();
+  const { isLoaded, loadError, statusMessage } = useMaps();
   const enabled = settings?.maps?.enabled;
   const apiKey = settings?.maps?.googleMapsApiKey;
 
@@ -165,7 +148,7 @@ export const ZenMap: React.FC<ZenMapProps> = ({
         </div>
         <h4 className="text-sm font-bold text-red-500/60 uppercase tracking-widest">Connection Failed</h4>
         <p className="text-[10px] text-zen-brown/40 mt-2 max-w-[200px] leading-relaxed font-bold uppercase tracking-widest">
-          The map script could not be summoned. Verify your API key and internet connectivity.
+          {statusMessage || loadError.message || 'Google Maps could not load. Verify your API key, enabled APIs, billing, and domain restrictions.'}
         </p>
       </div>
     );
@@ -231,7 +214,6 @@ export const ZenMap: React.FC<ZenMapProps> = ({
         onUnmount={onUnmount}
         onClick={handleMapClick}
         options={{
-          styles: zenMapStyles,
           disableDefaultUI: !interactive,
           zoomControl: interactive,
           streetViewControl: false,
@@ -268,14 +250,6 @@ export const ZenMap: React.FC<ZenMapProps> = ({
           />
         )}
       </GoogleMap>
-      
-      {interactive && (
-        <div className="absolute bottom-4 left-4 right-4 bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl border border-zen-brown/10 shadow-lg pointer-events-none text-center">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zen-brown/60">
-            Search location above or drag marker to refine
-          </p>
-        </div>
-      )}
     </div>
   );
 };

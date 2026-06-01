@@ -185,6 +185,18 @@ export const getRoutePermissions = (pathname: string): PermissionId[] | null => 
   return matched ? ROUTE_PERMISSION_MAP[matched] : null;
 };
 
+export const getAttendanceRouteForRole = (role: string | undefined) => (
+  role === 'Admin' ? '/attendance' : '/staff-attendance'
+);
+
+export const isAdminAttendanceRoute = (pathname: string) => (
+  normalizePath(pathname) === '/attendance'
+);
+
+export const isStaffAttendanceRoute = (pathname: string) => (
+  normalizePath(pathname) === '/staff-attendance'
+);
+
 export const getEffectivePermissions = (
   role?: string,
   permissions?: string[]
@@ -192,9 +204,18 @@ export const getEffectivePermissions = (
   if (role === 'Admin') return ['*'];
 
   const normalized = (permissions || []).filter(Boolean) as PermissionId[];
+  const roleDefaults = DEFAULT_ROLE_PERMISSIONS[role as UserRole] || [];
+
+  // For Manager role: always merge DB permissions with role defaults
+  // so a partial DB permissions array never removes core Manager access
+  if (role === 'Manager') {
+    const merged = Array.from(new Set([...roleDefaults, ...normalized]));
+    return merged as PermissionId[];
+  }
+
   if (normalized.length > 0) return normalized;
 
-  return DEFAULT_ROLE_PERMISSIONS[role as UserRole] || [];
+  return roleDefaults;
 };
 
 export const hasPermissionForRole = (
@@ -215,6 +236,10 @@ export const getInitialRouteForUser = (
   role: string | undefined,
   permissions: string[] | undefined
 ) => {
+  if (hasPermissionForRole(role, permissions, 'attendance')) {
+    return getAttendanceRouteForRole(role);
+  }
+
   const routeOrder = role === 'Client'
     ? CLIENT_ROUTE_ORDER
     : role === 'Employee'

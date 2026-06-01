@@ -34,7 +34,7 @@ interface Branch {
   lng?: number;
   radius?: number;
   allowedIPs?: string[];
-  restrictionMode?: 'geofence' | 'ip' | 'none';
+  restrictionMode?: 'geofence' | 'ip';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -179,7 +179,7 @@ const Branches = () => {
         lng: branch.lng || 0,
         radius: branch.radius || 100,
         allowedIPs: Array.isArray(branch.allowedIPs) ? branch.allowedIPs.join(', ') : '',
-        restrictionMode: branch.restrictionMode || 'geofence'
+        restrictionMode: branch.restrictionMode === 'ip' ? 'ip' : 'geofence'
       });
     } else {
       setEditingBranch(null);
@@ -226,8 +226,6 @@ const Branches = () => {
       } else if (formData.restrictionMode === 'ip') {
         const ipsArray = formData.allowedIPs.toString().split(',').map(ip => ip.trim()).filter(ip => ip);
         data.append('allowedIPs', JSON.stringify(ipsArray));
-      } else {
-        data.append('allowedIPs', JSON.stringify([]));
       }
 
       if (logoFile) data.append('logo', logoFile);
@@ -709,8 +707,7 @@ const Branches = () => {
             <div className="flex items-center gap-2 p-1 bg-zen-cream/50 rounded-2xl border border-zen-brown/10 mb-8 max-w-fit">
               {[
                 { id: 'geofence', label: 'Geofencing', icon: MapPin },
-                { id: 'ip', label: 'IP Access', icon: Globe },
-                { id: 'none', label: 'Open Access', icon: X }
+                { id: 'ip', label: 'IP Access', icon: Globe }
               ].map((mode) => (
                 <button
                   key={mode.id}
@@ -731,26 +728,6 @@ const Branches = () => {
             <AnimatePresence mode="wait">
               <div className="grid gap-8 lg:grid-cols-2">
                 <div className="space-y-6">
-                  <ZenInput
-                    label="Geofence Radius (meters)"
-                    type="number"
-                    value={formData.radius}
-                    onChange={(e: any) => setFormData({ ...formData, radius: parseInt(e.target.value) })}
-                  />
-
-                  {formData.restrictionMode === 'geofence' && (
-                    <motion.div
-                      key="geofence-info"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                    >
-                      <p className="text-[10px] text-zen-brown/35 mt-1 ml-1 tracking-[0.25em] uppercase leading-relaxed">
-                        Security active. Employees can only clock in within this radius of the branch center.
-                      </p>
-                    </motion.div>
-                  )}
-
                   {formData.restrictionMode === 'ip' && (
                     <motion.div
                       key="ip-input"
@@ -771,31 +748,35 @@ const Branches = () => {
                     </motion.div>
                   )}
 
-                  {formData.restrictionMode === 'none' && (
-                    <motion.div
-                      key="none-input"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="p-8 rounded-3xl bg-zen-sand/5 border border-zen-sand/20 text-center"
-                    >
-                      <div className="w-12 h-12 bg-zen-sand/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <Globe className="text-zen-sand" size={24} />
-                      </div>
-                      <h5 className="text-sm font-serif font-bold text-zen-brown mb-2">Unrestricted Access Mode</h5>
-                      <p className="text-[10px] text-zen-brown/50 leading-relaxed uppercase tracking-widest">
-                        Employees will be able to clock in from any location and any network.
-                        Security geofencing and IP validation are currently disabled.
-                      </p>
-                    </motion.div>
-                  )}
+                  <motion.div
+                    key="geofence-radius"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                  >
+                    <ZenInput
+                      label="Geofence Radius (meters)"
+                      type="number"
+                      min="1"
+                      value={formData.radius}
+                      onChange={(e: any) => {
+                        const radius = parseInt(e.target.value, 10);
+                        setFormData({ ...formData, radius: Number.isNaN(radius) ? 0 : radius });
+                      }}
+                    />
+                    <p className="text-[10px] text-zen-brown/35 mt-1 ml-1 tracking-[0.25em] uppercase leading-relaxed">
+                      {formData.restrictionMode === 'geofence'
+                        ? 'Security active. Employees can only clock in within this radius of the branch center.'
+                        : 'Saved for geofencing. IP access uses authorized network addresses instead.'}
+                    </p>
+                  </motion.div>
                 </div>
 
                 <div className="h-[300px] lg:h-full min-h-[300px]">
                   <div className="h-full">
                     <ZenMap
                       center={{ lat: formData.lat, lng: formData.lng }}
-                      radius={formData.radius}
+                      radius={formData.restrictionMode === 'geofence' ? formData.radius : undefined}
                       onLocationSelect={(lat, lng) => setFormData({ ...formData, lat, lng })}
                     />
                   </div>

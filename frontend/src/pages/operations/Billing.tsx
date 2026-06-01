@@ -1,7 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
+import isBetween from 'dayjs/plugin/isBetween';
 import {
+  ArrowLeft,
+  Calendar,
   CreditCard,
   Smartphone,
   Wallet,
@@ -16,18 +19,25 @@ import {
   ShoppingBag,
   ArrowRight,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  BarChart3,
+  UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { BranchSelector } from '../../components/zen/BranchSelector';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
-import { ZenDropdown, ZenAutocomplete } from '../../components/zen/ZenInputs';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
+import { ZenDropdown, ZenAutocomplete, ZenMasterCalendar } from '../../components/zen/ZenInputs';
 import { notify } from '../../components/shared/ZenNotification';
 import { useSettings } from '../../context/SettingsContext';
 import { useData } from '../../context/DataContext';
 import { useBranches } from '../../context/BranchContext';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
+
+dayjs.extend(isBetween);
 
 interface Service {
   _id: string;
@@ -81,6 +91,7 @@ interface CompletedAppointment {
   branch?: any;
   addOns?: any[];
   billedInvoiceId?: any;
+  status?: string;
   serviceType?: string;
   membershipId?: any;
   bookingType?: string;
@@ -99,9 +110,29 @@ const normalizeQuantity = (value: any) => {
   return Math.floor(quantity);
 };
 
+const buildDateWindow = (dateRange: any) => {
+  if (!dateRange || dateRange === 'All') return { startDate: '', endDate: '' };
+
+  const now = dayjs();
+  if (typeof dateRange === 'string') {
+    if (dateRange === 'Today') return { startDate: now.format('YYYY-MM-DD'), endDate: now.format('YYYY-MM-DD') };
+    if (dateRange.length === 10) return { startDate: dateRange, endDate: dateRange };
+  }
+
+  if (dateRange.from || dateRange.to) {
+    return {
+      startDate: dateRange.from || dateRange.to || '',
+      endDate: dateRange.to || dateRange.from || ''
+    };
+  }
+
+  return { startDate: '', endDate: '' };
+};
+
 const Billing = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { settings } = useSettings();
   const { invoices, clients: rawClients, services: rawServices, employees: rawEmployees, appointments: rawAppointments, refreshData } = useData();
   const { selectedBranch, setSelectedBranch, branches } = useBranches();
@@ -126,10 +157,13 @@ const Billing = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [originalInvoiceNumber, setOriginalInvoiceNumber] = useState<string | null>(null);
+  const [billingAppointmentId, setBillingAppointmentId] = useState<string>(() => searchParams.get('appointmentId') || '');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('all');
   const [completedAppointments, setCompletedAppointments] = useState<CompletedAppointment[]>([]);
   const [loadingCompletedAppointments, setLoadingCompletedAppointments] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
+  const [queueDateRange, setQueueDateRange] = useState<any>('All');
+  const [queueEmployeeId, setQueueEmployeeId] = useState('all');
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState('Fixed');
   const [paymentMode, setPaymentMode] = useState('Card');
@@ -169,20 +203,63 @@ const Billing = () => {
     // OR the currently selected client (to ensure it stays visible during editing)
     return rawClients.filter((c: any) => {
       if (selectedClient && c._id === selectedClient._id) return true;
-      
+
       const isActive = c.status === 'Active';
       if (!isActive) return false;
 
-      const hasCompleted = completedUnbilledClientKeys.has(c._id?.toLowerCase()) || 
-                           completedUnbilledClientKeys.has(String(c.name || '').trim().toLowerCase());
+      const hasCompleted = completedUnbilledClientKeys.has(c._id?.toLowerCase()) ||
+        completedUnbilledClientKeys.has(String(c.name || '').trim().toLowerCase());
       return hasCompleted;
     });
   }, [rawClients, rawAppointments, billedAppointmentIds, selectedClient]);
+
+  const billingAppointment = useMemo(() => {
+    if (!billingAppointmentId) return null;
+    return (rawAppointments || []).find((apt: any) => getEntityId(apt) === billingAppointmentId) || null;
+  }, [rawAppointments, billingAppointmentId]);
 
   const services = useMemo(() => rawServices.filter((s: any) => s.status === 'Active' && isInBillingBranch(s)), [rawServices, effectiveBranchId]);
   const branchEmployees = useMemo(() => rawEmployees.filter((e: EmployeeRecord) =>
     (!e.status || e.status === 'Active') && isInBillingBranch(e)
   ), [rawEmployees, effectiveBranchId]);
+
+  const billableAppointments = useMemo(() => {
+    return (rawAppointments || [])
+      .filter((apt: CompletedAppointment) => {
+        const appointmentId = getEntityId(apt);
+        if (!appointmentId) return false;
+        if (apt.status !== 'Completed') return false;
+        if (apt.billedInvoiceId || billedAppointmentIds.has(appointmentId)) return false;
+        if (effectiveBranchId && getEntityId(apt.branch) !== effectiveBranchId) return false;
+        return true;
+      })
+      .sort((a: CompletedAppointment, b: CompletedAppointment) => {
+        const aTime = dayjs(`${a.date || ''} ${a.time || '00:00'}`).valueOf();
+        const bTime = dayjs(`${b.date || ''} ${b.time || '00:00'}`).valueOf();
+        return bTime - aTime;
+      });
+  }, [rawAppointments, billedAppointmentIds, effectiveBranchId]);
+
+  const queueDateWindow = useMemo(() => buildDateWindow(queueDateRange), [queueDateRange]);
+
+  const getAppointmentSpecialistId = (appointment: CompletedAppointment) => (
+    getEntityId(appointment.completedByEmployeeId || appointment.employeeId)
+  );
+
+  const filteredBillableAppointments = useMemo(() => {
+    return billableAppointments.filter((appointment) => {
+      if (queueEmployeeId !== 'all' && getAppointmentSpecialistId(appointment) !== queueEmployeeId) {
+        return false;
+      }
+
+      if (queueDateWindow.startDate && queueDateWindow.endDate) {
+        const appointmentDate = dayjs(appointment.date);
+        return appointmentDate.isBetween(dayjs(queueDateWindow.startDate), dayjs(queueDateWindow.endDate), 'day', '[]');
+      }
+
+      return true;
+    });
+  }, [billableAppointments, queueEmployeeId, queueDateWindow]);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -203,14 +280,25 @@ const Billing = () => {
     if (selectedEmployeeId !== 'all' && !branchEmployees.some((employee: EmployeeRecord) => employee._id === selectedEmployeeId)) {
       setSelectedEmployeeId('all');
     }
-  }, [branchEmployees, selectedEmployeeId]);
+    if (queueEmployeeId !== 'all' && !branchEmployees.some((employee: EmployeeRecord) => employee._id === queueEmployeeId)) {
+      setQueueEmployeeId('all');
+    }
+  }, [branchEmployees, selectedEmployeeId, queueEmployeeId]);
 
   useEffect(() => {
-    const { clientId, invoiceId } = location.state || {};
-    
+    const { clientId, invoiceId, appointmentId, branchId, employeeId } = location.state || {};
+    const queryAppointmentId = searchParams.get('appointmentId') || '';
+    const targetAppointmentId = appointmentId || queryAppointmentId;
+
     if (invoiceId) {
       // Prioritize loading the invoice first
       fetchInvoiceDetails(invoiceId);
+    }
+
+    if (targetAppointmentId) {
+      setBillingAppointmentId(targetAppointmentId);
+      if (branchId) setSelectedBranch(branchId);
+      if (employeeId) setSelectedEmployeeId(employeeId);
     }
 
     if (clientId && clientId !== '-' && rawClients.length > 0) {
@@ -225,7 +313,32 @@ const Billing = () => {
       // Clear state to avoid re-triggering on refresh
       window.history.replaceState({}, document.title);
     }
-  }, [location.state, rawClients]);
+  }, [location.state, rawClients, searchParams]);
+
+  useEffect(() => {
+    if (!billingAppointment || selectedClient || editingInvoiceId) return;
+
+    const appointmentClientId = getEntityId(billingAppointment.clientId);
+    const targetClient = rawClients.find((c: any) =>
+      (appointmentClientId && c._id === appointmentClientId) ||
+      String(c.name || '').trim().toLowerCase() === String(billingAppointment.client || '').trim().toLowerCase()
+    );
+
+    if (targetClient) {
+      setSelectedClient(targetClient);
+    } else {
+      setSelectedClient({
+        _id: appointmentClientId,
+        name: billingAppointment.client || billingAppointment.clientId?.name || 'Walk-in Client',
+        phone: billingAppointment.clientPhone || ''
+      });
+    }
+
+    const appointmentBranchId = getEntityId(billingAppointment.branch);
+    const appointmentEmployeeId = getEntityId(billingAppointment.completedByEmployeeId || billingAppointment.employeeId);
+    if (appointmentBranchId) setSelectedBranch(appointmentBranchId);
+    if (appointmentEmployeeId) setSelectedEmployeeId(appointmentEmployeeId);
+  }, [billingAppointment, rawClients, selectedClient, editingInvoiceId]);
 
   const fetchInvoiceDetails = async (invoiceId: string) => {
     try {
@@ -236,33 +349,33 @@ const Billing = () => {
       if (res.ok) {
         const data = await res.json();
         const inv = data.data || data;
-        
+
         setEditingInvoiceId(inv._id);
         setOriginalInvoiceNumber(inv.invoiceNumber);
         setDiscount(inv.discount || 0);
         setPaymentMode(inv.paymentMode || 'Card');
-        
+
         // If client is not set yet (e.g. Walk-in), try to resolve it from the invoice
         if (!selectedClient && inv.clientId) {
-           const invClientId = typeof inv.clientId === 'string' ? inv.clientId : inv.clientId._id;
-           const targetClient = rawClients.find((c: any) => c._id === invClientId);
-           if (targetClient) {
-             setSelectedClient(targetClient);
-             fetchCompletedAppointmentsForClient(targetClient._id);
-           } else {
-             // Fallback to name if ID not in current list
-             setSelectedClient({ _id: invClientId, name: inv.clientName, phone: '' });
-           }
+          const invClientId = typeof inv.clientId === 'string' ? inv.clientId : inv.clientId._id;
+          const targetClient = rawClients.find((c: any) => c._id === invClientId);
+          if (targetClient) {
+            setSelectedClient(targetClient);
+            fetchCompletedAppointmentsForClient(targetClient._id);
+          } else {
+            // Fallback to name if ID not in current list
+            setSelectedClient({ _id: invClientId, name: inv.clientName, phone: '' });
+          }
         } else if (!selectedClient) {
-           // Pure Walk-in
-           setSelectedClient({ _id: '', name: inv.clientName || 'Walk-in Client', phone: '' });
+          // Pure Walk-in
+          setSelectedClient({ _id: '', name: inv.clientName || 'Walk-in Client', phone: '' });
         }
-        
+
         if (inv.branch) {
           const bId = typeof inv.branch === 'string' ? inv.branch : inv.branch._id;
           if (bId) setSelectedBranch(bId);
         }
-        
+
         if (inv.gstName && gstRates.length > 0) {
           const percentage = parseFloat(inv.gstName);
           const rate = gstRates.find(r => r.percentage === percentage);
@@ -295,7 +408,7 @@ const Billing = () => {
           branch: inv.branch,
           isRedeem: item.serviceType === 'MEMBERSHIP' || item.isMembershipCovered
         }));
-        
+
         setInvoiceItems(mappedItems);
       }
     } catch (e) {
@@ -316,7 +429,7 @@ const Billing = () => {
         if (active) setSelectedGSTRate(active);
         else if (rates.length > 0) setSelectedGSTRate(rates[0]);
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const subtotal = useMemo(() => {
@@ -370,6 +483,7 @@ const Billing = () => {
     const appendServiceLine = (appointment: CompletedAppointment, entry: any, index: number) => {
       const appointmentId = getEntityId(appointment);
       if (!appointmentId || billedAppointmentIds.has(appointmentId) || appointment.billedInvoiceId) return;
+      if (billingAppointmentId && appointmentId !== billingAppointmentId) return;
 
       const serviceName = entry.service || entry.name || appointment.service;
       const serviceId = getEntityId(entry.serviceId || appointment.serviceId);
@@ -418,7 +532,7 @@ const Billing = () => {
     });
 
     return rows;
-  }, [completedAppointments, services, billedAppointmentIds, selectedEmployeeId, activeMembership]);
+  }, [completedAppointments, services, billedAppointmentIds, selectedEmployeeId, activeMembership, billingAppointmentId]);
 
   useEffect(() => {
     if (!editingInvoiceId) {
@@ -468,6 +582,89 @@ const Billing = () => {
   const gst = isGstEnabled ? (subtotal * (selectedGSTRate?.percentage || 0) / 100) : 0;
   const discountAmount = discountType === 'Percentage' ? (subtotal * discount / 100) : discount;
   const total = subtotal + gst - discountAmount;
+  const currency = settings?.general.currencySymbol || 'QR';
+
+  const getAppointmentBillableValue = (appointment: CompletedAppointment) => {
+    const serviceByName = new Map<string, any>(services.map((service: any) => [service.name, service]));
+    const serviceById = new Map<string, any>(services.map((service: any) => [getEntityId(service), service]));
+    const valueForEntry = (entry: any, fallbackServiceName?: string, fallbackServiceId?: any, fallbackQuantity?: any) => {
+      const serviceName = entry?.service || entry?.name || fallbackServiceName || '';
+      const serviceId = getEntityId(entry?.serviceId || fallbackServiceId);
+      const service = (serviceId && serviceById.get(serviceId)) || serviceByName.get(serviceName);
+      const quantity = normalizeQuantity(entry?.quantity ?? fallbackQuantity);
+      const price = Number(entry?.price ?? service?.price ?? 0) || 0;
+      return price * quantity;
+    };
+
+    return valueForEntry(appointment, appointment.service, appointment.serviceId, appointment.quantity) +
+      (appointment.addOns || []).reduce((sum, addOn) => sum + valueForEntry(addOn), 0);
+  };
+
+  const billingStats = useMemo(() => {
+    const branchInvoices = invoices.filter((invoice: any) => !effectiveBranchId || getEntityId(invoice.branch) === effectiveBranchId);
+    const todayInvoices = branchInvoices.filter((invoice: any) => dayjs(invoice.date).isSame(dayjs(), 'day'));
+    const readyValue = filteredBillableAppointments.reduce((sum, appointment) => sum + getAppointmentBillableValue(appointment), 0);
+    const collectedValue = branchInvoices.reduce((sum: number, invoice: any) => sum + (Number(invoice.total) || 0), 0);
+
+    return {
+      readyCount: filteredBillableAppointments.length,
+      readyValue,
+      stagedCount: invoiceItems.length,
+      todayCount: todayInvoices.length,
+      displayTotal: billingAppointmentId ? total : collectedValue
+    };
+  }, [invoices, effectiveBranchId, filteredBillableAppointments, services, invoiceItems.length, billingAppointmentId, total]);
+
+  const billingStatCards = [
+    {
+      label: 'Ready Bills',
+      value: billingStats.readyCount.toString(),
+      icon: BarChart3,
+      trend: 'Completed appointments',
+      color: 'text-blue-500',
+      bg: 'bg-blue-500/10',
+      glow: 'bg-blue-500/20',
+      delay: 0
+    },
+    {
+      label: 'Queue Value',
+      value: `${currency} ${billingStats.readyValue.toLocaleString()}`,
+      icon: Clock,
+      trend: 'Awaiting invoice',
+      color: 'text-amber-500',
+      bg: 'bg-amber-500/10',
+      glow: 'bg-amber-500/20',
+      delay: 0.2
+    },
+    {
+      label: 'Staged Items',
+      value: billingStats.stagedCount.toString(),
+      icon: CheckCircle2,
+      trend: billingAppointmentId ? 'Current invoice' : `${billingStats.todayCount} billed today`,
+      color: 'text-purple-500',
+      bg: 'bg-purple-500/10',
+      glow: 'bg-purple-500/20',
+      delay: 0.4
+    },
+    {
+      label: billingAppointmentId ? 'Settlement' : 'Fulfillment',
+      value: `${currency} ${billingStats.displayTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}`,
+      icon: UserCheck,
+      trend: billingAppointmentId ? 'Final total' : 'Collected ledger',
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-500/10',
+      glow: 'bg-emerald-500/20',
+      delay: 0.6
+    }
+  ];
+
+  const renderBillingStats = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 pt-2 pb-8 px-1 sm:px-2">
+      {billingStatCards.map((stat) => (
+        <ZenStatCard key={stat.label} {...stat} />
+      ))}
+    </div>
+  );
 
   const toggleRedeem = (uniqueId: number) => {
     setInvoiceItems(invoiceItems.map(item => {
@@ -482,13 +679,13 @@ const Billing = () => {
         }
 
         const isCurrentlyRedeeming = !item.isRedeem;
-        
+
         // If they are trying to redeem, check if the service is applicable to this plan
         if (isCurrentlyRedeeming) {
           const applicableServices = (activeMembership.plan?.applicableServices || []).map((id: any) => getEntityId(id));
           const serviceId = getEntityId(item.serviceId || item._id);
           const isApplicable = applicableServices.length === 0 || applicableServices.includes(serviceId);
-          
+
           if (!isApplicable) {
             notify('error', 'Service Not Included', `The service "${item.name}" is not covered by the ${activeMembership.plan.name} plan.`);
             return item;
@@ -498,8 +695,8 @@ const Billing = () => {
         const totalRedeemedAlready = invoiceItems.filter(i => i.isRedeem && i.uniqueId !== uniqueId).length;
 
         if (isCurrentlyRedeeming && (totalRedeemedAlready >= activeMembership.remainingSessions)) {
-           notify('error', 'Insufficient Balance', 'Cannot allocate more redemptions than registered balance');
-           return item;
+          notify('error', 'Insufficient Balance', 'Cannot allocate more redemptions than registered balance');
+          return item;
         }
 
         return { ...item, isRedeem: isCurrentlyRedeeming };
@@ -510,6 +707,52 @@ const Billing = () => {
 
   const handleRemoveItem = (uniqueId: number) => {
     setInvoiceItems(invoiceItems.filter(item => item.uniqueId !== uniqueId));
+  };
+
+  const resolveClientForAppointment = (appointment: CompletedAppointment) => {
+    const appointmentClientId = getEntityId(appointment.clientId);
+    return rawClients.find((client: any) =>
+      (appointmentClientId && client._id === appointmentClientId) ||
+      String(client.name || '').trim().toLowerCase() === String(appointment.client || '').trim().toLowerCase()
+    ) || {
+      _id: appointmentClientId,
+      name: appointment.client || appointment.clientId?.name || 'Walk-in Client',
+      phone: appointment.clientId?.phone || ''
+    };
+  };
+
+  const handleStartBilling = (appointment: CompletedAppointment) => {
+    const appointmentId = getEntityId(appointment);
+    if (!appointmentId) return;
+
+    const appointmentBranchId = getEntityId(appointment.branch);
+    const appointmentEmployeeId = getEntityId(appointment.completedByEmployeeId || appointment.employeeId);
+
+    setBillingAppointmentId(appointmentId);
+    setSearchParams({ appointmentId });
+    setEditingInvoiceId(null);
+    setOriginalInvoiceNumber(null);
+    setInvoiceItems([]);
+    setCompletedAppointments([]);
+    setDiscount(0);
+    setPayments(payments.map(p => ({ ...p, amount: 0 })));
+    setPaymentMode('Card');
+    if (appointmentBranchId) setSelectedBranch(appointmentBranchId);
+    if (appointmentEmployeeId) setSelectedEmployeeId(appointmentEmployeeId);
+    setSelectedClient(resolveClientForAppointment(appointment));
+  };
+
+  const handleBackToBillingQueue = () => {
+    setBillingAppointmentId('');
+    setSearchParams({});
+    setSelectedClient(null);
+    setEditingInvoiceId(null);
+    setOriginalInvoiceNumber(null);
+    setCompletedAppointments([]);
+    setInvoiceItems([]);
+    setDiscount(0);
+    setPayments(payments.map(p => ({ ...p, amount: 0 })));
+    setPaymentMode('Card');
   };
 
   const handleConfirmPayment = async () => {
@@ -539,8 +782,8 @@ const Billing = () => {
     }
 
     setLoading(true);
-    const nextNumber = editingInvoiceId && originalInvoiceNumber 
-      ? originalInvoiceNumber 
+    const nextNumber = editingInvoiceId && originalInvoiceNumber
+      ? originalInvoiceNumber
       : `INV-${dayjs().year()}-${String(invoices.length + 1).padStart(3, '0')}`;
 
     const newInvoice = {
@@ -575,7 +818,7 @@ const Billing = () => {
     try {
       const url = editingInvoiceId ? `${API_URL}/invoices/${editingInvoiceId}` : `${API_URL}/invoices`;
       const method = editingInvoiceId ? 'PATCH' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -590,20 +833,20 @@ const Billing = () => {
 
         const redemptions = invoiceItems.filter(item => item.isRedeem);
         if (redemptions.length > 0 && activeMembership) {
-           for (const item of redemptions) {
-              await fetch(`${API_URL}/memberships/${activeMembership._id}/redeem`, {
-                 method: 'POST',
-                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user?.token}`
-                 },
-                 body: JSON.stringify({
-                    serviceId: item._id,
-                    notes: `System Settlement via Invoice ${nextNumber}`,
-                    branchId: newInvoice.branch
-                 })
-              });
-           }
+          for (const item of redemptions) {
+            await fetch(`${API_URL}/memberships/${activeMembership._id}/redeem`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user?.token}`
+              },
+              body: JSON.stringify({
+                serviceId: item._id,
+                notes: `System Settlement via Invoice ${nextNumber}`,
+                branchId: newInvoice.branch
+              })
+            });
+          }
         }
 
         notify('success', 'Billing Updated', editingInvoiceId ? 'Invoice has been harmonized successfully.' : 'Billing records have been synchronized successfully.');
@@ -617,6 +860,8 @@ const Billing = () => {
         setPayments(payments.map(p => ({ ...p, amount: 0 })));
         setPaymentMode('Card');
         refreshData();
+        setBillingAppointmentId('');
+        setSearchParams({});
       } else {
         const errData = await response.json();
         notify('error', 'Settlement Failed', errData.message || 'The terminal encountered an internal sync error.');
@@ -628,18 +873,253 @@ const Billing = () => {
     }
   };
 
+  const billingQueueExportColumns = useMemo<ExportColumn<CompletedAppointment>[]>(
+    () => [
+      { header: 'Appointment ID', accessor: (appointment) => appointment._id || '-' },
+      { header: 'Client', accessor: (appointment) => appointment.client || '-' },
+      { header: 'Service', accessor: (appointment) => appointment.service || '-' },
+      { header: 'Specialist', accessor: (appointment) => appointment.completedByName || appointment.employee || '-' },
+      { header: 'Date', accessor: (appointment) => appointment.date ? dayjs(appointment.date).format('YYYY-MM-DD') : '-' },
+      { header: 'Time', accessor: (appointment) => appointment.time || '-' },
+      { header: 'Branch', accessor: (appointment) => branches.find(branch => branch._id === getEntityId(appointment.branch))?.name || getEntityId(appointment.branch) || '-' },
+      { header: 'Booking Type', accessor: (appointment) => appointment.bookingType || 'Regular' },
+      { header: 'Estimated Value', accessor: (appointment) => getAppointmentBillableValue(appointment).toFixed(2) }
+    ],
+    [branches, services]
+  );
+
+  const renderBillingQueue = (lockedMessage?: string) => {
+    return (
+      <ZenPageLayout
+        title="Billing"
+        hideSearch
+        hideAddButton
+        hideBranchSelector
+        hideViewToggle
+      >
+        <div className="mx-auto max-w-[1600px] space-y-8">
+          {renderBillingStats()}
+
+          <div className="bg-white rounded-2xl border border-zen-brown/15 p-6 shadow-sm">
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zen-brown/30">Ready for invoice</p>
+                <h2 className="mt-2 font-serif text-3xl font-bold text-zen-brown">Completed appointments</h2>
+                <p className="mt-2 text-sm text-zen-brown/45">Choose a completed appointment and create the bill from here.</p>
+              </div>
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap xl:w-auto xl:justify-end">
+                <ZenMasterCalendar
+                  label="Date Range"
+                  value={queueDateRange}
+                  onChange={(value: any) => {
+                    if (!value || (typeof value === 'object' && !value.from && !value.to)) {
+                      setQueueDateRange('All');
+                      return;
+                    }
+                    setQueueDateRange(value);
+                  }}
+                  selectionType="range"
+                  variant="pill"
+                  className="w-full sm:w-[180px]"
+                  hideLabel
+                />
+                <ZenDropdown
+                  label="Specialist"
+                  value={queueEmployeeId}
+                  onChange={setQueueEmployeeId}
+                  options={[
+                    { label: 'All', value: 'all' },
+                    ...branchEmployees.map((employee: EmployeeRecord) => ({ label: employee.name, value: employee._id }))
+                  ]}
+                  variant="pill"
+                  className="w-full sm:w-[180px]"
+                  hideLabel
+                />
+                <ExportPopup<CompletedAppointment>
+                  data={filteredBillableAppointments}
+                  columns={billingQueueExportColumns}
+                  fileName="billing_ready_appointments"
+                  title="Ready Billing Appointments"
+                  triggerLabel="Download"
+                  description="Export the filtered completed appointments waiting for billing."
+                />
+                <div className="w-full sm:w-[260px]">
+                  <BranchSelector variant="pill" className="!w-full shadow-sm" />
+                </div>
+              </div>
+            </div>
+            {lockedMessage && (
+              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-700">
+                {lockedMessage}
+              </div>
+            )}
+          </div>
+
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden">
+            <div className="table-container">
+              <table className="w-full text-center border-collapse min-w-[760px]">
+                <thead>
+                  <tr>
+                    <th>S No</th>
+                    <th>Portrait</th>
+                    <th>Client Identity</th>
+                    <th>Ritual Details</th>
+                    <th>Artisan</th>
+                    <th>Timing</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredBillableAppointments.length > 0 ? filteredBillableAppointments.map((apt: CompletedAppointment, index: number) => (
+                    <tr key={apt._id} className="group">
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <span>{String(index + 1).padStart(2, '0')}</span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <div className="flex justify-center">
+                          <div className="w-10 lg:w-12 h-10 lg:h-12 zen-pointed-surface overflow-hidden bg-zen-cream border-2 border-white shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
+                            <span className="font-serif text-zen-brown uppercase">{(apt.client || 'C').charAt(0)}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <div className="flex flex-col items-center justify-center">
+                          <span className="zen-table-primary">{apt.client}</span>
+                          <span className="text-[9px] font-bold text-zen-sand tracking-widest mt-0.5 opacity-80">ID: {apt._id.slice(-6).toUpperCase()}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <div className="flex flex-col items-center justify-center">
+                          <span className="zen-table-primary">{apt.service}</span>
+                          <div className="flex items-center justify-center gap-1.5 mt-1">
+                            <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">
+                              {branches.find(branch => branch._id === getEntityId(apt.branch))?.name || 'Selected Branch'}
+                            </span>
+                            <span className="w-1 h-1 rounded-full bg-zen-brown/20" />
+                            <span className="text-[8px] font-bold bg-zen-brown/[0.03] text-zen-brown/30 px-1.5 py-0.5 rounded border border-zen-brown/10 uppercase tracking-widest">
+                              {apt.bookingType || 'Regular'}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <div className="flex flex-col items-center justify-center">
+                          <span className="text-[13px] text-zen-brown font-bold">{apt.completedByName || apt.employee}</span>
+                          <span className="text-[9px] text-zen-brown/30 font-bold uppercase tracking-widest mt-0">Specialist</span>
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <div className="flex flex-col items-center justify-center">
+                          <span className="text-[14px] text-zen-brown font-black">{apt.time || '-'}</span>
+                          <span className="text-[10px] text-zen-brown/40 font-bold uppercase tracking-widest mt-0">{dayjs(apt.date).format('DD MMM')}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <div className="flex justify-center">
+                          <ZenBadge variant="leaf">Completed</ZenBadge>
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <div className="flex items-center justify-center">
+                          <ZenButton
+                            size="sm"
+                            variant="primary"
+                            icon={Receipt}
+                            onClick={() => handleStartBilling(apt)}
+                            className="!px-5 !py-2.5 !rounded-xl !text-[9px] !tracking-[0.18em] whitespace-nowrap"
+                          >
+                            Bill Now
+                          </ZenButton>
+                        </div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={8} className="py-32">
+                        <div className="flex flex-col items-center justify-center gap-4 opacity-25">
+                          <Receipt size={64} strokeWidth={0.8} />
+                          <p className="text-lg font-serif italic">No completed appointments are waiting for billing</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </ZenPageLayout>
+    );
+  };
+
+  if (!billingAppointmentId && !editingInvoiceId) {
+    return renderBillingQueue();
+  }
+
+  if (
+    billingAppointment &&
+    !editingInvoiceId &&
+    (billingAppointment.status !== 'Completed' || billingAppointment.billedInvoiceId || billedAppointmentIds.has(getEntityId(billingAppointment)))
+  ) {
+    return renderBillingQueue('That appointment is already billed or no longer ready for invoice creation.');
+  }
+
   return (
     <ZenPageLayout
-      title="Billing Terminal"
+      title="Billing"
       hideSearch
       hideAddButton
       hideBranchSelector={true}
       hideViewToggle
     >
+      <div className="max-w-[1600px] mx-auto">
+        {renderBillingStats()}
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start max-w-[1600px] mx-auto">
 
         {/* Left Column: Input & Selection */}
         <div className="xl:col-span-8 space-y-6">
+
+          {billingAppointment && (
+            <div className="bg-white rounded-2xl border border-zen-brown/15 p-6 shadow-sm">
+              <div className="mb-5 flex flex-col gap-4 border-b border-zen-brown/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  onClick={handleBackToBillingQueue}
+                  className="inline-flex w-fit items-center gap-2 rounded-xl border border-zen-brown/15 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-zen-brown transition-all hover:border-zen-sand/40 hover:bg-zen-sand/10"
+                >
+                  <ArrowLeft size={14} />
+                  Back to billing list
+                </button>
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zen-brown/25">
+                  Invoice workspace
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                <div className="md:col-span-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-zen-brown/30">Billing appointment</p>
+                  <h2 className="mt-2 font-serif text-2xl font-bold text-zen-brown">{billingAppointment.client}</h2>
+                  <p className="mt-1 text-xs font-bold uppercase tracking-widest text-zen-gold">ID: {billingAppointment._id.slice(-6).toUpperCase()}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Calendar size={18} className="text-zen-brown/35" />
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-zen-brown/30">Date</p>
+                    <p className="text-sm font-black text-zen-brown">{dayjs(billingAppointment.date).format('DD MMM YYYY')}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock size={18} className="text-zen-brown/35" />
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-zen-brown/30">Time</p>
+                    <p className="text-sm font-black text-zen-brown">{billingAppointment.time || '-'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Ambassador Selection Section */}
           <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/15 p-10 relative overflow-hidden group">
@@ -651,8 +1131,8 @@ const Billing = () => {
                   <User size={22} strokeWidth={1.5} />
                 </div>
                 <div>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.4em] text-zen-brown/30">Ambassador Selection</h3>
-                  <p className="text-xs text-zen-brown/20 mt-0.5">Link a profile to initiate settlement protocol</p>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.4em] text-zen-brown/30">Client selection</h3>
+                  <p className="text-xs text-zen-brown/30 mt-0.5">Loaded from the completed appointment</p>
                 </div>
               </div>
 
@@ -665,6 +1145,7 @@ const Billing = () => {
                     options={clients.map(c => ({ id: c._id, name: c.name, subtext: c.phone }))}
                     value={selectedClient?._id || selectedClient?.name || ''}
                     onChange={(val) => {
+                      if (billingAppointmentId) return;
                       if (!val || val === 'None') {
                         setSelectedClient(null);
                         return;
@@ -682,7 +1163,7 @@ const Billing = () => {
                           if (isCompleted && !isBilled) {
                             const clientId = getEntityId(apt.clientId || apt.clientId?._id);
                             return clientId?.toLowerCase() === client._id?.toLowerCase() ||
-                                   String(apt.client || '').trim().toLowerCase() === String(client.name || '').trim().toLowerCase();
+                              String(apt.client || '').trim().toLowerCase() === String(client.name || '').trim().toLowerCase();
                           }
                           return false;
                         });
@@ -703,6 +1184,7 @@ const Billing = () => {
                       }
                     }}
                     allowCustom
+                    disabled={Boolean(billingAppointmentId)}
                     className="w-full"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover/input:opacity-100 transition-opacity pointer-events-none">
@@ -748,7 +1230,7 @@ const Billing = () => {
                       <div className="flex items-center gap-2 mt-1">
                         <div className="w-1 h-1 rounded-full bg-zen-gold/40" />
                         <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest">
-                          {branches.find(b => b._id === selectedBranch)?.name || 'All Branches'}
+                          {branches.find(b => b._id === selectedBranch)?.name || 'Selected Branch'}
                         </p>
                       </div>
                       {selectedClient.phone && <p className="text-[10px] font-bold text-zen-gold uppercase tracking-widest mt-1">{selectedClient.phone}</p>}
@@ -894,21 +1376,21 @@ const Billing = () => {
                             <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.2em] text-zen-brown/30">Completed service</p>
                           </td>
                           <td className="px-8 py-6 text-right">
-                             {item.isRedeem ? (
-                               <div className="space-y-1">
-                                 <div className="opacity-35 line-through">
-                                   <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">{settings?.general.currencySymbol || 'QR'}</p>
-                                   <p className="font-serif text-xl font-black text-zen-brown">{((item.originalPrice || 0) * normalizeQuantity(item.quantity)).toLocaleString()}</p>
-                                 </div>
-                                 <p className="text-[9px] font-black text-zen-sand uppercase tracking-[0.2em]">Covered value</p>
-                                 <p className="font-serif text-lg font-black text-zen-sand">0 charged</p>
-                               </div>
-                             ) : (
-                               <div className="transition-all duration-500 opacity-100">
-                                 <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">{settings?.general.currencySymbol || 'QR'}</p>
-                                 <p className="font-serif text-2xl font-black text-zen-brown">{((item.price || 0) * normalizeQuantity(item.quantity)).toLocaleString()}</p>
-                               </div>
-                             )}
+                            {item.isRedeem ? (
+                              <div className="space-y-1">
+                                <div className="opacity-35 line-through">
+                                  <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">{settings?.general.currencySymbol || 'QR'}</p>
+                                  <p className="font-serif text-xl font-black text-zen-brown">{((item.originalPrice || 0) * normalizeQuantity(item.quantity)).toLocaleString()}</p>
+                                </div>
+                                <p className="text-[9px] font-black text-zen-sand uppercase tracking-[0.2em]">Covered value</p>
+                                <p className="font-serif text-lg font-black text-zen-sand">0 charged</p>
+                              </div>
+                            ) : (
+                              <div className="transition-all duration-500 opacity-100">
+                                <p className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest mb-1">{settings?.general.currencySymbol || 'QR'}</p>
+                                <p className="font-serif text-2xl font-black text-zen-brown">{((item.price || 0) * normalizeQuantity(item.quantity)).toLocaleString()}</p>
+                              </div>
+                            )}
                           </td>
                           <td className="px-8 py-6">
                             <div className="flex justify-center">
@@ -1098,8 +1580,8 @@ const Billing = () => {
                     ? 'bg-white border-zen-gold shadow-xl ring-1 ring-zen-gold/10 scale-[1.02]'
                     : 'bg-transparent border-zen-brown/5 hover:border-zen-brown/20'}`}
                 >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-700 ${paymentMode === mode.name 
-                    ? 'bg-zen-gold text-white scale-110 shadow-lg shadow-zen-gold/20' 
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-700 ${paymentMode === mode.name
+                    ? 'bg-zen-gold text-white scale-110 shadow-lg shadow-zen-gold/20'
                     : `${mode.bg} ${mode.border} ${mode.color} group-hover:scale-110 shadow-sm`}`}>
                     <mode.icon size={18} strokeWidth={1.5} />
                   </div>
@@ -1148,10 +1630,10 @@ const Billing = () => {
                   ))}
                   <div className={`p-6 rounded-[1.8rem] border-2 flex items-center justify-between transition-colors duration-500 ${Math.abs(payments.reduce((acc, p) => acc + p.amount, 0) - total) < 0.01 ? 'bg-zen-leaf/5 border-zen-leaf/20 text-zen-leaf' : 'bg-rose-50 border-rose-100 text-rose-500'}`}>
                     <div className="flex items-center gap-3">
-                       <div className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 ${Math.abs(payments.reduce((acc, p) => acc + p.amount, 0) - total) < 0.01 ? 'border-zen-leaf text-zen-leaf' : 'border-rose-300 text-rose-400'}`}>
-                         {Math.abs(payments.reduce((acc, p) => acc + p.amount, 0) - total) < 0.01 ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                       </div>
-                       <span className="text-[10px] font-black uppercase tracking-[0.2em]">Balance Status</span>
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 ${Math.abs(payments.reduce((acc, p) => acc + p.amount, 0) - total) < 0.01 ? 'border-zen-leaf text-zen-leaf' : 'border-rose-300 text-rose-400'}`}>
+                        {Math.abs(payments.reduce((acc, p) => acc + p.amount, 0) - total) < 0.01 ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Balance Status</span>
                     </div>
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-[10px] font-bold opacity-30">{settings?.general.currencySymbol || 'QR'}</span>

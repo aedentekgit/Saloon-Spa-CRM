@@ -23,6 +23,64 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
+const getClientIps = (req) => {
+  const forwarded = String(req.headers['x-forwarded-for'] || '')
+    .split(',')
+    .map(ip => ip.trim())
+    .filter(Boolean);
+  const direct = [req.ip, req.connection?.remoteAddress]
+    .map(ip => String(ip || '').trim())
+    .filter(Boolean);
+
+  return [...new Set([...forwarded, ...direct].map(ip => ip.replace(/^::ffff:/, '')))];
+};
+
+const isLocalDevelopmentRequest = (req) => {
+  if (process.env.NODE_ENV === 'production') return false;
+
+  const host = String(req.headers.host || '').split(':')[0];
+  const clientIps = getClientIps(req);
+
+  return ['localhost', '127.0.0.1', '::1'].includes(host) ||
+    clientIps.some(ip => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip));
+};
+
+const branchAllowsPresence = (branch, req, latitude, longitude) => {
+  if (!branch) return { allowed: true };
+
+  const mode = branch.restrictionMode === 'ip' ? 'ip' : 'geofence';
+  const lat = Number(branch.lat);
+  const lng = Number(branch.lng);
+  const radius = Number(branch.radius);
+  const allowedIPs = Array.isArray(branch.allowedIPs) ? branch.allowedIPs : [];
+  const hasGeofence = Number.isFinite(lat) && Number.isFinite(lng) && radius > 0;
+  const hasIPRestriction = allowedIPs.length > 0;
+
+  if (mode === 'ip') {
+    if (!hasIPRestriction) return { allowed: true };
+
+    const clientIps = getClientIps(req);
+    const ipMatch = allowedIPs.some((allowedIP) =>
+      clientIps.some((clientIP) => clientIP === allowedIP || clientIP.includes(allowedIP))
+    );
+
+    return ipMatch
+      ? { allowed: true }
+      : { allowed: false, message: 'Network Restriction: Please connect to the sanctuary Wi-Fi.' };
+  }
+
+  if (!hasGeofence) return { allowed: true };
+  if (isLocalDevelopmentRequest(req)) return { allowed: true };
+  if (!latitude || !longitude) {
+    return { allowed: false, message: 'Presence Out of Bounds: Please enable location access and try again.' };
+  }
+
+  const distance = calculateDistance(lat, lng, Number(latitude), Number(longitude));
+  return distance <= radius
+    ? { allowed: true }
+    : { allowed: false, message: 'Presence Out of Bounds: Please ensure you are at the sanctuary.' };
+};
+
 // Helper to calculate total minutes from time string (e.g., "10:30 AM")
 const timeToMinutes = (timeStr) => {
   if (!timeStr || timeStr === '--') return 0;
@@ -120,66 +178,19 @@ const checkIn = async (req, res) => {
     const employee = await Employee.findOne({ email: req.user.email }).populate('branch');
     if (!employee) return res.status(404).json({ message: 'Employee profile not found' });
 
-    // 1. Shift Rule: Cannot check in before [Shift Start - 5 mins]
-    if (employee.shift) {
-      const shiftDoc = await Shift.findOne({ name: employee.shift });
-      if (shiftDoc) {
-        const shiftStartMins = timeToMinutes(shiftDoc.startTime);
-        const currentMins = timeToMinutes(time);
-
-        if (currentMins < (shiftStartMins - 5)) {
-          return res.status(400).json({
-            message: `Too Early: Check-in for ${employee.shift} (${shiftDoc.startTime}) only starts at ${minutesToTime(shiftStartMins - 5)}.`
-          });
-        }
-      }
-    }
-
-    // 2. Duplicate Check: No multiple check-ins
+    // 1. Duplicate Check: No multiple check-ins
     let record = await Attendance.findOne({ user: req.user._id, date: date });
     if (record && record.checkIn !== '--') {
       return res.status(400).json({ message: 'Already checked in for today' });
     }
 
-    // 3. Geofence/IP Restriction
-    if (employee.branch) {
-      const { lat, lng, radius, allowedIPs } = employee.branch;
-      const hasGeofence = !!(lat && lng && radius > 0);
-      const hasIPRestriction = !!(allowedIPs && allowedIPs.length > 0);
-
-      let geofenceMatch = true;
-      let ipMatch = true;
-
-      if (hasGeofence) {
-        if (!latitude || !longitude) {
-          geofenceMatch = false;
-        } else {
-          const distance = calculateDistance(lat, lng, latitude, longitude);
-          geofenceMatch = (distance <= radius);
-        }
-      }
-
-      if (hasIPRestriction) {
-        const staffIP = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-        const cleanIP = staffIP.includes('::ffff:') ? staffIP.split('::ffff:')[1] : staffIP;
-
-        console.log('--- CHECK-IN IP DEBUG ---');
-        console.log('Detected IP:', cleanIP);
-        console.log('Allowed IPs:', allowedIPs);
-
-        ipMatch = allowedIPs.some(ip => ip === cleanIP || cleanIP.includes(ip));
-      }
-
-      if (hasGeofence && hasIPRestriction) {
-        if (!geofenceMatch && !ipMatch) return res.status(403).json({ message: 'Presence Denied: Outside boundaries and unauthorized network.' });
-      } else if (hasGeofence && !geofenceMatch) {
-        return res.status(403).json({ message: 'Presence Out of Bounds: Please ensure you are at the sanctuary.' });
-      } else if (hasIPRestriction && !ipMatch) {
-        return res.status(403).json({ message: 'Network Restriction: Please connect to the sanctuary Wi-Fi.' });
-      }
+    // 2. Branch presence restriction
+    if (req.user.role !== 'Admin' && employee.branch) {
+      const presence = branchAllowsPresence(employee.branch, req, latitude, longitude);
+      if (!presence.allowed) return res.status(403).json({ message: presence.message });
     }
 
-    // 4. Create/Update Record
+    // 3. Create/Update Record
     if (!record) {
       record = await Attendance.create({
         user: req.user._id,
@@ -296,48 +307,8 @@ const markAttendance = async (req, res) => {
     const isManualAdminEntry = canManageBranchStaff && targetUserId;
 
     if (!isManualAdminEntry && employee && employee.branch) {
-       const branch = employee.branch;
-       const { lat, lng, radius, allowedIPs } = branch;
-
-       const hasGeofence = !!(lat && lng && radius > 0);
-       const hasIPRestriction = !!(allowedIPs && allowedIPs.length > 0);
-
-       let geofenceMatch = true;
-       let ipMatch = true;
-
-       if (hasGeofence) {
-          const staffLat = req.body.latitude;
-          const staffLng = req.body.longitude;
-          if (!staffLat || !staffLng) {
-             geofenceMatch = false;
-          } else {
-             const distance = calculateDistance(lat, lng, staffLat, staffLng);
-             geofenceMatch = (distance <= radius);
-          }
-       }
-
-       if (hasIPRestriction) {
-          const staffIP = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-          const cleanIP = staffIP.includes('::ffff:') ? staffIP.split('::ffff:')[1] : staffIP;
-
-          // Debug Log: Check your terminal/console to see this!
-          console.log('--- ATTENDANCE IP DEBUG ---');
-          console.log('Detected IP:', cleanIP);
-          console.log('Allowed IPs:', allowedIPs);
-
-          ipMatch = allowedIPs.some(ip => ip === cleanIP || cleanIP.includes(ip));
-       }
-
-       // OR Logic: If both are set, pass if either matches. If only one is set, it must match.
-       if (hasGeofence && hasIPRestriction) {
-          if (!geofenceMatch && !ipMatch) {
-             return res.status(403).json({ message: 'Presence Denied: Outside sanctuary boundaries and unauthorized network.' });
-          }
-       } else if (hasGeofence && !geofenceMatch) {
-          return res.status(403).json({ message: 'Presence Out of Bounds: Please ensure you are at the sanctuary or enable GPS.' });
-       } else if (hasIPRestriction && !ipMatch) {
-          return res.status(403).json({ message: 'Network Restriction: Please connect to the sanctuary Wi-Fi.' });
-       }
+       const presence = branchAllowsPresence(employee.branch, req, req.body.latitude, req.body.longitude);
+       if (!presence.allowed) return res.status(403).json({ message: presence.message });
     }
 
     // Conflict Check: Prevent marking Present/Absent if on Approved Leave

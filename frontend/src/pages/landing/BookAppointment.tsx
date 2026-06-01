@@ -107,6 +107,7 @@ const BookAppointment = () => {
   const userBranchId = getEntityId((user as any)?.branch);
   const isAdminUser = user?.role === 'Admin';
   const branchIsLocked = Boolean(user && !isAdminUser);
+  const [selectedCategory, setSelectedCategory] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -114,10 +115,10 @@ const BookAppointment = () => {
       try {
         const [branchRes, serviceRes, staffRes, shiftRes, roomRes] = await Promise.all([
           fetch(`${API_URL}/branches/public`),
-          fetch(`${API_URL}/services/public`),
-          fetch(`${API_URL}/employees/public`),
+          fetch(`${API_URL}/services/public${formData.branch ? `?branch=${formData.branch}` : ''}`),
+          fetch(`${API_URL}/employees/public${formData.branch ? `?branch=${formData.branch}` : ''}`),
           fetch(`${API_URL}/shifts/public`),
-          fetch(`${API_URL}/rooms/public`)
+          fetch(`${API_URL}/rooms/public${formData.branch ? `?branch=${formData.branch}` : ''}`)
         ]);
 
         const [branchData, serviceData, staffData, shiftData, roomData] = await Promise.all([
@@ -143,6 +144,36 @@ const BookAppointment = () => {
 
     fetchData();
   }, []);
+
+  // Fetch branch-specific services, employees, and rooms when branch changes
+  useEffect(() => {
+    if (!formData.branch) return;
+    setSelectedCategory('');
+
+    const fetchBranchData = async () => {
+      try {
+        const [serviceRes, staffRes, roomRes] = await Promise.all([
+          fetch(`${API_URL}/services/public?branch=${formData.branch}`),
+          fetch(`${API_URL}/employees/public?branch=${formData.branch}`),
+          fetch(`${API_URL}/rooms/public?branch=${formData.branch}`)
+        ]);
+
+        const [serviceData, staffData, roomData] = await Promise.all([
+          serviceRes.json(),
+          staffRes.json(),
+          roomRes.json()
+        ]);
+
+        setServices(Array.isArray(serviceData) ? serviceData : serviceData?.data || []);
+        setStaff(Array.isArray(staffData) ? staffData : staffData?.data || []);
+        setRooms(Array.isArray(roomData) ? roomData : roomData?.data || []);
+      } catch (error) {
+        console.error('Error fetching branch data:', error);
+      }
+    };
+
+    fetchBranchData();
+  }, [formData.branch]);
 
   useEffect(() => {
     if (!formData.branch || !formData.date) return;
@@ -197,6 +228,21 @@ const BookAppointment = () => {
     () => services.filter(service => isInSelectedBranch(service) && (!service.status || service.status === 'Active')),
     [services, formData.branch]
   );
+
+  const serviceCategories = useMemo(() => {
+    const categoriesSet = new Set<string>();
+    filteredServices.forEach(service => {
+      if (service.category) {
+        categoriesSet.add(service.category);
+      }
+    });
+    return Array.from(categoriesSet).sort();
+  }, [filteredServices]);
+
+  const categoryServices = useMemo(() => {
+    if (!selectedCategory) return [];
+    return filteredServices.filter(service => service.category === selectedCategory);
+  }, [filteredServices, selectedCategory]);
 
   const filteredStaff = useMemo(
     () => staff.filter(employee => isInSelectedBranch(employee) && (!employee.status || employee.status === 'Active')),
@@ -288,8 +334,8 @@ const BookAppointment = () => {
   }), { quantity: 0, duration: 0, amount: 0 }), [serviceLineItems]);
 
   const servicePickerOptions = useMemo(
-    () => filteredServices.map(service => service.name).filter(Boolean),
-    [filteredServices]
+    () => categoryServices.map(service => service.name).filter(Boolean),
+    [categoryServices]
   );
 
   const handleAddServiceLine = (serviceName: string) => {
@@ -701,6 +747,7 @@ const BookAppointment = () => {
                       <div className="lg:col-span-7 flex flex-col min-h-0">
                         <div className="flex-1 overflow-y-auto pr-6 pt-4 custom-scrollbar -mr-4 space-y-12 pb-8">
                           {/* Date & Location Group */}
+                          {/* Date, Location, Category, and Service Cascading Dropdowns */}
                           <div className="grid sm:grid-cols-2 gap-10">
                             {/* Date Section */}
                             <div className="space-y-6">
@@ -742,27 +789,48 @@ const BookAppointment = () => {
                                 hideLabel
                               />
                             </div>
-                          </div>
 
-                          {/* Service Addition Section */}
-                          <div className="space-y-6 pt-2">
-                            <div className="space-y-1">
-                              <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-sand">Ritual Selection</p>
-                              <h2 className="text-3xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
-                                Add Your <span className="italic font-normal text-zen-gold">Treatments</span>
-                              </h2>
+                            {/* Service Category Section */}
+                            <div className="space-y-6">
+                              <div className="space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-sand">Service Category</p>
+                                <h2 className="text-3xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
+                                  Select <span className="italic font-normal text-zen-gold">Category</span>
+                                </h2>
+                              </div>
+                              <ZenDropdown
+                                label="Select Category"
+                                options={serviceCategories}
+                                value={selectedCategory}
+                                onChange={(value) => setSelectedCategory(value)}
+                                placeholder={formData.branch ? 'Choose category' : 'Select location first'}
+                                variant="pill"
+                                icon={Sparkles}
+                                disabled={!formData.branch}
+                                hideLabel
+                              />
                             </div>
-                            <ZenDropdown
-                              label="Add Service"
-                              options={servicePickerOptions}
-                              value=""
-                              onChange={handleAddServiceLine}
-                              placeholder={formData.branch ? 'Search and select rituals...' : 'Select location first'}
-                              variant="pill"
-                              disabled={!formData.branch}
-                              icon={Sparkles}
-                              hideLabel
-                            />
+
+                            {/* Ritual Selection Section */}
+                            <div className="space-y-6">
+                              <div className="space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-sand">Ritual Selection</p>
+                                <h2 className="text-3xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
+                                  Add Your <span className="italic font-normal text-zen-gold">Treatments</span>
+                                </h2>
+                              </div>
+                              <ZenDropdown
+                                label="Add Service"
+                                options={servicePickerOptions}
+                                value=""
+                                onChange={handleAddServiceLine}
+                                placeholder={formData.branch ? (selectedCategory ? 'Select treatment...' : 'Select category first') : 'Select location first'}
+                                variant="pill"
+                                disabled={!selectedCategory}
+                                icon={Briefcase}
+                                hideLabel
+                              />
+                            </div>
                           </div>
 
                           {/* Services List */}

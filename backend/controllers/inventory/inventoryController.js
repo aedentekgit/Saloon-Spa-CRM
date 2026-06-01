@@ -93,6 +93,16 @@ const createInventoryItem = async (req, res) => {
       }
     }
 
+    const duplicate = await Inventory.findOne({
+      name: { $regex: new RegExp(`^${name}$`, 'i') },
+      branch: { $in: selectedBranches.map(toObjectIdIfValid) }
+    });
+
+    if (duplicate) {
+      if (req.file) await deleteFile(getStoredFilePath(req.file));
+      return res.status(400).json({ message: 'Already this inventory item was added for that branch.' });
+    }
+
     let image = '';
     if (req.file) {
       image = getStoredFilePath(req.file);
@@ -147,7 +157,21 @@ const updateInventoryItem = async (req, res) => {
       return res.status(403).json({ message: 'Access Denied: You do not have permission to update this inventory item.' });
     }
 
-    item.name = req.body.name || item.name;
+    const newName = req.body.name || item.name;
+    const branchToUpdate = isAdmin && req.body.branch ? req.body.branch : item.branch;
+
+    const duplicate = await Inventory.findOne({
+      _id: { $ne: item._id },
+      name: { $regex: new RegExp(`^${newName}$`, 'i') },
+      branch: toObjectIdIfValid(branchToUpdate)
+    });
+
+    if (duplicate) {
+      if (req.file) await deleteFile(getStoredFilePath(req.file));
+      return res.status(400).json({ message: 'Already this inventory item was added for that branch.' });
+    }
+
+    item.name = newName;
     item.sectorCategory = req.body.sectorCategory || item.sectorCategory;
     item.stock = req.body.stock !== undefined ? req.body.stock : item.stock;
     item.lowStock = req.body.lowStock !== undefined ? req.body.lowStock : item.lowStock;

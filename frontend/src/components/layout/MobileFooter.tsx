@@ -28,6 +28,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { getAttendanceRouteForRole, DEFAULT_ROLE_PERMISSIONS } from '../../config/accessControl';
 
 const MobileFooter: React.FC = () => {
   const { user, hasPermission, logout } = useAuth();
@@ -44,7 +45,7 @@ const MobileFooter: React.FC = () => {
     { name: 'Memberships', icon: Crown, path: '/memberships', permission: ['memberships', 'billing'] },
     { name: 'Rooms', icon: Bed, path: '/rooms', permission: 'rooms' },
     { name: 'Specialists', icon: UserRound, path: '/employees', permission: 'employees' },
-    { name: 'Presence', icon: UserCheck, path: user?.role === 'Employee' ? '/staff-attendance' : '/attendance', permission: 'attendance' },
+    { name: 'Presence', icon: UserCheck, path: getAttendanceRouteForRole(user?.role), permission: 'attendance' },
     { name: 'Shifts', icon: Repeat, path: '/shifts', permission: ['shifts', 'settings'] },
     { name: 'Payroll', icon: TrendingUp, path: '/payroll', permission: ['payroll', 'finance'] },
     { name: 'Leave Matrix', icon: CalendarDays, path: '/leave', permission: 'leave' },
@@ -68,11 +69,19 @@ const MobileFooter: React.FC = () => {
     { name: 'History', icon: Repeat, path: '/transactions', permission: ['history', 'transactions', 'finance'] },
   ];
 
-  const canAccessItem = (permission: string | string[]) => (
-    Array.isArray(permission)
+  const canAccessItem = (permission: string | string[]) => {
+    if (user?.role === 'Admin') return true;
+    // Managers always get full default role access regardless of what's stored in DB
+    if (user?.role === 'Manager') {
+      const managerPerms = DEFAULT_ROLE_PERMISSIONS['Manager'] as string[];
+      return Array.isArray(permission)
+        ? permission.some((perm) => managerPerms.includes(perm) || hasPermission(perm))
+        : managerPerms.includes(permission) || hasPermission(permission);
+    }
+    return Array.isArray(permission)
       ? permission.some((perm) => hasPermission(perm))
-      : hasPermission(permission)
-  );
+      : hasPermission(permission);
+  };
 
   const filteredFooter = (user?.role === 'Client' ? clientFooterItems : footerItems)
     .filter(item => canAccessItem(item.permission));
