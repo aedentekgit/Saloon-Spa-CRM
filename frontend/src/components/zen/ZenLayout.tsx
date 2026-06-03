@@ -48,7 +48,7 @@ export const ZenPageLayout = ({
     const { loading } = useData();
 
     return (
-      <div className="page-container min-h-screen p-3 sm:p-6 lg:p-10 pt-2 sm:pt-6 lg:pt-10 relative">
+      <div className="page-container min-h-screen p-3 sm:p-6 lg:p-10 pt-2 sm:pt-6 lg:pt-10 relative overflow-x-hidden">
 
         {/* Top Loading Progress Bar */}
         <AnimatePresence>
@@ -74,9 +74,9 @@ export const ZenPageLayout = ({
 
         {(!hideSearch || !hideBranchSelector || !hideViewToggle || (!hideAddButton && addButtonLabel) || searchActions || headerActions) && (
           <div className="zen-pointed-surface border border-zen-stone bg-white shadow-none px-5 sm:px-6 py-4 mb-4">
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 sm:gap-5 lg:gap-8">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 sm:gap-5 lg:gap-8 min-w-0">
               {!hideSearch && (
-                <div className={`w-full ${searchMaxWidth} flex items-center gap-4`}>
+                <div className={`w-full ${searchMaxWidth} flex items-center gap-4 min-w-0`}>
                   <div className="relative group flex-1">
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zen-brown/20 group-focus-within:text-zen-sand transition-colors" size={16} />
                     <input
@@ -90,27 +90,27 @@ export const ZenPageLayout = ({
                 </div>
               )}
 
-              <div className={`flex items-center gap-3 sm:gap-5 lg:gap-8 flex-1 shrink-0 flex-wrap lg:flex-nowrap ${!hideSearch ? 'lg:justify-end' : 'justify-start'}`}>
+              <div className={`flex items-stretch sm:items-center gap-3 sm:gap-5 lg:gap-8 flex-1 shrink min-w-0 flex-wrap lg:flex-nowrap ${!hideSearch ? 'lg:justify-end' : 'justify-start'}`}>
               {searchActions && (
-                <div className="flex-1">
+                <div className="flex-1 min-w-[min(100%,14rem)]">
                   {searchActions}
                 </div>
               )}
 
               {!hideBranchSelector && (
-                <div className="flex items-center shrink-0">
+                <div className="flex items-center w-full sm:w-auto shrink-0">
                   <BranchSelector />
                 </div>
               )}
 
               {headerActions && (
-                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 flex-shrink-0">
+                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 flex-shrink-0 flex-wrap">
                   {headerActions}
                 </div>
               )}
 
               {!hideViewToggle && onViewModeChange && (
-                <div className="flex items-center h-[52px] bg-zen-cream/50 p-1 rounded-[1.15rem] border border-zen-stone shadow-inner shrink-0 relative">
+                <div className="flex items-center h-[48px] sm:h-[52px] bg-zen-cream/50 p-1 rounded-[1.15rem] border border-zen-stone shadow-inner shrink-0 relative">
                     <button
                       onClick={() => onViewModeChange('grid')}
                       className={`h-full aspect-square px-4 flex items-center justify-center rounded-xl transition-all duration-500 relative z-10 ${viewMode === 'grid' ? 'bg-zen-brown text-white shadow-md' : 'text-zen-brown/30 hover:text-zen-brown hover:bg-white/50'}`}
@@ -127,10 +127,10 @@ export const ZenPageLayout = ({
               )}
 
               {!hideAddButton && addButtonLabel && onAddClick && (
-                <div className="flex items-center flex-1 lg:flex-none">
+                <div className="flex items-center flex-1 lg:flex-none min-w-[min(100%,12rem)]">
                   <button
                     onClick={onAddClick}
-                    className="w-full lg:w-auto shrink-0 h-[52px] rounded-[1.15rem] px-8 shadow-sm flex items-center justify-center gap-2 active:scale-95 group transition-all duration-700 bg-zen-brown text-white font-black text-[10px] uppercase tracking-[0.2em] relative overflow-hidden whitespace-nowrap"
+                    className="w-full lg:w-auto shrink-0 h-[48px] sm:h-[52px] rounded-[1.15rem] px-5 sm:px-8 shadow-sm flex items-center justify-center gap-2 active:scale-95 group transition-all duration-700 bg-zen-brown text-white font-black text-[10px] uppercase tracking-[0.16em] sm:tracking-[0.2em] relative overflow-hidden whitespace-nowrap"
                   >
                     <div className="absolute inset-0 bg-gradient-to-tr from-zen-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                     <span className="relative z-10">{addButtonLabel}</span>
@@ -145,7 +145,7 @@ export const ZenPageLayout = ({
         </div>
       )}
 
-      <main className="pb-8">
+      <main className="pb-8 min-w-0">
         {children}
       </main>
 

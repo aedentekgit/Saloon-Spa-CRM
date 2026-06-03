@@ -249,18 +249,24 @@ const LandingServices = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-12 gap-y-20">
                <AnimatePresence mode="popLayout">
                  {filteredServices.map((service, idx) => {
-                   const imgUrl = getImageUrl(service.image);
-                   return (
-                     <motion.div
-                       key={service._id}
-                       layout
-                       initial={{ opacity: 0, y: 20 }}
-                       animate={{ opacity: 1, y: 0 }}
-                       exit={{ opacity: 0, scale: 0.95 }}
-                       transition={{ duration: 0.5, delay: idx * 0.03 }}
-                       className="group"
-                     >
-                       <Link to="/book" className="block space-y-6">
+                    const imgUrl = getImageUrl(service.image);
+                    const branchIdVal = selectedBranch !== 'all' 
+                      ? selectedBranch 
+                      : (service.branch 
+                          ? (typeof service.branch === 'object' ? service.branch?._id : service.branch) 
+                          : '');
+                    const bookingUrl = `/book?serviceId=${service._id}&serviceName=${encodeURIComponent(service.name)}${branchIdVal ? `&branchId=${branchIdVal}` : ''}`;
+                    return (
+                      <motion.div
+                        key={service._id}
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.5, delay: idx * 0.03 }}
+                        className="group"
+                      >
+                        <Link to={bookingUrl} className="block space-y-6">
                           <div className="relative aspect-[3/2] overflow-hidden rounded-[2.5rem] bg-zen-stone/5 group-hover:shadow-2xl transition-all duration-700">
                              <img 
                                 src={imgUrl || `https://images.unsplash.com/photo-1544161515-4ae6ce6fe858?auto=format&fit=crop&q=80&service=${service._id}`}

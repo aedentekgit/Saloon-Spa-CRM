@@ -8,7 +8,7 @@ const PublicLayout = ({ children }: { children: React.ReactNode }) => {
     <PublicSettingsProvider>
       <div className="min-h-screen bg-zen-cream font-sans selection:bg-zen-sand selection:text-white">
         <PublicNavbar />
-        <main className="animate-in fade-in duration-700 pt-20">
+        <main className="public-content animate-in fade-in duration-700 pt-16 sm:pt-20">
           {children}
         </main>
         <PublicFooter />

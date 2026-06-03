@@ -91,7 +91,7 @@ exports.getPublicEmployees = async (req, res) => {
     const query = { status: 'Active' };
     if (req.query.branch) query.branch = toObjectIdIfValid(req.query.branch);
     const employees = await Employee.find(query)
-      .select('name role shift branch services status')
+      .select('name role profilePic shift branch services status')
       .populate('branch', 'name _id')
       .sort({ name: 1 });
     res.json(employees);

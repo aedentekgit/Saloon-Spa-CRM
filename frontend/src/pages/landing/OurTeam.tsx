@@ -81,6 +81,47 @@ const TeamCardSkeleton = () => (
   </div>
 );
 
+const TeamPortrait = ({
+  src,
+  fallback,
+  name,
+}: {
+  src: string;
+  fallback: string;
+  name: string;
+}) => {
+  const initials = getInitials(name);
+  const [imageSrc, setImageSrc] = useState(src || fallback);
+
+  useEffect(() => {
+    setImageSrc(src || fallback);
+  }, [src, fallback]);
+
+  return (
+    <>
+      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white via-zen-sand/10 to-lavender-100/40">
+        <span className="text-5xl font-serif font-bold text-zen-primary/20">{initials}</span>
+      </div>
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt={name}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="relative z-10 h-full w-full object-cover transition-all duration-1000 scale-105 group-hover:scale-110"
+          onError={() => {
+            if (imageSrc !== fallback) {
+              setImageSrc(fallback);
+            } else {
+              setImageSrc('');
+            }
+          }}
+        />
+      ) : null}
+    </>
+  );
+};
+
 const OurTeam = () => {
   const { settings } = usePublicSettings();
   const siteName = settings.general.siteName;
@@ -299,8 +340,6 @@ const OurTeam = () => {
                 {filteredEmployees.map((staff, idx) => {
                   const branchName = getBranchName(staff.branch);
                   const picUrl = getImageUrl(staff.profilePic);
-                  const initials = getInitials(staff.name);
-
                   const fallbackPortrait = DUMMY_PORTRAITS[idx % DUMMY_PORTRAITS.length] + '?q=80&w=800&auto=format&fit=crop&crop=faces&facepad=2';
 
                   return (
@@ -315,18 +354,7 @@ const OurTeam = () => {
                     >
                       {/* Boutique Image Container */}
                       <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[2.5rem] bg-zen-stone/5 border border-zen-stone/10 transition-all duration-700 group-hover:shadow-none">
-                        <img
-                          src={picUrl || fallbackPortrait}
-                          alt={staff.name}
-                          className="h-full w-full object-cover transition-all duration-1000 scale-105 group-hover:scale-110"
-                          onError={(e) => {
-                             const target = e.currentTarget as HTMLImageElement;
-                             // Prevent infinite loop if fallback also fails
-                             if (target.src !== fallbackPortrait) {
-                                target.src = fallbackPortrait;
-                             }
-                          }}
-                        />
+                        <TeamPortrait src={picUrl} fallback={fallbackPortrait} name={staff.name} />
 
                         {/* Elegant Minimal Overlay */}
                         <div className="absolute inset-0 bg-gradient-to-t from-zen-brown/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />

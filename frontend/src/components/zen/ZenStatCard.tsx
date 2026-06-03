@@ -28,7 +28,7 @@ export const ZenStatCard: React.FC<ZenStatCardProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full sm:w-[280px] lg:w-full shrink-0 bg-white p-6 sm:p-8 rounded-[2.5rem] border border-zen-stone shadow-none relative group transition-all duration-700 hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] hover:border-zen-sand/30 overflow-hidden"
+      className="w-full bg-white p-6 sm:p-8 rounded-[2.5rem] border border-zen-stone shadow-none relative group transition-all duration-700 hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] hover:border-zen-sand/30 overflow-hidden"
     >
       {/* Premium Glassmorphic Overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />

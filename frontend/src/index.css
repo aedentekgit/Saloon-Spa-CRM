@@ -11,7 +11,7 @@
   --color-zen-brown: var(--zen-brown, #2B2440);
   --color-zen-primary: var(--zen-primary, #6D28D9);
   --color-zen-sand: var(--zen-sand, #8B5CF6);
-  --color-zen-gold: #C5A358;
+  --color-zen-gold: var(--zen-primary, #C5A358);
   --color-zen-leaf: #10B981;
   --color-zen-stone: #E8ECF5;
   --color-zen-contrast: #FFFFFF;
@@ -228,18 +228,47 @@
 
   /* Metrics Grid - Proper Responsive Handling */
   .zen-metrics-grid {
-    @apply flex overflow-x-auto overflow-y-visible pt-2 sm:pt-4 pb-4 gap-4 sm:gap-6 px-4 lg:px-2;
-    -ms-overflow-style: none !important;
-    scrollbar-width: none !important;
-  }
-  .zen-metrics-grid::-webkit-scrollbar {
-    display: none !important;
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 px-4 lg:px-2 pt-2 sm:pt-4 pb-4;
   }
 
-  @media (min-width: 1024px) {
-    .zen-metrics-grid {
-      @apply grid grid-cols-4 gap-8 lg:overflow-visible overflow-x-visible;
-    }
+  .public-page-shell {
+    @apply w-full overflow-x-hidden px-4 sm:px-6 lg:px-8;
+  }
+
+  .public-section {
+    @apply mx-auto w-full max-w-[1400px];
+  }
+
+  .booking-step-panel {
+    @apply flex-1 backdrop-blur-xl bg-white/70 rounded-[1.25rem] sm:rounded-[2rem] lg:rounded-[3rem] px-4 sm:px-8 lg:px-16 pt-6 sm:pt-12 lg:pt-20 pb-6 sm:pb-10 lg:pb-16 border border-white/80 shadow-[0_24px_60px_-24px_rgba(43,36,64,0.12)] relative overflow-hidden flex flex-col lg:min-h-0;
+  }
+
+  .booking-step-header {
+    @apply flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 sm:gap-8 mb-7 sm:mb-10 shrink-0 relative z-20;
+  }
+
+  .booking-eyebrow {
+    @apply flex items-center gap-3 text-[9px] sm:text-[10px] font-bold tracking-[0.24em] sm:tracking-[0.35em] uppercase text-zen-brown/60;
+  }
+
+  .booking-title {
+    @apply text-3xl sm:text-4xl lg:text-6xl font-serif font-bold text-zen-brown tracking-tight leading-[1.02];
+  }
+
+  .booking-progress {
+    @apply flex w-full sm:w-auto items-center justify-between sm:justify-start gap-1.5 sm:gap-3 bg-zen-cream/70 p-1.5 sm:p-2 rounded-2xl border border-zen-stone/60 overflow-x-auto;
+  }
+
+  .booking-progress-item {
+    @apply flex items-center gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all shrink-0;
+  }
+
+  .booking-section-title {
+    @apply text-2xl sm:text-3xl font-serif font-bold leading-tight text-zen-brown tracking-tight;
+  }
+
+  .booking-action-button {
+    @apply w-full bg-zen-brown text-white rounded-2xl border-none text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] sm:tracking-[0.3em] overflow-hidden relative;
   }
 
   @media (min-width: 1440px) {
@@ -268,6 +297,136 @@
   .zen-pointed-surface,
   .zen-card-hover {
     border-radius: 1.25rem;
+  }
+
+  .booking-step-panel {
+    box-shadow: 0 18px 44px -28px rgba(43, 36, 64, 0.28);
+  }
+
+  .booking-step-panel h1,
+  .booking-step-panel h2,
+  .booking-step-panel h3,
+  .booking-step-panel h4,
+  .booking-step-panel p,
+  .booking-step-panel span,
+  .booking-step-panel button {
+    overflow-wrap: anywhere;
+  }
+
+  .public-content {
+    overflow-x: hidden;
+  }
+
+  .public-content header,
+  .public-content section {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .public-content header {
+    padding-top: 2rem !important;
+    padding-bottom: 3.5rem !important;
+  }
+
+  .public-content section {
+    padding-top: 3.5rem !important;
+    padding-bottom: 3.5rem !important;
+  }
+
+  .public-content h1 {
+    font-size: clamp(2.75rem, 13vw, 3.75rem) !important;
+    line-height: 0.98 !important;
+  }
+
+  .public-content h2 {
+    font-size: clamp(2rem, 9vw, 2.65rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  .public-content h3,
+  .public-content h4 {
+    font-size: clamp(1.55rem, 7vw, 2rem) !important;
+    line-height: 1.15 !important;
+  }
+
+  .public-content p {
+    max-width: 100%;
+  }
+
+  .public-content [class*="tracking-[0.4em]"],
+  .public-content [class*="tracking-[0.5em]"] {
+    letter-spacing: 0.18em !important;
+  }
+
+  .public-content [class*="rounded-[4rem]"],
+  .public-content [class*="rounded-[5rem]"] {
+    border-radius: 1.5rem !important;
+  }
+
+  .public-content [class*="py-40"],
+  .public-content [class*="py-32"],
+  .public-content [class*="py-24"] {
+    padding-top: 3.5rem !important;
+    padding-bottom: 3.5rem !important;
+  }
+
+  .public-content [class*="pb-32"],
+  .public-content [class*="pb-24"] {
+    padding-bottom: 3.5rem !important;
+  }
+
+  .public-content [class*="pt-32"],
+  .public-content [class*="pt-24"] {
+    padding-top: 2rem !important;
+  }
+
+  .public-content [class*="gap-20"],
+  .public-content [class*="gap-32"] {
+    gap: 2.5rem !important;
+  }
+
+  .page-container {
+    overflow-x: hidden;
+  }
+
+  .page-container h1 {
+    font-size: clamp(2rem, 9vw, 2.75rem) !important;
+    line-height: 1.05 !important;
+  }
+
+  .page-container h2 {
+    font-size: clamp(1.75rem, 8vw, 2.25rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  .page-container h3,
+  .page-container h4 {
+    font-size: clamp(1.25rem, 6vw, 1.75rem) !important;
+    line-height: 1.15 !important;
+  }
+
+  .page-container [class*="tracking-[0.4em]"],
+  .page-container [class*="tracking-[0.5em]"] {
+    letter-spacing: 0.18em !important;
+  }
+
+  .page-container [class*="rounded-[3.5rem]"],
+  .page-container [class*="rounded-[4rem]"] {
+    border-radius: 1.5rem !important;
+  }
+
+  .page-container [class*="p-12"],
+  .page-container [class*="p-10"] {
+    padding: 1.25rem !important;
+  }
+
+  .page-container [class*="py-40"] {
+    padding-top: 3.5rem !important;
+    padding-bottom: 3.5rem !important;
+  }
+
+  .page-container [class*="gap-10"] {
+    gap: 1.5rem !important;
   }
 
   .table-container table {
@@ -428,7 +587,7 @@
   }
 
   table tbody td {
-    @apply py-4 px-8 text-[14px] text-black/70 font-medium align-middle text-center;
+    @apply py-4 px-4 sm:px-8 text-[14px] text-black/70 font-medium align-middle text-center;
   }
 
   .zen-table-primary {

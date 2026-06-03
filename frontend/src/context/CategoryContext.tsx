@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
 import { getCachedJson, setCachedJson } from '../utils/localCache';
+import { subscribeToDataChanges } from '../utils/realtimeSync';
 
 interface Category {
   _id: string;
@@ -127,8 +128,15 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (!shouldPollNow()) return;
         fetchCategories(undefined, true);
       }, getPollIntervalMs(60000)); // default 60s
+      const unsubscribe = subscribeToDataChanges(() => {
+        if (!shouldPollNow()) return;
+        fetchCategories(undefined, true);
+      });
 
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        unsubscribe();
+      };
     }
   }, [user]);
 

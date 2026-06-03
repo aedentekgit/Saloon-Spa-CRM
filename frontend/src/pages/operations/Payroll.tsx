@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Clock, Zap, Wallet2,
-  Download, Search
+  Download, Search, Edit3, Trash2, ShieldCheck, FilePlus2, Save
 } from 'lucide-react';
 import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
@@ -10,11 +10,15 @@ import { ZenPagination } from '../../components/zen/ZenPagination';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import { notify } from '../../components/shared/ZenNotification';
-import { ZenMonthPicker } from '../../components/zen/ZenInputs';
+import { ZenDropdown, ZenInput, ZenMonthPicker, ZenTextarea } from '../../components/zen/ZenInputs';
 import dayjs from 'dayjs';
 import { getCachedJson, setCachedJson } from '../../utils/localCache';
 import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
 import { useBranches } from '../../context/BranchContext';
+import { Modal } from '../../components/shared/Modal';
+import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { subscribeToDataChanges } from '../../utils/realtimeSync';
 
 // Local high-performance debounce utility to avoid external dependency issues
 const debounce = (fn: Function, ms: number) => {
@@ -65,6 +69,11 @@ interface PayrollRecord {
   deduction: number;
   payType: string;
   joiningDate?: string;
+  manualAddition?: number;
+  manualDeduction?: number;
+  finalPay?: number;
+  payoutStatus?: 'Included' | 'Hold' | 'Excluded';
+  notes?: string;
 }
 
 interface PaginationMeta {
@@ -72,6 +81,19 @@ interface PaginationMeta {
   page: number;
   pages: number;
   limit: number;
+}
+
+interface PayrollRun {
+  _id: string;
+  runNumber: string;
+  month: string;
+  monthLabel?: string;
+  branch?: string;
+  branchName?: string;
+  status: 'Draft' | 'Approved' | 'Paid' | 'Voided';
+  approvedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const Payroll = () => {
@@ -85,7 +107,22 @@ const Payroll = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationMeta | null>(() => getCachedJson<PaginationMeta | null>('zen_page_payroll_pagination', null));
-  const [stats, setStats] = useState(() => getCachedJson('zen_page_payroll_stats', { total: 0, ot: 0, deductions: 0, hours: 0 }));
+  const [stats, setStats] = useState(() => getCachedJson('zen_page_payroll_stats', { total: 0, calculatedTotal: 0, additions: 0, deductions: 0, ot: 0, hours: 0, includedCount: 0, holdCount: 0, excludedCount: 0 }));
+  const [payrollRun, setPayrollRun] = useState<PayrollRun | null>(() => getCachedJson<PayrollRun | null>('zen_page_payroll_run', null));
+  const [saving, setSaving] = useState(false);
+  const [editingRow, setEditingRow] = useState<PayrollRecord | null>(null);
+  const [adjustmentForm, setAdjustmentForm] = useState({
+    manualAddition: 0,
+    manualDeduction: 0,
+    payoutStatus: 'Included',
+    notes: ''
+  });
+  const [confirmState, setConfirmState] = useState<{
+    type: 'create' | 'approve' | 'delete';
+    title: string;
+    message: string;
+    confirmText: string;
+  } | null>(null);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
   const PAGE_LIMIT = 10;
@@ -108,10 +145,12 @@ const Payroll = () => {
 
       if (result.data) {
         setPayrollData(result.data);
-        setStats(result.stats || { total: 0, ot: 0, deductions: 0, hours: 0 });
+        setStats(result.stats || { total: 0, calculatedTotal: 0, additions: 0, deductions: 0, ot: 0, hours: 0, includedCount: 0, holdCount: 0, excludedCount: 0 });
+        setPayrollRun(result.run || null);
         setPagination(result.pagination || null);
       } else {
         setPayrollData(Array.isArray(result) ? result : []);
+        setPayrollRun(null);
         setPagination(null);
       }
     } catch (error) {
@@ -124,11 +163,26 @@ const Payroll = () => {
   useEffect(() => setCachedJson('zen_page_payroll_records', payrollData), [payrollData]);
   useEffect(() => setCachedJson('zen_page_payroll_pagination', pagination), [pagination]);
   useEffect(() => setCachedJson('zen_page_payroll_stats', stats), [stats]);
+  useEffect(() => setCachedJson('zen_page_payroll_run', payrollRun), [payrollRun]);
 
   useEffect(() => {
     fetchPayroll(1, searchTerm);
     setCurrentPage(1);
   }, [selectedMonth, selectedBranch, user?.token]);
+
+  useEffect(() => {
+    if (!user?.token) return;
+    const refresh = () => {
+      if (!shouldPollNow()) return;
+      fetchPayroll(currentPage, searchTerm);
+    };
+    const interval = setInterval(refresh, getPollIntervalMs(30000));
+    const unsubscribe = subscribeToDataChanges(refresh);
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
+  }, [user?.token, selectedMonth, selectedBranch, currentPage, searchTerm]);
 
   const debouncedSearch = useMemo(
     () => debounce((nextValue: string) => {
@@ -147,6 +201,110 @@ const Payroll = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     fetchPayroll(page, searchTerm);
+  };
+
+  const branchQueryValue = selectedBranch !== 'all' ? selectedBranch : '';
+
+  const createPayrollDraft = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/payroll/runs?branch=${branchQueryValue}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        body: JSON.stringify({ month: selectedMonth })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.message || 'Unable to create payroll draft');
+      notify('success', 'Payroll Draft Created', 'The generated payroll is now saved for review.');
+      await fetchPayroll(currentPage, searchTerm);
+    } catch (error: any) {
+      notify('error', 'Draft Failed', error.message || 'Unable to create payroll draft.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const approvePayrollDraft = async () => {
+    if (!payrollRun) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/payroll/runs/${payrollRun._id}/approve`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.message || 'Unable to approve payroll');
+      notify('success', 'Payroll Approved', 'This payroll run is locked for the cycle.');
+      await fetchPayroll(currentPage, searchTerm);
+    } catch (error: any) {
+      notify('error', 'Approval Failed', error.message || 'Unable to approve payroll.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deletePayrollDraft = async () => {
+    if (!payrollRun) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/payroll/runs/${payrollRun._id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.message || 'Unable to delete payroll draft');
+      notify('success', 'Draft Deleted', 'Payroll returned to live preview mode.');
+      await fetchPayroll(1, searchTerm);
+      setCurrentPage(1);
+    } catch (error: any) {
+      notify('error', 'Delete Failed', error.message || 'Unable to delete payroll draft.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openRowEditor = (row: PayrollRecord) => {
+    setEditingRow(row);
+    setAdjustmentForm({
+      manualAddition: row.manualAddition || 0,
+      manualDeduction: row.manualDeduction || 0,
+      payoutStatus: row.payoutStatus || 'Included',
+      notes: row.notes || ''
+    });
+  };
+
+  const saveRowAdjustment = async () => {
+    if (!payrollRun || !editingRow) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/payroll/runs/${payrollRun._id}/rows/${editingRow.employeeId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        body: JSON.stringify(adjustmentForm)
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.message || 'Unable to save adjustment');
+      notify('success', 'Payroll Updated', 'Adjustment saved to the draft payroll run.');
+      setEditingRow(null);
+      await fetchPayroll(currentPage, searchTerm);
+    } catch (error: any) {
+      notify('error', 'Save Failed', error.message || 'Unable to save adjustment.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmAction = () => {
+    if (!confirmState) return;
+    if (confirmState.type === 'create') createPayrollDraft();
+    if (confirmState.type === 'approve') approvePayrollDraft();
+    if (confirmState.type === 'delete') deletePayrollDraft();
   };
 
   const fetchAllPayrollForExport = async (): Promise<PayrollRecord[]> => {
@@ -262,6 +420,52 @@ const Payroll = () => {
       searchMaxWidth="lg:max-w-xs"
       headerActions={
         <>
+          {!payrollRun && (
+            <ZenButton
+              onClick={() => setConfirmState({
+                type: 'create',
+                title: 'Create payroll draft?',
+                message: 'This saves the current payroll calculation for review, adjustments, holds, exclusions, and approval.',
+                confirmText: 'Create Draft'
+              })}
+              disabled={saving || payrollData.length === 0}
+              className="!py-4 !px-6"
+            >
+              <FilePlus2 size={16} />
+              Create Draft
+            </ZenButton>
+          )}
+          {payrollRun?.status === 'Draft' && (
+            <>
+              <ZenButton
+                variant="outline"
+                onClick={() => setConfirmState({
+                  type: 'delete',
+                  title: 'Delete draft?',
+                  message: 'This removes only the draft review copy. Employee, attendance, and leave data remain untouched.',
+                  confirmText: 'Delete Draft'
+                })}
+                disabled={saving}
+                className="!py-4 !px-6"
+              >
+                <Trash2 size={16} />
+                Delete Draft
+              </ZenButton>
+              <ZenButton
+                onClick={() => setConfirmState({
+                  type: 'approve',
+                  title: 'Approve payroll?',
+                  message: 'Approval locks this payroll run. Further edits will be blocked to protect the official record.',
+                  confirmText: 'Approve Payroll'
+                })}
+                disabled={saving}
+                className="!py-4 !px-6"
+              >
+                <ShieldCheck size={16} />
+                Approve
+              </ZenButton>
+            </>
+          )}
           <ZenMonthPicker
             value={selectedMonth}
             onChange={setSelectedMonth}
@@ -283,10 +487,10 @@ const Payroll = () => {
       topContent={
         <div className="flex overflow-x-auto overflow-y-visible pt-4 pb-6 gap-6 lg:grid lg:grid-cols-4 lg:gap-8 lg:overflow-visible scrollbar-hide px-4 lg:px-2 w-full">
           {[
-            { label: 'Payroll Disbursement', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.total.toLocaleString()}`, icon: Wallet2, color: 'text-zen-brown', bg: 'bg-zen-brown/[0.03]', watermark: Wallet2 },
+            { label: payrollRun ? 'Approved Payout' : 'Payroll Preview', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.total.toLocaleString()}`, icon: Wallet2, color: 'text-zen-brown', bg: 'bg-zen-brown/[0.03]', watermark: Wallet2 },
             { label: 'Total Deductions', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.deductions.toLocaleString()}`, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/[0.03]', watermark: Clock },
             { label: 'Overtime', value: `${settings?.general?.currencySymbol || 'QR'} ${stats.ot.toLocaleString()}`, icon: Zap, color: 'text-red-500', bg: 'bg-red-500/[0.03]', watermark: Zap },
-            { label: 'Total Hours', value: `${stats.hours.toLocaleString()}`, icon: Clock, color: 'text-slate-500', bg: 'bg-slate-500/[0.03]', watermark: Clock }
+            { label: payrollRun ? 'Held / Excluded' : 'Total Hours', value: payrollRun ? `${stats.holdCount || 0} / ${stats.excludedCount || 0}` : `${stats.hours.toLocaleString()}`, icon: Clock, color: 'text-slate-500', bg: 'bg-slate-500/[0.03]', watermark: Clock }
           ].map((stat, i) => (
             <ZenStatCard key={stat.label} {...stat} delay={i * 0.05} />
           ))}
@@ -294,6 +498,40 @@ const Payroll = () => {
       }
     >
       <div className="space-y-10 pb-20">
+        <div className="mx-4 lg:mx-2 rounded-2xl border border-zen-brown/10 bg-white px-6 py-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <ZenBadge variant={payrollRun?.status === 'Approved' ? 'leaf' : payrollRun ? 'sand' : 'secondary'}>
+                  {payrollRun ? payrollRun.status : 'Live Preview'}
+                </ZenBadge>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-zen-brown/35">
+                  {payrollRun?.runNumber || 'Unsaved generated calculation'}
+                </p>
+              </div>
+              <p className="mt-2 text-sm font-semibold text-zen-brown/55">
+                {payrollRun
+                  ? `${payrollRun.branchName || 'Selected Branch'} payroll for ${payrollRun.monthLabel || dayjs(selectedMonth).format('MMMM YYYY')}`
+                  : 'Create a draft before making adjustments, holding payouts, excluding rows, or approving payroll.'}
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center sm:min-w-[360px]">
+              <div className="rounded-xl bg-zen-leaf/5 px-4 py-3">
+                <p className="text-[9px] font-black uppercase tracking-widest text-zen-brown/30">Included</p>
+                <p className="mt-1 font-serif text-xl font-black text-zen-leaf">{stats.includedCount || payrollData.length}</p>
+              </div>
+              <div className="rounded-xl bg-amber-50 px-4 py-3">
+                <p className="text-[9px] font-black uppercase tracking-widest text-zen-brown/30">Hold</p>
+                <p className="mt-1 font-serif text-xl font-black text-amber-600">{stats.holdCount || 0}</p>
+              </div>
+              <div className="rounded-xl bg-rose-50 px-4 py-3">
+                <p className="text-[9px] font-black uppercase tracking-widest text-zen-brown/30">Excluded</p>
+                <p className="mt-1 font-serif text-xl font-black text-rose-500">{stats.excludedCount || 0}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="table-container w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700 mx-4 lg:mx-2">
             <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
               <thead>
@@ -306,12 +544,13 @@ const Payroll = () => {
                   <th>Base Reward</th>
                   <th>Adjustment</th>
                   <th>Final Payout</th>
+                  <th>Review</th>
                 </tr>
               </thead>
               <tbody>
                 {(!payrollData || payrollData.length === 0) && (
                   <tr>
-                    <td colSpan={8} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
+                    <td colSpan={9} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">
                       {loading ? (
                          <div className="flex items-center justify-center gap-3">
                             <div className="w-4 h-4 border-2 border-zen-sand border-t-transparent rounded-full animate-spin" />
@@ -324,8 +563,10 @@ const Payroll = () => {
 
                 {payrollData.map((row, index) => {
                   const sNo = pagination ? (pagination.page - 1) * pagination.limit + index + 1 : index + 1;
+                  const finalPay = row.finalPay ?? row.totalPay;
+                  const isLocked = payrollRun?.status !== 'Draft';
                   return (
-                    <tr key={row.employeeId} className="transition-all group border-b border-black/[0.02]">
+                    <tr key={row.employeeId} className={`transition-all group border-b border-black/[0.02] ${row.payoutStatus === 'Excluded' ? 'opacity-45 bg-rose-50/20' : row.payoutStatus === 'Hold' ? 'bg-amber-50/20' : ''}`}>
                       <td className="text-center italic opacity-40 text-[11px]">
                         {sNo.toString().padStart(2, '0')}
                       </td>
@@ -360,8 +601,8 @@ const Payroll = () => {
                       <td>
                         <div className="flex flex-col items-center gap-1">
                           <div className="flex items-center gap-1.5">
-                            <span className={`text-[11px] font-black ${row.deduction > 0 ? 'text-red-500' : 'text-slate-300'}`}>-{settings?.general?.currencySymbol}{row.deduction.toLocaleString()}</span>
-                            <span className={`text-[11px] font-black ${row.otPay > 0 ? 'text-emerald-500' : 'text-slate-300'}`}>+{settings?.general?.currencySymbol}{row.otPay.toLocaleString()}</span>
+                            <span className={`text-[11px] font-black ${(row.deduction + (row.manualDeduction || 0)) > 0 ? 'text-red-500' : 'text-slate-300'}`}>-{settings?.general?.currencySymbol}{(row.deduction + (row.manualDeduction || 0)).toLocaleString()}</span>
+                            <span className={`text-[11px] font-black ${(row.otPay + (row.manualAddition || 0)) > 0 ? 'text-emerald-500' : 'text-slate-300'}`}>+{settings?.general?.currencySymbol}{(row.otPay + (row.manualAddition || 0)).toLocaleString()}</span>
                           </div>
                           <div className="flex items-center gap-4 opacity-30">
                             <span className="text-[7px] uppercase font-bold tracking-tighter">Penalty</span>
@@ -371,9 +612,26 @@ const Payroll = () => {
                       </td>
                       <td>
                         <div className="flex justify-center">
-                          <div className="bg-zen-leaf/5 py-2.5 px-5 rounded-xl border border-zen-leaf/10 shadow-sm transition-transform group-hover:scale-105">
-                            <span className="font-black text-zen-leaf text-base tracking-tight">{settings?.general?.currencySymbol} {row.totalPay.toLocaleString()}</span>
+                          <div className={`${row.payoutStatus === 'Excluded' ? 'bg-rose-50 border-rose-100' : row.payoutStatus === 'Hold' ? 'bg-amber-50 border-amber-100' : 'bg-zen-leaf/5 border-zen-leaf/10'} py-2.5 px-5 rounded-xl border shadow-sm transition-transform group-hover:scale-105`}>
+                            <span className={`font-black text-base tracking-tight ${row.payoutStatus === 'Excluded' ? 'text-rose-500 line-through' : row.payoutStatus === 'Hold' ? 'text-amber-600' : 'text-zen-leaf'}`}>{settings?.general?.currencySymbol} {finalPay.toLocaleString()}</span>
                           </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex items-center justify-center gap-2">
+                          <ZenBadge variant={row.payoutStatus === 'Excluded' ? 'danger' : row.payoutStatus === 'Hold' ? 'sand' : 'leaf'} className="scale-90">
+                            {row.payoutStatus || 'Included'}
+                          </ZenBadge>
+                          {payrollRun && (
+                            <ZenIconButton
+                              icon={Edit3}
+                              variant={isLocked ? 'secondary' : 'outline'}
+                              disabled={isLocked}
+                              onClick={() => openRowEditor(row)}
+                              className={isLocked ? 'opacity-30 cursor-not-allowed' : ''}
+                              size="sm"
+                            />
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -392,6 +650,88 @@ const Payroll = () => {
             />
           </div>
         )}
+
+        <Modal
+          isOpen={Boolean(editingRow)}
+          onClose={() => setEditingRow(null)}
+          title="Payroll Adjustment"
+          subtitle={editingRow?.name}
+          headerIcon={Edit3}
+          maxWidth="max-w-2xl"
+          footer={
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <ZenButton variant="outline" onClick={() => setEditingRow(null)} disabled={saving}>
+                Cancel
+              </ZenButton>
+              <ZenButton onClick={saveRowAdjustment} disabled={saving}>
+                <Save size={16} />
+                Save Review
+              </ZenButton>
+            </div>
+          }
+        >
+          {editingRow && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-zen-brown/10 bg-zen-cream/30 p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-zen-brown/30">Calculated</p>
+                  <p className="mt-2 font-serif text-2xl font-black text-zen-brown">{settings?.general?.currencySymbol} {editingRow.totalPay.toLocaleString()}</p>
+                </div>
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-zen-brown/30">Addition</p>
+                  <p className="mt-2 font-serif text-2xl font-black text-emerald-600">+{settings?.general?.currencySymbol} {Number(adjustmentForm.manualAddition || 0).toLocaleString()}</p>
+                </div>
+                <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-zen-brown/30">Deduction</p>
+                  <p className="mt-2 font-serif text-2xl font-black text-rose-500">-{settings?.general?.currencySymbol} {Number(adjustmentForm.manualDeduction || 0).toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <ZenInput
+                  label="Manual Addition"
+                  type="number"
+                  value={adjustmentForm.manualAddition}
+                  onChange={(e: any) => setAdjustmentForm(prev => ({ ...prev, manualAddition: Number(e.target.value) || 0 }))}
+                />
+                <ZenInput
+                  label="Manual Deduction"
+                  type="number"
+                  value={adjustmentForm.manualDeduction}
+                  onChange={(e: any) => setAdjustmentForm(prev => ({ ...prev, manualDeduction: Number(e.target.value) || 0 }))}
+                />
+              </div>
+
+              <ZenDropdown
+                label="Payout Decision"
+                options={[
+                  { label: 'Included in payout', value: 'Included' },
+                  { label: 'Hold payout', value: 'Hold' },
+                  { label: 'Exclude from this payroll', value: 'Excluded' }
+                ]}
+                value={adjustmentForm.payoutStatus}
+                onChange={(value) => setAdjustmentForm(prev => ({ ...prev, payoutStatus: value }))}
+              />
+
+              <ZenTextarea
+                label="Review Notes"
+                value={adjustmentForm.notes}
+                onChange={(e: any) => setAdjustmentForm(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Reason for adjustment, hold, or exclusion..."
+              />
+            </div>
+          )}
+        </Modal>
+
+        <ConfirmDialog
+          isOpen={Boolean(confirmState)}
+          onClose={() => setConfirmState(null)}
+          onConfirm={handleConfirmAction}
+          title={confirmState?.title || ''}
+          message={confirmState?.message || ''}
+          confirmText={confirmState?.confirmText || 'Confirm'}
+          type={confirmState?.type === 'delete' ? 'danger' : 'warning'}
+        />
       </div>
     </ZenPageLayout>
   );

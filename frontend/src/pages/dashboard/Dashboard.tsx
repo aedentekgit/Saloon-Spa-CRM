@@ -274,10 +274,9 @@ const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRa
 
   return (
     <div
-      style={{ height: 'calc(100vh - 100px)' }}
-      className="space-y-4 sm:space-y-8 font-sans overflow-x-hidden flex flex-col"
+      className="space-y-4 sm:space-y-8 font-sans overflow-x-hidden flex flex-col lg:h-[calc(100vh-100px)] h-auto"
     >
-      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 sm:space-y-8 pr-4">
+      <div className="flex-1 lg:overflow-y-auto overflow-y-visible custom-scrollbar space-y-4 sm:space-y-8 pr-0 lg:pr-4">
 
 
 
@@ -404,8 +403,8 @@ const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRa
            {/* Service Matrix / Ritual Distribution */}
            <div className="mt-12">
               <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-6">Ritual Distribution</h4>
-              <div className="flex items-center justify-between">
-                <div className="h-[140px] w-1/2" style={{ minWidth: 0, minHeight: 0 }}>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-0">
+                <div className="h-[140px] w-full sm:w-1/2" style={{ minWidth: 0, minHeight: 0 }}>
                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <PieChart>
                         <Pie
@@ -422,7 +421,7 @@ const AdminDashboard = ({ dateRange, setDateRange }: { dateRange: any, setDateRa
                       </PieChart>
                    </ResponsiveContainer>
                 </div>
-                <div className="w-1/2 space-y-3 pl-4">
+                <div className="w-full sm:w-1/2 space-y-3 pl-0 sm:pl-4">
                    {ritualData.map((s: any) => (
                      <div key={s.name} className="flex items-center justify-between">
                         <div className="flex items-center gap-2 overflow-hidden">

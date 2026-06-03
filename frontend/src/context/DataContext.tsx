@@ -12,6 +12,7 @@ import {
 import { useAuth } from './AuthContext';
 import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
 import { getCachedJson, setCachedJson } from '../utils/localCache';
+import { subscribeToDataChanges } from '../utils/realtimeSync';
 
 export interface Client { id?: number; _id?: string; name: string; phone: string; dob?: string; anniversary?: string; notes?: string; preferences?: string; totalSpending: number; visits: number; status?: string; }
 export interface Employee { id?: number; _id?: string; name: string; role: string; phone: string; dept: string; commission: number; services: string[]; attendance: number; earnings: number; status?: string; }
@@ -246,8 +247,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!shouldPollNow()) return;
         refreshData(true); // silent refresh in background
       }, getPollIntervalMs(30000)); // default 30s
+      const unsubscribe = subscribeToDataChanges(() => {
+        if (!shouldPollNow()) return;
+        refreshData(true);
+      });
 
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        unsubscribe();
+      };
     }
   }, [user?.token, user?.role, user?.branch]);
 

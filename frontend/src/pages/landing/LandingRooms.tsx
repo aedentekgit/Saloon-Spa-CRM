@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { Sparkles, MapPin, Loader2, DoorOpen, Wind, Coffee, Music, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { resolveRoomImageMeta } from '../../utils/roomImage';
@@ -274,7 +273,7 @@ const LandingRooms = () => {
                            </span>
                         </div>
 
-                        <div className="flex flex-wrap gap-x-5 gap-y-3 pt-4 pb-5 border-t border-zen-primary/5">
+                        <div className="flex flex-wrap gap-x-5 gap-y-3 pt-4 border-t border-zen-primary/5">
                             {amenities.map((item, i) => (
                                <div key={i} className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-zen-primary/40 group-hover:text-zen-primary/60 transition-colors">
                                   {item.icon}
@@ -282,13 +281,6 @@ const LandingRooms = () => {
                                </div>
                             ))}
                         </div>
-                        
-                        <Link 
-                            to="/book"
-                            className="w-full py-3.5 border border-zen-primary/10 rounded-full text-[9px] font-bold uppercase tracking-[0.3em] hover:bg-zen-primary hover:text-white text-zen-brown transition-all duration-500 mt-2 flex items-center justify-center"
-                         >
-                            Reserve Chamber
-                         </Link>
                       </div>
                     </div>
                   );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Sparkles, User, ArrowUpRight, ChevronDown } from 'lucide-react';
+import { X, Sparkles, User, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { usePublicSettings } from './usePublicSettings';
 import { getImageUrl } from '../../utils/imageUrl';
 
@@ -46,14 +46,14 @@ const PublicNavbar = () => {
       }`}
     >
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
-        <div className="flex h-20 items-center">
+        <div className="flex h-16 sm:h-20 items-center">
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-3 group shrink-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zen-primary text-zen-contrast shadow-lg transition-transform duration-500 group-hover:scale-110">
+            <div className="flex h-12 w-12 sm:h-14 sm:w-14 lg:h-10 lg:w-10 items-center justify-center rounded-full bg-zen-primary text-zen-contrast shadow-lg transition-transform duration-500 group-hover:scale-110">
               {logoUrl ? (
                 <img src={logoUrl} alt={siteName} className="h-full w-full rounded-full object-cover" />
               ) : (
-                <Sparkles size={18} />
+                <Sparkles size={20} />
               )}
             </div>
             <span className="hidden sm:block font-serif text-lg font-bold tracking-[0.2em] uppercase text-zen-brown">
@@ -148,10 +148,17 @@ const PublicNavbar = () => {
           {/* Mobile hamburger */}
             <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden ml-auto rounded-full border border-zen-brown/10 bg-white/70 p-3 text-zen-brown backdrop-blur-md"
+            className="lg:hidden ml-auto flex h-10 w-10 items-center justify-center rounded-full border border-zen-brown/10 bg-white/75 text-zen-brown backdrop-blur-md shadow-sm active:scale-95 transition-all"
             aria-label="Toggle navigation menu"
           >
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
+            {isOpen ? (
+              <X size={18} strokeWidth={2.2} />
+            ) : (
+              <span className="flex w-4 flex-col gap-1.5">
+                <span className="h-[2px] w-full rounded-full bg-current" />
+                <span className="h-[2px] w-full rounded-full bg-current" />
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -163,36 +170,35 @@ const PublicNavbar = () => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-0 z-[200] bg-white lg:hidden flex flex-col shadow-2xl h-screen w-screen overflow-y-auto scrollbar-hide"
+            className="fixed inset-0 z-[200] bg-[#FDFCFB] lg:hidden flex flex-col shadow-2xl h-dvh w-screen overflow-hidden"
           >
-            {/* Elegant Header Area */}
-            <div className="flex h-16 sm:h-20 shrink-0 items-center justify-between px-4 sm:px-6 bg-white border-b border-zen-primary/5">
-              <NavLink to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2 sm:gap-3">
-            <div className="flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-full bg-zen-primary text-zen-contrast shadow-xl shadow-zen-primary/20">
+            <div className="flex h-16 shrink-0 items-center justify-between px-4 bg-[#FDFCFB]/95 backdrop-blur-xl border-b border-zen-brown/10">
+              <NavLink to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-zen-primary border border-zen-brown/10 shadow-sm shrink-0 overflow-hidden">
                   {logoUrl ? (
                     <img src={logoUrl} alt={siteName} className="h-full w-full rounded-full object-cover" />
                   ) : (
-                    <Sparkles size={18} />
+                    <Sparkles size={20} />
                   )}
                 </div>
-                <span className="font-serif text-base sm:text-xl font-bold tracking-[0.2em] uppercase text-zen-brown">{siteName}</span>
+                <span className="truncate text-[12px] font-black tracking-[0.16em] uppercase text-zen-brown">{siteName}</span>
               </NavLink>
               <button
                 onClick={() => setIsOpen(false)}
-                className="h-14 w-14 rounded-full bg-white border border-zen-brown/5 flex items-center justify-center text-zen-brown shadow-lg active:scale-95 transition-all"
+                className="h-10 w-10 rounded-full bg-white/70 border border-zen-brown/10 flex items-center justify-center text-zen-brown shadow-sm active:scale-95 transition-all shrink-0"
               >
-                <X size={28} />
+                <X size={18} strokeWidth={2.2} />
               </button>
             </div>
 
-            {/* Links Area - Staggered & Refined */}
-            <div className="flex-1 flex flex-col justify-start pt-6 sm:pt-10 px-4 sm:px-8 md:px-12 relative bg-white z-10">
-              {/* Subtle background decoration */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] -z-10 pointer-events-none">
-                <Sparkles size={400} />
+            <div className="flex-1 overflow-y-auto px-6 py-8 relative z-10">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(139,92,246,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.76),rgba(241,245,249,0.45))] -z-10" />
+              <div className="mb-8">
+                <p className="text-[9px] font-black uppercase tracking-[0.32em] text-zen-sand">Navigation</p>
+                <div className="mt-4 h-px w-16 bg-zen-brown/15" />
               </div>
 
-              <div className="space-y-4 sm:space-y-6">
+              <div className="border-y border-zen-brown/10">
                 {navLinks.map((link, i) => (
                   <motion.div
                     key={link.name}
@@ -201,18 +207,18 @@ const PublicNavbar = () => {
                     transition={{ ease: "easeOut" }}
                   >
                     {link.isDropdown ? (
-                      <div className="space-y-3 sm:space-y-4">
+                      <div className="border-b border-zen-brown/10 last:border-b-0">
                         <button
                           onClick={() => setActiveSubMenu(activeSubMenu === link.name ? null : link.name)}
-                          className="w-full flex items-center justify-between text-zen-brown/40 hover:text-zen-brown transition-all"
+                          className="w-full flex items-center justify-between gap-4 py-5 text-zen-brown transition-all"
                         >
-                          <div className="flex items-center gap-3 sm:gap-4">
-                            <span className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40">0{i + 1}</span>
-                            <span className="font-serif text-3xl sm:text-4xl md:text-5xl font-black leading-none tracking-tight">
+                          <div className="flex min-w-0 items-baseline gap-4">
+                            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zen-brown/25">0{i + 1}</span>
+                            <span className="font-serif text-3xl font-black leading-none tracking-tight text-zen-brown">
                               {link.name}
                             </span>
                           </div>
-                          <ChevronDown size={24} className={`transition-transform duration-500 ${activeSubMenu === link.name ? 'rotate-180 text-zen-primary' : 'opacity-20'}`} />
+                          <ChevronDown size={18} className={`shrink-0 transition-transform duration-300 ${activeSubMenu === link.name ? 'rotate-180 text-zen-sand' : 'text-zen-brown/25'}`} />
                         </button>
 
                         <AnimatePresence>
@@ -221,7 +227,7 @@ const PublicNavbar = () => {
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: 'auto', opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden space-y-3 sm:space-y-4 pl-8 sm:pl-12"
+                              className="overflow-hidden pb-5"
                             >
                               {link.items?.map((item) => (
                                 <NavLink
@@ -229,11 +235,12 @@ const PublicNavbar = () => {
                                   to={item.path}
                                   onClick={() => setIsOpen(false)}
                                   className={({ isActive }) => `
-                                    block font-serif text-xl sm:text-2xl md:text-3xl font-black transition-all
-                                    ${isActive ? 'text-zen-primary italic' : 'text-zen-brown/30'}
+                                    ml-12 flex items-center justify-between border-t border-zen-brown/5 py-3 text-[10px] font-black uppercase tracking-[0.22em] transition-all
+                                    ${isActive ? 'text-zen-sand' : 'text-zen-brown/45'}
                                   `}
                                 >
-                                  {item.name}
+                                  <span>{item.name}</span>
+                                  <ArrowUpRight size={13} />
                                 </NavLink>
                               ))}
                             </motion.div>
@@ -245,22 +252,23 @@ const PublicNavbar = () => {
                         to={link.path}
                         onClick={() => setIsOpen(false)}
                         className={({ isActive }) => `
-                          group relative flex flex-col transition-all duration-500
-                          ${isActive ? 'text-zen-primary' : 'text-zen-brown hover:text-zen-primary'}
+                          group relative flex items-center justify-between gap-4 border-b border-zen-brown/10 py-5 transition-all duration-300 last:border-b-0
+                          ${isActive ? 'text-zen-sand' : 'text-zen-brown'}
                         `}
                       >
                         {({ isActive }) => (
                           <>
-                            <div className="flex items-center gap-3 sm:gap-4">
-                              <span className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40">0{i + 1}</span>
-                              <span className={`font-serif text-3xl sm:text-4xl md:text-5xl font-black leading-none tracking-tight transition-transform duration-500 group-hover:translate-x-2 sm:group-hover:translate-x-4 ${isActive ? 'italic' : ''}`}>
+                            <div className="flex min-w-0 items-baseline gap-4">
+                              <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${isActive ? 'text-zen-sand/60' : 'text-zen-brown/25'}`}>0{i + 1}</span>
+                              <span className={`font-serif text-3xl font-black leading-none tracking-tight ${isActive ? 'italic' : ''}`}>
                                 {link.name}
                               </span>
                             </div>
+                            <ArrowUpRight size={16} className={isActive ? 'text-zen-sand' : 'text-zen-brown/20'} />
                             {isActive && (
                               <motion.div
                                 layoutId="mobile-link-dot"
-                                className="absolute -left-4 sm:-left-6 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-zen-sand"
+                                className="absolute -left-6 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-zen-sand"
                               />
                             )}
                           </>
@@ -272,31 +280,26 @@ const PublicNavbar = () => {
               </div>
             </div>
 
-            {/* Footer Area - Premium CTA */}
-            <div className="p-10 pb-12 space-y-8 bg-white border-t border-zen-primary/5 z-20">
-              <div className="flex flex-col gap-4">
+            <div className="shrink-0 border-t border-zen-brown/10 bg-[#FDFCFB]/95 p-5 z-20">
+              <div className="grid grid-cols-2 gap-3">
                 <Link
                   to="/login"
                   onClick={() => setIsOpen(false)}
-                  className="w-full rounded-2xl border border-zen-brown/10 bg-white py-6 text-center text-[11px] font-bold uppercase tracking-[0.3em] text-zen-brown active:scale-[0.98] transition-all shadow-sm hover:shadow-md"
+                  className="flex h-12 items-center justify-center rounded-full border border-zen-brown/15 bg-white/70 text-[9px] font-black uppercase tracking-[0.18em] text-zen-brown active:scale-[0.98] transition-all shadow-sm"
                 >
-                  Portal Access
+                  Portal
                 </Link>
                 <Link
                   to="/book"
                   onClick={() => setIsOpen(false)}
-                  className="w-full rounded-2xl bg-zen-primary py-6 text-center text-[11px] font-bold uppercase tracking-[0.3em] text-zen-contrast active:scale-[0.98] transition-all shadow-2xl shadow-zen-primary/30"
+                  className="flex h-12 items-center justify-center rounded-full bg-zen-primary text-[9px] font-black uppercase tracking-[0.18em] text-zen-contrast active:scale-[0.98] transition-all shadow-xl shadow-zen-primary/20"
                 >
-                  Book Your Ritual
+                  Book
                 </Link>
               </div>
-              
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-[1px] bg-zen-brown/10" />
-                <p className="text-[10px] text-zen-brown/30 uppercase tracking-[0.5em] font-black">
-                  Since 2024 • Doha, Qatar
-                </p>
-              </div>
+              <p className="mt-4 text-center text-[8px] font-black uppercase tracking-[0.28em] text-zen-brown/25">
+                Since 2024 / Doha, Qatar
+              </p>
             </div>
           </motion.div>
         )}

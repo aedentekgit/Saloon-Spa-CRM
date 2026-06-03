@@ -1,6 +1,6 @@
 export const getPollIntervalMs = (fallbackMs: number) => {
   const raw = Number((import.meta as any).env?.VITE_POLL_INTERVAL_MS);
-  return Number.isFinite(raw) && raw > 0 ? raw : fallbackMs;
+  return Number.isFinite(raw) && raw > 0 ? raw : Math.min(fallbackMs, 3000);
 };
 
 export const shouldPollNow = () => {
@@ -8,4 +8,3 @@ export const shouldPollNow = () => {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
   return true;
 };
-

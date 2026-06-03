@@ -31,6 +31,7 @@ import { usePublicSettings } from '../../components/landing/usePublicSettings';
 import { withBase } from '../../utils/assetPath';
 import { useAuth } from '../../context/AuthContext';
 import { getImageUrl } from '../../utils/imageUrl';
+import { useSearchParams } from 'react-router-dom';
 
 dayjs.extend(customParseFormat);
 
@@ -77,6 +78,12 @@ const normalizeServiceQuantity = (value: any) => {
 const BookAppointment = () => {
   const { user } = useAuth();
   const { settings } = usePublicSettings();
+  const [searchParams] = useSearchParams();
+  const serviceIdParam = searchParams.get('serviceId') || '';
+  const serviceNameParam = searchParams.get('serviceName') || '';
+  const branchIdParam = searchParams.get('branchId') || '';
+  const roomNameParam = searchParams.get('room') || '';
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -88,15 +95,15 @@ const BookAppointment = () => {
   const [rooms, setRooms] = useState<any[]>([]);
 
   const [formData, setFormData] = useState<any>({
-    branch: getEntityId((user as any)?.branch),
-    serviceId: '',
-    service: '',
+    branch: branchIdParam || getEntityId((user as any)?.branch),
+    serviceId: serviceIdParam,
+    service: serviceNameParam,
     quantity: 1,
     addOns: [],
     employee: '',
     date: dayjs().format('YYYY-MM-DD'),
     time: '',
-    room: '',
+    room: roomNameParam,
     name: user?.name || '',
     email: user?.email || '',
     phone: (user as any)?.phone || '',
@@ -108,6 +115,19 @@ const BookAppointment = () => {
   const isAdminUser = user?.role === 'Admin';
   const branchIsLocked = Boolean(user && !isAdminUser);
   const [selectedCategory, setSelectedCategory] = useState('');
+
+  // Pre-select category when services are loaded and a service is pre-selected
+  useEffect(() => {
+    if (services.length > 0) {
+      const foundService = services.find(s => 
+        (formData.serviceId && getEntityId(s) === formData.serviceId) ||
+        (formData.service && s.name === formData.service)
+      );
+      if (foundService && foundService.category) {
+        setSelectedCategory(foundService.category);
+      }
+    }
+  }, [services, formData.serviceId, formData.service]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -129,11 +149,43 @@ const BookAppointment = () => {
           roomRes.json()
         ]);
 
-        setBranches(Array.isArray(branchData) ? branchData : branchData?.data || []);
-        setServices(Array.isArray(serviceData) ? serviceData : serviceData?.data || []);
-        setStaff(Array.isArray(staffData) ? staffData : staffData?.data || []);
-        setShifts(Array.isArray(shiftData) ? shiftData : shiftData?.data || []);
-        setRooms(Array.isArray(roomData) ? roomData : roomData?.data || []);
+        const finalBranches = Array.isArray(branchData) ? branchData : branchData?.data || [];
+        const finalServices = Array.isArray(serviceData) ? serviceData : serviceData?.data || [];
+        const finalStaff = Array.isArray(staffData) ? staffData : staffData?.data || [];
+        const finalShifts = Array.isArray(shiftData) ? shiftData : shiftData?.data || [];
+        const finalRooms = Array.isArray(roomData) ? roomData : roomData?.data || [];
+
+        setBranches(finalBranches);
+        setServices(finalServices);
+        setStaff(finalStaff);
+        setShifts(finalShifts);
+        setRooms(finalRooms);
+
+        if (formData.branch) {
+          const hasSelectedService = finalServices.some(s => 
+            (formData.serviceId && getEntityId(s) === formData.serviceId) ||
+            (formData.service && s.name === formData.service)
+          );
+          const hasSelectedRoom = finalRooms.some(r => 
+            formData.room && (r.name === formData.room || getEntityId(r) === formData.room)
+          );
+          const validAddOns = (formData.addOns || []).filter((addOn: any) => {
+            const addOnServiceId = getEntityId(addOn.serviceId);
+            return finalServices.some(s => 
+              (addOnServiceId && getEntityId(s) === addOnServiceId) ||
+              (addOn.service && s.name === addOn.service)
+            );
+          });
+
+          setFormData(prev => ({
+            ...prev,
+            serviceId: hasSelectedService ? prev.serviceId : '',
+            service: hasSelectedService ? prev.service : '',
+            quantity: hasSelectedService ? prev.quantity : 1,
+            addOns: hasSelectedService ? validAddOns : [],
+            room: hasSelectedRoom ? prev.room : ''
+          }));
+        }
       } catch (error) {
         console.error('Data fetch error:', error);
         notify('error', 'Sync Failed', 'Booking data could not be loaded.');
@@ -164,9 +216,39 @@ const BookAppointment = () => {
           roomRes.json()
         ]);
 
-        setServices(Array.isArray(serviceData) ? serviceData : serviceData?.data || []);
-        setStaff(Array.isArray(staffData) ? staffData : staffData?.data || []);
-        setRooms(Array.isArray(roomData) ? roomData : roomData?.data || []);
+        const finalServices = Array.isArray(serviceData) ? serviceData : serviceData?.data || [];
+        const finalStaff = Array.isArray(staffData) ? staffData : staffData?.data || [];
+        const finalRooms = Array.isArray(roomData) ? roomData : roomData?.data || [];
+
+        setServices(finalServices);
+        setStaff(finalStaff);
+        setRooms(finalRooms);
+
+        setFormData(prev => {
+          const hasSelectedService = finalServices.some(s => 
+            (prev.serviceId && getEntityId(s) === prev.serviceId) ||
+            (prev.service && s.name === prev.service)
+          );
+          const hasSelectedRoom = finalRooms.some(r => 
+            prev.room && (r.name === prev.room || getEntityId(r) === prev.room)
+          );
+          const validAddOns = (prev.addOns || []).filter((addOn: any) => {
+            const addOnServiceId = getEntityId(addOn.serviceId);
+            return finalServices.some(s => 
+              (addOnServiceId && getEntityId(s) === addOnServiceId) ||
+              (addOn.service && s.name === addOn.service)
+            );
+          });
+
+          return {
+            ...prev,
+            serviceId: hasSelectedService ? prev.serviceId : '',
+            service: hasSelectedService ? prev.service : '',
+            quantity: hasSelectedService ? prev.quantity : 1,
+            addOns: hasSelectedService ? validAddOns : [],
+            room: hasSelectedRoom ? prev.room : ''
+          };
+        });
       } catch (error) {
         console.error('Error fetching branch data:', error);
       }
@@ -256,10 +338,10 @@ const BookAppointment = () => {
 
   const selectedService = useMemo(
     () => services.find(service => (
-      getEntityId(service?.branch) === formData.branch &&
-      (service.name === formData.service || service._id === formData.service)
+      (!formData.branch || getEntityId(service?.branch) === formData.branch) &&
+      (service.name === formData.service || service._id === formData.serviceId || service._id === formData.service)
     )),
-    [services, formData.branch, formData.service]
+    [services, formData.branch, formData.service, formData.serviceId]
   );
 
   const selectedSpecialist = useMemo(
@@ -271,7 +353,7 @@ const BookAppointment = () => {
   );
 
   const getServiceImage = (serviceName: string) => {
-    const service = services.find(item => item.name === serviceName && getEntityId(item?.branch) === formData.branch);
+    const service = services.find(item => item.name === serviceName && (!formData.branch || getEntityId(item?.branch) === formData.branch));
     if (!service?.image) return FALLBACK_SERVICE_IMAGE;
     return getImageUrl(service.image);
   };
@@ -280,14 +362,16 @@ const BookAppointment = () => {
     const byName = new Map<string, any>();
     const byId = new Map<string, any>();
 
-    filteredServices.forEach(service => {
+    const sourceServices = formData.branch ? filteredServices : services;
+
+    sourceServices.forEach(service => {
       if (service?.name) byName.set(service.name, service);
       const serviceId = getEntityId(service);
       if (serviceId) byId.set(serviceId, service);
     });
 
     return { byName, byId };
-  }, [filteredServices]);
+  }, [filteredServices, services, formData.branch]);
 
   const serviceLineItems = useMemo(() => {
     const lines: any[] = [];
@@ -603,12 +687,7 @@ const BookAppointment = () => {
     setFormData(prev => ({
       ...prev,
       branch: branchId,
-      serviceId: '',
-      service: '',
-      quantity: 1,
-      addOns: [],
       employee: '',
-      room: '',
       time: ''
     }));
     setStep(1);
@@ -680,14 +759,14 @@ const BookAppointment = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB] relative flex flex-col">
+    <div className="min-h-screen bg-[#FDFCFB] relative flex flex-col overflow-x-hidden">
       <div className="fixed inset-0 pointer-events-none overflow-hidden select-none">
         <div className="absolute top-[-10%] right-[-5%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(139,92,246,0.08)_0%,transparent_70%)] blur-[100px]" />
         <div className="absolute bottom-[-10%] left-[-5%] w-[50%] h-[50%] bg-[radial-gradient(circle,rgba(197,163,88,0.05)_0%,transparent_70%)] blur-[100px]" />
         <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(#2B244003_1px,transparent_1px)] [background-size:32px_32px]" />
       </div>
 
-      <div className="relative z-10 flex flex-col max-w-[1600px] mx-auto w-full px-4 sm:px-8 lg:px-12 py-12 lg:py-20">
+      <div className="relative z-10 flex flex-col max-w-[1600px] mx-auto w-full px-3 sm:px-8 lg:px-12 py-6 sm:py-12 lg:py-20">
         <main className="flex-1 min-h-0 relative">
           <AnimatePresence mode="wait">
             {step === 1 && (
@@ -696,25 +775,25 @@ const BookAppointment = () => {
                 initial={{ opacity: 0, scale: 0.99, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.99, y: -10 }}
-                className="min-h-[850px] max-w-[1400px] mx-auto grid lg:grid-cols-12 gap-10"
+                className="max-w-[1400px] mx-auto grid lg:grid-cols-12 gap-6 lg:gap-10"
               >
                 <div className="lg:col-span-12 h-full flex flex-col">
-                  <div className="flex-1 bg-white rounded-[3rem] px-10 lg:px-16 pt-16 lg:pt-24 pb-10 lg:pb-16 border border-zen-stone shadow-[0_32px_64px_-16px_rgba(43,36,64,0.08)] relative overflow-hidden flex flex-col min-h-0">
-                    <div className="flex flex-col lg:flex-row items-center justify-between gap-6 mb-8 shrink-0 relative z-20">
-                      <div className="space-y-2 text-center lg:text-left">
-                        <div className="flex items-center justify-center lg:justify-start gap-4 text-[10px] font-black tracking-[0.4em] uppercase text-zen-sand">
-                          <span className="w-8 h-[2px] bg-zen-sand/20" />
+                  <div className="booking-step-panel">
+                    <div className="booking-step-header">
+                      <div className="space-y-2 text-left">
+                        <div className="booking-eyebrow">
+                          <span className="w-8 h-[1px] bg-zen-brown/20" />
                           Experience Restoration
                         </div>
-                        <h1 className="text-3xl lg:text-5xl font-serif font-black text-zen-brown tracking-tighter leading-none">
-                          Sanctuary <span className="italic font-normal text-zen-gold">Booking</span>
+                        <h1 className="booking-title lg:text-5xl">
+                          Sanctuary <span className="italic relative animate-text-shine">Booking</span>
                         </h1>
                       </div>
 
-                      <div className="flex items-center gap-4 bg-zen-cream/50 p-2 rounded-2xl border border-zen-stone/40">
+                      <div className="booking-progress">
                         {steps.map(stepItem => (
-                          <div key={stepItem.id} className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all">
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-500 text-xs font-black ${step === stepItem.id ? 'bg-zen-brown text-white shadow-xl shadow-zen-brown/20' :
+                          <div key={stepItem.id} className="booking-progress-item">
+                            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-all duration-500 text-xs font-black ${step === stepItem.id ? 'bg-zen-brown text-white shadow-xl shadow-zen-brown/20' :
                                 step > stepItem.id ? 'bg-zen-sand text-white' : 'bg-white border border-zen-stone text-zen-brown/20'
                               }`}>
                               {step > stepItem.id ? <Check size={14} strokeWidth={3} /> : <span>{stepItem.id}</span>}
@@ -742,19 +821,19 @@ const BookAppointment = () => {
                       <MapIcon size={400} strokeWidth={1} />
                     </div>
 
-                    <div className="flex-1 min-h-0 relative z-20 grid lg:grid-cols-12 gap-12 overflow-hidden">
+                    <div className="flex-1 lg:min-h-0 relative z-20 grid lg:grid-cols-12 gap-6 lg:gap-12 lg:overflow-hidden">
                       {/* Left Column: Selections */}
-                      <div className="lg:col-span-7 flex flex-col min-h-0">
-                        <div className="flex-1 overflow-y-auto pr-6 pt-4 custom-scrollbar -mr-4 space-y-12 pb-8">
+                      <div className="lg:col-span-7 flex flex-col lg:min-h-0">
+                        <div className="flex-1 lg:overflow-y-auto pr-0 lg:pr-6 pt-2 sm:pt-4 custom-scrollbar lg:-mr-4 space-y-7 lg:space-y-12 pb-8">
                           {/* Date & Location Group */}
                           {/* Date, Location, Category, and Service Cascading Dropdowns */}
-                          <div className="grid sm:grid-cols-2 gap-10">
+                          <div className="grid sm:grid-cols-2 gap-7 sm:gap-10">
                             {/* Date Section */}
-                            <div className="space-y-6">
+                            <div className="space-y-4 sm:space-y-6">
                               <div className="space-y-1">
-                                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-sand">Ritual Date</p>
-                                <h2 className="text-3xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
-                                  Choose Your <span className="italic font-normal text-zen-gold">Moment</span>
+                                <p className="text-[9px] font-bold uppercase tracking-[0.28em] sm:tracking-[0.4em] text-zen-brown/60">Ritual Date</p>
+                                <h2 className="booking-section-title">
+                                  Choose Your <span className="italic text-zen-sand">Moment</span>
                                 </h2>
                               </div>
                               <ZenDatePicker
@@ -767,11 +846,11 @@ const BookAppointment = () => {
                             </div>
 
                             {/* Location Section */}
-                            <div className="space-y-6">
+                            <div className="space-y-4 sm:space-y-6">
                                <div className="space-y-1">
-                                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-sand">Sanctuary Details</p>
-                                <h2 className="text-3xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
-                                  Select <span className="italic font-normal text-zen-gold">Location</span>
+                                <p className="text-[9px] font-bold uppercase tracking-[0.28em] sm:tracking-[0.4em] text-zen-brown/60">Sanctuary Details</p>
+                                <h2 className="booking-section-title">
+                                  Select <span className="italic text-zen-sand">Location</span>
                                 </h2>
                               </div>
                               <ZenDropdown
@@ -791,11 +870,11 @@ const BookAppointment = () => {
                             </div>
 
                             {/* Service Category Section */}
-                            <div className="space-y-6">
+                            <div className="space-y-4 sm:space-y-6">
                               <div className="space-y-1">
-                                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-sand">Service Category</p>
-                                <h2 className="text-3xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
-                                  Select <span className="italic font-normal text-zen-gold">Category</span>
+                                <p className="text-[9px] font-bold uppercase tracking-[0.28em] sm:tracking-[0.4em] text-zen-brown/60">Service Category</p>
+                                <h2 className="booking-section-title">
+                                  Select <span className="italic text-zen-sand">Category</span>
                                 </h2>
                               </div>
                               <ZenDropdown
@@ -812,11 +891,11 @@ const BookAppointment = () => {
                             </div>
 
                             {/* Ritual Selection Section */}
-                            <div className="space-y-6">
+                            <div className="space-y-4 sm:space-y-6">
                               <div className="space-y-1">
-                                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-sand">Ritual Selection</p>
-                                <h2 className="text-3xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
-                                  Add Your <span className="italic font-normal text-zen-gold">Treatments</span>
+                                <p className="text-[9px] font-bold uppercase tracking-[0.28em] sm:tracking-[0.4em] text-zen-brown/60">Ritual Selection</p>
+                                <h2 className="booking-section-title">
+                                  Add Your <span className="italic text-zen-sand">Treatments</span>
                                 </h2>
                               </div>
                               <ZenDropdown
@@ -835,20 +914,20 @@ const BookAppointment = () => {
 
                           {/* Services List */}
                           {serviceLineItems.length > 0 && (
-                            <div className="overflow-hidden rounded-[2.5rem] border border-zen-stone bg-white shadow-[0_10px_40px_rgba(43,36,64,0.03)] transition-all">
-                              <div className="flex items-center justify-between gap-4 border-b border-zen-stone bg-zen-cream/60 px-8 py-5">
-                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-zen-brown/50">Services selection</p>
+                            <div className="overflow-hidden rounded-[1.25rem] sm:rounded-[2.5rem] border border-white/60 bg-white/50 backdrop-blur-md shadow-none transition-all">
+                              <div className="flex items-center justify-between gap-4 border-b border-white/40 bg-white/30 px-4 sm:px-8 py-4 sm:py-5">
+                                <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.18em] sm:tracking-[0.25em] text-zen-brown/50">Services selection</p>
                                 <div className="px-3 py-1 bg-white border border-zen-stone rounded-full">
                                   <p className="text-[9px] font-black uppercase tracking-[0.1em] text-zen-brown">{serviceTotals.quantity} Qty</p>
                                 </div>
                               </div>
-                              <div className="max-h-[350px] divide-y divide-zen-stone overflow-y-auto custom-scrollbar">
+                              <div className="max-h-none sm:max-h-[350px] divide-y divide-zen-stone overflow-y-auto custom-scrollbar">
                                 {serviceLineItems.map(item => (
-                                  <div key={item.key} className="grid gap-4 px-8 py-6 hover:bg-zen-cream/10 transition-colors group">
+                                  <div key={item.key} className="grid gap-4 px-4 sm:px-8 py-5 sm:py-6 hover:bg-white/30 transition-colors group">
                                     <div className="flex min-w-0 items-start justify-between gap-4">
                                       <div className="min-w-0">
-                                        <p className="truncate font-serif text-xl font-black text-zen-brown tracking-tight group-hover:text-zen-gold transition-colors">{item.service}</p>
-                                        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-zen-sand">
+                                        <p className="truncate font-serif text-lg sm:text-xl font-black text-zen-brown tracking-tight group-hover:text-zen-gold transition-colors">{item.service}</p>
+                                        <p className="mt-1 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.2em] text-zen-sand">
                                           {currency} {item.price.toLocaleString()} — {item.duration} MIN
                                         </p>
                                       </div>
@@ -861,7 +940,7 @@ const BookAppointment = () => {
                                       </button>
                                     </div>
 
-                                    <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center justify-between gap-3 sm:gap-4">
                                       <div className="flex h-11 items-center rounded-xl border border-zen-stone bg-zen-cream px-3 shadow-inner">
                                         <button
                                           type="button"
@@ -894,14 +973,14 @@ const BookAppointment = () => {
                                   </div>
                                 ))}
                               </div>
-                              <div className="grid grid-cols-2 gap-4 bg-zen-cream/40 px-8 py-6 border-t border-zen-stone">
+                              <div className="grid grid-cols-2 gap-4 bg-white/20 px-4 sm:px-8 py-5 sm:py-6 border-t border-white/40">
                                 <div className="space-y-1">
-                                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zen-brown/40">Total Duration</p>
+                                  <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.14em] sm:tracking-[0.2em] text-zen-brown/40">Total Duration</p>
                                   <p className="text-xl font-black text-zen-brown tracking-tighter">{serviceTotals.duration} <span className="text-[11px] font-bold uppercase opacity-30">Min</span></p>
                                 </div>
                                 <div className="text-right space-y-1">
-                                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zen-brown/40">Total Investment</p>
-                                  <p className="font-serif text-2xl font-black text-zen-brown tracking-tighter">{currency} {serviceTotals.amount.toLocaleString()}</p>
+                                  <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.14em] sm:tracking-[0.2em] text-zen-brown/40">Total Investment</p>
+                                  <p className="font-serif text-xl sm:text-2xl font-black text-zen-brown tracking-tighter">{currency} {serviceTotals.amount.toLocaleString()}</p>
                                 </div>
                               </div>
                             </div>
@@ -909,7 +988,7 @@ const BookAppointment = () => {
                         </div>
 
                         {/* Banner Footer */}
-                        <div className="py-6 border-t border-zen-stone flex items-center gap-4 shrink-0 mt-auto min-h-[90px]">
+                        <div className="py-5 sm:py-6 border-t border-zen-stone flex items-center gap-4 shrink-0 mt-auto min-h-0 sm:min-h-[90px]">
                           <div className="w-10 h-10 rounded-xl bg-zen-cream border border-zen-stone flex items-center justify-center text-zen-sand shadow-sm shrink-0">
                             <ShieldCheck size={20} strokeWidth={1.5} />
                           </div>
@@ -920,24 +999,24 @@ const BookAppointment = () => {
                       </div>
 
                       {/* Right Column: Summary Card */}
-                      <div className="lg:col-span-5 h-full relative">
-                        <div className="sticky top-0 h-full bg-zen-cream/40 rounded-[3rem] border border-zen-stone flex flex-col text-zen-brown overflow-hidden shadow-[inset_0_2px_10px_rgba(43,36,64,0.02)]">
+                      <div className="lg:col-span-5 lg:h-full relative mt-4 lg:mt-0">
+                        <div className="lg:sticky lg:top-0 lg:h-full backdrop-blur-md bg-white/40 rounded-[1.25rem] sm:rounded-[3rem] border border-white/60 flex flex-col text-zen-brown lg:overflow-hidden shadow-none">
                           {formData.service ? (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col p-8 lg:p-12 overflow-hidden relative">
-                              <div className="flex justify-between items-start mb-10 relative z-10">
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col p-5 sm:p-8 lg:p-12 lg:overflow-hidden relative">
+                              <div className="flex justify-between items-start gap-4 mb-6 sm:mb-10 relative z-10">
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-zen-sand">
                                     <Sparkles size={12} />
                                     Selection Overview
                                   </div>
-                                  <h3 className="text-3xl lg:text-4xl font-serif font-black text-zen-brown tracking-tighter leading-[1.1]">
+                                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-black text-zen-brown tracking-tight leading-[1.1]">
                                     {serviceLineItems.length > 1 ? (
                                       <span className="animate-text-shine">{serviceLineItems.length} Services Selected</span>
                                     ) : formData.service}
                                   </h3>
                                 </div>
                                 {selectedService?.image && (
-                                  <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-white shadow-xl rotate-3 shrink-0">
+                                  <div className="hidden sm:block w-20 h-20 rounded-2xl overflow-hidden border-4 border-white shadow-xl rotate-3 shrink-0">
                                     <img
                                       src={getServiceImage(formData.service)}
                                       alt={formData.service}
@@ -948,18 +1027,18 @@ const BookAppointment = () => {
                                 )}
                               </div>
 
-                              <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
-                                <div className="bg-white/80 backdrop-blur-md p-5 rounded-[1.5rem] border border-zen-stone shadow-sm">
-                                  <p className="text-[9px] font-black text-zen-brown/30 tracking-[0.3em] uppercase mb-1">Time Required</p>
-                                  <p className="text-4xl font-serif font-black text-zen-brown">{serviceTotals.duration || 0}<span className="text-[12px] font-black uppercase ml-1.5 text-zen-sand">MIN</span></p>
+                              <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8 relative z-10">
+                                <div className="bg-white/80 backdrop-blur-md p-4 sm:p-5 rounded-[1.25rem] sm:rounded-[1.5rem] border border-zen-stone shadow-sm">
+                                  <p className="text-[8px] sm:text-[9px] font-black text-zen-brown/30 tracking-[0.18em] sm:tracking-[0.3em] uppercase mb-1">Time Required</p>
+                                  <p className="text-2xl sm:text-4xl font-serif font-black text-zen-brown">{serviceTotals.duration || 0}<span className="text-[10px] sm:text-[12px] font-black uppercase ml-1 text-zen-sand">MIN</span></p>
                                 </div>
-                                <div className="bg-white/80 backdrop-blur-md p-5 rounded-[1.5rem] border border-zen-stone shadow-sm">
-                                  <p className="text-[9px] font-black text-zen-brown/30 tracking-[0.3em] uppercase mb-1">Ritual Value</p>
-                                  <p className="text-4xl font-serif font-black text-zen-gold">{serviceTotals.amount || 0}<span className="text-[12px] font-black uppercase ml-1.5 text-zen-gold/40">{currency}</span></p>
+                                <div className="bg-white/80 backdrop-blur-md p-4 sm:p-5 rounded-[1.25rem] sm:rounded-[1.5rem] border border-zen-stone shadow-sm">
+                                  <p className="text-[8px] sm:text-[9px] font-black text-zen-brown/30 tracking-[0.18em] sm:tracking-[0.3em] uppercase mb-1">Ritual Value</p>
+                                  <p className="text-2xl sm:text-4xl font-serif font-black text-zen-gold">{serviceTotals.amount || 0}<span className="text-[10px] sm:text-[12px] font-black uppercase ml-1 text-zen-gold/40">{currency}</span></p>
                                 </div>
                               </div>
 
-                              <div className="flex-1 min-h-0 overflow-y-auto pr-4 custom-scrollbar relative z-10 mb-8">
+                              <div className="flex-1 lg:min-h-0 lg:overflow-y-auto pr-0 lg:pr-4 custom-scrollbar relative z-10 mb-8">
                                 <p className="text-lg font-serif text-zen-brown/70 leading-relaxed italic border-l-2 border-zen-gold/20 pl-6">
                                   {selectedService?.description || 'Professional service tailored for your absolute restoration and wellness.'}
                                 </p>
@@ -975,11 +1054,11 @@ const BookAppointment = () => {
                                 )}
                               </div>
 
-                              <div className="pt-8 mt-auto relative z-10 min-h-[90px] flex items-end">
+                              <div className="pt-4 sm:pt-8 lg:mt-auto relative z-10 min-h-0 sm:min-h-[90px] flex items-end">
                                 <ZenButton
                                   onClick={() => setStep(2)}
                                   disabled={!canContinueService}
-                                  className="w-full py-5 bg-zen-brown text-white rounded-2xl shadow-2xl shadow-zen-brown/30 group transition-all duration-500 hover:scale-[1.02] border-none text-[11px] font-black uppercase tracking-[0.3em] overflow-hidden relative"
+                                  className="booking-action-button py-4 sm:py-5 shadow-2xl shadow-zen-brown/30 group transition-all duration-500 hover:scale-[1.02]"
                                 >
                                   <span className="relative z-10 flex items-center justify-center">
                                     Proceed to Specialist <ChevronRight size={18} className="ml-3 group-hover:translate-x-2 transition-transform duration-500" />
@@ -997,7 +1076,7 @@ const BookAppointment = () => {
                                   </div>
                                </div>
                               <div className="space-y-3 relative z-10">
-                                <p className="text-xl sm:text-2xl font-serif font-black text-zen-brown tracking-tighter uppercase opacity-30">Select a <span className="italic font-normal">Service</span></p>
+                                 <p className="text-xl sm:text-2xl font-serif font-black text-zen-brown tracking-tighter uppercase opacity-30">Select a <span className="italic text-zen-sand">Service</span></p>
                                 <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-brown/20 max-w-[200px] mx-auto leading-relaxed">Choose a service to see full details</p>
                               </div>
                             </div>
@@ -1016,25 +1095,25 @@ const BookAppointment = () => {
                 initial={{ opacity: 0, scale: 0.99, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.99, y: -10 }}
-                className="max-w-[1400px] mx-auto grid lg:grid-cols-12 gap-10"
+                className="max-w-[1400px] mx-auto grid lg:grid-cols-12 gap-6 lg:gap-10"
               >
                 <div className="lg:col-span-12 h-full flex flex-col">
-                  <div className="flex-1 bg-white rounded-[3rem] px-10 lg:px-16 pt-16 lg:pt-24 pb-10 lg:pb-16 border border-zen-stone shadow-[0_32px_64px_-16px_rgba(43,36,64,0.08)] relative overflow-hidden flex flex-col min-h-0">
-                    <div className="flex flex-col lg:flex-row items-center justify-between gap-8 mb-12 shrink-0 relative z-20">
-                      <div className="space-y-2 text-center lg:text-left">
-                        <div className="flex items-center justify-center lg:justify-start gap-4 text-[10px] font-black tracking-[0.4em] uppercase text-zen-sand">
-                          <span className="w-8 h-[2px] bg-zen-sand/20" />
+                  <div className="booking-step-panel">
+                    <div className="booking-step-header">
+                      <div className="space-y-2 text-left">
+                        <div className="booking-eyebrow">
+                          <span className="w-8 h-[1px] bg-zen-brown/20" />
                           Curate Your Experience
                         </div>
-                        <h1 className="text-4xl lg:text-6xl font-serif font-black text-zen-brown tracking-tighter leading-none">
-                          Specialist <span className="italic font-normal text-zen-gold">Selection</span>
+                        <h1 className="booking-title">
+                          Specialist <span className="italic relative animate-text-shine">Selection</span>
                         </h1>
                       </div>
 
-                      <div className="flex items-center gap-4 bg-zen-cream/50 p-2 rounded-2xl border border-zen-stone/40">
+                      <div className="booking-progress">
                         {steps.map(stepItem => (
-                          <div key={stepItem.id} className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all">
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-500 text-xs font-black ${step === stepItem.id ? 'bg-zen-brown text-white shadow-xl shadow-zen-brown/20' :
+                          <div key={stepItem.id} className="booking-progress-item">
+                            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-all duration-500 text-xs font-black ${step === stepItem.id ? 'bg-zen-brown text-white shadow-xl shadow-zen-brown/20' :
                                 step > stepItem.id ? 'bg-zen-sand text-white' : 'bg-white border border-zen-stone text-zen-brown/20'
                               }`}>
                               {step > stepItem.id ? <Check size={14} strokeWidth={3} /> : <span>{stepItem.id}</span>}
@@ -1044,8 +1123,8 @@ const BookAppointment = () => {
                         ))}
                       </div>
                     </div>
-                    <div className="grid lg:grid-cols-12 gap-12 flex-1 min-h-0 relative z-10">
-                      <div className="lg:col-span-4 flex flex-col justify-start space-y-12 relative z-10">
+                    <div className="grid lg:grid-cols-12 gap-6 lg:gap-12 flex-1 lg:min-h-0 relative z-10">
+                      <div className="lg:col-span-4 flex flex-col justify-start space-y-6 lg:space-y-12 relative z-10">
                         <div className="space-y-8">
                           <button
                             type="button"
@@ -1059,15 +1138,15 @@ const BookAppointment = () => {
                           </button>
 
                           <div className="space-y-3">
-                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zen-sand">Selection Registry</p>
-                            <h2 className="text-4xl lg:text-5xl font-serif font-black leading-tight text-zen-brown tracking-tighter">
-                              Curate Your <br /> <span className="italic font-normal text-zen-gold underline decoration-zen-gold/20 underline-offset-8">Artisans</span>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-zen-brown/60">Selection Registry</p>
+                            <h2 className="text-4xl lg:text-5xl font-serif font-bold leading-tight text-zen-brown tracking-tight">
+                              Curate Your <br /> <span className="italic text-zen-sand underline decoration-zen-sand/20 underline-offset-8">Artisans</span>
                             </h2>
                           </div>
                         </div>
 
                         <div className="space-y-6">
-                          <div className="bg-zen-cream/30 p-8 rounded-[2.5rem] border border-zen-stone/40 space-y-8 backdrop-blur-md relative overflow-hidden group">
+                          <div className="bg-white/40 p-5 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] border border-white/60 space-y-6 lg:space-y-8 backdrop-blur-md relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                               <UserCircle size={100} strokeWidth={1} />
                             </div>
@@ -1109,13 +1188,13 @@ const BookAppointment = () => {
                         </div>
                       </div>
 
-                      <div className="lg:col-span-8 flex flex-col min-h-0 pt-12 lg:pt-14 relative z-20">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-8 mb-10 border-b border-zen-stone/40 shrink-0 gap-8">
+                      <div className="lg:col-span-8 flex flex-col lg:min-h-0 pt-4 lg:pt-14 relative z-20">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 sm:pb-8 mb-6 sm:mb-10 border-b border-zen-stone/40 shrink-0 gap-5 sm:gap-8">
                           <div className="space-y-2">
-                            <h4 className="text-3xl lg:text-4xl font-serif font-black text-zen-brown tracking-tighter">Available <span className="italic font-normal text-zen-gold">Windows</span></h4>
+                            <h4 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-zen-brown tracking-tight">Available <span className="italic text-zen-sand">Windows</span></h4>
                             <div className="flex items-center gap-3">
                               <div className="w-1.5 h-1.5 rounded-full bg-zen-gold animate-pulse" />
-                              <p className="text-[10px] font-black text-zen-sand uppercase tracking-[0.3em]">Live Availability Status</p>
+                              <p className="text-[10px] font-bold text-zen-brown/60 uppercase tracking-[0.3em]">Live Availability Status</p>
                             </div>
                           </div>
                           {formData.employee && (
@@ -1126,16 +1205,16 @@ const BookAppointment = () => {
                           )}
                         </div>
 
-                        <div className="flex-1 overflow-y-auto px-4 pt-4 -mx-4 custom-scrollbar">
+                        <div className="flex-1 lg:overflow-y-auto px-0 lg:px-4 pt-4 lg:-mx-4 custom-scrollbar">
                           {formData.employee ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 pb-12">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 pb-8 sm:pb-12">
                               {availableSlots.length > 0 ? availableSlots.map(slot => (
                                 <button
                                   key={slot.time}
                                   type="button"
                                   disabled={slot.isBooked}
                                   onClick={() => setFormData({ ...formData, time: slot.time })}
-                                  className={`group relative py-5 px-3 rounded-[1.75rem] flex flex-col items-center justify-center transition-all duration-700 border-2 ${slot.isBooked 
+                                  className={`group relative py-4 sm:py-5 px-2 sm:px-3 rounded-[1.25rem] sm:rounded-[1.75rem] flex flex-col items-center justify-center transition-all duration-700 border-2 ${slot.isBooked 
                                     ? 'bg-transparent text-zen-brown/10 cursor-not-allowed border-zen-stone/20 grayscale' 
                                     : formData.time === slot.time 
                                       ? 'bg-white border-zen-gold text-zen-brown shadow-[0_20px_50px_-10px_rgba(197,163,88,0.25)] scale-[1.03] z-10' 
@@ -1167,7 +1246,7 @@ const BookAppointment = () => {
                               )}
                             </div>
                           ) : (
-                            <div className="h-full flex flex-col items-center justify-center space-y-12 py-16 bg-zen-cream/10 rounded-[4rem] border border-dashed border-zen-stone/40">
+                            <div className="h-full flex flex-col items-center justify-center space-y-12 py-16 bg-white/20 rounded-[4rem] border border-dashed border-white/60">
                               <div className="relative">
                                 <div className="absolute inset-0 bg-zen-gold/5 blur-3xl rounded-full scale-150 animate-pulse" />
                                 <div className="w-24 h-24 rounded-full bg-white border border-zen-stone shadow-xl flex items-center justify-center relative z-10">
@@ -1178,7 +1257,7 @@ const BookAppointment = () => {
                                 </div>
                               </div>
                               <div className="space-y-3 text-center">
-                                <p className="text-2xl font-serif font-black text-zen-brown tracking-tighter uppercase opacity-30">Identify Your <span className="italic font-normal">Specialist</span></p>
+                                 <p className="text-2xl font-serif font-black text-zen-brown tracking-tighter uppercase opacity-30">Identify Your <span className="italic text-zen-sand">Specialist</span></p>
                                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zen-sand leading-relaxed">Choose an expert to view their ritual schedule</p>
                               </div>
                             </div>
@@ -1186,11 +1265,11 @@ const BookAppointment = () => {
                         </div>
 
                         {formData.time && (
-                          <div className="pt-12 mt-auto">
+                          <div className="pt-6 sm:pt-12 mt-auto">
                             <ZenButton
                               onClick={() => setStep(3)}
                               disabled={!canContinueTime}
-                              className="w-full py-7 bg-zen-brown text-white rounded-3xl shadow-[0_20px_40px_-10px_rgba(43,36,64,0.3)] transition-all duration-500 hover:scale-[1.01] hover:shadow-[0_25px_50px_-12px_rgba(43,36,64,0.4)] border-none text-[12px] font-black uppercase tracking-[0.4em] group relative overflow-hidden"
+                              className="booking-action-button py-5 sm:py-7 rounded-2xl sm:rounded-3xl shadow-[0_20px_40px_-10px_rgba(43,36,64,0.3)] transition-all duration-500 hover:scale-[1.01] hover:shadow-[0_25px_50px_-12px_rgba(43,36,64,0.4)] group"
                             >
                               <span className="relative z-10 flex items-center justify-center gap-4">
                                 Complete Registration <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform duration-500" />
@@ -1212,25 +1291,25 @@ const BookAppointment = () => {
                 initial={{ opacity: 0, scale: 0.98, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.98, y: -10 }}
-                className="max-w-[1400px] mx-auto grid lg:grid-cols-12 gap-10"
+                className="max-w-[1400px] mx-auto grid lg:grid-cols-12 gap-6 lg:gap-10"
               >
                 <div className="lg:col-span-12 h-full flex flex-col">
-                  <div className="flex-1 bg-white rounded-[3rem] px-10 lg:px-16 pt-16 lg:pt-24 pb-10 lg:pb-16 border border-zen-stone shadow-[0_32px_64px_-16px_rgba(43,36,64,0.08)] relative overflow-hidden flex flex-col min-h-0">
-                    <div className="flex flex-col lg:flex-row items-center justify-between gap-8 mb-12 shrink-0 relative z-20">
-                      <div className="space-y-2 text-center lg:text-left">
-                        <div className="flex items-center justify-center lg:justify-start gap-4 text-[10px] font-black tracking-[0.4em] uppercase text-zen-sand">
-                          <span className="w-8 h-[2px] bg-zen-sand/20" />
+                  <div className="booking-step-panel">
+                    <div className="booking-step-header">
+                      <div className="space-y-2 text-left">
+                        <div className="booking-eyebrow">
+                          <span className="w-8 h-[1px] bg-zen-brown/20" />
                           Secure Your Ritual
                         </div>
-                        <h1 className="text-4xl lg:text-6xl font-serif font-black text-zen-brown tracking-tighter leading-none">
-                          Guest <span className="italic font-normal text-zen-gold">Registration</span>
+                        <h1 className="booking-title">
+                          Guest <span className="italic relative animate-text-shine">Registration</span>
                         </h1>
                       </div>
 
-                      <div className="flex items-center gap-4 bg-zen-cream/50 p-2 rounded-2xl border border-zen-stone/40">
+                      <div className="booking-progress">
                         {steps.map(stepItem => (
-                          <div key={stepItem.id} className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all">
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-500 text-xs font-black ${step === stepItem.id ? 'bg-zen-brown text-white shadow-xl shadow-zen-brown/20' :
+                          <div key={stepItem.id} className="booking-progress-item">
+                            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-all duration-500 text-xs font-black ${step === stepItem.id ? 'bg-zen-brown text-white shadow-xl shadow-zen-brown/20' :
                                 step > stepItem.id ? 'bg-zen-sand text-white' : 'bg-white border border-zen-stone text-zen-brown/20'
                               }`}>
                               {step > stepItem.id ? <Check size={14} strokeWidth={3} /> : <span>{stepItem.id}</span>}
@@ -1241,7 +1320,7 @@ const BookAppointment = () => {
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center mb-8 relative z-20">
+                    <div className="flex justify-between items-center mb-6 sm:mb-8 relative z-20">
                       <button
                         type="button"
                         onClick={() => setStep(2)}
@@ -1254,14 +1333,14 @@ const BookAppointment = () => {
                       </button>
                     </div>
 
-                    <div className="grid lg:grid-cols-2 gap-12 flex-1 min-h-0">
-                      <div className="flex flex-col space-y-10 overflow-y-auto pr-6 pt-4 custom-scrollbar">
+                    <div className="grid lg:grid-cols-2 gap-6 lg:gap-12 flex-1 lg:min-h-0">
+                      <div className="flex flex-col space-y-6 lg:space-y-10 lg:overflow-y-auto pr-0 lg:pr-6 pt-2 sm:pt-4 custom-scrollbar">
                         <div className="space-y-2">
-                          <h2 className="text-5xl font-serif font-black text-zen-brown tracking-tighter">Guest <span className="italic font-normal text-zen-gold">Registry</span></h2>
-                          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zen-sand">Please provide your contact details</p>
+                          <h2 className="text-3xl sm:text-5xl font-serif font-bold text-zen-brown tracking-tight">Guest <span className="italic text-zen-sand">Registry</span></h2>
+                          <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.24em] sm:tracking-[0.4em] text-zen-brown/60">Please provide your contact details</p>
                         </div>
 
-                        <div className="space-y-8">
+                        <div className="space-y-6 sm:space-y-8">
                           <ZenInput
                             label="Guest Full Name"
                             placeholder="e.g. John Wick"
@@ -1270,7 +1349,7 @@ const BookAppointment = () => {
                             icon={UserIcon}
                             required
                           />
-                          <div className="grid grid-cols-2 gap-8">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                             <ZenInput
                               label="Primary Phone"
                               placeholder="+974 0000 0000"
@@ -1292,7 +1371,7 @@ const BookAppointment = () => {
                           <div className="space-y-3">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-zen-brown/50 ml-1">Additional Notes</label>
                             <textarea
-                              className="w-full p-6 bg-white border border-zen-stone rounded-2xl outline-none focus:border-zen-sand transition-all font-serif text-lg text-zen-brown h-32 resize-none shadow-sm"
+                              className="w-full p-4 sm:p-6 bg-white border border-zen-stone rounded-2xl outline-none focus:border-zen-sand transition-all font-serif text-base sm:text-lg text-zen-brown h-28 sm:h-32 resize-none shadow-sm"
                               placeholder="Any special requests or notes for your appointment..."
                               value={formData.notes}
                               onChange={(event) => setFormData({ ...formData, notes: event.target.value })}
@@ -1300,12 +1379,12 @@ const BookAppointment = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-col h-full min-h-0">
-                        <div className="flex-1 bg-zen-cream/40 rounded-[2.5rem] p-10 lg:p-12 text-zen-brown shadow-inner flex flex-col space-y-10 relative overflow-hidden border border-zen-stone/60">
+                      <div className="flex flex-col lg:h-full lg:min-h-0 mt-4 lg:mt-0">
+                        <div className="flex-1 bg-zen-cream/40 rounded-[1.5rem] sm:rounded-[2.5rem] p-5 sm:p-10 lg:p-12 text-zen-brown shadow-inner flex flex-col space-y-6 lg:space-y-10 relative lg:overflow-hidden border border-zen-stone/60">
                           <div className="space-y-8 relative z-10 flex-1">
                             <div className="space-y-2">
                               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zen-sand">Appointment Summary</p>
-                              <h4 className="text-4xl lg:text-5xl font-serif font-black text-zen-brown tracking-tighter leading-tight">
+                              <h4 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-black text-zen-brown tracking-tight leading-tight">
                                 {serviceLineItems.length > 1 ? <span className="animate-text-shine">{serviceLineItems.length} Services</span> : formData.service}
                               </h4>
                               <p className="text-sm font-black text-zen-gold flex items-center gap-2">
@@ -1316,7 +1395,7 @@ const BookAppointment = () => {
                             <div className="grid grid-cols-1 gap-6 pt-8 border-t border-zen-stone/40">
                               <div className="space-y-2">
                                 <p className="text-[9px] font-black uppercase text-zen-brown/30 tracking-[0.3em]">Appointment Time</p>
-                                <div className="flex items-center gap-4 text-xl font-serif font-black text-zen-brown">
+                                <div className="flex items-center gap-3 sm:gap-4 text-base sm:text-xl font-serif font-black text-zen-brown">
                                   <div className="p-3 rounded-2xl bg-white shadow-sm border border-zen-stone/40 text-zen-sand">
                                     <Calendar size={20} />
                                   </div>
@@ -1325,7 +1404,7 @@ const BookAppointment = () => {
                               </div>
                               <div className="space-y-2">
                                 <p className="text-[9px] font-black uppercase text-zen-brown/30 tracking-[0.3em]">Specialist</p>
-                                <div className="flex items-center gap-4 text-xl font-serif font-black text-zen-brown">
+                                <div className="flex items-center gap-3 sm:gap-4 text-base sm:text-xl font-serif font-black text-zen-brown">
                                   <div className="p-3 rounded-2xl bg-white shadow-sm border border-zen-stone/40 text-zen-sand">
                                     <UserCircle size={20} />
                                   </div>
@@ -1335,10 +1414,10 @@ const BookAppointment = () => {
                             </div>
                           </div>
 
-                          <div className="pt-8 border-t border-zen-stone/40 flex items-center justify-between shrink-0">
+                          <div className="pt-6 sm:pt-8 border-t border-zen-stone/40 flex items-center justify-between shrink-0">
                             <div className="text-right w-full">
                               <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zen-brown/30 mb-2">Total Amount</p>
-                              <p className="text-6xl font-serif font-black text-zen-gold tracking-tighter">{formatMoney(serviceTotals.amount, currency)}</p>
+                              <p className="text-4xl sm:text-6xl font-serif font-black text-zen-gold tracking-tighter">{formatMoney(serviceTotals.amount, currency)}</p>
                               <p className="mt-2 text-[10px] font-black uppercase tracking-[0.3em] text-zen-brown/20 italic">
                                 {serviceTotals.quantity} qty / {serviceTotals.duration} min
                               </p>
@@ -1349,7 +1428,7 @@ const BookAppointment = () => {
                           <ZenButton
                             onClick={handleSubmit}
                             disabled={submitting}
-                            className="w-full py-5 bg-zen-brown text-white rounded-2xl shadow-2xl shadow-zen-brown/30 group transition-all duration-500 hover:scale-[1.02] border-none text-[11px] font-black uppercase tracking-[0.3em] overflow-hidden relative"
+                            className="booking-action-button py-4 sm:py-5 shadow-2xl shadow-zen-brown/30 group transition-all duration-500 hover:scale-[1.02]"
                           >
                             <span className="relative z-10 flex items-center justify-center">
                               {submitting ? 'Authenticating...' : 'Confirm Sanctuary Booking'} <ArrowRight size={18} className="ml-4 group-hover:translate-x-2 transition-transform duration-500" />

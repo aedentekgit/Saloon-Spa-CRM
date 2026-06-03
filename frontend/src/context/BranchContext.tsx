@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
 import { getCachedJson, setCachedJson } from '../utils/localCache';
+import { subscribeToDataChanges } from '../utils/realtimeSync';
 
 export interface Branch {
   _id: string;
@@ -88,8 +89,15 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!shouldPollNow()) return;
       fetchBranches(true);
     }, getPollIntervalMs(60000)); // default 60s
+    const unsubscribe = subscribeToDataChanges(() => {
+      if (!shouldPollNow()) return;
+      fetchBranches(true);
+    });
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, [user?.token, user?.role, userBranchId, selectedBranch]);
 
   useEffect(() => {

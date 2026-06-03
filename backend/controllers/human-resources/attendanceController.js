@@ -64,6 +64,10 @@ const branchAllowsPresence = (branch, req, latitude, longitude) => {
       clientIps.some((clientIP) => clientIP === allowedIP || clientIP.includes(allowedIP))
     );
 
+    if (!ipMatch) {
+      console.log(`[IP Restriction Blocked] Branch: ${branch.name} (${branch._id}) | Expected IPs: ${JSON.stringify(allowedIPs)} | Client detected IPs: ${JSON.stringify(clientIps)}`);
+    }
+
     return ipMatch
       ? { allowed: true }
       : { allowed: false, message: 'Network Restriction: Please connect to the sanctuary Wi-Fi.' };

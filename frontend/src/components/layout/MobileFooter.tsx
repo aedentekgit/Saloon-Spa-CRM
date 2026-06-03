@@ -92,14 +92,14 @@ const MobileFooter: React.FC = () => {
     <>
       {/* Main Navigation Bar */}
       <div className="lg:hidden fixed bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-2 sm:left-4 right-2 sm:right-4 z-[100] animate-in slide-in-from-bottom-10 duration-700">
-        <nav className="bg-white/95 backdrop-blur-2xl rounded-2xl sm:rounded-[1rem] border border-zen-brown/25 shadow-2xl shadow-zen-brown/20 p-1 sm:p-1.5 flex items-center justify-around relative ring-1 ring-black/5">
+        <nav className="bg-white/95 backdrop-blur-2xl rounded-2xl sm:rounded-[1rem] border border-zen-brown/20 shadow-2xl shadow-zen-brown/15 p-1 sm:p-1.5 grid grid-cols-5 gap-1 relative ring-1 ring-black/5">
           {filteredFooter.map((item) => (
             <NavLink
               key={item.name}
               to={item.path}
               onClick={() => setIsMoreOpen(false)}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center p-2.5 rounded-2xl transition-all duration-500 gap-1.5 min-w-[64px] ${
+                `flex min-w-0 flex-col items-center justify-center px-1 py-2 rounded-xl transition-all duration-300 gap-1 ${
                   isActive
                     ? 'text-zen-sand bg-zen-sand/5'
                     : 'text-zen-brown/40 hover:text-zen-brown/60 active:scale-90'
@@ -108,9 +108,12 @@ const MobileFooter: React.FC = () => {
             >
               {({ isActive }) => (
                 <>
-                  <div className={`transition-all duration-500 ${isActive ? 'scale-110 drop-shadow-none' : ''}`}>
-                    <item.icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                  <div className={`transition-all duration-300 ${isActive ? 'scale-105 drop-shadow-none' : ''}`}>
+                    <item.icon size={20} strokeWidth={isActive ? 2.4 : 1.9} />
                   </div>
+                  <span className="max-w-full truncate text-[8px] font-black uppercase tracking-[0.08em]">
+                    {item.name}
+                  </span>
                 </>
               )}
             </NavLink>
@@ -118,12 +121,12 @@ const MobileFooter: React.FC = () => {
 
           <button
             onClick={() => setIsMoreOpen(!isMoreOpen)}
-            className={`flex flex-col items-center justify-center p-2.5 rounded-2xl transition-all duration-500 gap-1.5 min-w-[64px] ${
+            className={`flex min-w-0 flex-col items-center justify-center px-1 py-2 rounded-xl transition-all duration-300 gap-1 ${
               isMoreOpen ? 'text-zen-sand bg-zen-sand/5' : 'text-zen-brown/40 hover:text-zen-brown/60 active:scale-95'
             }`}
           >
-            <Menu size={22} strokeWidth={2} />
-            <span className="text-[9px] font-bold uppercase tracking-widest opacity-0 h-0 w-0 overflow-hidden">More</span>
+            <Menu size={20} strokeWidth={2} />
+            <span className="text-[8px] font-black uppercase tracking-[0.08em]">More</span>
           </button>
         </nav>
       </div>
@@ -160,13 +163,13 @@ const MobileFooter: React.FC = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 custom-scrollbar pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4">
+                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                   {filteredSheet.map((item) => (
                     <NavLink
                       key={item.name}
                       to={item.path}
                       onClick={() => setIsMoreOpen(false)}
-                      className="flex flex-col items-center justify-center gap-1.5 p-3 py-4 rounded-3xl bg-white hover:bg-zen-cream/30 hover:shadow-lg transition-all duration-500 border border-zen-brown/5 group text-center"
+                      className="flex min-h-[104px] flex-col items-center justify-center gap-1.5 p-3 py-4 rounded-2xl sm:rounded-3xl bg-white hover:bg-zen-cream/30 hover:shadow-lg transition-all duration-500 border border-zen-brown/5 group text-center"
                     >
                       <div className="w-11 h-11 rounded-[1.25rem] bg-stone-100 flex items-center justify-center text-zen-brown/40 group-hover:text-zen-sand transition-all duration-500 group-hover:bg-zen-sand/10 shrink-0">
                         <item.icon size={22} strokeWidth={2} />
@@ -181,7 +184,7 @@ const MobileFooter: React.FC = () => {
                       logout();
                       setIsMoreOpen(false);
                     }}
-                    className="flex flex-col items-center justify-center gap-1.5 p-3 py-4 mt-2 rounded-3xl bg-red-50/50 hover:bg-red-50 hover:shadow-lg transition-all duration-500 border border-white group col-span-3"
+                    className="flex flex-col items-center justify-center gap-1.5 p-3 py-4 mt-2 rounded-2xl sm:rounded-3xl bg-red-50/50 hover:bg-red-50 hover:shadow-lg transition-all duration-500 border border-white group col-span-2 sm:col-span-4"
                   >
                     <div className="w-10 h-10 rounded-xl bg-red-100/50 flex items-center justify-center text-red-300 group-hover:text-red-500 transition-all duration-500 shrink-0">
                       <LogOut size={20} strokeWidth={1.5} />

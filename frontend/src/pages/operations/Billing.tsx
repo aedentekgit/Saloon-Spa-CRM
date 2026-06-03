@@ -10,12 +10,8 @@ import {
   Wallet,
   Trash2,
   Receipt,
-  Zap,
   Sparkles,
-  Search,
-  Crown,
   Split,
-  User,
   ShoppingBag,
   ArrowRight,
   CheckCircle2,
@@ -30,7 +26,7 @@ import { ZenPageLayout } from '../../components/zen/ZenLayout';
 import { BranchSelector } from '../../components/zen/BranchSelector';
 import { ZenBadge, ZenButton, ZenIconButton } from '../../components/zen/ZenButtons';
 import { ZenStatCard } from '../../components/zen/ZenStatCard';
-import { ZenDropdown, ZenAutocomplete, ZenMasterCalendar } from '../../components/zen/ZenInputs';
+import { ZenDropdown, ZenMasterCalendar } from '../../components/zen/ZenInputs';
 import { notify } from '../../components/shared/ZenNotification';
 import { useSettings } from '../../context/SettingsContext';
 import { useData } from '../../context/DataContext';
@@ -1120,146 +1116,6 @@ const Billing = () => {
               </div>
             </div>
           )}
-
-          {/* Ambassador Selection Section */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/15 p-10 relative overflow-hidden group">
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-zen-sand/10 rounded-full blur-3xl transition-transform duration-1000 group-hover:scale-150" />
-
-            <div className="relative z-10 flex flex-col gap-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-zen-brown/5 flex items-center justify-center text-zen-brown/40">
-                  <User size={22} strokeWidth={1.5} />
-                </div>
-                <div>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.4em] text-zen-brown/30">Client selection</h3>
-                  <p className="text-xs text-zen-brown/30 mt-0.5">Loaded from the completed appointment</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col lg:flex-row items-center gap-4">
-                <div className="relative group/input flex-1 w-full">
-                  <ZenAutocomplete
-                    label=""
-                    hideLabel
-                    placeholder="Search by name or contact identifier..."
-                    options={clients.map(c => ({ id: c._id, name: c.name, subtext: c.phone }))}
-                    value={selectedClient?._id || selectedClient?.name || ''}
-                    onChange={(val) => {
-                      if (billingAppointmentId) return;
-                      if (!val || val === 'None') {
-                        setSelectedClient(null);
-                        return;
-                      }
-                      const client = clients.find(c => c._id === val || c.name === val);
-                      if (client) {
-                        setSelectedClient(client);
-
-                        // Find the latest completed and unbilled appointment for this client
-                        const latestCompletedApt = (rawAppointments || []).find((apt: any) => {
-                          const isCompleted = apt.status === 'Completed';
-                          const appointmentId = getEntityId(apt);
-                          const isBilled = appointmentId && (billedAppointmentIds.has(appointmentId) || apt.billedInvoiceId);
-
-                          if (isCompleted && !isBilled) {
-                            const clientId = getEntityId(apt.clientId || apt.clientId?._id);
-                            return clientId?.toLowerCase() === client._id?.toLowerCase() ||
-                              String(apt.client || '').trim().toLowerCase() === String(client.name || '').trim().toLowerCase();
-                          }
-                          return false;
-                        });
-
-                        if (latestCompletedApt) {
-                          const aptBranchId = getEntityId(latestCompletedApt.branch);
-                          const aptEmployeeId = getEntityId(latestCompletedApt.employeeId || latestCompletedApt.completedByEmployeeId);
-
-                          if (aptBranchId) {
-                            setSelectedBranch(aptBranchId);
-                          }
-                          if (aptEmployeeId) {
-                            setSelectedEmployeeId(aptEmployeeId);
-                          }
-                        }
-                      } else {
-                        setSelectedClient({ _id: '', name: val, phone: '' });
-                      }
-                    }}
-                    allowCustom
-                    disabled={Boolean(billingAppointmentId)}
-                    className="w-full"
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover/input:opacity-100 transition-opacity pointer-events-none">
-                    <Search size={18} className="text-zen-brown/20" />
-                  </div>
-                </div>
-              </div>
-
-              <AnimatePresence mode="wait">
-                {selectedClient && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                    className="flex items-center gap-5 bg-white/50 backdrop-blur-md pl-6 pr-8 py-5 rounded-[2rem] border border-zen-brown/10 shadow-sm w-full"
-                  >
-                    <div className="w-14 h-14 rounded-2xl bg-white border border-zen-brown/10 flex items-center justify-center text-zen-gold shadow-sm shrink-0">
-                      {activeMembership ? <Crown size={28} strokeWidth={1.5} /> : <User size={28} strokeWidth={1.5} />}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-[0.2em] mb-1">Active Profile</p>
-                      <p className="font-serif text-xl font-bold text-zen-brown truncate">{selectedClient.name}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="w-1 h-1 rounded-full bg-zen-gold/40" />
-                        <p className="text-[9px] font-bold text-zen-brown/40 uppercase tracking-widest">
-                          {branches.find(b => b._id === selectedBranch)?.name || 'Selected Branch'}
-                        </p>
-                      </div>
-                      {selectedClient.phone && <p className="text-[10px] font-bold text-zen-gold uppercase tracking-widest mt-1">{selectedClient.phone}</p>}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {activeMembership && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-10 p-8 bg-gradient-to-br from-zen-sand/[0.08] to-transparent rounded-[2.5rem] border border-zen-sand/20 flex flex-col md:flex-row items-center justify-between gap-8"
-              >
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-zen-sand shadow-lg shadow-zen-sand/10">
-                    <Sparkles size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-[11px] font-bold text-zen-sand uppercase tracking-[0.3em]">Privilege Tier Unlocked</h4>
-                    <p className="font-serif text-lg font-bold text-zen-brown">{activeMembership.plan.name}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-10">
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mb-1">Node Balance</p>
-                    <div className="flex items-baseline justify-end gap-1">
-                      <span className="text-lg font-bold text-zen-brown">{activeMembership.remainingSessions}</span>
-                      <span className="text-[10px] font-bold text-zen-brown/30 uppercase">/ {activeMembership.totalSessions}</span>
-                    </div>
-                  </div>
-                  <div className="h-10 w-[1px] bg-zen-sand/20" />
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-zen-brown/20 uppercase tracking-widest mb-1">Entitlement</p>
-                    <p className="text-sm font-bold text-zen-leaf flex items-center gap-1.5 justify-end">
-                      <Zap size={14} className="fill-current" />
-                      {activeMembership.plan.discountValue > 0 ? (
-                        `${activeMembership.plan.discountValue}${activeMembership.plan.discountType === 'Percentage' ? '%' : ` ${settings?.general.currencySymbol || 'QR'}`} Deduction`
-                      ) : (
-                        'Direct Allocation'
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </div>
 
           {/* Service Registry Section */}
           <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-zen-brown/15 flex flex-col overflow-hidden">

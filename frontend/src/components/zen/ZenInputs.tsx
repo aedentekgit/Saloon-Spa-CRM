@@ -118,13 +118,17 @@ export const ZenDropdown = ({
   }, [safeOptions, value, placeholder]);
 
   return (
-    <div className={`space-y-1 group relative ${isOpen ? 'z-[9999]' : 'z-10'} ${className} ${disabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`} ref={dropdownRef}>
+    <div className={`space-y-1 group relative ${isOpen ? 'z-[9999]' : 'z-10'} ${className} ${disabled ? 'cursor-not-allowed pointer-events-none' : ''}`} ref={dropdownRef}>
       {!hideLabel && <label className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest ml-1">{label}</label>}
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={variant === 'pill'
           ? `h-[46px] sm:h-[50px] px-5 rounded-[1.35rem] border flex items-center justify-between gap-4 transition-all cursor-pointer shadow-sm relative ${
-              error ? 'bg-rose-50 border-rose-200' : 'bg-slate-50/40 border-zen-brown/15 group-hover:border-zen-sand/30 group-focus-within:border-zen-sand/50'
+              error
+                ? 'bg-rose-50 border-rose-200'
+                : disabled
+                  ? 'bg-slate-50 border-zen-stone/80 text-zen-brown/55'
+                  : 'bg-white border-zen-stone/90 group-hover:border-zen-sand/40 group-focus-within:border-zen-sand/60 ring-1 ring-zen-brown/[0.03]'
             }`
           : `w-full px-1 pb-4 bg-transparent border-b-[2px] flex items-center justify-between cursor-pointer transition-all relative ${
               error ? 'border-rose-400' : 'border-zen-brown/35 group-hover:border-zen-sand/50 group-focus-within:border-zen-brown'
@@ -137,11 +141,11 @@ export const ZenDropdown = ({
                <span className="text-[10px] font-bold">!</span>
              </div>
           ) : (
-             Icon && <Icon size={16} className={variant === 'pill' ? "text-zen-brown/30 group-hover:text-zen-gold flex-shrink-0 transition-colors" : "text-zen-brown/30 flex-shrink-0"} />
+             Icon && <Icon size={16} className={variant === 'pill' ? `${disabled ? 'text-zen-brown/30' : 'text-zen-brown/45 group-hover:text-zen-sand'} flex-shrink-0 transition-colors` : "text-zen-brown/30 flex-shrink-0"} />
           )}
           <span
             className={variant === 'pill'
-              ? `font-serif text-sm sm:text-base truncate tracking-tight ${value ? (error ? 'text-rose-600' : 'text-zen-brown font-black') : 'text-zen-brown/30'}`
+              ? `font-serif text-sm sm:text-base truncate tracking-tight ${value ? (error ? 'text-rose-600' : 'text-zen-brown font-black') : (disabled ? 'text-zen-brown/35' : 'text-zen-brown/50 font-semibold')}`
               : `font-serif text-sm sm:text-base truncate tracking-tight ${value ? (error ? 'text-rose-600 font-bold' : 'text-zen-brown font-semibold') : 'text-zen-brown/20'}`
             }
             style={fontFamily ? { fontFamily } : {}}
@@ -149,11 +153,11 @@ export const ZenDropdown = ({
             {displayValue}
           </span>
         </div>
-        <ChevronDown size={variant === 'pill' ? 14 : 18} className={`flex-shrink-0 transition-all duration-700 ${isOpen ? 'rotate-180 text-zen-gold' : (error ? 'text-rose-400' : 'text-zen-brown/20')}`} />
+        <ChevronDown size={variant === 'pill' ? 15 : 18} className={`flex-shrink-0 transition-all duration-700 ${isOpen ? 'rotate-180 text-zen-sand' : (error ? 'text-rose-400' : disabled ? 'text-zen-brown/25' : 'text-zen-brown/45')}`} />
 
         {/* Subtle highlight line for pill variant */}
         {variant === 'pill' && (
-          <div className="absolute inset-1 rounded-[1.15rem] border border-zen-gold/5 pointer-events-none" />
+          <div className="absolute inset-1 rounded-[1.15rem] border border-white/70 pointer-events-none" />
         )}
       </div>
 
@@ -387,13 +391,13 @@ export const ZenInput = ({ label, icon: Icon, prefix, variant = 'professional', 
       </div>
       <div className="relative flex items-center">
         {variant === 'professional' ? (
-          <div className={`w-full relative flex items-center transition-all duration-300 ${props.disabled ? 'opacity-40' : ''}`}>
-            {Icon && <Icon className={`absolute ${compact ? 'left-3' : 'left-4'} ${error ? 'text-rose-400' : 'text-zen-brown/30 group-focus-within:text-zen-brown'} transition-colors`} size={compact ? 14 : 16} />}
+          <div className={`w-full relative flex items-center transition-all duration-300 ${props.disabled ? 'cursor-not-allowed' : ''}`}>
+            {Icon && <Icon className={`absolute ${compact ? 'left-3' : 'left-4'} ${error ? 'text-rose-400' : props.disabled ? 'text-zen-brown/30' : 'text-zen-brown/45 group-focus-within:text-zen-sand'} transition-colors`} size={compact ? 14 : 16} />}
             <input
               {...props}
               {...numberOverrides}
               type={isPassword ? (showPassword ? 'text' : 'password') : type}
-              className={`w-full ${compact ? 'py-2.5' : 'py-3 sm:py-3.5'} ${Icon ? (compact ? 'pl-9' : 'pl-10') : 'pl-4'} pr-4 bg-slate-50/40 border rounded-2xl outline-none transition-all font-serif ${compact ? 'text-xs' : 'text-sm sm:text-base'} ${error ? 'border-rose-300 bg-rose-50/30 text-rose-900 focus:border-rose-400 focus:ring-rose-400/5' : 'border-zen-brown/15 text-zen-brown placeholder:text-zen-brown/25 focus:border-zen-sand/50 focus:bg-white focus:ring-4 focus:ring-zen-sand/5'} shadow-sm group-hover:border-zen-sand/30 ${props.className || ''}`}
+              className={`w-full ${compact ? 'py-2.5' : 'py-3 sm:py-3.5'} ${Icon ? (compact ? 'pl-9' : 'pl-10') : 'pl-4'} pr-4 rounded-2xl outline-none transition-all font-serif ${compact ? 'text-xs' : 'text-sm sm:text-base'} shadow-sm ring-1 ring-zen-brown/[0.03] ${error ? 'border border-rose-300 bg-rose-50 text-rose-900 placeholder:text-rose-300 focus:border-rose-400 focus:ring-4 focus:ring-rose-400/5' : props.disabled ? 'border border-zen-stone/80 bg-slate-50 text-zen-brown/55 placeholder:text-zen-brown/35 cursor-not-allowed' : 'border border-zen-stone/90 bg-white text-zen-brown placeholder:text-zen-brown/45 focus:border-zen-sand/60 focus:ring-4 focus:ring-zen-sand/5 group-hover:border-zen-sand/40'} ${props.className || ''}`}
             />
             {isPassword && !error && (
               <button
@@ -467,7 +471,7 @@ export const ZenTextarea = ({ label, icon: Icon, ...props }: any) => (
       {Icon && <Icon className="absolute left-5 top-5 text-zen-brown/30 group-focus-within:text-zen-brown transition-colors" size={16} />}
       <textarea
         {...props}
-        className={`w-full ${Icon ? 'pl-12' : 'pl-4'} pr-4 py-4 bg-slate-50/40 border border-zen-brown/15 rounded-2xl outline-none transition-all font-serif text-sm sm:text-base text-zen-brown placeholder:text-zen-brown/25 focus:border-zen-sand/50 focus:bg-white focus:ring-4 focus:ring-zen-sand/5 shadow-sm group-hover:border-zen-sand/30 h-28 sm:h-32 resize-none ${props.className || ''}`}
+        className={`w-full ${Icon ? 'pl-12' : 'pl-4'} pr-4 py-4 bg-white border border-zen-stone/90 rounded-2xl outline-none transition-all font-serif text-sm sm:text-base text-zen-brown placeholder:text-zen-brown/45 focus:border-zen-sand/60 focus:ring-4 focus:ring-zen-sand/5 shadow-sm ring-1 ring-zen-brown/[0.03] group-hover:border-zen-sand/40 h-28 sm:h-32 resize-none ${props.className || ''}`}
       />
     </div>
   </div>
@@ -583,13 +587,13 @@ export const ZenMasterCalendar = ({
       <div
         onClick={() => setIsOpen(!isOpen)}
         className={variant === 'pill'
-          ? "h-[50px] bg-slate-50/40 px-5 rounded-[1.35rem] border border-zen-brown/15 flex items-center justify-between gap-4 hover:border-zen-sand/30 transition-all cursor-pointer shadow-sm relative group/trigger"
+          ? "h-[50px] bg-white px-5 rounded-[1.35rem] border border-zen-stone/90 flex items-center justify-between gap-4 hover:border-zen-sand/40 transition-all cursor-pointer shadow-sm ring-1 ring-zen-brown/[0.03] relative group/trigger"
           : "w-full px-1 pb-4 bg-transparent border-b-[2px] border-zen-brown/35 hover:border-zen-sand/50 flex items-center justify-between cursor-pointer group/trigger transition-all"
         }
       >
         <div className="flex items-center gap-4 overflow-hidden">
           <div className={variant === 'pill'
-            ? "text-zen-brown/30 group-hover/trigger:text-zen-brown transition-colors"
+            ? "text-zen-brown/45 group-hover/trigger:text-zen-sand transition-colors"
             : "text-zen-brown/30 flex-shrink-0"
           }>
             <Icon size={16} />
@@ -600,7 +604,7 @@ export const ZenMasterCalendar = ({
         </div>
         <ChevronDown
           size={variant === 'pill' ? 14 : 18}
-          className={`flex-shrink-0 text-zen-brown/20 transition-transform duration-700 ease-in-out ${isOpen ? 'rotate-180 text-zen-gold' : ''}`}
+          className={`flex-shrink-0 text-zen-brown/45 transition-transform duration-700 ease-in-out ${isOpen ? 'rotate-180 text-zen-sand' : ''}`}
         />
       </div>
 

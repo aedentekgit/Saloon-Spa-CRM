@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
 import { getCachedJson, setCachedJson } from '../utils/localCache';
+import { subscribeToDataChanges } from '../utils/realtimeSync';
 import { getImageUrl } from '../utils/imageUrl';
 
 export interface SettingsData {
@@ -225,8 +226,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (!shouldPollNow()) return;
       fetchSettings(true);
     }, getPollIntervalMs(60000)); // default 60s
+    const unsubscribe = subscribeToDataChanges(() => {
+      if (!shouldPollNow()) return;
+      fetchSettings(true);
+    });
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, [user]);
 
   useEffect(() => {
