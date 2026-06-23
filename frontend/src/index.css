@@ -906,3 +906,41 @@ input[type=number] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* Global theme variables and overrides for portal/modal compatibility */
+:root {
+  --zen-brown: #2B2440;
+}
+
+/* Ensure text-zen-brown opacity classes are visible and interactive globally */
+.text-zen-brown\/20,
+.text-zen-brown\/25,
+.text-zen-brown\/30,
+.text-zen-brown\/35,
+.text-zen-brown\/40 {
+  color: rgba(43, 36, 64, 0.58) !important;
+}
+
+.text-zen-brown\/45,
+.text-zen-brown\/50,
+.text-zen-brown\/55 {
+  color: rgba(43, 36, 64, 0.68) !important;
+}
+
+.text-zen-brown\/60,
+.text-zen-brown\/70 {
+  color: rgba(43, 36, 64, 0.78) !important;
+}
+
+/* Hover transitions for opacity text elements */
+.text-zen-brown\/20:hover,
+.text-zen-brown\/25:hover,
+.text-zen-brown\/30:hover,
+.text-zen-brown\/35:hover,
+.text-zen-brown\/40:hover,
+.text-zen-brown\/45:hover,
+.text-zen-brown\/50:hover,
+.text-zen-brown\/55:hover {
+  color: rgba(43, 36, 64, 1) !important;
+}
+
