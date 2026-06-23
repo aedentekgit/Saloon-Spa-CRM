@@ -58,7 +58,7 @@ interface Membership {
 }
 
 interface Client {
-  _id: string;
+  _id?: string;
   name: string;
   phone: string;
   email?: string;
@@ -69,17 +69,18 @@ interface Client {
   referralRewardBalance?: number;
   referralDiscountUsed?: number;
   totalReferrals?: number;
+  referrals?: any[];
 }
 
 interface EmployeeRecord {
-  _id: string;
+  _id?: string;
   name: string;
   status?: string;
   branch?: any;
 }
 
 interface CompletedAppointment {
-  _id: string;
+  _id?: string;
   client: string;
   clientId?: any;
   service: string;
@@ -137,6 +138,60 @@ const buildDateWindow = (dateRange: any) => {
   }
 
   return { startDate: '', endDate: '' };
+};
+
+const buildTimeWindow = (dateRange: any) => {
+  if (!dateRange || typeof dateRange !== 'object') return { startTime: '', endTime: '' };
+  return {
+    startTime: dateRange.fromTime || '',
+    endTime: dateRange.toTime || ''
+  };
+};
+
+const parseTimeToMinutes = (value?: string) => {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+
+  const match = raw.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2] || 0);
+  const period = match[3]?.toUpperCase();
+
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes < 0 || minutes > 59) return null;
+  if (period) {
+    if (hours < 1 || hours > 12) return null;
+    if (period === 'AM') hours = hours === 12 ? 0 : hours;
+    if (period === 'PM') hours = hours === 12 ? 12 : hours + 12;
+  } else if (hours < 0 || hours > 23) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+};
+
+const isWithinTimeWindow = (appointmentTime: string | undefined, startTime: string, endTime: string) => {
+  if (!startTime && !endTime) return true;
+
+  const appointmentMinutes = parseTimeToMinutes(appointmentTime);
+  if (appointmentMinutes === null) return false;
+
+  const startMinutes = startTime ? parseTimeToMinutes(startTime) : 0;
+  const endMinutes = endTime ? parseTimeToMinutes(endTime) : (24 * 60 - 1);
+  if (startMinutes === null || endMinutes === null) return true;
+
+  if (startMinutes <= endMinutes) {
+    return appointmentMinutes >= startMinutes && appointmentMinutes <= endMinutes;
+  }
+
+  return appointmentMinutes >= startMinutes || appointmentMinutes <= endMinutes;
+};
+
+const hasDateTimeSelection = (value: any) => {
+  if (!value) return false;
+  if (typeof value === 'string') return value !== 'All';
+  return Boolean(value.from || value.to || value.fromTime || value.toTime);
 };
 
 const Billing = () => {
@@ -271,6 +326,7 @@ const Billing = () => {
   }, [rawAppointments, billedAppointmentIds, effectiveBranchId]);
 
   const queueDateWindow = useMemo(() => buildDateWindow(queueDateRange), [queueDateRange]);
+  const queueTimeWindow = useMemo(() => buildTimeWindow(queueDateRange), [queueDateRange]);
 
   const getAppointmentSpecialistId = (appointment: CompletedAppointment) => (
     getEntityId(appointment.completedByEmployeeId || appointment.employeeId)
@@ -284,12 +340,14 @@ const Billing = () => {
 
       if (queueDateWindow.startDate && queueDateWindow.endDate) {
         const appointmentDate = dayjs(appointment.date);
-        return appointmentDate.isBetween(dayjs(queueDateWindow.startDate), dayjs(queueDateWindow.endDate), 'day', '[]');
+        if (!appointmentDate.isBetween(dayjs(queueDateWindow.startDate), dayjs(queueDateWindow.endDate), 'day', '[]')) {
+          return false;
+        }
       }
 
-      return true;
+      return isWithinTimeWindow(appointment.time, queueTimeWindow.startTime, queueTimeWindow.endTime);
     });
-  }, [billableAppointments, queueEmployeeId, queueDateWindow]);
+  }, [billableAppointments, queueEmployeeId, queueDateWindow, queueTimeWindow]);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
 
@@ -1014,6 +1072,16 @@ const Billing = () => {
     [branches, services]
   );
 
+  const billingQueueExportFileName = useMemo(() => {
+    const datePart = queueDateWindow.startDate && queueDateWindow.endDate
+      ? `${queueDateWindow.startDate}_to_${queueDateWindow.endDate}`
+      : 'all_dates';
+    const timePart = queueTimeWindow.startTime || queueTimeWindow.endTime
+      ? `${queueTimeWindow.startTime || 'start'}_to_${queueTimeWindow.endTime || 'end'}`.replace(/:/g, '')
+      : 'all_times';
+    return `billing_ready_appointments_${datePart}_${timePart}`;
+  }, [queueDateWindow, queueTimeWindow]);
+
   const renderBillingQueue = (lockedMessage?: string) => {
     return (
       <ZenPageLayout
@@ -1029,24 +1097,23 @@ const Billing = () => {
           <div className="bg-white rounded-2xl border border-zen-brown/15 p-6 shadow-sm">
             <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zen-brown/30">Ready for invoice</p>
                 <h2 className="mt-2 font-serif text-3xl font-bold text-zen-brown">Completed appointments</h2>
-                <p className="mt-2 text-sm text-zen-brown/45">Choose a completed appointment and create the bill from here.</p>
               </div>
               <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap xl:w-auto xl:justify-end">
                 <ZenMasterCalendar
                   label="Date Range"
                   value={queueDateRange}
                   onChange={(value: any) => {
-                    if (!value || (typeof value === 'object' && !value.from && !value.to)) {
+                    if (!hasDateTimeSelection(value)) {
                       setQueueDateRange('All');
                       return;
                     }
                     setQueueDateRange(value);
                   }}
                   selectionType="range"
+                  includeTimeRange
                   variant="pill"
-                  className="w-full sm:w-[180px]"
+                  className="w-full sm:w-[230px]"
                   hideLabel
                 />
                 <ZenDropdown
@@ -1064,10 +1131,10 @@ const Billing = () => {
                 <ExportPopup<CompletedAppointment>
                   data={filteredBillableAppointments}
                   columns={billingQueueExportColumns}
-                  fileName="billing_ready_appointments"
+                  fileName={billingQueueExportFileName}
                   title="Ready Bills"
                   triggerLabel="Download"
-                  description="Export the filtered completed appointments waiting for billing."
+                  description="Export the completed appointments that match the active date, time, specialist, and branch filters."
                 />
                 <div className="w-full sm:w-[260px]">
                   <BranchSelector variant="pill" className="!w-full shadow-sm" />

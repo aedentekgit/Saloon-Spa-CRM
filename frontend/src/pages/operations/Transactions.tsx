@@ -306,7 +306,7 @@ const Transactions = () => {
   const { branches, selectedBranch: globalBranchId } = useBranches();
   const { getSectorCategories } = useCategories();
   const { invoices, expenses } = useData();
-  const activeSectorCategories = getSectorCategories().map(c => c.name);
+  const activeSectorCategories = getSectorCategories();
   const [transactions, setTransactions] = useState<Transaction[]>(() => getCachedJson('zen_page_transactions_list', []));
   const [loading, setLoading] = useState(() => getCachedJson<Transaction[]>('zen_page_transactions_list', []).length === 0);
   const [searchTerm, setSearchTerm] = useState('');

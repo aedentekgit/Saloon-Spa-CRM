@@ -48,6 +48,7 @@ interface InventoryItem {
   vendor: string;
   unit: string;
   image?: string;
+  status?: string;
   branch?: {
     _id: string;
     name: string;

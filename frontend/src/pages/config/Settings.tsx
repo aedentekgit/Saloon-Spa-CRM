@@ -1322,7 +1322,7 @@ const Settings = () => {
                                        label="SMTP Host"
                                        placeholder="e.g. smtp.mailtrap.io"
                                        value={settings.smtp?.host || ''}
-                                       onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: ''}), host: e.target.value}} : null)}
+                                       onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '', encryption: 'tls'}), host: e.target.value}} : null)}
                                     />
                                  </div>
                                  <ZenInput
@@ -1330,7 +1330,7 @@ const Settings = () => {
                                     type="number"
                                     placeholder="587"
                                     value={settings.smtp?.port || ''}
-                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: ''}), port: parseInt(e.target.value)}} : null)}
+                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '', encryption: 'tls'}), port: parseInt(e.target.value)}} : null)}
                                  />
                               </div>
 
@@ -1338,13 +1338,13 @@ const Settings = () => {
                                  <ZenInput
                                     label="SMTP Username"
                                     value={settings.smtp?.user || ''}
-                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: ''}), user: e.target.value}} : null)}
+                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '', encryption: 'tls'}), user: e.target.value}} : null)}
                                  />
                                  <ZenInput
                                     label="SMTP Password"
                                     type="password"
                                     value={settings.smtp?.password || ''}
-                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: ''}), password: e.target.value}} : null)}
+                                    onChange={(e: any) => setSettings(prev => prev ? {...prev, smtp: {...(prev.smtp || {host: '', port: 587, user: '', password: '', fromName: '', fromEmail: '', encryption: 'tls'}), password: e.target.value}} : null)}
                                  />
                               </div>
 

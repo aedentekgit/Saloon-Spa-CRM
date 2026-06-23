@@ -9,7 +9,7 @@ type ExportFormat = 'PDF' | 'Excel Sheet';
 
 export interface ExportColumn<T> {
   header: string;
-  accessor: keyof T | ((item: T) => unknown);
+  accessor: keyof T | ((item: T, index?: number) => unknown);
 }
 
 interface ExportPopupProps<T> {
@@ -93,7 +93,7 @@ export const ExportPopup = <T extends object>({
         ...columns.map((col) => {
           const rawValue =
             typeof col.accessor === 'function'
-              ? col.accessor(item)
+              ? col.accessor(item, index)
               : (item[col.accessor] as unknown);
           return toText(rawValue);
         })
@@ -171,7 +171,7 @@ export const ExportPopup = <T extends object>({
       ...columns.map((col) => {
         const rawValue =
           typeof col.accessor === 'function'
-            ? col.accessor(item)
+            ? col.accessor(item, index)
             : (item[col.accessor] as unknown);
         return toText(rawValue);
       })

@@ -766,7 +766,8 @@ export const ZenMasterCalendar = ({
   icon: Icon = Calendar,
   placeholder = "Select Date",
   variant = 'line',
-  minDate
+  minDate,
+  includeTimeRange = false
 }: {
   label: string;
   selectionType?: 'single' | 'range' | 'month';
@@ -778,6 +779,7 @@ export const ZenMasterCalendar = ({
   placeholder?: string;
   variant?: 'line' | 'pill';
   minDate?: string;
+  includeTimeRange?: boolean;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -833,17 +835,25 @@ export const ZenMasterCalendar = ({
       onChange(date.format('YYYY-MM-DD'));
       setIsOpen(false);
     } else if (selectionType === 'range') {
+      const currentValue = typeof value === 'object' && value ? value : {};
       if (!value?.from || (value.from && value.to)) {
-        onChange({ from: date.format('YYYY-MM-DD'), to: null });
+        onChange({ ...currentValue, from: date.format('YYYY-MM-DD'), to: null });
       } else {
         const from = dayjs(value.from);
         if (date.isBefore(from)) {
-          onChange({ from: date.format('YYYY-MM-DD'), to: value.from });
+          onChange({ ...currentValue, from: date.format('YYYY-MM-DD'), to: value.from });
         } else {
-          onChange({ ...value, to: date.format('YYYY-MM-DD') });
+          onChange({ ...currentValue, to: date.format('YYYY-MM-DD') });
         }
       }
     }
+  };
+
+  const updateRangeTime = (key: 'fromTime' | 'toTime', nextValue: string) => {
+    onChange({
+      ...(typeof value === 'object' && value ? value : {}),
+      [key]: nextValue || null
+    });
   };
 
   const displayValue = useMemo(() => {
@@ -851,12 +861,27 @@ export const ZenMasterCalendar = ({
     if (selectionType === 'month') return value ? dayjs(value + '-01').format('MMMM YYYY') : placeholder;
     if (selectionType === 'range') {
       if (typeof value === 'string') return value;
+      const fromTime = value?.fromTime || '';
+      const toTime = value?.toTime || '';
+      const timeLabel = fromTime || toTime
+        ? ` · ${fromTime || 'Any'}-${toTime || 'Any'}`
+        : '';
+      if (!value?.from && timeLabel) return `All dates${timeLabel}`;
       if (!value?.from) return placeholder;
-      if (!value?.to) return `${dayjs(value.from).format('DD MMM')} - ...`;
-      return `${dayjs(value.from).format('DD MMM')} - ${dayjs(value.to).format('DD MMM')}`;
+      if (!value?.to) return `${dayjs(value.from).format('DD MMM')} - ...${timeLabel}`;
+      return `${dayjs(value.from).format('DD MMM')} - ${dayjs(value.to).format('DD MMM')}${timeLabel}`;
     }
     return placeholder;
   }, [value, selectionType, placeholder]);
+
+  const canApplyRange = useMemo(() => {
+    if (selectionType !== 'range') return false;
+    if (!includeTimeRange) return Boolean(value?.from && value?.to);
+
+    const hasAnySelection = Boolean(value?.from || value?.to || value?.fromTime || value?.toTime);
+    const hasIncompleteDateRange = Boolean(value?.from && !value?.to);
+    return hasAnySelection && !hasIncompleteDateRange;
+  }, [includeTimeRange, selectionType, value]);
 
   return (
     <div className={`relative group space-y-1 ${className}`} ref={containerRef}>
@@ -1034,11 +1059,35 @@ export const ZenMasterCalendar = ({
             </div>
           )}
 
+          {includeTimeRange && selectionType === 'range' && currentMode === 'days' && (
+            <div className="mt-6 grid grid-cols-2 gap-3 border-t border-zen-brown/5 pt-5">
+              {[
+                { key: 'fromTime' as const, label: 'From', fallback: '00:00' },
+                { key: 'toTime' as const, label: 'To', fallback: '23:59' }
+              ].map((item) => (
+                <label key={item.key} className="group/time block">
+                  <span className="mb-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.24em] text-zen-brown/35">
+                    <Clock size={12} strokeWidth={1.8} />
+                    {item.label}
+                  </span>
+                  <input
+                    type="time"
+                    value={value?.[item.key] || ''}
+                    placeholder={item.fallback}
+                    onClick={(event) => event.stopPropagation()}
+                    onChange={(event) => updateRangeTime(item.key, event.target.value)}
+                    className="h-11 w-full rounded-xl border border-zen-brown/10 bg-slate-50 px-3 text-center font-serif text-sm font-black tracking-tight text-zen-brown outline-none transition-all hover:border-zen-sand/35 focus:border-zen-sand/60 focus:bg-white"
+                  />
+                </label>
+              ))}
+            </div>
+          )}
+
           {/* Footer Actions */}
           <div className="mt-6 pt-6 border-t border-zen-brown/5 flex items-center justify-between">
             <button
               onClick={() => {
-                if (selectionType === 'range') onChange({ from: null, to: null });
+                if (selectionType === 'range') onChange({ from: null, to: null, fromTime: null, toTime: null });
                 else onChange(null);
                 setIsOpen(false);
               }}
@@ -1052,7 +1101,11 @@ export const ZenMasterCalendar = ({
                   onClick={() => {
                     const startOfPeriod = viewDate.date(9).format('YYYY-MM-DD');
                     const endOfPeriod = viewDate.add(1, 'month').date(8).format('YYYY-MM-DD');
-                    onChange({ from: startOfPeriod, to: endOfPeriod });
+                    onChange({
+                      ...(typeof value === 'object' && value ? value : {}),
+                      from: startOfPeriod,
+                      to: endOfPeriod
+                    });
                     setIsOpen(false);
                   }}
                   className="px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[10px] font-black uppercase tracking-widest text-purple-700 transition-all cursor-pointer"
@@ -1076,7 +1129,7 @@ export const ZenMasterCalendar = ({
               {selectionType === 'range' && (
                 <button
                   onClick={() => setIsOpen(false)}
-                  disabled={!value?.from || !value?.to}
+                  disabled={!canApplyRange}
                   className="px-4 py-2 rounded-xl bg-zen-brown text-white text-[10px] font-black uppercase tracking-widest hover:bg-zen-brown/90 transition-all shadow-lg shadow-zen-brown/20 disabled:opacity-30 cursor-pointer"
                 >
                   Apply

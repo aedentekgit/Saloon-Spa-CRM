@@ -54,7 +54,7 @@ async function deploy() {
     }
 
     console.log('🔄 Installing production dependencies and restarting PM2...');
-    runRemote(`cd ${config.remoteRoot}/backend && npm install --production`);
+    runRemote(`cd ${config.remoteRoot}/backend && npm install --production --legacy-peer-deps`);
     
     // Setup PM2
     runRemote(`pm2 delete saloon-crm || true`);

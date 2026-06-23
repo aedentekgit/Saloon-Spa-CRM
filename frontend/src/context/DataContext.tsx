@@ -14,15 +14,15 @@ import { getPollIntervalMs, shouldPollNow } from '../utils/polling';
 import { getCachedJson, setCachedJson } from '../utils/localCache';
 import { subscribeToDataChanges } from '../utils/realtimeSync';
 
-export interface Client { id?: number; _id?: string; name: string; phone: string; dob?: string; anniversary?: string; notes?: string; preferences?: string; totalSpending: number; visits: number; status?: string; }
-export interface Employee { id?: number; _id?: string; name: string; role: string; phone: string; dept: string; commission: number; services: string[]; attendance: number; earnings: number; status?: string; }
-export interface Service { id?: number; _id?: string; name: string; duration: number; price: number; staff: string[]; image?: string; status?: string; commissionValue?: number; commissionType?: string; }
-export interface Appointment { id?: number; _id?: string; client: string; service: string; employee: string; room: string; time: string; duration: number; status: string; date: string; branch?: string; }
-export interface InventoryItem { id?: number; _id?: string; name: string; category: string; stock: number; vendor: string; lowStock: number; }
+export interface Client { id?: number; _id?: string; name: string; phone: string; email?: string; clientId?: string; branch?: any; dob?: string; anniversary?: string; notes?: string; preferences?: string; totalSpending: number; visits: number; status?: string; referralCode?: string; referredBy?: any; referralRewardBalance?: number; referralDiscountUsed?: number; totalReferrals?: number; referrals?: any[]; }
+export interface Employee { id?: number; _id?: string; name: string; role: string; phone: string; dept: string; commission: number; services: string[]; attendance: number; earnings: number; status?: string; branch?: any; }
+export interface Service { id?: number; _id?: string; name: string; duration: number; price: number; staff: string[]; image?: string; status?: string; commissionValue?: number; commissionType?: string; referralCommissionValue?: number; referralCommissionType?: string; }
+export interface Appointment { id?: number; _id?: string; client: string; clientId?: any; clientPhone?: string; clientEmail?: string; service: string; serviceId?: any; employee: string; employeeId?: any; completedByEmployeeId?: any; completedByName?: string; room: string; time: string; duration: number; status: string; date: string; completedAt?: string; branch?: any; quantity?: number; addOns?: any[]; billedInvoiceId?: any; serviceType?: string; membershipId?: any; bookingType?: string; referralCustomer?: string; referralCode?: string; }
+export interface InventoryItem { id?: number; _id?: string; name: string; category: string; stock: number; vendor: string; lowStock: number; status?: string; }
 export interface Room { id?: number; _id?: string; name: string; type: string; status: string; timer?: string; branch?: string; }
-export interface Invoice { id?: number; _id?: string; clientName: string; items: any[]; subtotal: number; gst: number; discount: number; total: number; paymentMode: string; date: string; invoiceNumber: string; branch?: string; }
+export interface Invoice { id?: number; _id?: string; clientName: string; items: any[]; subtotal?: number; gst?: number; discount?: number; total: number; paymentMode: string; date: string; invoiceNumber: string; branch?: string; }
 export interface Expense { id?: number; _id?: string; title: string; category: string; amount: number; date: string; branch?: string; }
-export interface AttendanceRecord { id?: number; _id?: string; date: string; checkIn: string; checkOut: string; status: string; employeeName: string; }
+export interface AttendanceRecord { id?: number; _id?: string; date: string; checkIn: string; checkOut: string; status: string; employeeName: string; user?: string; employeeId?: string; }
 export interface LeaveRequest { _id: string; employeeName: string; type: string; reason: string; startDate: string; endDate: string; daysCount: number; status: string; user: string; }
 export interface Role { _id: string; name: string; permissions: string[]; status?: 'Active' | 'Inactive'; }
 export interface Branch { _id: string; name: string; location: string; phone: string; status?: string; }

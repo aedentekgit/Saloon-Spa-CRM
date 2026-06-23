@@ -1256,6 +1256,7 @@ const Appointments = () => {
         referralCode: apt.referralCode || '',
         service: (apt.service as any)?.name || apt.service || '',
         serviceId: getEntityId(apt.serviceId),
+        membershipPlanName: (apt as any).membershipPlanName || '',
         quantity: normalizeServiceQuantity(apt.quantity),
         employee: (apt.employee as any)?.name || apt.employee || 'None',
         room: (apt.room as any)?.name || apt.room || '',

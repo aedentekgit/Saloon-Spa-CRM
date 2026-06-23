@@ -75,7 +75,7 @@ async function deploy() {
     }
 
     console.log('🔄 Installing production dependencies and restarting PM2...');
-    runRemote(`cd ${config.remoteRoot}/backend && npm install --production && pm2 restart ${config.pm2Name} && pm2 save`);
+    runRemote(`cd ${config.remoteRoot}/backend && npm install --production --legacy-peer-deps && pm2 restart ${config.pm2Name} && pm2 save`);
 
     console.log('✨ STAGING DEPLOYMENT FINISHED SUCCESSFULLY!');
     process.exit(0);

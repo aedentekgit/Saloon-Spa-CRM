@@ -59,6 +59,7 @@ interface Client {
   totalReferrals?: number;
   referralRewardBalance?: number;
   referralDiscountUsed?: number;
+  referrals?: any[];
   membership?: Membership | null;
   memberships?: Membership[];
   appointments?: any[];
@@ -142,7 +143,7 @@ const Clients = () => {
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'membership' | 'history'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'membership' | 'history' | 'referrals'>('profile');
   const [dateRange, setDateRange] = useState<any>('Month');
   const { startDate: clientHistoryStart, endDate: clientHistoryEnd } = useMemo(() => {
     return buildFinancialDateWindow(dateRange);
