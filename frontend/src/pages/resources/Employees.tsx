@@ -1,0 +1,1937 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'motion/react';
+import dayjs from 'dayjs';
+import { useAuth } from '../../context/AuthContext';
+import {
+  UserPlus, Mail, Phone, Edit2, Trash2, User, Search,
+  UserCircle, Lock, Eye, EyeOff, Sparkles, Calendar, Info,
+  FileText, Upload, Download, File, Loader2, Cloud, Clock, Zap, Shield,
+  Grid, List, ChevronLeft, LayoutGrid, CalendarDays
+} from 'lucide-react';
+import { useSettings } from '../../context/SettingsContext';
+import { validatePhoneNumber, getPhoneValidationProtocol } from '../../utils/validation';
+import { buildFinancialDateWindow } from '../../utils/financialPeriod';
+import { Modal } from '../../components/shared/Modal';
+import { notify } from '../../components/shared/ZenNotification';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+
+dayjs.extend(customParseFormat);
+
+// Global Zen Components
+import { ZenPageLayout } from '../../components/zen/ZenLayout';
+import { ZenPagination } from '../../components/zen/ZenPagination';
+import { ZenDropdown, ZenInput, ZenTextarea, ZenDatePicker, ZenMasterCalendar } from '../../components/zen/ZenInputs';
+import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
+import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { useBranches } from '../../context/BranchContext';
+import { useData } from '../../context/DataContext';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { getImageUrl } from '../../utils/imageUrl';
+
+
+interface Role {
+  _id: string;
+  name: string;
+}
+
+interface Branch {
+  _id: string;
+  name: string;
+}
+
+interface ZenDocument {
+  _id: string;
+  name: string;
+  url: string;
+  fileType: string;
+  uploadedAt: string;
+}
+
+interface Payroll {
+  type: 'Monthly' | 'Hourly';
+  baseAmount: number;
+  otRate: number;
+  shiftHours: number;
+  commissionBasis?: boolean;
+}
+
+interface Employee {
+  _id: string;
+  employeeId?: string;
+  name: string;
+  role: string;
+  phone: string;
+  email: string;
+  address: string;
+  dob?: string;
+  salary: number;
+  profilePic?: string;
+  services: string[];
+  attendance: number;
+  earnings: number;
+  status: string;
+  branch?: Branch | string;
+  joiningDate: string;
+  shift?: string;
+  shiftType: 'Day' | 'Week' | 'Month';
+  documents: ZenDocument[];
+  payroll: Payroll;
+  isEmailVerified?: boolean;
+  loginAttempts?: number;
+  lockUntil?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+const getEmployeeBranchId = (employee: Employee) => {
+  if (!employee.branch) return '';
+  return typeof employee.branch === 'string' ? employee.branch : employee.branch._id || '';
+};
+
+const getEmployeeBranchName = (employee: Employee) => {
+  if (!employee.branch) return 'Main Registry';
+  return typeof employee.branch === 'string' ? employee.branch : employee.branch.name || 'Main Registry';
+};
+
+const formatExportDate = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD') : value;
+};
+
+const formatExportDateTime = (value?: string) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : value;
+};
+
+const Employees = () => {
+  const { user } = useAuth();
+  const { settings } = useSettings();
+  const { branches, selectedBranch, setSelectedBranch } = useBranches();
+  const { services, appointments: allAppointments } = useData();
+  const [employees, setEmployees] = useState<Employee[]>(() => getCachedJson('zen_page_employees_list', []));
+  const [roles, setRoles] = useState<Role[]>(() => getCachedJson('zen_page_employees_roles', []));
+  const [shifts, setShifts] = useState<any[]>(() => getCachedJson('zen_page_employees_shifts', []));
+  const [loading, setLoading] = useState(() => getCachedJson<Employee[]>('zen_page_employees_list', []).length === 0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalEmployees, setTotalEmployees] = useState(0);
+
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
+    return (localStorage.getItem('zen_specialist_view') as 'grid' | 'table') || 'grid';
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEmp, setEditingEmp] = useState<Employee | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    role: '',
+    email: '',
+    phone: '',
+    address: '',
+    salary: 0,
+    password: '',
+    confirmPassword: '',
+    joiningDate: new Date().toISOString().split('T')[0],
+    branch: '',
+    status: 'Active',
+    shift: '',
+    shiftType: 'Week' as 'Day' | 'Week' | 'Month',
+    payroll: {
+      type: 'Monthly' as const,
+      baseAmount: 0,
+      otRate: 0,
+      shiftHours: 8,
+      commissionBasis: true
+    }
+  });
+
+  const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'profile' | 'config' | 'payroll' | 'activity' | 'services' | 'documents'>('profile');
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [docName, setDocName] = useState('');
+  const [employeeAttendance, setEmployeeAttendance] = useState<any[]>([]);
+  const [historyView, setHistoryView] = useState<'calendar' | 'list'>('calendar');
+  const [dateRange, setDateRange] = useState<any>('Month');
+  const { startDate: historyPeriodStart, endDate: historyPeriodEnd } = useMemo(() => {
+    return buildFinancialDateWindow(dateRange);
+  }, [dateRange]);
+
+  const periodLabel = useMemo(() => {
+    if (typeof dateRange === 'string') {
+      if (dateRange === 'Month') return dayjs().format('MMMM YYYY');
+      if (dateRange.length === 7) return dayjs(dateRange + '-01').format('MMMM YYYY');
+      return dateRange;
+    }
+    if (dateRange?.from) {
+      const fromStr = dayjs(dateRange.from).format('DD MMM');
+      const toStr = dateRange.to ? dayjs(dateRange.to).format('DD MMM YYYY') : '';
+      return toStr ? `${fromStr} - ${toStr}` : fromStr;
+    }
+    return 'Selected Period';
+  }, [dateRange]);
+  const [editingAttendance, setEditingAttendance] = useState<any>(null);
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [attendanceFormData, setAttendanceFormData] = useState({
+    checkIn: '',
+    checkOut: ''
+  });
+
+  const payrollPayroll = useMemo(() => {
+    if (!formData.name) return { commissionTotal: 0, totalEarnings: 0, monthApts: [] };
+
+    const monthApts = allAppointments.filter(a => a.employee === formData.name && a.date && a.date >= historyPeriodStart && a.date <= historyPeriodEnd);
+    let commissionTotal = 0;
+    monthApts.forEach(apt => {
+       const service = services.find(s => s.name === apt.service);
+        if (service) {
+           const hasReferral = apt.referralCustomer || apt.referralCode || (apt.clientId && (typeof apt.clientId === 'object' ? (apt.clientId as any).referredBy : false));
+           if (hasReferral && service.referralCommissionValue > 0) {
+              if (service.referralCommissionType === 'Fixed') {
+                 commissionTotal += service.referralCommissionValue;
+              } else {
+                 commissionTotal += ((service.price || 0) * service.referralCommissionValue) / 100;
+              }
+           } else if (service.commissionValue) {
+              if (service.commissionType === 'Fixed') {
+                 commissionTotal += service.commissionValue;
+              } else {
+                 commissionTotal += ((service.price || 0) * service.commissionValue) / 100;
+              }
+           }
+        }
+    });
+
+    const otRecords = employeeAttendance.filter(log => log.date && log.date >= historyPeriodStart && log.date <= historyPeriodEnd && log.overtimeMinutes > 0);
+    const totalOtMinutes = otRecords.reduce((acc, log) => acc + log.overtimeMinutes, 0);
+    const otEarnings = (totalOtMinutes / 60) * (formData.payroll.otRate || 0);
+
+    const baseAmount = formData.payroll.type === 'Monthly' ? (formData.payroll.baseAmount || formData.salary || 0) : 0;
+    const totalEarnings = baseAmount + commissionTotal + otEarnings;
+
+    return { commissionTotal, totalEarnings, monthApts };
+  }, [allAppointments, services, formData.name, formData.payroll, formData.salary, dateRange, employeeAttendance]);
+
+  const employeeServiceAppointments = useMemo(() => {
+    const employeeId = editingEmp?._id ? String(editingEmp._id) : '';
+    const employeeName = String(formData.name || editingEmp?.name || '').trim().toLowerCase();
+    if (!employeeId && !employeeName) return [];
+
+    const getEntityId = (value: any) => {
+      if (!value) return '';
+      if (typeof value === 'object') return String(value._id || value.id || '');
+      return String(value);
+    };
+
+    return allAppointments
+      .filter((appointment: any) => {
+        if (!appointment?.date || appointment.date < historyPeriodStart || appointment.date > historyPeriodEnd) return false;
+
+        const appointmentEmployeeIds = [
+          getEntityId(appointment.completedByEmployeeId),
+          getEntityId(appointment.employeeId)
+        ].filter(Boolean);
+
+        const appointmentEmployeeNames = [
+          appointment.completedByName,
+          appointment.employeeId?.name,
+          appointment.employee
+        ].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean);
+
+        return (
+          (employeeId && appointmentEmployeeIds.includes(employeeId)) ||
+          (employeeName && appointmentEmployeeNames.includes(employeeName))
+        );
+      })
+      .sort((a: any, b: any) => {
+        const aTime = `${a.date || ''} ${a.time || ''}`;
+        const bTime = `${b.date || ''} ${b.time || ''}`;
+        return dayjs(bTime).valueOf() - dayjs(aTime).valueOf();
+      });
+  }, [allAppointments, editingEmp, formData.name, dateRange]);
+
+  const employeeServiceGroups = useMemo<Record<string, any[]>>(() => {
+    return employeeServiceAppointments.reduce((groups: Record<string, any[]>, appointment: any) => {
+      const dateKey = appointment.date || 'Unscheduled';
+      groups[dateKey] = groups[dateKey] || [];
+      groups[dateKey].push(appointment);
+      return groups;
+    }, {});
+  }, [employeeServiceAppointments]);
+
+  const employeeServiceExportColumns = useMemo<ExportColumn<any>[]>(
+    () => [
+      { header: 'S No', accessor: (_, index) => (index + 1).toString() },
+      { header: 'Date', accessor: (apt) => apt.date ? dayjs(apt.date).format('YYYY-MM-DD') : '-' },
+      { header: 'Time', accessor: (apt) => apt.time || '-' },
+      { header: 'Service', accessor: (apt) => apt.service || '-' },
+      { header: 'Client', accessor: (apt) => apt.client || '-' },
+      { header: 'Room', accessor: (apt) => apt.room || '-' },
+      { header: 'Duration (Min)', accessor: (apt) => apt.duration || '-' },
+      { header: 'Status', accessor: (apt) => apt.status || '-' }
+    ],
+    []
+  );
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'danger'
+  });
+
+  const openConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info' = 'danger') => {
+    setConfirmState({
+      isOpen: true,
+      title,
+      message,
+      onConfirm,
+      type
+    });
+  };
+
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchEmployees();
+
+    const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
+      fetchEmployees(true);
+    }, getPollIntervalMs(30000)); // default 30s
+
+    return () => clearInterval(interval);
+  }, [selectedBranch, page, debouncedSearch, user?.token]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedBranch, debouncedSearch]);
+
+  useEffect(() => {
+    fetchRoles();
+    fetchShifts();
+  }, [selectedBranch]);
+
+  const fetchShifts = async () => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (selectedBranch && selectedBranch !== 'all') {
+        queryParams.append('branch', selectedBranch);
+      }
+      const queryString = queryParams.toString();
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/shifts${queryString ? `?${queryString}` : ''}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const data = await response.json();
+      const shiftList = Array.isArray(data) ? data : (data?.data || []);
+      if (Array.isArray(shiftList)) {
+        setShifts(shiftList);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    localStorage.setItem('zen_specialist_view', viewMode);
+    setPage(1); // Reset to first page when changing view mode to ensure correct limits
+  }, [viewMode]);
+
+  const PAGE_LIMIT = 12;
+
+  const simulateAttendance = async () => {
+    if (!editingEmp) return;
+
+    // Find the shift details for this employee to get accurate timings
+    const empShift = shifts.find(s => s.name === editingEmp.shift);
+    const shiftStart = empShift?.startTime || "09:00 AM";
+    const shiftEnd = empShift?.endTime || "06:00 PM";
+
+    setLoading(true);
+    try {
+      const anchorDate = dayjs(formData.joiningDate);
+      const fStart = dayjs(historyPeriodStart);
+      const fEnd = dayjs(historyPeriodEnd);
+
+      // Start simulation either from joining date or from financial start, whichever is later
+      let startDate = fStart;
+      if (anchorDate.isAfter(fStart) && anchorDate.isBefore(fEnd)) {
+         startDate = anchorDate;
+      }
+
+      const promises = [];
+      const cycleDays = formData.shiftType === 'Week' ? 7 :
+                        formData.shiftType === 'Month' ? 30 :
+                        formData.shiftType === 'Day' ? 5 :
+                        fEnd.diff(startDate, 'day') + 1;
+
+      for (let d = 0; d < cycleDays; d++) {
+        const date = startDate.add(d, 'day');
+        // Prevent simulating across financial month boundaries
+        if (date.isAfter(fEnd)) break;
+        // We still don't want to simulate future if they are logging real attendance,
+        // but for sample generation we may want the whole month.
+        // Let's allow full month for simulation.
+
+        const dateStr = date.format('YYYY-MM-DD');
+
+        // Use shift timings with small random variations for realism
+        const checkIn = dayjs(shiftStart, 'hh:mm A')
+          .add(Math.floor(Math.random() * 21) - 10, 'minute') // +/- 10 mins variation
+          .format('hh:mm A');
+
+        const checkOut = dayjs(shiftEnd, 'hh:mm A')
+          .add(Math.floor(Math.random() * 41) - 5, 'minute') // -5 to +35 mins variation (often stays late)
+          .format('hh:mm A');
+
+        promises.push(fetch(`${API_URL}/attendance`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user?.token}`
+          },
+          body: JSON.stringify({
+            date: dateStr,
+            checkIn,
+            checkOut,
+            shift: editingEmp.shift,
+            targetUserId: editingEmp._id,
+            status: 'Present'
+          })
+        }));
+      }
+      await Promise.all(promises);
+      notify('success', 'Roster Created', `Generated ${cycleDays} schedule entries based on ${editingEmp.shiftType} shift.`);
+
+      // Force refresh activity data using same date-range API as StaffAttendance
+      const start = historyPeriodStart;
+      const end = historyPeriodEnd;
+      const res = await fetch(`${API_URL}/attendance?startDate=${start}&endDate=${end}&employeeName=${encodeURIComponent(editingEmp.name)}&limit=500`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
+      const data = await res.json();
+      const attendanceList = Array.isArray(data) ? data : (data?.data || []);
+      if (Array.isArray(attendanceList)) {
+        const history = [...attendanceList];
+        history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        setEmployeeAttendance(history);
+      }
+    } catch (e) {
+      notify('error', 'Simulation Failed', 'Could not create schedule');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'activity' && editingEmp) {
+      const getAttendanceHistory = async () => {
+        try {
+          const start = historyPeriodStart;
+          const end = historyPeriodEnd;
+          const res = await fetch(`${API_URL}/attendance?startDate=${start}&endDate=${end}&employeeName=${encodeURIComponent(editingEmp.name)}&limit=500`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
+          const data = await res.json();
+          const attendanceList = Array.isArray(data) ? data : (data?.data || []);
+          if (Array.isArray(attendanceList)) {
+            const history = attendanceList.filter((item: any) =>
+              item.user?._id === editingEmp._id ||
+              item.user === editingEmp._id ||
+              item.employeeName?.toLowerCase() === editingEmp.name?.toLowerCase()
+            );
+            history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            setEmployeeAttendance(history);
+          }
+        } catch (e) {}
+      };
+      getAttendanceHistory();
+    }
+  }, [activeTab, editingEmp, dateRange]);
+
+   const deleteAttendance = async (id: string) => {
+     openConfirm(
+       'Delete Attendance Record?',
+       'This action will permanently remove this attendance entry.',
+       async () => {
+         try {
+           setLoading(true);
+           await fetch(`${API_URL}/attendance/${id}`, {
+             method: 'DELETE',
+             headers: { 'Authorization': `Bearer ${user?.token}` }
+           });
+           notify('success', 'Attendance Removed', 'The record has been removed');
+           setEmployeeAttendance(prev => prev.filter(a => a._id !== id));
+         } catch (e) {
+           notify('error', 'Delete Failed', 'Could not remove the record');
+         } finally {
+           setLoading(false);
+         }
+       }
+     );
+   };
+
+   const updateAttendance = async () => {
+     if (!editingAttendance) return;
+     try {
+       setLoading(true);
+       await fetch(`${API_URL}/attendance/${editingAttendance._id}`, {
+         method: 'PUT',
+         headers: {
+           'Content-Type': 'application/json',
+           'Authorization': `Bearer ${user?.token}`
+         },
+         body: JSON.stringify(attendanceFormData)
+       });
+       notify('success', 'Schedule Updated', 'Schedule updated');
+       setEmployeeAttendance(prev => prev.map(a => a._id === editingAttendance._id ? { ...a, ...attendanceFormData } : a));
+       setIsAttendanceModalOpen(false);
+     } catch (e) {
+       notify('error', 'Update Failed', 'Could not refine the record');
+     } finally {
+       setLoading(false);
+     }
+   };
+
+  const fetchEmployees = async (silent: boolean = false) => {
+    try {
+      if (!silent && employees.length === 0) setLoading(true);
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: PAGE_LIMIT.toString(),
+        search: debouncedSearch,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
+      });
+
+      const response = await fetch(`${API_URL}/employees?${queryParams}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const data = await response.json();
+      if (data.data) {
+        setEmployees(Array.isArray(data.data) ? data.data : []);
+        setTotalPages(data.pagination?.pages || 1);
+        setTotalEmployees(data.pagination?.total || (Array.isArray(data.data) ? data.data.length : 0));
+      } else if (Array.isArray(data)) {
+        setEmployees(data);
+        setTotalPages(1);
+        setTotalEmployees(data.length);
+      }
+    } catch (error) {
+      if (!silent) notify('error', 'Error', 'Failed to load staff');
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  useEffect(() => setCachedJson('zen_page_employees_list', employees), [employees]);
+  useEffect(() => setCachedJson('zen_page_employees_roles', roles), [roles]);
+  useEffect(() => setCachedJson('zen_page_employees_shifts', shifts), [shifts]);
+
+  const filteredEmployees = employees;
+
+  const fetchAllEmployeesForExport = async (): Promise<Employee[]> => {
+    const allEmployees: Employee[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const queryParams = new URLSearchParams({
+        page: exportPage.toString(),
+        limit: exportLimit.toString(),
+        search: debouncedSearch,
+        branch: selectedBranch !== 'all' ? selectedBranch : ''
+      });
+
+      const response = await fetch(`${API_URL}/employees?${queryParams}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch employees for export');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allEmployees.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const unique = new Map<string, Employee>();
+    allEmployees.forEach((employee) => {
+      if (employee?._id) {
+        unique.set(employee._id, employee);
+      }
+    });
+
+    return Array.from(unique.values());
+  };
+
+  const employeeExportColumns = useMemo<ExportColumn<Employee>[]>(
+    () => {
+      const currency = settings?.general?.currencySymbol || 'QR';
+      const money = (value?: number) =>
+        typeof value === 'number' ? `${currency} ${value}` : '-';
+      const assetUrl = (path?: string) => {
+        return getImageUrl(path) || '-';
+      };
+      const documentSummary = (employee: Employee) =>
+        employee.documents
+          ?.map(doc => `${doc.name || 'Document'} (${doc.fileType || 'file'})`)
+          .join(' | ') || '-';
+      const documentUrls = (employee: Employee) =>
+        employee.documents
+          ?.map(doc => assetUrl(doc.url))
+          .filter(url => url !== '-')
+          .join(' | ') || '-';
+      const documentUploadDates = (employee: Employee) =>
+        employee.documents
+          ?.map(doc => `${doc.name || 'Document'}: ${formatExportDateTime(doc.uploadedAt)}`)
+          .join(' | ') || '-';
+      const isLocked = (employee: Employee) =>
+        Boolean(employee.lockUntil && dayjs(employee.lockUntil).isAfter(dayjs()));
+
+      return [
+        { header: 'EMP ID', accessor: (employee) => employee.employeeId || '-' },
+        { header: 'System ID', accessor: (employee) => employee._id },
+        { header: 'Staff ID', accessor: (employee) => employee.employeeId ? `#${employee.employeeId}` : `#${employee._id.slice(-6).toUpperCase()}` },
+        { header: 'Full Name', accessor: (employee) => employee.name },
+        { header: 'Role', accessor: (employee) => employee.role || '-' },
+        { header: 'Branch ID', accessor: (employee) => getEmployeeBranchId(employee) || '-' },
+        { header: 'Branch', accessor: (employee) => getEmployeeBranchName(employee) },
+        { header: 'Phone', accessor: (employee) => employee.phone || '-' },
+        { header: 'Email', accessor: (employee) => employee.email || '-' },
+        { header: 'Address', accessor: (employee) => employee.address || '-' },
+        { header: 'Date of Birth', accessor: (employee) => formatExportDate(employee.dob) },
+        { header: 'Status', accessor: (employee) => employee.status || '-' },
+        { header: 'Email Verified', accessor: (employee) => employee.isEmailVerified === false ? 'No' : 'Yes' },
+        { header: 'Login Attempts', accessor: (employee) => employee.loginAttempts ?? 0 },
+        { header: 'Account Locked', accessor: (employee) => isLocked(employee) ? 'Yes' : 'No' },
+        { header: 'Lock Until', accessor: (employee) => formatExportDateTime(employee.lockUntil) },
+        { header: 'Joining Date', accessor: (employee) => formatExportDate(employee.joiningDate) },
+        { header: 'Shift', accessor: (employee) => employee.shift || 'Flexible' },
+        { header: 'Schedule Cycle', accessor: (employee) => employee.shiftType || 'Day' },
+        { header: 'Services Count', accessor: (employee) => employee.services?.length || 0 },
+        { header: 'Services', accessor: (employee) => employee.services?.join(' | ') || '-' },
+        { header: 'Attendance (%)', accessor: (employee) => employee.attendance ?? '-' },
+        { header: 'Earnings', accessor: (employee) => money(employee.earnings) },
+        { header: 'Salary', accessor: (employee) => money(employee.salary) },
+        { header: 'Payroll Type', accessor: (employee) => employee.payroll?.type || '-' },
+        { header: 'Payroll Base Amount', accessor: (employee) => money(employee.payroll?.baseAmount) },
+        { header: 'Overtime Rate', accessor: (employee) => money(employee.payroll?.otRate) },
+        { header: 'Shift Hours', accessor: (employee) => employee.payroll?.shiftHours ?? '-' },
+        { header: 'Commission Eligible', accessor: (employee) => employee.payroll?.commissionBasis === false ? 'No' : 'Yes' },
+        { header: 'Documents Count', accessor: (employee) => employee.documents?.length || 0 },
+        { header: 'Documents', accessor: (employee) => documentSummary(employee) },
+        { header: 'Document URLs', accessor: (employee) => documentUrls(employee) },
+        { header: 'Document Upload Dates', accessor: (employee) => documentUploadDates(employee) },
+        { header: 'Profile Picture', accessor: (employee) => employee.profilePic || '-' },
+        { header: 'Profile Picture URL', accessor: (employee) => assetUrl(employee.profilePic) },
+        { header: 'Created At', accessor: (employee) => formatExportDateTime(employee.createdAt) },
+        { header: 'Updated At', accessor: (employee) => formatExportDateTime(employee.updatedAt) }
+      ];
+    },
+    [API_URL, settings?.general?.currencySymbol]
+  );
+
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch(`${API_URL}/roles`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      const data = await response.json();
+      const roleList = Array.isArray(data) ? data : (data?.data || []);
+      setRoles(roleList);
+    } catch (error) {
+      console.error('Failed to load roles');
+    }
+  };
+
+  const togglePayroll = async (emp: Employee) => {
+    const newPayroll = emp.status === 'Active' ? 'Inactive' : 'Active';
+    try {
+      const response = await fetch(`${API_URL}/employees/${emp._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${user?.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newPayroll })
+      });
+      if (response.ok) {
+        notify('success', 'Updated', `Employee ${newPayroll}`);
+        fetchEmployees();
+      }
+    } catch (error) {
+      notify('error', 'Error', 'Toggle failed');
+    }
+  };
+
+  const handleOpenModal = (emp: Employee | null = null) => {
+    if (emp) {
+      setEditingEmp(emp);
+      const dialingCode = settings?.general.dialingCode || '+974';
+      const cleanPhone = emp.phone.startsWith(dialingCode) ? emp.phone.slice(dialingCode.length) : emp.phone;
+
+      setFormData({
+        name: emp.name,
+        role: emp.role,
+        email: emp.email,
+        phone: cleanPhone,
+        address: emp.address,
+        salary: emp.salary,
+        password: '',
+        confirmPassword: '',
+        joiningDate: emp.joiningDate ? new Date(emp.joiningDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        branch: getEmployeeBranchId(emp),
+        status: emp.status || 'Active',
+        shift: emp.shift || '',
+        shiftType: (emp.shiftType === 'Day' ? 'Week' : emp.shiftType) || 'Week',
+        payroll: emp.payroll || { type: 'Monthly', baseAmount: 0, otRate: 0, shiftHours: 8, commissionBasis: true }
+      });
+    } else {
+      setEditingEmp(null);
+      setFormData({
+        name: '',
+        role: (roles || []).filter(r => r.name !== 'Admin' && r.name !== 'Client')[0]?.name || '',
+        email: '',
+        phone: '',
+        address: '',
+        salary: 3000,
+        password: '',
+        confirmPassword: '',
+        joiningDate: new Date().toISOString().split('T')[0],
+        branch: branches.length > 0 ? branches[0]._id : '',
+        status: 'Active',
+        shift: '',
+        shiftType: 'Week',
+        payroll: { type: 'Monthly', baseAmount: 0, otRate: 0, shiftHours: 8, commissionBasis: true }
+      });
+    }
+    setProfilePicFile(null);
+    setImagePreview(null);
+    setActiveTab('profile');
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      return notify('error', 'Validation Error', 'Full name is required');
+    }
+    if (!editingEmp && formData.password !== formData.confirmPassword) {
+      return notify('error', 'Validation', 'Passwords do not match');
+    }
+    const phoneValidation = validatePhoneNumber(formData.phone, settings?.general?.countryIso || 'QA');
+    if (!phoneValidation.isValid) {
+      notify('error', 'Validation Error', phoneValidation.message || 'Invalid phone number');
+      return;
+    }
+
+    const data = new FormData();
+    const fullPhone = formData.phone.startsWith('+') ? formData.phone : `${settings?.general?.dialingCode || '+974'}${formData.phone}`;
+
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key === 'confirmPassword') return;
+      if (key === 'phone') {
+        data.append(key, fullPhone);
+      } else if (key === 'payroll') {
+        data.append(key, JSON.stringify(value));
+      } else {
+        data.append(key, value !== undefined && value !== null ? value.toString() : '');
+      }
+    });
+    if (profilePicFile) data.append('profilePic', profilePicFile);
+
+    try {
+      const url = editingEmp ? `${API_URL}/employees/${editingEmp._id}` : `${API_URL}/employees`;
+      const method = editingEmp ? 'PUT' : 'POST';
+      const response = await fetch(url, {
+        method,
+        headers: { 'Authorization': `Bearer ${user?.token}` },
+        body: data
+      });
+      if (response.ok) {
+        notify('success', 'Updated', `Employee record updated`);
+        setIsModalOpen(false);
+        fetchEmployees();
+      } else {
+        const error = await response.json();
+        notify('error', 'Error', error.message || 'Action failed');
+      }
+    } catch (error) {
+      notify('error', 'Error', 'Connection failed');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    openConfirm(
+      'Archive Employee',
+      'Archive this employee profile? They will be moved to the historical registry.',
+      async () => {
+        try {
+          const response = await fetch(`${API_URL}/employees/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${user?.token}` }
+          });
+          if (response.ok) {
+            notify('success', 'Archived', 'Profile removed from active registry');
+            fetchEmployees();
+          }
+        } catch (error) {
+          notify('error', 'Error', 'Action failed');
+        }
+      }
+    );
+  };
+
+
+
+  const employeeModalTabs = [
+    { id: 'profile' as const, label: 'Profile' },
+    { id: 'config' as const, label: 'Schedule' },
+    { id: 'payroll' as const, label: 'Payroll' },
+    { id: 'activity' as const, label: 'Attendance' },
+    { id: 'services' as const, label: 'Service List' },
+    { id: 'documents' as const, label: 'Documents' },
+  ];
+
+  return (
+    <ZenPageLayout
+      title="Specialists"
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      searchActions={!isModalOpen ? (
+        <ExportPopup<Employee>
+          data={filteredEmployees}
+          columns={employeeExportColumns}
+          fileName="employees"
+          title="Employees"
+          triggerLabel="Download"
+          description="Choose format and export the complete employee list with profile, branch, payroll, services, and document details."
+          resolveData={fetchAllEmployeesForExport}
+        />
+      ) : undefined}
+      addButtonLabel={isModalOpen ? undefined : "Add Specialist"}
+      onAddClick={() => handleOpenModal()}
+      hideSearch={isModalOpen}
+      hideBranchSelector={isModalOpen}
+      hideViewToggle={isModalOpen}
+      hideAddButton={isModalOpen}
+      topContent={!isModalOpen ? (
+        <div className="zen-metrics-grid">
+          {[
+            { label: 'Total Specialists', value: totalEmployees, icon: UserCircle, color: 'text-yellow-600', bg: 'bg-yellow-600/10', glow: 'bg-yellow-600/20', trend: 'Roster size' },
+            { label: 'Active Staff', value: employees.filter(e => e.status === 'Active').length, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Live nodes' },
+            { label: 'Inactive Staff', value: employees.filter(e => e.status !== 'Active').length, icon: Shield, color: 'text-rose-500', bg: 'bg-rose-500/10', glow: 'bg-rose-500/20', trend: 'Inactive personnel' },
+            { label: 'Total Earnings', value: `${settings?.general?.currencySymbol || 'QR'} ${employees.reduce((acc, e) => acc + (e.earnings || 0), 0).toLocaleString()}`, icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10', glow: 'bg-amber-500/20', trend: 'Overall value' }
+          ].map((stat, i) => (
+            <ZenStatCard key={i} {...stat} delay={i * 0.05} />
+          ))}
+        </div>
+      ) : undefined}
+    >
+      {!isModalOpen && (
+      <div className="space-y-6 pb-20">
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center min-h-[400px]">
+            <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredEmployees.map((emp) => (
+              <div key={emp._id} className={`group relative bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-zen-brown/15 flex flex-col transition-all duration-500 hover:shadow-xl hover:translate-y-[-4px] ${emp.status === 'Inactive' ? 'opacity-60 grayscale' : ''}`}>
+                 <div className="flex items-center gap-4 mb-6">
+                    <div className="relative w-16 h-16 rounded-full overflow-hidden bg-zen-cream border-2 border-white shadow-md shrink-0 transition-transform duration-700 group-hover:scale-105">
+                       {emp.profilePic ? (
+                         <img src={getImageUrl(emp.profilePic)} alt={emp.name} className="w-full h-full object-cover" />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-zen-brown/20 uppercase font-serif font-black text-2xl">
+                           {emp.name.charAt(0)}
+                         </div>
+                       )}
+                    </div>
+                    <div className="min-w-0">
+                       <h3 className="text-xl font-serif font-black text-zen-brown truncate leading-tight mb-1 flex items-center gap-2">
+                          {emp.name}
+                       </h3>
+                       <p className="text-[9px] font-black text-zen-brown/30 uppercase tracking-widest">{emp.role}</p>
+                    </div>
+                 </div>
+
+                 <div className="space-y-4 mb-6">
+                    <div className="flex items-center justify-between text-[10px]">
+                       <span className="text-zen-brown/40 font-bold uppercase tracking-wider">Staff ID</span>
+                       <span className="font-serif italic font-medium text-zen-brown/60">{emp.employeeId || emp._id.slice(-6).toUpperCase()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                       <span className="text-[10px] text-zen-brown/40 font-bold uppercase tracking-wider">Branch</span>
+                       <ZenBadge variant="sand" className="text-[8px] uppercase font-bold">{getEmployeeBranchName(emp)}</ZenBadge>
+                    </div>
+                 </div>
+
+                 <div className="mt-auto pt-4 border-t border-black/[0.03] flex items-center justify-between">
+                    <div className="flex flex-col">
+                       <span className="text-[16px] font-serif font-black text-zen-brown leading-none">
+                          {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
+                       </span>
+                       <span className="text-[8px] font-black text-zen-brown/30 uppercase tracking-widest mt-1">Total Earnings</span>
+                    </div>
+                    <div className="flex items-center gap-2 font-bold">
+                       <ZenIconButton
+                          icon={Zap}
+                          variant={emp.status === 'Active' ? 'leaf' : 'sand'}
+                          onClick={() => togglePayroll(emp)}
+                       />
+                       <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(emp)} />
+                       <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} />
+                    </div>
+                 </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
+            <div className="table-container">
+              <table className="w-full text-center border-collapse min-w-[760px] lg:min-w-[1000px]">
+               <thead>
+                  <tr>
+                     <th>S No</th>
+                     <th>Portrait</th>
+                     <th>Employee Identity</th>
+                     <th>Protocol</th>
+                     <th>Payroll</th>
+                     <th>Status</th>
+                     <th>Actions</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  {(!filteredEmployees || filteredEmployees.length === 0) && (
+                     <tr>
+                        <td colSpan={7} className="px-6 py-16 text-center text-[11px] font-sans text-gray-400 bg-gray-50/30">No employees recorded yet</td>
+                     </tr>
+                  )}
+
+                   {filteredEmployees.map((emp, idx) => (
+                    <tr key={emp._id} className="transition-all group border-b border-black/[0.02]">
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <span>{((page - 1) * PAGE_LIMIT + idx + 1).toString().padStart(2, '0')}</span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <div className="flex justify-center">
+                            <div className="w-10 lg:w-12 h-10 lg:h-12 zen-pointed-surface overflow-hidden bg-stone-50 border border-black/5 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
+                               {emp.profilePic ? (
+                                  <img src={getImageUrl(emp.profilePic)} alt={emp.name} className="w-full h-full object-cover" />
+                               ) : (
+                                  <User size={18} className="text-black/10" strokeWidth={1} />
+                               )}
+                            </div>
+                         </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <div className="flex flex-col items-center justify-center leading-none">
+                            <span className="zen-table-primary">{emp.name}</span>
+                            <span className="zen-table-meta mt-1">{emp.role} • {getEmployeeBranchName(emp)}</span>
+                         </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <div className="flex flex-col items-center justify-center leading-none">
+                            <span className="text-[10px] text-zen-brown/50 font-black uppercase tracking-widest">{emp.payroll?.type || 'Monthly'}</span>
+                            <span className="zen-table-meta mt-1">{emp.shift || 'Flexible'} Record</span>
+                         </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <div className="flex flex-col items-center justify-center leading-none">
+                           <span className="text-base font-serif font-black text-zen-brown leading-none">
+                              {settings?.general?.currencySymbol || 'QR'} {emp.earnings?.toLocaleString() || 0}
+                           </span>
+                           <span className="zen-table-meta mt-1">Total Earnings</span>
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                        <div className="flex justify-center">
+                           <ZenBadge variant={emp.status === 'Active' ? 'leaf' : 'sand'} className="text-[9px] uppercase tracking-widest">
+                              {emp.status}
+                           </ZenBadge>
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 lg:py-6">
+                         <div className="flex items-center justify-center gap-2">
+                            <ZenIconButton
+                               icon={Zap}
+                               variant={emp.status === 'Active' ? 'leaf' : 'sand'}
+                               onClick={() => togglePayroll(emp)}
+                               size="md"
+                            />
+                            <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(emp)} size="md" />
+                            <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(emp._id)} size="md" />
+                         </div>
+                      </td>
+                   </tr>
+                   ))}
+                </tbody>
+            </table>
+          </div>
+        </div>
+        )}
+
+
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+    </div>
+      )}
+
+      {isModalOpen && (
+        <div className="pb-24">
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              aria-label="Back to employees"
+              className="inline-flex h-11 items-center gap-2 rounded-2xl border border-zen-stone bg-white px-4 text-[10px] font-black uppercase tracking-[0.18em] text-zen-brown/70 transition-all duration-300 hover:border-zen-sand/30 hover:bg-zen-sand/10 hover:text-zen-sand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zen-sand/25"
+            >
+              <ChevronLeft size={18} strokeWidth={2.25} />
+              Back
+            </button>
+          </div>
+
+        <form id="employee-form" onSubmit={handleSubmit} className="w-full space-y-4 rounded-2xl border border-zen-stone bg-white p-4 sm:p-5 lg:p-6">
+          <section className="grid grid-cols-1 lg:grid-cols-[88px_minmax(0,1fr)] gap-4 lg:gap-5 items-center rounded-2xl border border-zen-stone bg-slate-50 p-4">
+            <div className="relative mx-auto lg:mx-0 w-20 h-20 group cursor-pointer shrink-0">
+              <div className="w-full h-full rounded-2xl overflow-hidden bg-white border border-zen-stone flex items-center justify-center transition-all group-hover:border-zen-sand/30 shadow-sm">
+                {(imagePreview || (editingEmp && editingEmp.profilePic)) ? (
+                  <img src={imagePreview || getImageUrl(editingEmp?.profilePic)} className="w-full h-full object-cover" />
+                ) : <UserCircle className="text-zen-brown/25" size={40} />}
+              </div>
+              <input
+                type="file"
+                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                onChange={e => {
+                  const file = e.target.files?.[0] || null;
+                  setProfilePicFile(file);
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setImagePreview(reader.result as string);
+                    reader.readAsDataURL(file);
+                  } else {
+                    setImagePreview(null);
+                  }
+                }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] gap-4 items-end">
+              <ZenInput label="Full Name" placeholder="e.g. Alexander Pierce" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} className="font-serif text-lg sm:text-2xl font-bold tracking-tighter" />
+              <div className="w-full">
+                <ZenDropdown label="Role" options={(roles || []).filter(r => r.name !== 'Admin' && r.name !== 'Client').map(r => r.name)} value={formData.role} onChange={(val) => setFormData({...formData, role: val})} variant="pill" />
+              </div>
+            </div>
+          </section>
+
+          <div className="overflow-x-auto scrollbar-hide rounded-2xl border border-zen-stone bg-slate-50 p-1.5">
+            <div className="flex min-w-max items-center gap-1.5">
+            {employeeModalTabs.map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex h-11 min-w-[8.75rem] items-center justify-center rounded-xl px-5 text-[10px] font-black uppercase tracking-[0.16em] transition-all duration-300 whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-white text-zen-sand shadow-sm ring-1 ring-zen-sand/20'
+                    : 'text-zen-brown/65 hover:bg-white hover:text-zen-brown'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+            </div>
+          </div>
+
+          <div className={`space-y-4 ${activeTab === 'activity' ? 'overflow-hidden' : ''}`}>
+              {activeTab === 'profile' ? (
+                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-5 gap-y-4 animate-in fade-in duration-500 py-3">
+                     <ZenInput label="Email Address" icon={Mail} value={formData.email} onChange={(e: any) => setFormData({...formData, email: e.target.value})} />
+                     <ZenInput label="Phone Number" icon={Phone} prefix={settings?.general?.dialingCode} value={formData.phone} onChange={(e: any) => setFormData({...formData, phone: e.target.value})} />
+                     <ZenInput label={`Password ${editingEmp ? '(Optional)' : ''}`} icon={Lock} type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} />
+                     <ZenInput label="Confirm Password" icon={Lock} type="password" value={formData.confirmPassword} onChange={(e: any) => setFormData({...formData, confirmPassword: e.target.value})} />
+                     <ZenDropdown label="Branch" options={['None', ...(branches || []).map(b => b.name)]} value={(branches || []).find(b => b._id === formData.branch)?.name || 'None'} onChange={(val) => setFormData({...formData, branch: (branches || []).find(b => b.name === val)?._id || ''})} variant="pill" disabled={user?.role !== 'Admin'} />
+                     <ZenDropdown label="Employment Status" options={['Active', 'Inactive']} value={formData.status} onChange={(val) => setFormData({...formData, status: val as 'Active' | 'Inactive'})} variant="pill" />
+                     <div className="md:col-span-2 xl:col-span-3">
+                        <ZenDatePicker label="Start Date" value={formData.joiningDate} onChange={val => setFormData({...formData, joiningDate: val})} />
+                      </div>
+                      <div className="md:col-span-2 xl:col-span-3"><ZenTextarea label="Address" value={formData.address} onChange={(e: any) => setFormData({...formData, address: e.target.value})} /></div>
+                 </div>
+              ) : activeTab === 'config' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 animate-in fade-in duration-500 h-full py-3">
+                    <div className="col-span-1">
+                      <ZenDropdown
+                        label="Payroll Type"
+                        options={['Monthly', 'Hourly']}
+                        value={formData.payroll.type}
+                        onChange={(val: any) => setFormData({...formData, payroll: {...formData.payroll, type: val}})}
+                        icon={Zap}
+                      />
+                    </div>
+
+                    <div className="col-span-1">
+                       <ZenDropdown
+                         label="Assigned Shift"
+                         options={[
+                           { label: 'None', value: 'None' },
+                           ...(shifts || []).map(s => ({
+                             label: `${s.name} (${s.startTime} - ${s.endTime})`,
+                             value: s.name
+                           }))
+                         ]}
+                         value={formData.shift || 'None'}
+                         onChange={(val) => {
+                            const selectedShift = (shifts || []).find(s => s.name === val);
+                            setFormData({
+                               ...formData,
+                               shift: val === 'None' ? '' : val,
+                               payroll: {
+                                  ...formData.payroll,
+                                  shiftHours: selectedShift ? selectedShift.durationHours : formData.payroll.shiftHours
+                               }
+                            });
+                         }}
+                         icon={Clock}
+                       />
+                       {formData.shift && shifts.find(s => s.name === formData.shift) && (
+                         <motion.div
+                           initial={{ opacity: 0, y: 10 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           className="mt-2 p-4 bg-zen-gold/5 rounded-2xl border border-zen-gold/10 flex items-center justify-between"
+                         >
+                           <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-zen-gold shadow-sm">
+                               <Clock size={14} />
+                             </div>
+                             <div>
+                               <p className="text-[10px] font-black text-zen-brown uppercase tracking-widest">Shift Insight</p>
+                               <p className="text-xs font-serif italic text-zen-brown/60">
+                                 {shifts.find(s => s.name === formData.shift)?.startTime} – {shifts.find(s => s.name === formData.shift)?.endTime}
+                               </p>
+                             </div>
+                           </div>
+                           <div className="text-right">
+                             <p className="text-[10px] font-black text-zen-brown uppercase tracking-widest">Duration</p>
+                             <p className="text-xs font-bold text-zen-gold">{shifts.find(s => s.name === formData.shift)?.durationHours} Hours</p>
+                           </div>
+                         </motion.div>
+                       )}
+                    </div>
+
+                    <div className="col-span-1">
+                       <ZenDropdown
+                          label="Schedule Cycle"
+                          options={['Week', 'Month']}
+                          value={formData.shiftType === 'Day' ? 'Week' : formData.shiftType}
+                          onChange={(val: any) => setFormData({...formData, shiftType: val})}
+                          icon={Zap}
+                       />
+                    </div>
+
+                    <div className="flex items-center justify-between p-6 bg-zen-sand/5 rounded-2xl border border-zen-sand/10">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-zen-brown uppercase tracking-widest">Commission Eligibility</span>
+                        <span className="text-xs text-zen-brown/40 mt-0.5">Allow automated commissions</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({...formData, payroll: {...formData.payroll, commissionBasis: !formData.payroll.commissionBasis}})}
+                        className={`w-12 h-6 rounded-full transition-all duration-500 ${formData.payroll.commissionBasis ? 'bg-amber-400' : 'bg-zen-brown/10'}`}
+                      >
+                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-500 ${formData.payroll.commissionBasis ? 'left-7' : 'left-1'}`} />
+                      </button>
+                    </div>
+
+                    {/* Schedule Cycle Calendar */}
+                    {(formData.shiftType === 'Week' || formData.shiftType === 'Month') && (() => {
+                      const today = dayjs();
+
+                      if (formData.shiftType === 'Week') {
+                        // Sat-starting week
+                        const dow = today.day(); // 0=Sun,6=Sat
+                        const satOffset = dow === 6 ? 0 : -(dow + 1);
+                        const weekStart = today.add(satOffset, 'day');
+                        const weekEnd = weekStart.add(6, 'day');
+                        const weekDays = Array.from({ length: 7 }, (_, i) => weekStart.add(i, 'day'));
+                        const dayLabels = ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'];
+
+                        return (
+                          <motion.div
+                            key="week-cal"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="col-span-1 md:col-span-2 p-6 bg-white/90 rounded-[2rem] border border-zen-brown/10"
+                          >
+                            <div className="flex items-center justify-between mb-5">
+                              <div>
+                                <p className="text-[10px] font-black text-zen-brown uppercase tracking-widest">Week Cycle</p>
+                                <p className="text-[9px] font-serif italic text-zen-brown/40 mt-0.5">Saturday — Friday</p>
+                              </div>
+                              <span className="text-[10px] font-bold text-zen-brown/40 bg-zen-cream/50 px-3 py-1.5 rounded-full border border-zen-brown/10">
+                                {weekStart.format('MMM D')} – {weekEnd.format('MMM D, YYYY')}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-7 gap-2">
+                              {dayLabels.map((label, i) => (
+                                <div key={i} className="text-center text-[8px] font-black text-zen-brown/30 uppercase tracking-widest pb-1">{label}</div>
+                              ))}
+                              {weekDays.map((day, i) => {
+                                const isToday = day.isSame(today, 'day');
+                                return (
+                                  <div
+                                    key={i}
+                                    className={`flex flex-col items-center justify-center py-3 px-1 rounded-2xl border transition-all duration-300 ${
+                                      isToday
+                                        ? 'bg-zen-gold/10 border-zen-gold/30 shadow-sm shadow-zen-gold/10'
+                                        : 'bg-zen-cream/30 border-transparent'
+                                    }`}
+                                  >
+                                    <span className={`text-base font-serif font-black leading-none ${isToday ? 'text-zen-gold' : 'text-zen-brown/60'}`}>
+                                      {day.format('D')}
+                                    </span>
+                                    <span className={`text-[7px] font-bold uppercase tracking-widest mt-1 ${isToday ? 'text-zen-gold/70' : 'text-zen-brown/25'}`}>
+                                      {day.format('MMM')}
+                                    </span>
+                                    {isToday && (
+                                      <div className="w-1 h-1 rounded-full bg-zen-gold mt-1.5" />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+                        );
+                      }
+
+                      // Month calendar (Sat-starting grid)
+                      const startOfMonth = today.startOf('month');
+                      const daysInMonth = startOfMonth.daysInMonth();
+                      const firstDow = startOfMonth.day(); // 0=Sun,6=Sat
+                      const offset = (firstDow + 1) % 7; // cells before day 1 in Sat-starting grid
+                      const dayLabels = ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'];
+
+                      return (
+                        <motion.div
+                          key="month-cal"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="col-span-1 md:col-span-2 p-6 bg-white/90 rounded-[2rem] border border-zen-brown/10"
+                        >
+                          <div className="flex items-center justify-between mb-5">
+                            <div>
+                              <p className="text-[10px] font-black text-zen-brown uppercase tracking-widest">Month Cycle</p>
+                              <p className="text-[9px] font-serif italic text-zen-brown/40 mt-0.5">Full calendar month</p>
+                            </div>
+                            <span className="text-[10px] font-bold text-zen-brown/40 bg-zen-cream/50 px-3 py-1.5 rounded-full border border-zen-brown/10">
+                              {today.format('MMMM YYYY')}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-7 gap-1.5">
+                            {dayLabels.map((label, i) => (
+                              <div key={i} className="text-center text-[8px] font-black text-zen-brown/30 uppercase tracking-widest pb-1">{label}</div>
+                            ))}
+                            {Array.from({ length: offset }, (_, i) => (
+                              <div key={`e-${i}`} className="h-10 rounded-xl bg-zen-brown/[0.02]" />
+                            ))}
+                            {Array.from({ length: daysInMonth }, (_, i) => {
+                              const day = i + 1;
+                              const date = startOfMonth.date(day);
+                              const isToday = date.isSame(today, 'day');
+                              return (
+                                <div
+                                  key={day}
+                                  className={`h-10 flex flex-col items-center justify-center rounded-xl border transition-all duration-300 ${
+                                    isToday
+                                      ? 'bg-zen-gold/10 border-zen-gold/30 shadow-sm shadow-zen-gold/10'
+                                      : 'bg-zen-cream/30 border-transparent hover:bg-white hover:shadow-sm'
+                                  }`}
+                                >
+                                  <span className={`text-[11px] font-serif font-black leading-none ${isToday ? 'text-zen-gold' : 'text-zen-brown/50'}`}>
+                                    {day}
+                                  </span>
+                                  {isToday && <div className="w-1 h-1 rounded-full bg-zen-gold mt-0.5" />}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      );
+                    })()}
+
+                    <ZenInput
+                      label={formData.payroll.type === 'Monthly' ? "Base Salary" : "Hourly Rate"}
+                      prefix={settings?.general?.currencySymbol || 'QR'}
+                      type="number"
+                      value={formData.payroll.baseAmount || formData.salary}
+                      onChange={(e: any) => setFormData({...formData, payroll: {...formData.payroll, baseAmount: parseInt(e.target.value)}})}
+                    />
+                    <ZenInput label="Overtime Rate (per hour)" icon={Zap} type="number" value={formData.payroll.otRate} onChange={(e: any) => setFormData({...formData, payroll: {...formData.payroll, otRate: parseInt(e.target.value)}})} />
+                    <ZenInput label="Shift Duration (Hours)" icon={Clock} type="number" value={formData.payroll.shiftHours} onChange={(e: any) => setFormData({...formData, payroll: {...formData.payroll, shiftHours: parseInt(e.target.value)}})} disabled />
+
+                    <div className="p-8 bg-zen-leaf/5 rounded-[2rem] border border-zen-leaf/10 flex flex-col justify-center">
+                       <h5 className="text-[10px] font-bold text-zen-leaf uppercase tracking-widest">Payroll Summary</h5>
+                       <p className="font-serif italic text-zen-brown/60 text-sm mt-3 leading-relaxed">
+                          Base pay is {settings?.general?.currencySymbol} {formData.payroll.baseAmount} {formData.payroll.type === 'Monthly' ? 'per month' : 'per hour'}.
+                          Any work beyond {formData.payroll.shiftHours} hours is paid at {settings?.general?.currencySymbol} {formData.payroll.otRate}/hr overtime.
+                       </p>
+                    </div>
+                </div>
+              ) : activeTab === 'payroll' ? (
+                 <div className="flex-1 pb-5 custom-scrollbar animate-in slide-in-from-right-4 duration-500 pt-1 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                       <div className="relative overflow-hidden bg-white p-5 rounded-2xl border border-zen-stone shadow-sm">
+                          <div className="absolute inset-y-0 left-0 w-1 bg-slate-200" />
+                          <p className="text-[10px] font-bold text-zen-brown/60 uppercase tracking-widest mb-1">Base Salary</p>
+                          <h4 className="text-2xl font-serif font-black text-zen-brown">{settings?.general?.currencySymbol} {(formData.payroll.baseAmount || 0).toLocaleString()}</h4>
+                          <span className="text-[9px] font-bold text-zen-brown/55 uppercase tracking-widest leading-none italic">{formData.payroll.type === 'Monthly' ? 'FIXED MONTHLY' : 'HOURLY RATE'}</span>
+                       </div>
+
+                        <div className="relative overflow-hidden bg-white p-5 rounded-2xl border border-zen-sand/20 shadow-sm">
+                           <div className="absolute inset-y-0 left-0 w-1 bg-zen-sand/45" />
+                           <p className="text-[10px] font-bold text-zen-brown/60 uppercase tracking-widest mb-1">Commission Earned</p>
+                           <h4 className="text-2xl font-serif font-black text-zen-brown">{settings?.general?.currencySymbol} {payrollPayroll.commissionTotal.toLocaleString()}</h4>
+                           <span className="text-[9px] font-bold text-zen-brown/55 uppercase tracking-widest leading-none italic">{payrollPayroll.monthApts.length} SERVICES COMPLETED</span>
+                        </div>
+                        <div className="relative overflow-hidden bg-white p-5 rounded-2xl border border-zen-sand/25 shadow-sm">
+                           <div className="absolute inset-y-0 left-0 w-1 bg-zen-sand" />
+                           <div className="absolute top-0 right-0 p-4 text-zen-sand/10"><Zap size={40} /></div>
+                           <p className="text-[10px] font-bold text-zen-brown/60 uppercase tracking-widest mb-1">Total Compensation</p>
+                           <h4 className="text-2xl font-serif font-black text-zen-brown">{settings?.general?.currencySymbol} {payrollPayroll.totalEarnings.toLocaleString()}</h4>
+                           <div className="flex items-center gap-2 mt-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-zen-sand animate-pulse" />
+                              <span className="text-[9px] font-black uppercase tracking-widest text-zen-brown/55">Estimated for {periodLabel}</span>
+                           </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-5">
+                       <h5 className="text-[11px] font-bold text-zen-brown uppercase tracking-[0.3em] px-2 flex items-center justify-between">
+                          <span>Commission Breakdown</span>
+                          <span className="text-zen-brown/20 italic font-serif normal-case tracking-normal">Breakdown per service</span>
+                       </h5>
+                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-none overflow-hidden table-container animate-in fade-in duration-700">
+                          <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
+                             <thead>
+                                <tr>
+                                   <th>Date</th>
+                                   <th>Service</th>
+                                   <th>Client</th>
+                                   <th>Commission</th>
+                                </tr>
+                             </thead>
+                             <tbody className="divide-y divide-zen-brown/15">
+                                {allAppointments
+                                   .filter(a => a.employee === formData.name && a.date && a.date >= historyPeriodStart && a.date <= historyPeriodEnd)
+                                   .sort((a, b) => dayjs(b.date).unix() - dayjs(a.date).unix())
+                                   .map((apt, idx) => {
+                                      const service = services.find(s => s.name === apt.service);
+                                      let earnings = 0;
+                                      if (service) {
+                                          const hasReferral = apt.referralCustomer || apt.referralCode || (apt.clientId && (typeof apt.clientId === 'object' ? (apt.clientId as any).referredBy : false));
+                                          if (hasReferral && service.referralCommissionValue > 0) {
+                                             earnings = service.referralCommissionType === 'Fixed'
+                                                ? service.referralCommissionValue
+                                                : (service.price * service.referralCommissionValue) / 100;
+                                          } else {
+                                             earnings = service.commissionType === 'Fixed'
+                                                ? service.commissionValue
+                                                : (service.price * service.commissionValue) / 100;
+                                          }
+                                       }
+                                      return (
+                                         <tr key={idx} className="hover:bg-white/40 transition-all text-xs font-medium text-zen-brown/70">
+                                            <td className="px-8 py-4">{dayjs(apt.date).format('DD MMM')}</td>
+                                            <td className="px-8 py-4 font-serif italic">{apt.service}</td>
+                                            <td className="px-8 py-4">{apt.client}</td>
+                                            <td className="px-8 py-4 text-right font-bold text-zen-sand">
+                                               {settings?.general?.currencySymbol} {earnings.toFixed(2)}
+                                            </td>
+                                         </tr>
+                                      );
+                                   })}
+                                {allAppointments.filter(a => a.employee === formData.name && a.date && a.date >= historyPeriodStart && a.date <= historyPeriodEnd).length === 0 && (
+                                   <tr>
+                                      <td colSpan={4} className="py-12 text-center text-zen-brown/20 italic font-serif">No rewards recorded for this period.</td>
+                                   </tr>
+                                )}
+                             </tbody>
+                          </table>
+                       </div>
+                    </div>
+                 </div>
+              ) : activeTab === 'activity' ? (
+                 <div className="animate-in fade-in duration-500 py-6 space-y-6">
+                    <div className="w-full">
+                       <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white/90 p-6 rounded-[2rem] border border-zen-brown/15 mb-6">
+                          <div className="flex items-center gap-6">
+                             <div className="block">
+                                <h3 className="text-xl md:text-2xl font-serif font-black text-zen-brown tracking-tight leading-none">{periodLabel} Insights</h3>
+                                <p className="text-[8px] md:text-[9px] font-bold text-zen-brown/30 uppercase tracking-[0.3em] mt-1">Temporal Presence Registry</p>
+                             </div>
+                             <ZenMasterCalendar
+                                label="Date Range"
+                                value={dateRange}
+                                onChange={(v: any) => setDateRange(v || 'Month')}
+                                selectionType="range"
+                                variant="pill"
+                                className="w-[180px]"
+                                hideLabel
+                             />
+                          </div>
+
+                          <div className="flex bg-zen-cream/30 p-1.5 rounded-[1.5rem] border border-zen-brown/15 shadow-inner">
+                             <button
+                               type="button"
+                               onClick={() => setHistoryView('calendar')}
+                               className={`px-8 py-3 rounded-xl text-[10px] font-extrabold uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-2 ${historyView === 'calendar' ? 'bg-white text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/50'}`}
+                             >
+                                <LayoutGrid size={12} />
+                                Calendar
+                             </button>
+                             <button
+                               type="button"
+                               onClick={() => setHistoryView('list')}
+                               className={`px-8 py-3 rounded-xl text-[10px] font-extrabold uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-2 ${historyView === 'list' ? 'bg-white text-zen-brown' : 'text-zen-brown/30 hover:text-zen-brown/50'}`}
+                             >
+                                <CalendarDays size={12} />
+                                Log View
+                             </button>
+                          </div>
+                       </div>
+                    </div>
+
+                    {historyView === 'calendar' ? (
+                          <div className="p-4 md:p-8 bg-white/90 backdrop-blur-2xl rounded-[2rem] md:rounded-[3rem] border border-white animate-in zoom-in-95 duration-700">
+                             <div className="grid grid-cols-7 gap-1 md:gap-3">
+                                {['S','M','T','W','T','F','S'].map((d, i) => (
+                                   <div key={i} className="text-center py-2 text-[8px] md:text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest">{d}</div>
+                                ))}
+
+                                {(() => {
+                                   const start = dayjs(historyPeriodStart);
+                                   const end = dayjs(historyPeriodEnd);
+                                   const startDay = start.day();
+                                   const cycleDays = end.diff(start, 'day') + 1;
+                                   const days = [];
+
+                                   for (let i = 0; i < startDay; i++) {
+                                      days.push(<div key={`empty-${i}`} className="h-16 md:h-28 rounded-[0.75rem] md:rounded-[1.5rem] bg-zen-brown/[0.02]" />);
+                                   }
+
+                                   for (let d = 0; d < cycleDays; d++) {
+                                      const date = start.add(d, 'day');
+                                      const dateStr = date.format('YYYY-MM-DD');
+                                      const record = employeeAttendance.find(a => a.date === dateStr);
+                                      const isToday = dayjs().isSame(date, 'day');
+
+                                      const anchorDate = dayjs(formData.joiningDate);
+                                      const isJoined = date.isAfter(anchorDate, 'day') || date.isSame(anchorDate, 'day');
+                                      const isInCycle = isJoined && (formData.shiftType === 'Month' || (formData.shiftType === 'Day' ? date.day() >= 1 && date.day() <= 5 : true));
+
+                                      days.push(
+                                         <div
+                                           key={dateStr}
+                                           className={`h-24 md:h-28 p-2 md:p-3 rounded-[0.75rem] md:rounded-[1.5rem] border transition-all duration-500 relative group overflow-hidden ${
+                                             isToday
+                                               ? 'bg-zen-gold/5 border-zen-gold/30 shadow-lg shadow-zen-gold/5'
+                                               : 'bg-white/40 border-zen-brown/5 hover:border-zen-gold/20 hover:bg-white hover:shadow-xl'
+                                           }`}
+                                         >
+                                           <span className={`text-[10px] md:text-[11px] font-serif font-black ${isToday ? 'text-zen-gold' : 'text-zen-brown/30 group-hover:text-zen-brown'}`}>{date.format('D')}</span>
+
+                                           {record ? (
+                                             <div className="mt-1 md:mt-2 space-y-1 md:space-y-1.5">
+                                               <div className="flex items-center gap-1 md:gap-1.5">
+                                                 <div className={`w-1 md:w-1.5 h-1 md:h-1.5 rounded-full ${
+                                                   record.status === 'Present' ? 'bg-emerald-400' : 'bg-red-400'
+                                                 }`} />
+                                                 <span className="text-[7px] md:text-[9px] font-bold text-zen-brown uppercase tracking-widest leading-none truncate">{record.status}</span>
+                                               </div>
+
+                                               <div className="flex flex-col gap-0.5 md:gap-1">
+                                                 <div className="flex items-center gap-1 md:gap-1.5 text-[7px] md:text-[9px] font-medium text-zen-brown/50">
+                                                   <Clock size={8} className="md:hidden text-zen-brown/20" />
+                                                   <Clock size={10} className="hidden md:block text-zen-brown/20" />
+                                                   <span className="truncate">{record.checkIn}–{record.checkOut || '...'}</span>
+                                                 </div>
+                                                 {(() => {
+                                                   const shiftLabel = (record.shift && record.shift !== 'None')
+                                                     ? record.shift
+                                                     : formData.shift || null;
+                                                   return shiftLabel ? (
+                                                     <div className="flex items-center gap-1 mt-0.5">
+                                                       <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/10 border border-violet-400/20 text-[6px] md:text-[8px] font-black text-violet-600 uppercase tracking-wider truncate max-w-full">
+                                                         <Zap size={7} className="shrink-0 fill-violet-500 text-violet-500" />
+                                                         {shiftLabel}
+                                                       </span>
+                                                     </div>
+                                                   ) : null;
+                                                 })()}
+                                               </div>
+                                             </div>
+                                           ) : (
+                                             isInCycle && formData.shift && (
+                                               <div className="absolute bottom-2 md:bottom-2.5 left-2 md:left-2.5 right-2 md:right-2.5">
+                                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/10 border border-violet-400/20 text-[6px] md:text-[7px] font-black text-violet-400 uppercase tracking-wider truncate max-w-full">
+                                                   <Zap size={6} className="shrink-0" />
+                                                   {formData.shift}
+                                                 </span>
+                                               </div>
+                                             )
+                                           )}
+                                         </div>
+                                      );
+                                   }
+                                   return days;
+                                })()}
+                             </div>
+                          </div>
+
+
+                    ) : (
+                       <div className="w-full bg-white rounded-[1rem] border border-gray-200/60 shadow-none overflow-hidden table-container animate-in fade-in duration-700">
+                          <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
+                             <thead>
+                                <tr>
+                                   <th>Date</th>
+                                   <th>Record / Status</th>
+                                   <th>Duration / Overtime</th>
+                                   <th>Actions</th>
+                                </tr>
+                             </thead>
+                             <tbody className="divide-y divide-zen-brown/15">
+                                {employeeAttendance
+                                   .map((log: any, idx: number) => (
+                                      <tr key={idx} className="hover:bg-zen-cream/10 transition-all group">
+                                         <td className="px-8 py-5">
+                                            <div className="flex flex-col">
+                                               <span className="font-serif font-black text-zen-brown text-sm">{dayjs(log.date).format('DD MMM YYYY')}</span>
+                                               <span className="text-[8px] font-bold text-zen-brown/30 uppercase tracking-widest">{dayjs(log.date).format('dddd')}</span>
+                                            </div>
+                                         </td>
+                                         <td className="px-8 py-5 text-center">
+                                            <div className="flex flex-col items-center gap-1.5">
+                                               <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/50 w-fit">{log.shift || "None"}</span>
+                                               <ZenBadge variant={log.checkOut ? "leaf" : "danger"} className="scale-[0.85] origin-center py-0.5">{log.checkOut ? "COMPLETED" : "ACTIVE"}</ZenBadge>
+                                            </div>
+                                         </td>
+                                         <td className="px-8 py-5 text-center">
+                                            <div className="flex flex-col items-center gap-1.5">
+                                               <div className="flex items-center justify-center gap-2 text-[10px] font-black text-zen-brown/60 uppercase">
+                                                  <span>{log.checkIn}</span>
+                                                  <span className="text-zen-brown/10">—</span>
+                                                  <span>{log.checkOut || "--"}</span>
+                                               </div>
+                                               {log.overtimeMinutes > 0 ? (
+                                                  <div className="flex items-center gap-1 text-red-400">
+                                                     <Zap size={10} className="fill-red-400" />
+                                                     <span className="text-[9px] font-black font-mono">+{Math.round((log.overtimeMinutes/60)*10)/10}h</span>
+                                                  </div>
+                                               ) : (
+                                                  <span className="text-[9px] font-bold text-zen-brown/10 uppercase tracking-tighter italic">Standard</span>
+                                               )}
+                                            </div>
+                                         </td>
+                                         <td className="px-8 py-5 text-right">
+                                             <div className="flex items-center justify-end gap-2 transition-opacity">
+                                                <ZenIconButton
+                                                   icon={Edit2}
+                                                   variant="sky"
+                                                   size="sm"
+                                                   onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setEditingAttendance(log);
+                                                      setAttendanceFormData({ checkIn: log.checkIn, checkOut: log.checkOut });
+                                                      setIsAttendanceModalOpen(true);
+                                                   }}
+                                                />
+                                                <ZenIconButton
+                                                   icon={Trash2}
+                                                   size="sm"
+                                                   variant="danger"
+                                                   onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      deleteAttendance(log._id);
+                                                   }}
+                                                />
+                                             </div>
+                                         </td>
+                                      </tr>
+                                   ))}
+                             </tbody>
+                          </table>
+                          {employeeAttendance.length === 0 && (
+                             <div className="flex flex-col items-center justify-center py-24 text-zen-brown/10 space-y-6">
+                                <div className="w-20 h-20 rounded-[2.5rem] border border-dashed border-zen-brown/25 flex items-center justify-center">
+                                   <Shield size={28} strokeWidth={1} />
+                                 </div>
+                                <p className="font-serif italic text-base opacity-50">No attendance records found for this period.</p>
+                             </div>
+                          )}
+                       </div>
+                    )}
+                 </div>
+              ) : activeTab === 'services' ? (
+                 <div className="animate-in fade-in duration-500 py-6 space-y-6">
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 bg-white/90 p-6 rounded-[2rem] border border-zen-brown/15">
+                       <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                          <div className="w-12 h-12 rounded-2xl bg-zen-sand/10 border border-zen-sand/20 flex items-center justify-center text-zen-sand">
+                             <FileText size={22} strokeWidth={1.7} />
+                          </div>
+                          <div>
+                             <h3 className="text-xl md:text-2xl font-serif font-black text-zen-brown tracking-tight leading-none">Service List</h3>
+                             <ZenMasterCalendar
+                               label="Date Range"
+                              value={dateRange}
+                              onChange={(v: any) => setDateRange(v || 'Month')}
+                              selectionType="range"
+                              variant="pill"
+                              className="w-full sm:w-[200px]"
+                              hideLabel
+                           />
+                          </div>
+                       </div>
+
+                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                             <div className="rounded-2xl border border-zen-brown/10 bg-zen-cream/30 px-4 py-3">
+                                <p className="text-[8px] font-black uppercase tracking-[0.18em] text-zen-brown/30">Total</p>
+                                <p className="mt-1 text-xl font-serif font-black text-zen-brown">{employeeServiceAppointments.length}</p>
+                             </div>
+                             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                                <p className="text-[8px] font-black uppercase tracking-[0.18em] text-emerald-600/60">Completed</p>
+                                <p className="mt-1 text-xl font-serif font-black text-emerald-700">
+                                   {employeeServiceAppointments.filter((apt: any) => apt.status === 'Completed').length}
+                                </p>
+                             </div>
+                             <div className="col-span-2 sm:col-span-1 rounded-2xl border border-zen-sand/20 bg-zen-sand/10 px-4 py-3">
+                                <p className="text-[8px] font-black uppercase tracking-[0.18em] text-zen-sand/70">Active Period</p>
+                                <p className="mt-1 text-sm font-serif font-black text-zen-brown leading-tight truncate">{periodLabel}</p>
+                             </div>
+                          </div>
+                          <ExportPopup<any>
+                             data={employeeServiceAppointments}
+                             columns={employeeServiceExportColumns}
+                             fileName={`${(formData.name || 'employee').replace(/\s+/g, '_')}_services`}
+                             title="Employee Service Full Report"
+                             triggerLabel="Export Report"
+                             description="Download this specialist's full service history ledger for the active date range."
+                          />
+                       </div>
+                    </div>
+
+                    {employeeServiceAppointments.length > 0 ? (
+                       <div className="space-y-4">
+                          {(Object.entries(employeeServiceGroups) as [string, any[]][]).map(([date, appointmentsForDate]) => (
+                             <div key={date} className="rounded-[2rem] border border-zen-brown/10 bg-white/90 overflow-hidden">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-zen-brown/5 bg-zen-cream/25 px-5 sm:px-6 py-4">
+                                   <div>
+                                      <p className="text-lg font-serif font-black text-zen-brown">{dayjs(date).format('DD MMM YYYY')}</p>
+                                      <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-zen-brown/30">{dayjs(date).format('dddd')}</p>
+                                   </div>
+                                   <ZenBadge variant="sand" className="w-fit">{appointmentsForDate.length} service{appointmentsForDate.length !== 1 ? 's' : ''}</ZenBadge>
+                                </div>
+
+                                <div className="table-container">
+                                   <table className="w-full min-w-[860px] text-left border-collapse">
+                                      <thead>
+                                         <tr>
+                                            <th>S No</th>
+                                            <th>Time</th>
+                                            <th>Service</th>
+                                            <th>Client</th>
+                                            <th>Room</th>
+                                            <th>Duration</th>
+                                            <th>Status</th>
+                                         </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-zen-brown/10">
+                                         {appointmentsForDate.map((apt: any, idx: number) => {
+                                            const matchedService = services.find(service => service.name === apt.service);
+                                            const statusVariant = apt.status === 'Completed'
+                                              ? 'leaf'
+                                              : apt.status === 'Cancelled'
+                                                ? 'danger'
+                                                : 'sand';
+                                            return (
+                                               <tr key={apt._id || `${date}-${idx}`} className="hover:bg-zen-cream/15 transition-colors">
+                                                  <td className="px-6 py-5">
+                                                     <span className="text-[11px] font-black uppercase tracking-[0.2em] text-zen-brown/35">
+                                                        {(idx + 1).toString().padStart(2, '0')}
+                                                     </span>
+                                                  </td>
+                                                  <td className="px-6 py-5">
+                                                     <span className="inline-flex items-center gap-2 rounded-xl border border-zen-brown/10 bg-white px-3 py-2 text-[11px] font-black uppercase tracking-wider text-zen-brown/65">
+                                                        <Clock size={12} className="text-zen-sand" />
+                                                        {apt.time || '--'}
+                                                     </span>
+                                                  </td>
+                                                  <td className="px-6 py-5">
+                                                     <div className="flex flex-col">
+                                                        <span className="text-sm font-black text-zen-brown">{apt.service || 'Service'}</span>
+                                                        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-zen-brown/25">
+                                                           {matchedService?.commissionType ? `${matchedService.commissionType} commission` : 'Standard service'}
+                                                        </span>
+                                                     </div>
+                                                  </td>
+                                                  <td className="px-6 py-5 text-sm font-medium text-zen-brown/70">{apt.client || '-'}</td>
+                                                  <td className="px-6 py-5 text-sm font-medium text-zen-brown/55">{apt.room || '-'}</td>
+                                                  <td className="px-6 py-5 text-sm font-black text-zen-brown/55">
+                                                     {apt.duration || matchedService?.duration || '-'} min
+                                                  </td>
+                                                  <td className="px-6 py-5">
+                                                     <ZenBadge variant={statusVariant}>{apt.status || 'Pending'}</ZenBadge>
+                                                  </td>
+                                               </tr>
+                                            );
+                                         })}
+                                      </tbody>
+                                   </table>
+                                </div>
+                             </div>
+                          ))}
+                       </div>
+                    ) : (
+                       <div className="flex flex-col items-center justify-center py-24 text-zen-brown/20 space-y-5 rounded-[2rem] border border-dashed border-zen-brown/15 bg-white/70">
+                          <div className="w-20 h-20 rounded-[2rem] border border-dashed border-zen-brown/20 flex items-center justify-center">
+                             <FileText size={28} strokeWidth={1.4} />
+                          </div>
+                          <div className="text-center">
+                             <p className="font-serif font-black text-lg text-zen-brown/40">No services found</p>
+                             <p className="mt-1 text-xs text-zen-brown/30">No service appointments are assigned to this employee for {periodLabel}.</p>
+                          </div>
+                       </div>
+                    )}
+                 </div>
+              ) : (
+                 <div className="space-y-5 animate-in fade-in duration-500 py-3">
+
+                    {/* Upload Area — only when editing an existing employee */}
+                    {editingEmp ? (
+                      <div className="bg-zen-cream/20 rounded-[2rem] border border-zen-sand/20 p-8 flex flex-col items-center gap-6 group/upload relative overflow-hidden transition-all duration-700 hover:border-zen-sand/40 shadow-inner">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-zen-sand/30 to-transparent" />
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-white border border-zen-sand/10 flex items-center justify-center text-zen-sand shadow-lg group-hover/upload:scale-110 transition-transform duration-700">
+                          <Cloud size={32} strokeWidth={1.5} />
+                        </div>
+                        <div className="text-center space-y-1">
+                          <h4 className="font-serif font-black text-zen-brown text-xl tracking-tight">Archive Repository</h4>
+                          <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.3em]">Vaulting Contracts, IDs & Certifications</p>
+                        </div>
+                        <div className="flex items-center gap-4 w-full max-w-sm relative">
+                          <input
+                            type="text"
+                            placeholder="Identify this document..."
+                            value={docName}
+                            onChange={e => setDocName(e.target.value)}
+                            className="w-full bg-white/60 px-6 py-3 rounded-xl border border-zen-brown/10 outline-none text-sm font-medium text-zen-brown placeholder:text-zen-brown/20 focus:bg-white focus:border-zen-sand/30 transition-all shadow-sm"
+                          />
+                        </div>
+                        <label className={`flex w-full sm:w-auto justify-center items-center gap-3 px-6 sm:px-10 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer transition-all duration-700 ${uploadingDoc ? 'bg-zen-sand/20 text-zen-sand/40' : 'bg-zen-brown text-white hover:bg-black shadow-2xl hover:-translate-y-1'}`}>
+                          {uploadingDoc ? (
+                            <><Loader2 size={14} className="animate-spin" /> Digitizing...</>
+                          ) : (
+                            <><Sparkles size={14} /> Commit to Registry</>
+                          )}
+                          <input
+                            type="file"
+                            className="hidden"
+                            disabled={uploadingDoc}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file || !editingEmp) return;
+                              setUploadingDoc(true);
+                              try {
+                                const data = new FormData();
+                                data.append('document', file);
+                                data.append('name', docName || file.name);
+                                data.append('fileType', file.name.split('.').pop() || 'file');
+                                const res = await fetch(`${API_URL}/employees/${editingEmp._id}/documents`, {
+                                  method: 'POST',
+                                  headers: { 'Authorization': `Bearer ${user?.token}` },
+                                  body: data
+                                });
+                                if (res.ok) {
+                                  notify('success', 'Registry Updated', 'Document archived successfully');
+                                  setDocName('');
+                                  fetchEmployees();
+                                  const updatedEmp = await fetch(`${API_URL}/employees`, { headers: { 'Authorization': `Bearer ${user?.token}` } });
+                                  const allEmps = await updatedEmp.json();
+                                  const fresh = allEmps.find((emp: any) => emp._id === editingEmp._id);
+                                  if (fresh) setEditingEmp(fresh);
+                                } else {
+                                  const err = await res.json().catch(() => ({ message: 'Could not archive the document' }));
+                                  notify('error', 'Upload Failed', err.message || 'Validation Error');
+                                }
+                              } catch {
+                                notify('error', 'Transmission Error', 'Check your connection to the central server');
+                              } finally {
+                                setUploadingDoc(false);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="p-5 bg-zen-cream/20 rounded-[1.75rem] border border-zen-brown/15 text-center">
+                        <p className="text-sm font-serif italic text-zen-brown/40">Save the employee profile first to enable document management.</p>
+                      </div>
+                    )}
+
+                    {/* Document List */}
+                    {editingEmp?.documents && editingEmp.documents.length > 0 ? (
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-bold text-zen-brown/30 uppercase tracking-widest px-1">
+                          Documents · {editingEmp.documents.length} File{editingEmp.documents.length !== 1 ? 's' : ''}
+                        </p>
+                        {editingEmp.documents.map((doc: any) => (
+                          <div key={doc._id} className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-white rounded-[1.5rem] border border-zen-brown/15 shadow-sm hover:shadow-md transition-all duration-300 gap-4">
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className="w-12 h-12 rounded-xl bg-zen-cream flex items-center justify-center text-zen-brown/30 shrink-0">
+                                <File size={22} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-serif font-bold text-zen-brown text-sm truncate">{doc.name}</p>
+                                <div className="flex items-center gap-3 mt-1">
+                                  <span className="text-[9px] font-bold text-zen-brown/30 uppercase tracking-widest bg-zen-cream px-2 py-0.5 rounded-md">
+                                    {doc.fileType || 'file'}
+                                  </span>
+                                  <span className="text-[9px] text-zen-brown/20 uppercase tracking-widest">
+                                    {new Date(doc.uploadedAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300">
+                              <a
+                                href={getImageUrl(doc.url)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-9 h-9 rounded-xl bg-zen-cream flex items-center justify-center text-zen-brown/40 hover:text-zen-brown transition-colors"
+                              >
+                                <Download size={15} />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (!editingEmp) return;
+                                  try {
+                                    const res = await fetch(`${API_URL}/employees/${editingEmp._id}/documents/${doc._id}`, {
+                                      method: 'DELETE',
+                                      headers: { 'Authorization': `Bearer ${user?.token}` }
+                                    });
+                                    if (res.ok) {
+                                      notify('success', 'Document Removed', 'Document removed successfully');
+                                      fetchEmployees();
+                                      setEditingEmp(prev => prev ? { ...prev, documents: prev.documents.filter((d: any) => d._id !== doc._id) } : null);
+                                    }
+                                  } catch {
+                                    notify('error', 'Error', 'Could not remove document');
+                                  }
+                                }}
+                                className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : editingEmp ? (
+                      <div className="text-center py-8 text-zen-brown/20 italic font-serif text-sm">
+                        No documents archived yet.
+                      </div>
+                    ) : null}
+
+                 </div>
+              )}
+          </div>
+          <div className="sticky bottom-3 z-20 mt-8 rounded-2xl border border-zen-stone bg-white/95 p-3 shadow-lg backdrop-blur-xl">
+            <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end">
+              <ZenButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto py-3 text-[10px]">
+                Cancel
+              </ZenButton>
+              <ZenButton type="submit" className="w-full sm:w-auto py-3 text-[10px]">
+                <span>Save Registry Entry</span>
+                <Sparkles size={14} />
+              </ZenButton>
+            </div>
+          </div>
+        </form>
+        </div>
+      )}
+
+      <ConfirmDialog isOpen={confirmState.isOpen} onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))} onConfirm={confirmState.onConfirm} title={confirmState.title} message={confirmState.message} />
+
+       <Modal
+        isOpen={isAttendanceModalOpen}
+        onClose={() => setIsAttendanceModalOpen(false)}
+        title="Edit Attendance Record"
+        subtitle="Update check-in and check-out times"
+        headerIcon={Clock}
+        maxWidth="max-w-2xl"
+        footer={
+          <div className="flex items-center gap-4">
+            <ZenButton onClick={() => setIsAttendanceModalOpen(false)} variant="secondary" className="flex-1 py-5">
+               Cancel
+            </ZenButton>
+            <ZenButton type="submit" form="attendance-form" className="flex-[2] py-5">
+               Save Attendance
+            </ZenButton>
+          </div>
+        }
+      >
+          <form id="attendance-form" onSubmit={(e) => { e.preventDefault(); updateAttendance(); }} className="space-y-8">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+                <ZenInput
+                  label="Check-in Time"
+                  icon={Clock}
+                  placeholder="09:00 AM"
+                  value={attendanceFormData.checkIn}
+                  onChange={(e: any) => setAttendanceFormData(prev => ({ ...prev, checkIn: e.target.value }))}
+                />
+                <ZenInput
+                  label="Check-out Time"
+                  icon={Clock}
+                  placeholder="06:00 PM"
+                  value={attendanceFormData.checkOut}
+                  onChange={(e: any) => setAttendanceFormData(prev => ({ ...prev, checkOut: e.target.value }))}
+                />
+             </div>
+          </form>
+       </Modal>
+    </ZenPageLayout>
+  );
+};
+
+export default Employees;

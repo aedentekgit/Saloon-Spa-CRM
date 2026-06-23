@@ -1,0 +1,43 @@
+import { countries, Country } from './countries';
+
+export const validatePhoneNumber = (phone: string, countryIso: string): { isValid: boolean; message?: string } => {
+  let country = countries.find(c => c.iso === countryIso) || { name: 'selected country', phoneLength: 8, code: '+974' };
+  
+  // If the phone number starts with a +, detect the country code dynamically
+  if (phone.startsWith('+')) {
+    // Sort countries by dial code length descending to match longer codes first (e.g. +1 242 vs +1)
+    const sortedCountries = [...countries].sort((a, b) => b.code.length - a.code.length);
+    const matchedCountry = sortedCountries.find(c => phone.startsWith(c.code));
+    if (matchedCountry) {
+      country = matchedCountry;
+    }
+  }
+
+  // Remove all non-numeric characters
+  let cleanPhone = phone.replace(/\D/g, '');
+  
+  // If the number starts with the country code (e.g. 974 for Qatar), strip it
+  const countryCodeDigits = country.code.replace(/\D/g, '');
+  if (cleanPhone.startsWith(countryCodeDigits) && cleanPhone.length > country.phoneLength) {
+    cleanPhone = cleanPhone.slice(countryCodeDigits.length);
+  }
+
+  // Common issue: leading zero
+  if (cleanPhone.startsWith('0') && cleanPhone.length === country.phoneLength + 1) {
+    cleanPhone = cleanPhone.slice(1);
+  }
+  
+  if (cleanPhone.length !== country.phoneLength) {
+    return {
+      isValid: false,
+      message: `PHONE NUMBER MUST BE EXACTLY ${country.phoneLength} DIGITS FOR ${country.name.toUpperCase()}`
+    };
+  }
+  
+  return { isValid: true };
+};
+
+export const getPhoneValidationProtocol = (countryIso: string): string => {
+  const country = countries.find(c => c.iso === countryIso) || { phoneLength: 8 };
+  return `PROTOCOL: EXACTLY ${country.phoneLength} DIGITS REQUIRED`;
+};

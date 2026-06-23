@@ -1,0 +1,590 @@
+const mongoose = require('mongoose');
+const Invoice = require('../../models/finance/Invoice');
+const User = require('../../models/core/User');
+const Employee = require('../../models/human-resources/Employee');
+const Service = require('../../models/operations/Service');
+const Branch = require('../../models/operations/Branch');
+const Appointment = require('../../models/operations/Appointment');
+const { paginateModelQuery } = require('../../utils/pagination');
+const { getBranchId, sameBranch, toObjectIdIfValid } = require('../../utils/branch');
+const { findServiceForBranch } = require('../../utils/serviceBranches');
+
+const REFERRAL_REWARD_AMOUNT = 50;
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const normalizeName = (value = '') => String(value || '').trim().toLowerCase();
+const normalizeEmail = (value = '') => String(value || '').trim().toLowerCase();
+const normalizePhone = (value = '') => String(value || '').replace(/\D/g, '');
+const isSameClientIdentity = (client, referrer) => {
+  if (!client || !referrer) return false;
+  const sameId = client._id && referrer._id && client._id.toString() === referrer._id.toString();
+  const sameName = normalizeName(client.name) && normalizeName(client.name) === normalizeName(referrer.name);
+  const sameEmail = normalizeEmail(client.email) && normalizeEmail(client.email) === normalizeEmail(referrer.email);
+  const samePhone = normalizePhone(client.phone) && normalizePhone(client.phone) === normalizePhone(referrer.phone);
+  return Boolean(sameId || sameName || sameEmail || samePhone);
+};
+
+const normalizeQuantity = (value) => {
+  const quantity = Number(value);
+  if (!Number.isFinite(quantity) || quantity < 1) return 1;
+  return Math.floor(quantity);
+};
+
+const buildReferralLookupConditions = (referralCustomer, referralCode) => {
+  const lookups = [referralCustomer, referralCode]
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+
+  const conditions = [];
+  lookups.forEach(lookup => {
+    conditions.push(
+      { name: lookup },
+      { email: lookup.toLowerCase() },
+      { clientId: lookup },
+      { referralCode: lookup }
+    );
+  });
+  return conditions;
+};
+
+const findReferralClientFromAppointments = async (appointments = [], targetClient = null) => {
+  for (const appointment of appointments) {
+    const conditions = buildReferralLookupConditions(appointment.referralCustomer, appointment.referralCode);
+    if (conditions.length === 0) continue;
+
+    const referrer = await User.findOne({
+      role: 'Client',
+      $or: conditions
+    }).select('_id name email phone referralCode clientId');
+
+    if (referrer && !isSameClientIdentity(targetClient, referrer)) {
+      return referrer;
+    }
+  }
+
+  return null;
+};
+
+// @desc    Get all invoices
+// @route   GET /api/invoices
+// @access  Private
+const getInvoices = async (req, res) => {
+  try {
+    let query = {};
+    const userBranchId = getBranchId(req.user.branch);
+    const requestedBranch = req.query.branch && req.query.branch !== 'all' ? getBranchId(req.query.branch) : null;
+
+    // IDOR Prevention
+    if (req.user.role === 'Admin') {
+      if (requestedBranch) {
+        query.branch = toObjectIdIfValid(requestedBranch);
+      }
+    } else if (req.user.role === 'Client') {
+      // Clients only see their own invoices
+      query.$or = [
+        { user: req.user._id },
+        { clientId: req.user._id }
+      ];
+      if (userBranchId) {
+        query.branch = toObjectIdIfValid(userBranchId);
+      }
+    } else {
+      if (!userBranchId) {
+        return res.status(403).json({ message: 'Access Denied: Branch assignment required.' });
+      }
+      if (requestedBranch && !sameBranch(requestedBranch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Cannot view invoices for another branch.' });
+      }
+      query.branch = toObjectIdIfValid(userBranchId);
+    }
+
+    const { search, paymentMode, startDate, endDate } = req.query;
+
+    if (paymentMode) {
+      query.paymentMode = paymentMode;
+    }
+
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = String(startDate);
+      if (endDate) query.date.$lte = String(endDate);
+    }
+
+    if (search) {
+      const rx = new RegExp(escapeRegex(String(search)), 'i');
+      const matchingBranches = await Branch.find({ name: rx }).select('_id').lean();
+      const branchIds = matchingBranches.map(branch => branch._id);
+
+      const searchOr = [
+        { invoiceNumber: rx },
+        { clientName: rx },
+        { paymentMode: rx },
+        { 'items.name': rx },
+        { 'payments.mode': rx },
+        { date: rx }
+      ];
+
+      if (branchIds.length > 0) {
+        searchOr.push({ branch: { $in: branchIds } });
+      }
+
+      const numericSearch = Number(search);
+      if (Number.isFinite(numericSearch)) {
+        searchOr.push(
+          { subtotal: numericSearch },
+          { gst: numericSearch },
+          { discount: numericSearch },
+          { total: numericSearch },
+          { 'items.price': numericSearch },
+          { 'payments.amount': numericSearch }
+        );
+      }
+
+      if (query.$or) {
+        const existingOr = query.$or;
+        delete query.$or;
+        query.$and = [{ $or: existingOr }, { $or: searchOr }];
+      } else {
+        query.$or = searchOr;
+      }
+    }
+
+    const { data, pagination } = await paginateModelQuery(Invoice, query, req, {
+      populate: 'branch',
+      sort: { createdAt: -1 }
+    });
+    res.json(pagination ? { data, pagination } : data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Create new invoice
+// @route   POST /api/invoices
+// @access  Private
+const createInvoice = async (req, res) => {
+  const {
+    invoiceNumber,
+    clientId,
+    clientName,
+    items,
+    subtotal,
+    gst,
+    discount,
+    referralDiscountAmount,
+    referralDiscountCode,
+    total,
+    paymentMode,
+    payments,
+    date,
+    branch
+  } = req.body;
+
+  try {
+    const userBranchId = getBranchId(req.user.branch);
+    const isAdmin = req.user.role === 'Admin';
+    const isClient = req.user.role === 'Client';
+    const requestedBranch = getBranchId(branch) || userBranchId;
+
+    if (isClient) {
+      return res.status(403).json({ message: 'Access Denied: Clients cannot create invoices.' });
+    }
+
+    if (!requestedBranch) {
+      return res.status(400).json({ message: 'Branch assignment required' });
+    }
+
+    if (!isAdmin && !sameBranch(requestedBranch, userBranchId)) {
+      return res.status(403).json({ message: 'Access Denied: Cannot create invoices for another branch.' });
+    }
+
+    let targetClientId = clientId || undefined;
+    let targetClient = null;
+    if (targetClientId) {
+      targetClient = await User.findById(targetClientId).select('_id name email phone role branch referralRewardBalance referralDiscountUsed referralCode referredBy');
+      if (!targetClient || targetClient.role !== 'Client') {
+        return res.status(400).json({ message: 'Invalid client selection for invoice.' });
+      }
+      if (!isAdmin && targetClient.branch && !sameBranch(targetClient.branch, userBranchId)) {
+        return res.status(403).json({ message: 'Access Denied: Selected client belongs to another branch.' });
+      }
+    }
+
+    // Generate Invoice Number (Prefix + 0001 format)
+    const branchDoc = await Branch.findById(requestedBranch);
+    if (!branchDoc) return res.status(400).json({ message: 'Invalid branch' });
+
+    const prefix = branchDoc.name.substring(0, 2).toUpperCase();
+    const lastInvoice = await Invoice.findOne({ branch: requestedBranch, invoiceNumber: new RegExp(`^${prefix}`) })
+      .sort({ createdAt: -1 });
+
+    let nextInvoiceNumber;
+    if (lastInvoice && lastInvoice.invoiceNumber) {
+      const lastIdMatch = lastInvoice.invoiceNumber.match(/\d+/);
+      if (lastIdMatch) {
+        const nextNumber = parseInt(lastIdMatch[0], 10) + 1;
+        nextInvoiceNumber = `${prefix}${nextNumber.toString().padStart(4, '0')}`;
+      } else {
+        nextInvoiceNumber = `${prefix}0001`;
+      }
+    } else {
+      nextInvoiceNumber = `${prefix}0001`;
+    }
+
+    const linkedAppointmentIds = [];
+    const linkedAppointments = [];
+    const normalizedItems = [];
+    const requestedReferralDiscount = Number(referralDiscountAmount || 0);
+
+    if (requestedReferralDiscount < 0) {
+      return res.status(400).json({ message: 'Referral discount cannot be negative.' });
+    }
+
+    if (items && Array.isArray(items)) {
+      const referralLineItems = items.filter((item) => item.serviceType === 'REFERRAL_DISCOUNT' || String(item.name || '').trim().toLowerCase() === 'referral discount');
+      if (referralLineItems.length > 1 || (referralLineItems.length === 1 && requestedReferralDiscount > 0)) {
+        return res.status(400).json({ message: 'Only one referral discount can be applied per bill.' });
+      }
+
+      const Inventory = require('../../models/inventory/Inventory');
+      for (const item of items) {
+        let linkedAppointment = null;
+        if (item.appointmentId) {
+          linkedAppointment = await Appointment.findById(item.appointmentId).select('branch clientId client clientPhone clientEmail referralCustomer referralCode status billedInvoiceId service employee employeeId completedByEmployeeId completedByName serviceType membershipId');
+          if (!linkedAppointment) {
+            return res.status(400).json({ message: 'Invalid completed appointment selection.' });
+          }
+          if (!sameBranch(linkedAppointment.branch, requestedBranch)) {
+            return res.status(403).json({ message: 'Access Denied: Completed appointment belongs to another branch.' });
+          }
+          if (linkedAppointment.status !== 'Completed') {
+            return res.status(400).json({ message: 'Only completed appointments can be billed.' });
+          }
+          if (linkedAppointment.billedInvoiceId) {
+            return res.status(400).json({ message: 'This completed appointment is already linked to an invoice.' });
+          }
+          if (targetClientId && linkedAppointment.clientId && linkedAppointment.clientId.toString() !== targetClientId.toString()) {
+            return res.status(400).json({ message: 'Completed appointment does not belong to the selected client.' });
+          }
+          linkedAppointmentIds.push(linkedAppointment._id);
+          linkedAppointments.push(linkedAppointment);
+        }
+
+        if (item.specialist) {
+          const employee = await Employee.findById(item.specialist).select('branch');
+          if (!employee || !sameBranch(employee.branch, requestedBranch)) {
+            return res.status(403).json({ message: 'Access Denied: Selected specialist belongs to another branch.' });
+          }
+        }
+
+        const service = await findServiceForBranch(Service, requestedBranch, item.serviceId, item.name, 'branches.inventoryUsage.inventoryItem inventoryUsage.inventoryItem');
+
+        if (service?.inventoryUsage?.length) {
+          for (const usage of service.inventoryUsage) {
+            const inventoryItemId = usage.inventoryItem?._id || usage.inventoryItem;
+            if (!inventoryItemId) continue;
+            const inventoryItem = await Inventory.findById(inventoryItemId).select('branch');
+            if (!inventoryItem) {
+              console.warn(`[Inventory Warning] Linked inventory item ${inventoryItemId} not found for service "${service.name}".`);
+              continue;
+            }
+            if (!sameBranch(inventoryItem.branch, requestedBranch)) {
+              console.warn(`[Inventory Warning] Service "${service.name}" uses inventory item "${inventoryItemId}" which belongs to another branch.`);
+              // Do not block invoice creation to maintain business flow, but skip depletion in depletion logic
+            }
+          }
+        }
+
+        const isReferralItem = item.serviceType === 'REFERRAL_DISCOUNT' || String(item.name || '').trim().toLowerCase() === 'referral discount';
+        const isMembershipItem = item.isMembershipCovered === true || item.isRedeem === true || item.serviceType === 'MEMBERSHIP';
+        const finalPrice = isMembershipItem ? 0 : Number(item.price ?? 0);
+
+        normalizedItems.push({
+          ...item,
+          appointmentId: linkedAppointment?._id || item.appointmentId || undefined,
+          serviceId: item.serviceId || service?._id || undefined,
+          specialist: item.specialist || linkedAppointment?.completedByEmployeeId || linkedAppointment?.employeeId || undefined,
+          specialistName: item.specialistName || linkedAppointment?.completedByName || linkedAppointment?.employee,
+          quantity: normalizeQuantity(item.quantity),
+          price: isReferralItem ? 0 : finalPrice,
+          originalPrice: Number(item.originalPrice ?? item.price ?? 0) || 0,
+          serviceType: isReferralItem ? 'REFERRAL_DISCOUNT' : (isMembershipItem ? 'MEMBERSHIP' : 'REGULAR'),
+          isMembershipCovered: isMembershipItem,
+          membershipPlanName: item.membershipPlanName || ''
+        });
+      }
+    }
+
+    const invoiceItems = normalizedItems.length > 0 ? normalizedItems : items;
+    const finalReferralDiscount = Number.isFinite(requestedReferralDiscount) ? requestedReferralDiscount : 0;
+    let referralReferrerId = targetClient?.referredBy;
+    let firstReferralInvoiceEligible = false;
+    let pastInvoiceCount = 0;
+
+    if (targetClient) {
+      pastInvoiceCount = await Invoice.countDocuments({ clientId: targetClient._id });
+
+      if (!referralReferrerId) {
+        const inferredReferrer = await findReferralClientFromAppointments(linkedAppointments, targetClient);
+        if (inferredReferrer?._id) {
+          referralReferrerId = inferredReferrer._id;
+        }
+      }
+
+      firstReferralInvoiceEligible = Boolean(referralReferrerId && pastInvoiceCount === 0);
+    }
+    const firstVisitReferralCredit = 0;
+
+    if (finalReferralDiscount > 0) {
+      if (!targetClient) {
+        return res.status(400).json({ message: 'Select a registered client before applying referral discount.' });
+      }
+      const currentReferralBalance = Number(targetClient.referralRewardBalance || 0);
+      const availableReferralDiscount = currentReferralBalance + firstVisitReferralCredit;
+      if (finalReferralDiscount > availableReferralDiscount) {
+        return res.status(400).json({ message: 'Referral discount exceeds available client reward balance.' });
+      }
+      const numericTotal = Number(total);
+      if (!Number.isFinite(numericTotal) || numericTotal < 0) {
+        return res.status(400).json({ message: 'Invoice total is invalid after referral discount.' });
+      }
+    }
+
+    const invoice = await Invoice.create({
+      user: targetClientId || req.user._id,
+      clientId: targetClientId,
+      invoiceNumber: nextInvoiceNumber,
+      clientName,
+      items: invoiceItems,
+      subtotal,
+      gst,
+      discount,
+      referralDiscountAmount: finalReferralDiscount,
+      referralDiscountCode: referralDiscountCode || targetClient?.referralCode || undefined,
+      total,
+      paymentMode,
+      payments,
+      date,
+      branch: toObjectIdIfValid(requestedBranch)
+    });
+
+    if (finalReferralDiscount > 0 && targetClient) {
+      if (referralDiscountCode && mongoose.Types.ObjectId.isValid(referralDiscountCode)) {
+        const referredClient = await User.findOne({
+          _id: referralDiscountCode,
+          referredBy: targetClient._id
+        });
+        if (referredClient) {
+          referredClient.referralRedeemedAt = new Date();
+          await referredClient.save();
+        }
+      }
+      const balancePortionUsed = Math.max(0, finalReferralDiscount - firstVisitReferralCredit);
+      targetClient.referralRewardBalance = Math.max(0, Number(targetClient.referralRewardBalance || 0) - balancePortionUsed);
+      targetClient.referralDiscountUsed = Number(targetClient.referralDiscountUsed || 0) + finalReferralDiscount;
+      await targetClient.save();
+    }
+
+    if (linkedAppointmentIds.length > 0) {
+      await Appointment.updateMany(
+        { _id: { $in: linkedAppointmentIds }, branch: toObjectIdIfValid(requestedBranch) },
+        { $set: { billedInvoiceId: invoice._id, billedAt: new Date() } }
+      );
+    }
+
+    if (targetClient && referralReferrerId && !targetClient.referredBy) {
+      await User.findByIdAndUpdate(targetClient._id, { $set: { referredBy: referralReferrerId } });
+    }
+
+    // Credit referral points to the referrer upon first completed payment
+    if (targetClient && referralReferrerId) {
+      if (pastInvoiceCount === 0) {
+        const referrer = await User.findById(referralReferrerId);
+        if (referrer) {
+          referrer.referralRewardBalance = (referrer.referralRewardBalance || 0) + REFERRAL_REWARD_AMOUNT;
+          await referrer.save();
+          console.log(`[Referral Reward] Credited ${REFERRAL_REWARD_AMOUNT} points to referrer ${referrer.name} (ID: ${referrer._id}) for first visit payment of ${targetClient.name}`);
+        }
+      }
+    }
+
+    // Auto-update Employee Earnings and Inventory Stock
+    if (invoiceItems && Array.isArray(invoiceItems)) {
+      const Inventory = require('../../models/inventory/Inventory');
+      for (const item of invoiceItems) {
+        const service = await findServiceForBranch(Service, requestedBranch, item.serviceId, item.name, 'branches.inventoryUsage.inventoryItem inventoryUsage.inventoryItem');
+
+        // 1. Commission Logic
+        if (item.specialist) {
+           const employee = await Employee.findById(item.specialist);
+           if (employee) {
+              let commission = 0;
+              const itemTotal = item.price * (item.quantity || 1);
+
+              if (item.commission) {
+                 commission = item.commission;
+              } else if (service) {
+                 const appointmentIdStr = item.appointmentId ? item.appointmentId.toString() : '';
+                 const matchingApt = linkedAppointments.find(a => a._id.toString() === appointmentIdStr);
+                 const hasReferral = (finalReferralDiscount > 0) || 
+                                     (targetClient && targetClient.referredBy) || 
+                                     (matchingApt && (matchingApt.referralCustomer || matchingApt.referralCode));
+
+                 if (hasReferral && service.referralCommissionValue > 0) {
+                    if (service.referralCommissionType === 'Percentage') {
+                       commission = (itemTotal * service.referralCommissionValue) / 100;
+                    } else {
+                       commission = service.referralCommissionValue || 0;
+                    }
+                 } else {
+                    if (service.commissionType === 'Percentage') {
+                       commission = (itemTotal * service.commissionValue) / 100;
+                    } else {
+                       commission = service.commissionValue || 0;
+                    }
+                 }
+              }
+
+              employee.earnings = (employee.earnings || 0) + commission;
+              await employee.save();
+           }
+        }
+
+        // 2. Inventory Depletion Logic
+        if (service && service.inventoryUsage && service.inventoryUsage.length > 0) {
+           for (const usage of service.inventoryUsage) {
+              const consumptionQty = (usage.quantity || 0) * (item.quantity || 1);
+              if (consumptionQty > 0) {
+                 const inventoryItemId = usage.inventoryItem._id || usage.inventoryItem;
+                 const inventoryItem = await Inventory.findById(inventoryItemId).select('branch');
+                 if (inventoryItem && sameBranch(inventoryItem.branch, requestedBranch)) {
+                    await Inventory.findByIdAndUpdate(
+                       inventoryItemId,
+                       { $inc: { stock: -consumptionQty } }
+                    );
+                 } else {
+                    console.warn(`[Inventory Depletion Skipped] Mismatched branch or missing item for ${inventoryItemId} in service "${service.name}"`);
+                 }
+              }
+           }
+        }
+      }
+    }
+
+    res.status(201).json(invoice);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// @desc    Get single invoice
+// @route   GET /api/invoices/:id
+// @access  Private
+const getInvoiceById = async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id);
+
+    if (!invoice) {
+       return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // IDOR Check
+    const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(invoice.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Invoice belongs to another branch.' });
+    }
+
+    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
+    const isBranchStaff = req.user.role !== 'Client' && isBranchMatch;
+
+    if (!isAdmin && !isBranchStaff && !isOwner) {
+      return res.status(403).json({ message: 'Access Denied: You do not have permission to view this invoice' });
+    }
+
+    res.json(invoice);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update invoice (partial)
+// @route   PATCH /api/invoices/:id
+// @access  Private
+const updateInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id);
+
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // IDOR Check
+    const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(invoice.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Invoice belongs to another branch.' });
+    }
+
+    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
+    const isBranchStaff = req.user.role !== 'Client' && isBranchMatch;
+
+    if (!isAdmin && !isBranchStaff && !isOwner) {
+      return res.status(403).json({ message: 'Access Denied: You do not have permission to update this invoice' });
+    }
+
+    if (req.user.role !== 'Admin' && req.body?.branch && !sameBranch(req.body.branch, invoice.branch)) {
+      return res.status(403).json({ message: 'Access Denied: You cannot reassign invoices to another branch.' });
+    }
+
+    const { paymentMode, date, clientName } = req.body || {};
+    // Note: We intentionally do NOT allow updating totals/items here; that requires a full recalculation workflow.
+    if (paymentMode !== undefined) invoice.paymentMode = paymentMode;
+    if (date !== undefined) invoice.date = date;
+    if (clientName !== undefined) invoice.clientName = clientName;
+
+    const updated = await invoice.save();
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// @desc    Delete invoice
+// @route   DELETE /api/invoices/:id
+// @access  Private
+const deleteInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id);
+
+    if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // IDOR Check
+    const isAdmin = req.user.role === 'Admin';
+    const isBranchMatch = sameBranch(invoice.branch, req.user.branch);
+    if (!isAdmin && !isBranchMatch) {
+      return res.status(403).json({ message: 'Access Denied: Invoice belongs to another branch.' });
+    }
+
+    const isOwner = invoice.user?.toString() === req.user._id.toString() || invoice.clientId?.toString() === req.user._id.toString();
+    const isBranchManager = req.user.role !== 'Client' && isBranchMatch;
+
+    if (!isAdmin && !isBranchManager && !isOwner) {
+       return res.status(403).json({ message: 'Access Denied: You do not have permission to delete this invoice record.' });
+    }
+
+    await invoice.deleteOne();
+    res.json({ message: 'Invoice removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  getInvoices,
+  createInvoice,
+  getInvoiceById,
+  updateInvoice,
+  deleteInvoice
+};

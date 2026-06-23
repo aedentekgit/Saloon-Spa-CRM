@@ -1,0 +1,1667 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import { useAuth } from '../../context/AuthContext';
+import { getImageUrl } from '../../utils/imageUrl';
+import dayjs from 'dayjs';
+import {
+  UserPlus, Phone, Edit2, Trash2, User as UserIcon,
+  Sparkles, X, Calendar, Camera, Mail, Info, Lock, Eye, EyeOff, MapPin, ChevronLeft, ChevronRight, History, Search, Grid, List, Zap, Users
+} from 'lucide-react';
+import { useSettings } from '../../context/SettingsContext';
+import { countries } from '../../utils/countries';
+import { validatePhoneNumber, getPhoneValidationProtocol } from '../../utils/validation';
+import { notify } from '../../components/shared/ZenNotification';
+import { ZenPageLayout } from '../../components/zen/ZenLayout';
+import { ZenPagination } from '../../components/zen/ZenPagination';
+import { ZenDropdown, ZenInput, ZenTextarea, ZenDatePicker, ZenMasterCalendar } from '../../components/zen/ZenInputs';
+import { ZenIconButton, ZenBadge, ZenButton } from '../../components/zen/ZenButtons';
+import { ZenStatCard } from '../../components/zen/ZenStatCard';
+import { buildFinancialDateWindow } from '../../utils/financialPeriod';
+import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
+import { getPollIntervalMs, shouldPollNow } from '../../utils/polling';
+import { getCachedJson, setCachedJson } from '../../utils/localCache';
+import { ExportPopup, ExportColumn } from '../../components/shared/ExportPopup';
+import { useBranches } from '../../context/BranchContext';
+
+
+interface MembershipPlan {
+  _id: string;
+  name: string;
+  price: number;
+}
+
+interface Membership {
+  _id: string;
+  plan: MembershipPlan;
+  remainingSessions: number;
+  totalSessions: number;
+  endDate: string;
+}
+
+interface Client {
+  _id: string;
+  clientId?: string;
+  name: string;
+  phone: string;
+  email?: string;
+  dob?: string;
+  anniversary?: string;
+  notes?: string;
+  totalSpending: number;
+  visits: number;
+  profilePic?: string;
+  status: string;
+  role: string;
+  branch?: string | { _id?: string; name?: string };
+  referralCode?: string;
+  referredBy?: string | { _id?: string; name?: string; clientId?: string; referralCode?: string };
+  totalReferrals?: number;
+  referralRewardBalance?: number;
+  referralDiscountUsed?: number;
+  membership?: Membership | null;
+  memberships?: Membership[];
+  appointments?: any[];
+  createdAt: string;
+}
+
+interface InvoiceSummary {
+  _id?: string;
+  clientId?: string | { _id?: string };
+  clientName?: string;
+  total?: number | string;
+  branch?: string | { _id?: string };
+}
+
+const normalizeName = (value: unknown) => String(value || '').trim().toLowerCase();
+const getEntityId = (value: unknown) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && '_id' in value) {
+    return String((value as { _id?: unknown })._id || '');
+  }
+  return String(value);
+};
+const toAmount = (value: unknown) => {
+  const parsed = Number(String(value ?? 0).replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+const getClientVisitCount = (client: Client) => {
+  if (Array.isArray(client.appointments)) {
+    return client.appointments.filter((appointment: any) => appointment?.status !== 'Cancelled').length;
+  }
+
+  return toAmount(client.visits);
+};
+const getClientTotalSpending = (client: Client) => toAmount(client.totalSpending);
+const getClientDisplayId = (client: Client) => client.clientId || `ID-${client._id.slice(-6).toUpperCase()}`;
+
+const Clients = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { settings } = useSettings();
+  const { branches, selectedBranch } = useBranches();
+  const [roles, setRoles] = useState<string[]>(() => getCachedJson('zen_page_clients_roles', []));
+  const [clients, setClients] = useState<Client[]>(() => getCachedJson('zen_page_clients_list', []));
+  const [counts, setCounts] = useState(() => getCachedJson('zen_page_clients_counts', {
+    total: 0,
+    active: 0,
+    membership: 0
+  }));
+  const [loading, setLoading] = useState(() => getCachedJson<Client[]>('zen_page_clients_list', []).length === 0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
+    return (localStorage.getItem('zen_clients_view') as 'grid' | 'table') || 'grid';
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    dob: '',
+    notes: '',
+    status: 'Active',
+    role: 'Client',
+    branch: '',
+    password: '',
+    confirmPassword: '',
+    referralCode: '',
+    referredBy: '',
+    totalReferrals: '0',
+    referralRewardBalance: '0',
+    referralDiscountUsed: '0'
+  });
+
+  const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<'profile' | 'membership' | 'history'>('profile');
+  const [dateRange, setDateRange] = useState<any>('Month');
+  const { startDate: clientHistoryStart, endDate: clientHistoryEnd } = useMemo(() => {
+    return buildFinancialDateWindow(dateRange);
+  }, [dateRange]);
+
+  const periodLabel = useMemo(() => {
+    if (typeof dateRange === 'string') {
+      if (dateRange === 'Month') return dayjs().format('MMMM YYYY');
+      if (dateRange.length === 7) return dayjs(dateRange + '-01').format('MMMM YYYY');
+      return dateRange;
+    }
+    if (dateRange?.from) {
+      const fromStr = dayjs(dateRange.from).format('DD MMM');
+      const toStr = dateRange.to ? dayjs(dateRange.to).format('DD MMM YYYY') : '';
+      return toStr ? `${fromStr} - ${toStr}` : fromStr;
+    }
+    return 'Selected Period';
+  }, [dateRange]);
+
+  const filteredAppointments = useMemo(() => {
+    if (!editingClient?.appointments) return [];
+    return editingClient.appointments.filter((a: any) => {
+      if (!a.date) return false;
+      const formattedDate = dayjs(a.date).format('YYYY-MM-DD');
+      return (!clientHistoryStart || formattedDate >= clientHistoryStart) && 
+             (!clientHistoryEnd || formattedDate <= clientHistoryEnd);
+    });
+  }, [editingClient?.appointments, clientHistoryStart, clientHistoryEnd]);
+
+  const [selectedMembershipHistory, setSelectedMembershipHistory] = useState<any>(null);
+
+  const membershipCombinedHistory = useMemo(() => {
+    if (!selectedMembershipHistory || !editingClient) return [];
+
+    // 1. Map existing completed/used usage history
+    const completedHistory = (selectedMembershipHistory.usageHistory || []).map((usage: any) => ({
+      _id: usage._id,
+      date: usage.usedAt,
+      branchName: usage.branch?.name || 'Main branch',
+      serviceName: (usage.service?.name || 'Service').replace(/service\s*:\s*/i, ''),
+      invoiceNumber: usage.invoiceId?.invoiceNumber || usage.invoiceNumber || '-',
+      time: dayjs(usage.usedAt).format('hh:mm A'),
+      status: 'Completed'
+    }));
+
+    // 2. Map upcoming or completed appointments linked to this membership
+    const linkedAppointments = (editingClient.appointments || [])
+      .filter((apt: any) => 
+        (apt.membershipId?.toString() === selectedMembershipHistory._id?.toString()) &&
+        // Make sure we don't duplicate completed ones if already in usageHistory
+        !selectedMembershipHistory.usageHistory?.some((u: any) => u.appointment?.toString() === apt._id?.toString())
+      )
+      .map((apt: any) => ({
+        _id: apt._id,
+        date: apt.date,
+        branchName: apt.branch?.name || 'Main branch',
+        serviceName: apt.service || 'Service',
+        time: apt.time || '10:00',
+        status: apt.status || 'Confirmed'
+      }));
+
+    // Combine and sort descending by date
+    return [...completedHistory, ...linkedAppointments].sort((a, b) => 
+      dayjs(b.date).unix() - dayjs(a.date).unix()
+    );
+  }, [selectedMembershipHistory, editingClient]);
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'danger'
+  });
+
+  const openConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info' = 'danger') => {
+    setConfirmState({
+      isOpen: true,
+      title,
+      message,
+      onConfirm,
+      type
+    });
+  };
+
+
+  useEffect(() => {
+    localStorage.setItem('zen_clients_view', viewMode);
+    setPage(1);
+  }, [viewMode]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedBranch]);
+
+  const PAGE_LIMIT = 12;
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const fetchClients = async (silent: boolean = false) => {
+    try {
+      if (!silent && clients.length === 0) setLoading(true);
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: PAGE_LIMIT.toString()
+      });
+
+      if (selectedBranch !== 'all') {
+        queryParams.set('branch', selectedBranch);
+      }
+
+      const response = await fetch(`${API_URL}/clients?${queryParams.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${user?.token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      if (data.data) {
+        let nextClients = data.data;
+        try {
+          const invoices = await fetchInvoicesForClientMetrics();
+          nextClients = enrichClientsWithMetrics(nextClients, invoices);
+        } catch (metricsError) {
+          console.error('Error enriching client metrics:', metricsError);
+          nextClients = nextClients.map((client: Client) => ({
+            ...client,
+            visits: getClientVisitCount(client),
+            totalSpending: getClientTotalSpending(client)
+          }));
+        }
+
+        setClients(nextClients);
+        setTotalPages(data.pagination.pages);
+        setCounts({
+          total: data.pagination.total || 0,
+          active: data.pagination.activeTotal || 0,
+          membership: data.pagination.membershipTotal || 0
+        });
+      } else if (Array.isArray(data)) {
+        let nextClients = data;
+        try {
+          const invoices = await fetchInvoicesForClientMetrics();
+          nextClients = enrichClientsWithMetrics(nextClients, invoices);
+        } catch (metricsError) {
+          console.error('Error enriching client metrics:', metricsError);
+          nextClients = nextClients.map((client: Client) => ({
+            ...client,
+            visits: getClientVisitCount(client),
+            totalSpending: getClientTotalSpending(client)
+          }));
+        }
+
+        setClients(nextClients);
+        setTotalPages(1);
+        setCounts({
+          total: data.length,
+          active: data.filter((c: any) => c.status === 'Active').length,
+          membership: data.filter((c: any) => c.membership).length
+        });
+      }
+    } catch (error: any) {
+      console.error('Error in fetchClients:', error);
+      if (!silent) notify('error', 'Error', 'Failed to load clients');
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch(`${API_URL}/roles`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const roleData = data.data || data;
+        if (Array.isArray(roleData)) {
+          const roleNames = roleData.map((r: any) => r.name);
+          setRoles(roleNames);
+
+          if (!editingClient && roleNames.includes('Client')) {
+            setFormData(prev => ({ ...prev, role: 'Client' }));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+    fetchRoles();
+
+    const handleFocus = () => {
+      fetchClients(true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    const interval = setInterval(() => {
+      if (!shouldPollNow()) return;
+      fetchClients(true);
+    }, getPollIntervalMs(30000)); // default 30s
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
+  }, [page, selectedBranch, user?.token]);
+
+  useEffect(() => {
+    if (editingClient) {
+      const freshClient = clients.find(c => c._id === editingClient._id);
+      if (freshClient) {
+        setEditingClient(freshClient);
+      }
+    }
+  }, [clients]);
+
+  useEffect(() => setCachedJson('zen_page_clients_list', clients), [clients]);
+  useEffect(() => setCachedJson('zen_page_clients_counts', counts), [counts]);
+  useEffect(() => setCachedJson('zen_page_clients_roles', roles), [roles]);
+
+  const filteredClients = useMemo(() => {
+    let filtered = clients;
+
+    // Filter by Search Term
+    return filtered.filter(client =>
+      (client.name?.toLowerCase() || '').includes(debouncedSearch.toLowerCase()) ||
+      (client.phone || '').includes(debouncedSearch) ||
+      (client.email?.toLowerCase() || '').includes(debouncedSearch.toLowerCase()) ||
+      (client.clientId?.toLowerCase() || '').includes(debouncedSearch.toLowerCase())
+    );
+  }, [clients, debouncedSearch]);
+
+  const branchNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    branches.forEach((branch) => map.set(branch._id, branch.name));
+    return map;
+  }, [branches]);
+
+  const getClientBranchName = (client: Client) => {
+    if (!client.branch) return 'Main Branch';
+
+    if (typeof client.branch === 'object') {
+      const branchId = client.branch._id || '';
+      return client.branch.name || branchNameById.get(branchId) || 'Main Branch';
+    }
+
+    return branchNameById.get(client.branch) || 'Main Branch';
+  };
+
+  const getReferredByValue = (client: Client) => {
+    if (!client.referredBy) return '';
+    if (typeof client.referredBy === 'string') return client.referredBy;
+    return client.referredBy.referralCode || client.referredBy.clientId || client.referredBy.name || client.referredBy._id || '';
+  };
+
+  const filterClientList = (rows: Client[]) => {
+    const query = debouncedSearch.trim().toLowerCase();
+    if (!query) return rows;
+    return rows.filter((client) =>
+      (client.name?.toLowerCase() || '').includes(query) ||
+      (client.phone || '').includes(query) ||
+      (client.email?.toLowerCase() || '').includes(query) ||
+      (client.clientId?.toLowerCase() || '').includes(query)
+    );
+  };
+
+  const fetchInvoicesForClientMetrics = async (): Promise<InvoiceSummary[]> => {
+    const invoices: InvoiceSummary[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const queryParams = new URLSearchParams({
+        page: exportPage.toString(),
+        limit: exportLimit.toString()
+      });
+
+      const response = await fetch(`${API_URL}/invoices?${queryParams.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${user?.token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch invoices for client totals');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      invoices.push(
+        ...pageRows.filter((invoice: InvoiceSummary) =>
+          selectedBranch === 'all' || getEntityId(invoice.branch) === selectedBranch
+        )
+      );
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    return invoices;
+  };
+
+  const enrichClientsWithMetrics = (rows: Client[], invoices: InvoiceSummary[]) => {
+    const spendingByClientId = new Map<string, number>();
+    const spendingByClientName = new Map<string, number>();
+
+    invoices.forEach((invoice) => {
+      const amount = toAmount(invoice.total);
+      const clientId = getEntityId(invoice.clientId);
+
+      if (clientId) {
+        spendingByClientId.set(clientId, (spendingByClientId.get(clientId) || 0) + amount);
+        return;
+      }
+
+      const clientName = normalizeName(invoice.clientName);
+      if (clientName) {
+        spendingByClientName.set(clientName, (spendingByClientName.get(clientName) || 0) + amount);
+      }
+    });
+
+    return rows.map((client) => {
+      const invoiceSpending =
+        (spendingByClientId.get(client._id) || 0) +
+        (spendingByClientName.get(normalizeName(client.name)) || 0);
+
+      return {
+        ...client,
+        visits: getClientVisitCount(client),
+        totalSpending: invoiceSpending > 0 ? invoiceSpending : getClientTotalSpending(client)
+      };
+    });
+  };
+
+  const fetchAllClientsForExport = async (): Promise<Client[]> => {
+    const allClients: Client[] = [];
+    const exportLimit = 200;
+    let exportPage = 1;
+    let exportTotalPages = 1;
+
+    do {
+      const queryParams = new URLSearchParams({
+        page: exportPage.toString(),
+        limit: exportLimit.toString()
+      });
+
+      if (selectedBranch !== 'all') {
+        queryParams.set('branch', selectedBranch);
+      }
+
+      const response = await fetch(`${API_URL}/clients?${queryParams.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${user?.token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch client export list');
+      }
+
+      const payload = await response.json();
+      const pageRows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      allClients.push(...pageRows);
+      exportTotalPages = Number(payload?.pagination?.pages || 1);
+      exportPage += 1;
+    } while (exportPage <= exportTotalPages);
+
+    const uniqueClients = new Map<string, Client>();
+    allClients.forEach((client) => {
+      if (client?._id) {
+        uniqueClients.set(client._id, client);
+      }
+    });
+
+    const invoices = await fetchInvoicesForClientMetrics();
+    const enrichedClients = enrichClientsWithMetrics(Array.from(uniqueClients.values()), invoices);
+
+    return filterClientList(enrichedClients);
+  };
+
+  const clientExportColumns = useMemo<ExportColumn<Client>[]>(
+    () => [
+      { header: 'ID', accessor: (client) => getClientDisplayId(client) },
+      { header: 'Client Name', accessor: (client) => client.name },
+      { header: 'Phone', accessor: (client) => client.phone || '-' },
+      { header: 'Email', accessor: (client) => client.email || '-' },
+      { header: 'Branch', accessor: (client) => getClientBranchName(client) },
+      { header: 'Status', accessor: (client) => client.status || '-' },
+      { header: 'Role', accessor: (client) => client.role || 'Client' },
+      { header: 'Referral Code', accessor: (client) => client.referralCode || '-' },
+      { header: 'Referred By', accessor: (client) => getReferredByValue(client) || '-' },
+      { header: 'Total Referrals', accessor: (client) => client.totalReferrals || 0 },
+      { header: 'Referral Reward Balance', accessor: (client) => client.referralRewardBalance || 0 },
+      { header: 'Referral Discount Used', accessor: (client) => client.referralDiscountUsed || 0 },
+      { header: 'Membership Plan', accessor: (client) => client.membership?.plan?.name || '-' },
+      {
+        header: 'Sessions Left',
+        accessor: (client) =>
+          client.membership
+            ? `${client.membership.remainingSessions}/${client.membership.totalSessions}`
+            : '-'
+      },
+      { header: 'Visits', accessor: (client) => getClientVisitCount(client) },
+      {
+        header: `Total Spending (${settings?.general?.currencySymbol || 'QR'})`,
+        accessor: (client) => getClientTotalSpending(client)
+      },
+      { header: 'Date of Birth', accessor: (client) => (client.dob ? dayjs(client.dob).format('DD MMM YYYY') : '-') },
+      { header: 'Notes', accessor: (client) => client.notes || '-' },
+      {
+        header: 'Joined On',
+        accessor: (client) => (client.createdAt ? dayjs(client.createdAt).format('DD MMM YYYY, hh:mm A') : '-')
+      }
+    ],
+    [settings?.general?.currencySymbol, branchNameById]
+  );
+
+  const handleOpenModal = (client: Client | null = null) => {
+    if (client) {
+      setEditingClient(client);
+      // Strip dialing code for editing if it exists
+      const dialingCode = settings?.general?.dialingCode || '+974';
+      const rawPhone = client.phone || '';
+      const cleanPhone = rawPhone.startsWith(dialingCode)
+        ? rawPhone.slice(dialingCode.length)
+        : rawPhone;
+
+      setFormData({
+        name: client.name,
+        phone: cleanPhone,
+        email: client.email || '',
+        dob: client.dob ? dayjs(client.dob).format('YYYY-MM-DD') : '',
+        notes: client.notes || '',
+        status: client.status || 'Active',
+        role: client.role || '',
+        branch: getEntityId(client.branch) || '',
+        password: '',
+        confirmPassword: '',
+        referralCode: client.referralCode || '',
+        referredBy: getReferredByValue(client),
+        totalReferrals: String(client.totalReferrals || 0),
+        referralRewardBalance: String(client.referralRewardBalance || 0),
+        referralDiscountUsed: String(client.referralDiscountUsed || 0)
+      });
+    } else {
+      setEditingClient(null);
+      setFormData({
+        name: '',
+        phone: '',
+        email: '',
+        dob: '',
+        notes: '',
+        status: 'Active',
+        role: 'Client',
+        branch: selectedBranch !== 'all' ? selectedBranch : '',
+        password: '',
+        confirmPassword: '',
+        referralCode: '',
+        referredBy: '',
+        totalReferrals: '0',
+        referralRewardBalance: '0',
+        referralDiscountUsed: '0'
+      });
+    }
+    setProfilePicFile(null);
+    setImagePreview(null);
+    setActiveTab('profile');
+    setDateRange('Month');
+    setSelectedMembershipHistory(null);
+    setIsModalOpen(true);
+  };
+
+// Administrative archival logic removed
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (formData.password !== formData.confirmPassword) {
+      notify('error', 'Validation Error', 'Passwords do not match');
+      return;
+    }
+
+    // Validation
+    const phoneValidation = validatePhoneNumber(formData.phone, settings?.general?.countryIso || 'QA');
+    if (!phoneValidation.isValid) {
+      notify('error', 'Validation Error', phoneValidation.message || 'Invalid phone number');
+      return;
+    }
+
+    const data = new FormData();
+    const fullPhone = formData.phone.startsWith('+') ? formData.phone : `${settings?.general?.dialingCode || '+974'}${formData.phone}`;
+    const resolvedBranch = formData.branch || (selectedBranch !== 'all' ? selectedBranch : '');
+
+    if (!resolvedBranch) {
+      notify('error', 'Branch Required', 'Select a branch before creating the client ID.');
+      return;
+    }
+
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key === 'confirmPassword') return;
+      if (key === 'phone') {
+        data.append(key, fullPhone);
+      } else {
+        data.append(key, (value !== undefined && value !== null) ? value.toString() : '');
+      }
+    });
+
+    data.set('branch', resolvedBranch);
+
+    if (profilePicFile) data.append('profilePic', profilePicFile);
+
+    try {
+      const url = editingClient ? `${API_URL}/clients/${editingClient._id}` : `${API_URL}/clients`;
+      const method = editingClient ? 'PUT' : 'POST';
+      const response = await fetch(url, {
+        method,
+        headers: { 'Authorization': `Bearer ${user?.token}` },
+        body: data
+      });
+      if (response.ok) {
+        notify('success', 'Updated', editingClient ? 'Profile updated' : 'Client welcomed');
+        setIsModalOpen(false);
+        fetchClients();
+      } else {
+        const error = await response.json();
+        notify('error', 'Error', error.message || 'Action failed');
+      }
+    } catch (error) {
+      notify('error', 'Error', 'Connection failed');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    openConfirm(
+      'Archive Profile',
+      'Archive this client profile? Their historical data will be moved to the archives.',
+      async () => {
+        try {
+          const response = await fetch(`${API_URL}/clients/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${user?.token}` }
+          });
+          if (response.ok) {
+            notify('success', 'Archived', 'Client record removed');
+            fetchClients();
+          }
+        } catch (error) {
+          notify('error', 'Error', 'Action failed');
+        }
+      }
+    );
+  };
+
+
+  const toggleClientStatus = async (client: Client) => {
+    const newStatus = client.status === 'Active' ? 'Inactive' : 'Active';
+    try {
+      const response = await fetch(`${API_URL}/clients/${client._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${user?.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (response.ok) {
+        notify('success', 'Status Updated', `Client ${newStatus}`);
+        fetchClients();
+      }
+    } catch (error) {
+       notify('error', 'Error', 'Toggle failed');
+    }
+  };
+
+
+
+  const clientTabs: Array<{ id: 'profile' | 'membership' | 'history' | 'referrals'; label: string }> = [
+    { id: 'profile', label: 'Profile' }
+  ];
+
+  if (editingClient) {
+    clientTabs.push(
+      { id: 'membership', label: 'Memberships' },
+      { id: 'history', label: 'Visits' },
+      { id: 'referrals', label: 'Referrals' }
+    );
+  }
+
+  const modalTitle = editingClient ? 'Edit client profile' : 'New client profile';
+  const modalSubtitle = editingClient
+    ? 'Update contact details, access, memberships, and visit history.'
+    : 'Capture contact information, client role, and access details for a new client.';
+
+  return (
+    <ZenPageLayout
+      title="Clients"
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      searchActions={!isModalOpen ? (
+        <ExportPopup<Client>
+          data={filteredClients}
+          columns={clientExportColumns}
+          fileName="clients"
+          title="Clients"
+          triggerLabel="Download"
+          description="Choose format and export the complete clients list with profile, membership, and spending details."
+          resolveData={fetchAllClientsForExport}
+        />
+      ) : undefined}
+      addButtonLabel={isModalOpen ? undefined : "Welcome Client"}
+      onAddClick={() => handleOpenModal()}
+      addButtonIcon={<UserPlus size={18} />}
+      hideSearch={isModalOpen}
+      hideBranchSelector={isModalOpen}
+      hideViewToggle={isModalOpen}
+      hideAddButton={isModalOpen}
+      topContent={!isModalOpen ? (
+        <div className="zen-metrics-grid">
+          {[
+            { label: 'Total Registry', value: counts.total, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10', glow: 'bg-blue-500/20', trend: 'Base population' },
+            { label: 'Active Clients', value: counts.active, icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Currently engaged' },
+            { label: 'Membership Zen', value: counts.membership, icon: Sparkles, color: 'text-amber-500', bg: 'bg-emerald-500/10', glow: 'bg-emerald-500/20', trend: 'Loyalty tier' },
+            { label: 'Security Roles', value: roles.length, icon: Lock, color: 'text-zen-sand', bg: 'bg-zen-sand/10', glow: 'bg-zen-sand/20', trend: 'Access levels' }
+          ].map((stat, i) => (
+            <ZenStatCard key={i} {...stat} delay={i * 0.2} />
+          ))}
+        </div>
+      ) : undefined}
+    >
+      {!isModalOpen && (
+      <div className="space-y-6 pb-20">
+      {loading ? (
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <div className="w-10 h-10 border-4 border-zen-brown border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
+          {filteredClients.map((client) => (
+            <div key={client._id} className="group relative bg-white rounded-[1.35rem] p-6 sm:p-7 shadow-sm border border-zen-stone transition-all duration-500 hover:border-zen-sand/35 hover:shadow-[0_22px_52px_-30px_rgba(43,36,64,0.35)] hover:-translate-y-1 h-full flex flex-col justify-between overflow-hidden">
+               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-zen-primary via-zen-sand to-zen-gold opacity-90"></div>
+               <div className="absolute top-0 right-0 w-28 h-28 bg-zen-sand/10 rounded-bl-full -z-0 pointer-events-none group-hover:scale-125 transition-transform duration-700"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 lg:gap-6 mb-4 lg:mb-6">
+                   <div className="relative w-16 lg:w-20 h-16 lg:h-20 rounded-2xl overflow-hidden border border-zen-sand/15 bg-white flex items-center justify-center shrink-0 group-hover:scale-[1.03] transition-transform duration-500 shadow-sm">
+                      {client.profilePic ? (
+                        <img src={getImageUrl(client.profilePic)} alt={client.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif text-2xl uppercase">
+                          {client.name.charAt(0)}
+                        </div>
+                      )}
+                   </div>
+
+                   <div className="min-w-0 flex-1">
+                       <h3 className="text-xl lg:text-2xl font-serif text-zen-brown tracking-tight truncate flex items-center gap-2">
+                          {client.name}
+                          <span className="text-[10px] font-sans font-black text-zen-sand tracking-widest">{getClientDisplayId(client)}</span>
+                       </h3>
+                        <div className="flex items-center gap-2 mt-1 lg:mt-2">
+                           <p className="text-[10px] lg:text-[11px] font-black text-zen-brown/55 uppercase tracking-[0.24em]">
+                             {client.membership ? (client.membership.plan?.name || 'Unknown Plan') : 'Member'}
+                           </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-2 mb-4">
+                    <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-zen-stone group/contact hover:border-emerald-500/25 transition-all">
+                       <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 group-hover/contact:bg-emerald-500 group-hover/contact:text-white transition-all"><Phone size={14} /></div>
+                       <span className="text-xs text-zen-brown/75 font-semibold">{client.phone}</span>
+                    </div>
+                    {client.email && (
+                      <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-zen-stone group/contact hover:border-sky-500/25 transition-all">
+                        <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-500 group-hover/contact:bg-sky-500 group-hover/contact:text-white transition-all"><Mail size={14} /></div>
+                        <span className="text-xs text-zen-brown/75 font-semibold truncate">{client.email}</span>
+                      </div>
+                    )}
+                </div>
+              </div>
+
+               <div className="relative z-10 pt-5 border-t border-zen-stone flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                     <ZenBadge variant={client.status === 'Active' ? 'leaf' : 'sand'}>
+                        {client.status === 'Inactive' ? 'Suspended' : 'Operational'}
+                     </ZenBadge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <ZenIconButton
+                        icon={Zap}
+                        variant={client.status === 'Active' ? 'leaf' : 'sand'}
+                        onClick={() => toggleClientStatus(client)}
+                        size="md"
+                     />
+                     <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(client)} size="md" />
+                     <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(client._id)} size="md" />
+                  </div>
+               </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="w-full bg-white rounded-xl border border-gray-200/60 shadow-none overflow-hidden animate-in fade-in duration-700">
+          <div className="table-container">
+            <table className="w-full text-center border-collapse min-w-[680px] sm:min-w-[800px]">
+              <thead>
+                <tr>
+                  <th>S No</th>
+                  <th>Portrait</th>
+                  <th>Client Identity</th>
+                  <th>Contact Info</th>
+                  <th>Membership</th>
+                  <th>Value</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody className="">
+                {(!filteredClients || filteredClients.length === 0) && (
+
+                   <tr>
+
+                      <td colSpan={8} className="px-6 py-16 text-center text-[13px] font-sans text-gray-400 bg-gray-50/30">No registry data available</td>
+
+                   </tr>
+
+                )}
+
+                {filteredClients.map((client, index) => (
+                  <tr key={client._id} className="group">
+                    <td className="px-4 lg:px-6 py-4 lg:py-6">
+                      <span>{((page - 1) * PAGE_LIMIT + index + 1).toString().padStart(2, '0')}</span>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 lg:py-6">
+                      <div className="flex justify-center">
+                        <div className="w-10 lg:w-12 h-10 lg:h-12 zen-pointed-surface overflow-hidden bg-zen-cream border-2 border-white shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500 flex items-center justify-center">
+                          {client.profilePic ? (
+                            <img src={getImageUrl(client.profilePic)} alt={client.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="font-serif text-zen-brown uppercase">{client.name.charAt(0)}</span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 lg:py-6">
+                      <div className="flex flex-col items-center justify-center">
+                        <span className="zen-table-primary">{client.name}</span>
+                        <span className="text-[9px] font-bold text-zen-sand tracking-widest mt-0.5 opacity-80">ID: {getClientDisplayId(client)}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 lg:py-6">
+                      <div className="flex flex-col items-center justify-center gap-0.5">
+                        <span className="text-[13px] text-zen-brown/70 italic font-black">{client.phone}</span>
+                        <span className="text-[9px] text-zen-brown/30 font-bold lowercase tracking-widest mt-0 truncate max-w-[150px]">{client.email || 'No email registered'}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 lg:py-6">
+                      {client.membership ? (
+                        <div className="flex flex-col items-center justify-center gap-1">
+                          <ZenBadge variant="sand" className="scale-90">{client.membership.plan?.name || 'Unknown Plan'}</ZenBadge>
+                          <span className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-widest mt-0">
+                            {client.membership.remainingSessions}/{client.membership.totalSessions} SESS. LEFT
+                          </span>
+                        </div>
+                      ) : (
+                        <ZenBadge variant="sand" className="scale-90">None</ZenBadge>
+                      )}
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 lg:py-6">
+                      <div className="flex flex-col items-center justify-center gap-0.5">
+                        <span className="zen-table-primary">{settings?.general?.currencySymbol || 'QR'} {client.totalSpending?.toLocaleString()}</span>
+                        <span className="text-[9px] font-bold text-zen-brown/20 uppercase tracking-widest mt-0">{client.visits} visits</span>
+                      </div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 lg:py-6">
+                      <div className="flex justify-center">
+                          <ZenBadge variant={client.status === 'Active' ? 'leaf' : 'danger'}>{client.status}</ZenBadge>
+                      </div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 lg:py-6">
+                      <div className="flex items-center justify-center gap-2">
+                        <ZenIconButton icon={Zap} variant={client.status === 'Active' ? 'leaf' : 'sand'} onClick={() => toggleClientStatus(client)} size="md" />
+                        <ZenIconButton icon={Edit2} variant="sky" onClick={() => handleOpenModal(client)} size="md" />
+                        <ZenIconButton icon={Trash2} variant="danger" onClick={() => handleDelete(client._id)} size="md" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <ZenPagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+    </div>
+      )}
+
+      {isModalOpen && (
+        <div className="pb-24">
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              aria-label="Back to clients"
+              className="inline-flex h-11 items-center gap-2 rounded-2xl border border-zen-stone bg-white px-4 text-[10px] font-black uppercase tracking-[0.18em] text-zen-brown/70 transition-all duration-300 hover:border-zen-sand/30 hover:bg-zen-sand/10 hover:text-zen-sand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zen-sand/25"
+            >
+              <ChevronLeft size={18} strokeWidth={2.25} />
+              Back
+            </button>
+          </div>
+
+        <form id="client-modal-form" onSubmit={handleSubmit} className="w-full space-y-5 rounded-2xl border border-zen-stone bg-white p-4 sm:p-6 lg:p-8">
+          <section className="grid grid-cols-1 lg:grid-cols-[120px_minmax(0,1fr)] gap-5 lg:gap-8 items-start">
+            <div className="relative mx-auto lg:mx-0 w-24 h-24 sm:w-28 sm:h-28 group cursor-pointer shrink-0">
+              <div className="w-full h-full zen-pointed-surface ring-4 ring-zen-cream overflow-hidden bg-zen-cream flex items-center justify-center transition-all group-hover:ring-zen-brown/20 shadow-xl">
+                {(imagePreview || (editingClient && editingClient.profilePic)) ? (
+                  <img
+                    src={imagePreview || getImageUrl(editingClient?.profilePic)}
+                    alt={formData.name || 'Client profile preview'}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-zen-sand/20 text-zen-brown font-serif font-black text-4xl uppercase">
+                    {formData.name.charAt(0) || <UserIcon size={44} strokeWidth={1} />}
+                  </div>
+                )}
+              </div>
+              <input
+                type="file"
+                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                onChange={e => {
+                  const file = e.target.files?.[0] || null;
+                  setProfilePicFile(file);
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setImagePreview(reader.result as string);
+                    reader.readAsDataURL(file);
+                  } else {
+                    setImagePreview(null);
+                  }
+                }}
+              />
+            </div>
+
+            <div className="space-y-3 lg:pt-0.5">
+              <ZenInput
+                label="Client Name"
+                placeholder="e.g. Maria Thompson"
+                value={formData.name}
+                onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
+                className="font-serif text-lg sm:text-2xl font-bold tracking-tighter"
+              />
+              <div className="w-full sm:w-72 mt-2">
+                <ZenDropdown
+                  label="Account Role"
+                  options={['Client']}
+                  value="Client"
+                  onChange={() => {}}
+                  placeholder="Client Role"
+                  disabled={true}
+                  variant="pill"
+                />
+              </div>
+            </div>
+          </section>
+
+          <div className="mb-8 overflow-x-auto scrollbar-hide rounded-2xl border border-zen-stone bg-slate-50 p-1.5">
+            <div className="flex min-w-max items-center gap-1.5">
+            {clientTabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex h-11 min-w-[8.5rem] items-center justify-center rounded-xl px-5 text-[10px] font-black uppercase tracking-[0.16em] transition-all duration-300 whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-white text-zen-sand shadow-sm ring-1 ring-zen-sand/20'
+                    : 'text-zen-brown/65 hover:bg-white hover:text-zen-brown'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+            </div>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={activeTab === 'profile'
+                ? 'space-y-5 animate-in fade-in duration-500 py-3'
+                : 'bg-white/80 backdrop-blur-xl rounded-[2rem] border border-zen-brown/10 shadow-xl overflow-hidden p-8 sm:p-10 lg:p-12'}
+            >
+              {activeTab === 'profile' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-5 gap-y-4">
+                  <div className="space-y-2">
+                    <ZenInput
+                      label="Phone Number"
+                      icon={Phone}
+                      prefix={settings?.general?.dialingCode || '+974'}
+                      value={formData.phone}
+                      onChange={(e: any) => setFormData({ ...formData, phone: e.target.value })}
+                    />
+                    <div className="flex items-center gap-2 px-1 text-[10px] font-bold text-zen-brown/30 uppercase tracking-[0.25em]">
+                      <Info size={10} className="shrink-0" />
+                      <span>{getPhoneValidationProtocol(settings?.general?.countryIso || 'QA')}</span>
+                    </div>
+                  </div>
+
+                  <ZenInput
+                    label="Email Address"
+                    icon={Mail}
+                    type="email"
+                    value={formData.email}
+                    onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
+                  />
+
+                  <ZenDatePicker
+                    label="Date of Birth"
+                    value={formData.dob}
+                    onChange={val => setFormData({ ...formData, dob: val })}
+                  />
+
+                  <ZenDropdown
+                    label="Status"
+                    options={['Active', 'Inactive']}
+                    value={formData.status}
+                    onChange={(val) => setFormData({ ...formData, status: val })}
+                    variant="pill"
+                  />
+
+                  <ZenDropdown
+                    label="Branch"
+                    options={branches.map((branch) => ({ label: branch.name, value: branch._id }))}
+                    value={formData.branch}
+                    onChange={(val) => setFormData({ ...formData, branch: val })}
+                    variant="pill"
+                  />
+
+                  <div className="md:col-span-2 xl:col-span-3 rounded-2xl border border-zen-brown/10 bg-zen-cream/10 p-5 sm:p-6">
+                    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-zen-sand/20 bg-white text-zen-sand">
+                          <Sparkles size={19} strokeWidth={1.75} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-zen-brown/35">Referral Discount</p>
+                          <h3 className="text-lg font-serif font-bold text-zen-brown">Client referral ledger</h3>
+                        </div>
+                      </div>
+                      <span className="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-700">
+                        Balance {settings?.general?.currencySymbol || 'QR'} {toAmount(formData.referralRewardBalance).toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                      <ZenInput
+                        label="Referral Code"
+                        value={formData.referralCode}
+                        placeholder={editingClient?.clientId ? `REF-${editingClient.clientId}` : 'Auto generated'}
+                        onChange={(e: any) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
+                      />
+                      <ZenInput
+                        label="Referred By"
+                        value={formData.referredBy}
+                        placeholder="Referral code or client ID"
+                        onChange={(e: any) => setFormData({ ...formData, referredBy: e.target.value })}
+                      />
+                      <ZenInput
+                        label="Total Referrals"
+                        type="number"
+                        value={formData.totalReferrals}
+                        onChange={(e: any) => setFormData({ ...formData, totalReferrals: e.target.value })}
+                      />
+                      <ZenInput
+                        label="Reward Balance"
+                        type="number"
+                        value={formData.referralRewardBalance}
+                        onChange={(e: any) => setFormData({ ...formData, referralRewardBalance: e.target.value })}
+                      />
+                      <ZenInput
+                        label="Discount Used"
+                        type="number"
+                        value={formData.referralDiscountUsed}
+                        onChange={(e: any) => setFormData({ ...formData, referralDiscountUsed: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <ZenInput
+                    label={`Password ${editingClient ? '(Optional)' : ''}`}
+                    icon={Lock}
+                    type="password"
+                    placeholder={editingClient ? 'Leave blank to keep current' : 'Min 6 characters'}
+                    value={formData.password}
+                    onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
+                  />
+
+                  {!editingClient && (
+                    <ZenInput
+                      label="Confirm Password"
+                      icon={Lock}
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e: any) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    />
+                  )}
+
+                  {editingClient && (
+                    <div className="rounded-2xl border border-zen-brown/5 bg-zen-cream/20 px-5 py-4 text-[11px] text-zen-brown/50 italic font-medium flex items-center">
+                      <Info size={12} className="mr-2 text-zen-sand shrink-0" />
+                      Leave password blank to keep existing credentials.
+                    </div>
+                  )}
+
+                  <div className="md:col-span-2 xl:col-span-3">
+                    <ZenTextarea
+                      label="Client Notes"
+                      placeholder="Add preferences, sensitivities, or follow-up context."
+                      value={formData.notes}
+                      onChange={(e: any) => setFormData({ ...formData, notes: e.target.value })}
+                      className="h-36"
+                    />
+                  </div>
+                </div>
+              ) : activeTab === 'membership' && editingClient ? (
+                <div className="space-y-8">
+                  {selectedMembershipHistory ? (
+                    <div className="space-y-8">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zen-brown/5 pb-8">
+                        <div className="flex items-start gap-4">
+                          <ZenIconButton
+                            icon={X}
+                            onClick={() => setSelectedMembershipHistory(null)}
+                            size="md"
+                          />
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Membership detail</p>
+                            <h4 className="mt-1 text-xl font-semibold text-zen-brown">{selectedMembershipHistory.plan?.name}</h4>
+                            <p className="mt-1 text-xs text-zen-brown/55 italic">Detailed usage orchestration for this profile.</p>
+                          </div>
+                        </div>
+                        <ZenBadge variant="sand" className="px-5 py-2">
+                          {(() => {
+                            const scheduledCount = (editingClient?.appointments || []).filter((apt: any) => 
+                              apt.membershipId?.toString() === selectedMembershipHistory._id?.toString() &&
+                              apt.status !== 'Cancelled' &&
+                              apt.status !== 'Completed' &&
+                              !selectedMembershipHistory.usageHistory?.some((u: any) => u.appointment?.toString() === apt._id?.toString())
+                            ).length;
+                            return Math.max(0, selectedMembershipHistory.remainingSessions - scheduledCount);
+                          })()} / {selectedMembershipHistory.totalSessions || selectedMembershipHistory.plan?.maxSessions || 0} sessions left
+                        </ZenBadge>
+                      </div>
+
+                      <div className="table-container rounded-2xl border border-zen-brown/5 overflow-x-auto">
+                        <table className="w-full min-w-[640px] text-left border-collapse">
+                          <thead>
+                            <tr className="bg-zen-cream/30">
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">S No</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Invoice</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Date</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Branch</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Service</th>
+                              <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Time</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zen-brown/5 bg-white/40">
+                            {membershipCombinedHistory.length > 0 ? membershipCombinedHistory.map((usage: any, idx: number) => (
+                              <tr key={idx} className="group hover:bg-zen-cream/20 transition-colors duration-300">
+                                <td className="px-8 py-6 text-sm font-semibold text-zen-brown/30">{(idx + 1).toString().padStart(2, '0')}</td>
+                                <td className="px-8 py-6 text-xs font-black text-zen-sand tracking-widest uppercase">
+                                  {usage.invoiceNumber}
+                                </td>
+                                <td className="px-8 py-6">
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-semibold text-zen-brown">{dayjs(usage.date).format('MMM DD, YYYY')}</span>
+                                    <span className="text-[10px] text-zen-brown/30 uppercase tracking-[0.2em]">{dayjs(usage.date).format('dddd')}</span>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-6">
+                                  <div className="flex items-center gap-2 text-sm text-zen-brown/75">
+                                    <MapPin size={12} className="text-zen-sand" />
+                                    <span>{usage.branchName}</span>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-6">
+                                  <span className="text-sm font-medium text-zen-brown">{usage.serviceName}</span>
+                                </td>
+                                <td className="px-8 py-6">
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                    <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-zen-brown/10 bg-zen-cream text-[11px] font-semibold text-zen-brown">
+                                      {usage.time}
+                                    </span>
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-extrabold tracking-wider uppercase border ${
+                                      usage.status === 'Completed'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : usage.status === 'Cancelled'
+                                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                          : 'bg-zen-purple/10 text-zen-purple border-zen-purple/20'
+                                    }`}>
+                                      {usage.status}
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                            )) : (
+                              <tr>
+                                <td colSpan={5} className="px-8 py-16 text-center text-sm text-zen-brown/45">
+                                  No usage history recorded for this membership.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="flex justify-start pt-4">
+                        <ZenButton
+                          type="button"
+                          variant="secondary"
+                          onClick={() => setSelectedMembershipHistory(null)}
+                          className="!px-6 !py-4 !text-[10px] uppercase font-bold tracking-widest"
+                        >
+                          Back to memberships
+                        </ZenButton>
+                      </div>
+                    </div>
+                  ) : editingClient?.memberships && editingClient.memberships.length > 0 ? (
+                    <div className="space-y-8">
+                      <div className="flex items-center justify-between border-b border-zen-brown/5 pb-6">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Memberships</p>
+                          <h4 className="mt-1 text-lg font-semibold text-zen-brown">Active Subscription Plans</h4>
+                        </div>
+                        <ZenBadge variant="secondary" className="px-4 py-1.5">{editingClient.memberships.length} plans</ZenBadge>
+                      </div>
+                      <div className="grid grid-cols-1 gap-6">
+                        {editingClient.memberships.map((m: any) => (
+                          <div
+                            key={m._id}
+                            className={`rounded-[1.5rem] border p-6 sm:p-8 shadow-sm flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 transition-all duration-500 hover:scale-[1.01] hover:shadow-md ${
+                              m.status === 'Active'
+                                ? 'bg-white/50 border-emerald-100'
+                                : 'bg-slate-50/50 border-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-start gap-5 min-w-0">
+                              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${m.status === 'Active' ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-white'}`}>
+                                <Sparkles size={24} />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-xl font-serif font-bold text-zen-brown truncate">
+                                  {m.plan?.name || 'Membership plan'}
+                                </h4>
+                                <div className="mt-3 flex flex-wrap items-center gap-3">
+                                  <ZenBadge variant={m.status === 'Active' ? 'leaf' : 'sand'}>
+                                    {m.status || 'Inactive'}
+                                  </ZenBadge>
+                                  <span className="text-[11px] font-bold text-zen-brown/40 uppercase tracking-[0.2em]">
+                                    Valid until {dayjs(m.endDate).format('DD MMM YYYY')}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-8 border-t xl:border-t-0 border-zen-brown/5 pt-6 xl:pt-0">
+                              <div className="text-right">
+                                <p className="text-3xl font-serif font-bold text-zen-brown">
+                                  {(() => {
+                                    const completedCount = m.usageHistory?.length || 0;
+                                    const scheduledCount = (editingClient?.appointments || []).filter((apt: any) => 
+                                      apt.membershipId?.toString() === m._id?.toString() &&
+                                      apt.status !== 'Cancelled' &&
+                                      apt.status !== 'Completed' &&
+                                      !m.usageHistory?.some((u: any) => u.appointment?.toString() === apt._id?.toString())
+                                    ).length;
+                                    return completedCount + scheduledCount;
+                                  })()} / {m.totalSessions || m.plan?.maxSessions || 0}
+                                </p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zen-brown/30 mt-1">
+                                  Sessions used
+                                </p>
+                              </div>
+
+                              <ZenButton
+                                variant="secondary"
+                                onClick={() => setSelectedMembershipHistory(m)}
+                                className="!px-6 !py-4 !text-[10px] uppercase font-bold tracking-widest shadow-sm"
+                              >
+                                View usage
+                                <ChevronRight size={14} className="ml-2" />
+                              </ZenButton>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-24 text-zen-brown/35 space-y-6 rounded-[2rem] border border-dashed border-zen-brown/10 bg-zen-cream/5">
+                      <div className="w-24 h-24 rounded-full border-2 border-dashed border-zen-brown/15 flex items-center justify-center bg-white/50">
+                        <Sparkles size={36} strokeWidth={1} className="text-zen-sand" />
+                      </div>
+                      <div className="text-center">
+                         <p className="text-lg font-serif font-bold text-zen-brown/60">No Subscriptions</p>
+                         <p className="text-sm text-zen-brown/40 mt-1">No memberships are linked to this profile yet.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : activeTab === 'history' && editingClient ? (
+                <div className="space-y-10">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-b border-zen-brown/5 pb-10">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Visit history ({periodLabel})</p>
+                      <h4 className="mt-1 text-xl font-semibold text-zen-brown">Filtered Logs</h4>
+                      <p className="mt-1 text-xs text-zen-brown/50 italic">Review chronological visit patterns for this client.</p>
+                    </div>
+                    <div className="w-full sm:w-[180px]">
+                      <ZenMasterCalendar
+                        label="Date Range"
+                        value={dateRange}
+                        onChange={(value: any) => {
+                          if (!value || (typeof value === 'object' && !value.from && !value.to)) {
+                            setDateRange('Today');
+                            return;
+                          }
+                          setDateRange(value);
+                        }}
+                        selectionType="range"
+                        variant="pill"
+                        className="w-[180px]"
+                        hideLabel
+                      />
+                    </div>
+                  </div>
+
+                  <div className="table-container rounded-2xl border border-zen-brown/5 overflow-x-auto">
+                    {filteredAppointments.length > 0 ? (
+                      <table className="w-full min-w-[720px] text-left border-collapse">
+                        <thead>
+                          <tr className="bg-zen-cream/30">
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">S No</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Date</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Branch</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Service</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Staff</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Time</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zen-brown/5 bg-white/40">
+                          {filteredAppointments.map((apt: any, index: number) => (
+                              <tr key={apt._id} className="group hover:bg-zen-cream/20 transition-colors duration-300">
+                                <td className="px-8 py-6 text-sm font-semibold text-zen-brown/30">{(index + 1).toString().padStart(2, '0')}</td>
+                                <td className="px-8 py-6">
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-semibold text-zen-brown">{dayjs(apt.date).format('MMM DD, YYYY')}</span>
+                                    <span className="text-[10px] text-zen-brown/30 uppercase tracking-[0.2em]">{dayjs(apt.date).format('dddd')}</span>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-6">
+                                  <div className="flex items-center gap-2 text-sm text-zen-brown/75">
+                                    <MapPin size={12} className="text-zen-sand" />
+                                    <span>{apt.branch?.name || 'Main branch'}</span>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-6">
+                                  <div className="flex flex-col gap-1.5">
+                                    <span className="text-sm font-semibold text-zen-brown">{apt.service}</span>
+                                    <div>
+                                      {apt.serviceType === 'MEMBERSHIP' ? (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold tracking-wider bg-zen-purple/10 text-zen-purple border border-zen-purple/20 uppercase">
+                                          Membership
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold tracking-wider bg-zen-sand/10 text-zen-sand border border-zen-sand/20 uppercase">
+                                          Regular
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-6">
+                                  <span className="text-sm text-zen-brown/75">With {apt.employee}</span>
+                                </td>
+                                <td className="px-8 py-6">
+                                  <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-zen-brown/10 bg-zen-cream text-[11px] font-semibold text-zen-brown">
+                                    {apt.time}
+                                  </span>
+                                </td>
+                                <td className="px-8 py-6">
+                                  {apt.status === 'Completed' ? (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold tracking-wider uppercase">
+                                      Completed
+                                    </span>
+                                  ) : apt.status === 'Cancelled' ? (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold tracking-wider uppercase">
+                                      Cancelled
+                                    </span>
+                                  ) : apt.status === 'Confirmed' ? (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold tracking-wider uppercase">
+                                      Confirmed
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold tracking-wider uppercase">
+                                      {apt.status || 'Pending'}
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-32 text-zen-brown/35 space-y-6 bg-zen-cream/5">
+                        <div className="w-24 h-24 rounded-full border-2 border-dashed border-zen-brown/15 flex items-center justify-center bg-white/50">
+                          <Calendar size={36} strokeWidth={1} className="text-zen-sand" />
+                        </div>
+                        <div className="text-center">
+                           <p className="text-lg font-serif font-bold text-zen-brown/60">No Visits Recorded</p>
+                           <p className="text-sm text-zen-brown/40 mt-1">No visits found for the selected period.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : activeTab === 'referrals' && editingClient ? (
+                <div className="space-y-10">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-b border-zen-brown/5 pb-10">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-zen-brown/40">Referral history</p>
+                      <h4 className="mt-1 text-xl font-semibold text-zen-brown">Referred Clients Ledger</h4>
+                      <p className="mt-1 text-xs text-zen-brown/50 italic">Details of clients who registered using this client's code.</p>
+                    </div>
+                  </div>
+
+                  <div className="table-container rounded-2xl border border-zen-brown/5 overflow-x-auto">
+                    {(editingClient?.referrals?.length || 0) > 0 ? (
+                      <table className="w-full min-w-[720px] text-left border-collapse">
+                        <thead>
+                          <tr className="bg-zen-cream/30">
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">S No</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Join Date</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Name</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">User Details</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5">Value</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5 text-center">Generated Date</th>
+                            <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-zen-brown/40 border-b border-zen-brown/5 text-center">Used Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zen-brown/5 bg-white/40">
+                          {editingClient?.referrals?.map((ref: any, index: number) => {
+                            const isEarned = (ref.referralDiscount || 0) > 0;
+                            const isRedeemed = !!ref.usedDate;
+
+                            return (
+                              <tr key={ref._id} className="group hover:bg-zen-cream/20 transition-colors duration-300">
+                                <td className="px-8 py-6 text-sm font-semibold text-zen-brown/30">{(index + 1).toString().padStart(2, '0')}</td>
+                                <td className="px-8 py-6">
+                                  <span className="text-sm font-semibold text-zen-brown">
+                                    {ref.joinDate ? dayjs(ref.joinDate).format('MMM DD, YYYY') : '-'}
+                                  </span>
+                                </td>
+                                <td className="px-8 py-6">
+                                  <span className="text-sm font-bold text-zen-brown">{ref.name}</span>
+                                </td>
+                                <td className="px-8 py-6 text-sm text-zen-brown/75">
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-zen-brown/80">{ref.phone || '-'}</span>
+                                    <span className="text-xs text-zen-brown/40">{ref.email || 'No email'}</span>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-6">
+                                  <span className={`text-sm font-black ${isEarned ? 'text-zen-gold' : 'text-zen-brown/30'}`}>
+                                    {settings?.general?.currencySymbol || 'QR'} {(ref.referralDiscount || 0).toLocaleString()}
+                                  </span>
+                                </td>
+                                <td className="px-8 py-6 text-center">
+                                  {isEarned ? (
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <span className="inline-flex items-center w-fit px-2.5 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+                                        Earned
+                                      </span>
+                                      <span className="text-[10px] font-bold text-zen-brown/40 mt-0.5">
+                                        {ref.generatedDate ? dayjs(ref.generatedDate).format('MMM DD, YYYY') : '-'}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex justify-center">
+                                      <span className="inline-flex items-center px-2.5 py-1 rounded-full border border-dashed border-zen-brown/15 bg-zen-cream/5 text-[9px] font-bold uppercase tracking-wider text-zen-brown/30">
+                                        Pending
+                                      </span>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-8 py-6 text-center">
+                                  {isRedeemed ? (
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <span className="inline-flex items-center w-fit px-2.5 py-0.5 rounded-full border border-purple-500/20 bg-purple-500/10 text-[9px] font-black text-purple-600 uppercase tracking-widest">
+                                        Redeemed
+                                      </span>
+                                      <span className="text-[10px] font-bold text-zen-brown/40 mt-0.5">
+                                        {dayjs(ref.usedDate).format('MMM DD, YYYY')}
+                                      </span>
+                                    </div>
+                                  ) : isEarned ? (
+                                    <div className="flex justify-center">
+                                      <span className="inline-flex items-center px-2.5 py-1 rounded-full border border-zen-gold/30 bg-zen-gold/10 text-[9px] font-black uppercase tracking-wider text-zen-gold animate-pulse">
+                                        Available
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex justify-center">
+                                      <span className="inline-flex items-center px-2.5 py-1 rounded-full border border-dashed border-zen-brown/15 bg-zen-cream/5 text-[9px] font-bold uppercase tracking-wider text-zen-brown/30">
+                                        Pending
+                                      </span>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-24 text-zen-brown/35 space-y-6 rounded-[2rem] border border-dashed border-zen-brown/10 bg-zen-cream/5">
+                        <div className="w-24 h-24 rounded-full border-2 border-dashed border-zen-brown/15 flex items-center justify-center bg-white/50">
+                          <Users size={36} strokeWidth={1} className="text-zen-sand" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-lg font-serif font-bold text-zen-brown/60">No Referrals Yet</p>
+                          <p className="text-sm text-zen-brown/40 mt-1">No clients have registered using this client's code.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="sticky bottom-3 z-20 mt-8 rounded-2xl border border-zen-stone bg-white/95 p-3 shadow-lg backdrop-blur-xl">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="px-1 text-xs text-zen-brown/40">
+                {editingClient
+                  ? 'Saved changes update the client profile immediately.'
+                  : 'New client profiles can be edited later from the table.'}
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end">
+                <ZenButton
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-full sm:w-auto py-3 text-[10px]"
+                >
+                  Cancel
+                </ZenButton>
+                <ZenButton
+                  type="submit"
+                  className="w-full sm:w-auto py-3 text-[10px]"
+                >
+                  {editingClient ? 'Save changes' : 'Create client'}
+                </ZenButton>
+              </div>
+            </div>
+          </div>
+        </form>
+        </div>
+      )}
+
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        type={confirmState.type}
+      />
+    </ZenPageLayout>
+
+  );
+};
+
+export default Clients;

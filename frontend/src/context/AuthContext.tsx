@@ -1,0 +1,191 @@
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { type UserRole, getInitialRouteForUser, hasPermissionForRole } from '../config/accessControl';
+
+export type { UserRole };
+
+interface User {
+  _id?: string;
+  email: string;
+  role: UserRole;
+  name: string;
+  token?: string;
+  permissions?: string[];
+  branch?: string | { _id?: string; name?: string } | null;
+}
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  validating: boolean;
+  login: (email: string, password?: string) => Promise<{ success: boolean; message?: string; redirectPath?: string }>;
+  logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
+  hasPermission: (permId: string) => boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Safely access Vite environment variables
+const getApiUrl = () => {
+  try {
+    return (import.meta as any).env?.VITE_API_URL || 'http://localhost:5005/api';
+  } catch (e) {
+    return 'http://localhost:5005/api';
+  }
+};
+
+const API_URL = getApiUrl();
+
+const normalizeBranch = (branch: any): User['branch'] => {
+  if (!branch) return null;
+  if (typeof branch === 'string') return branch;
+  return {
+    _id: branch._id || '',
+    name: branch.name || ''
+  };
+};
+
+const normalizeAuthUser = (data: any): User => ({
+  _id: data._id,
+  email: data.email,
+  role: data.role as UserRole,
+  name: data.name,
+  permissions: Array.isArray(data.permissions) ? data.permissions : [],
+  branch: normalizeBranch(data.branch),
+  token: data.token
+});
+
+const parseResponseBody = async (response: Response) => {
+  const text = await response.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch (_error) {
+    return { message: text };
+  }
+};
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  // Use a unique storage key for staging to prevent token collision with live
+  const storageKey = API_URL.includes('staging_saloon_spa_crm') ? 'zen_spa_user_staging' : 'zen_spa_user';
+
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem(storageKey);
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed && parsed.email) {
+          return parsed;
+        }
+      } catch (error) {
+        console.error('Failed to parse saved user:', error);
+        localStorage.removeItem(storageKey);
+      }
+    }
+    return null;
+  });
+  const [loading] = useState(false);
+  const [validating, setValidating] = useState(true);
+
+  const hasPermission = (permId: string): boolean => {
+    if (!user) return false;
+    return hasPermissionForRole(user.role, user.permissions, permId);
+  };
+
+  const login = async (email: string, password?: string): Promise<{ success: boolean; message?: string; redirectPath?: string }> => {
+    try {
+      const response = await fetch(`${API_URL}/users/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await parseResponseBody(response);
+
+      if (response.ok) {
+        const userData = normalizeAuthUser(data);
+        setUser(userData);
+        localStorage.setItem(storageKey, JSON.stringify(userData));
+        return {
+          success: true,
+          redirectPath: getInitialRouteForUser(userData.role, userData.permissions)
+        };
+      } else {
+        const message = data.message || data.error || `Login failed (${response.status})`;
+        console.error('Login failed:', message);
+        return { success: false, message };
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, message: 'Unable to connect to the login service' };
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem(storageKey);
+    // Don't clear all zen_ keys, as they might belong to the other environment (live/staging)
+  };
+
+  const updateUser = (userData: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, ...userData };
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Background Sync: Ensure role/name/branch are always fresh from DB on mount
+  useEffect(() => {
+    const syncProfile = async () => {
+      if (!user?.token) {
+        setValidating(false);
+        return;
+      }
+      try {
+        const response = await fetch(`${API_URL}/users/profile`, {
+          headers: { 'Authorization': `Bearer ${user.token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          // Force update to ensure role and branch are correct values
+          const updates: Partial<User> = {
+            role: data.role,
+            name: data.name,
+            permissions: Array.isArray(data.permissions) ? data.permissions : [],
+            branch: normalizeBranch(data.branch)
+          };
+          updateUser(updates);
+          console.log('ZenSync: Identity and Branch validated');
+        } else if (response.status === 401) {
+          logout(); // Token expired or invalid
+        }
+      } catch (error) {
+        console.warn('ZenSync: Background validation failed');
+      } finally {
+        setValidating(false);
+      }
+    };
+
+    syncProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, loading, validating, login, logout, updateUser, hasPermission }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
