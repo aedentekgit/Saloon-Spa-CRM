@@ -24,7 +24,14 @@ export default defineConfig(({mode}) => {
         output: {
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined;
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            if (
+              id.includes('node_modules/react/') ||
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/react-is/') ||
+              id.includes('node_modules/scheduler/') ||
+              id.includes('node_modules/react-router/') ||
+              id.includes('node_modules/react-router-dom/')
+            ) {
               return 'vendor-react';
             }
             if (id.includes('recharts') || id.includes('d3-')) {
